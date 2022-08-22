@@ -36,8 +36,8 @@ workflows:
       # - build
       # - build_docs
       - run_rawBIDS_multises:
-          requires:
+          # requires:
           #  - build
           filters:
-          tags:
-            only: /.*/
+            tags:
+              only: /.*/
