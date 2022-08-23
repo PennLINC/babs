@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: chenyingzhao/datalad:datalad0.17.2
+    - image: chenyingzhao/datalad:datalad0.17.2_v1
 
 # TODO:
 # runinstall: &runinstall
