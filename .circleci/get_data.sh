@@ -2,6 +2,9 @@
 
 
 get_bids_data() {
+    set -e
+    set -o errexit
+
     WORKDIR=$1
     DS=$2
     ENTRYDIR=`pwd`
@@ -9,12 +12,18 @@ get_bids_data() {
     cd ${WORKDIR}/data
 
     # raw BIDS data, multi-ses:
-    if [[ ${DS} == "rawBIDS_multises" ]]; then
+    if [[ "${DS}" == "rawBIDS_multises" ]]; then
         datalad clone osf://fhm8b/ ${DS}
     fi
 
+    # check the dataset has been cloned:
+    cd ${DS}
+    datalad status
+
     # go back to the dir before running this current function:
     cd ${ENTRYDIR}
+
+    echo SUCCESS
 }
 
 

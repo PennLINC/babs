@@ -23,8 +23,7 @@ jobs:
           name: "Run BABS upon raw BIDS, multi-session dataset"
           no_output_timeout: 1h
           command: 
-            echo $CIRCLECI
-            pwd
+            echo ${PWD}
             cd .circleci
             bash run_rawBIDS_multises.sh
 
