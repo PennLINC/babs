@@ -19,7 +19,7 @@ get_bids_data() {
 
     # check the dataset has been cloned:
     cd ${DS}
-    #set -ex
+    set -ex
     datalad status
 
     # go back to the dir before running this current function:
