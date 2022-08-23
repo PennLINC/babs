@@ -2,8 +2,7 @@
 
 
 get_bids_data() {
-    # set -x
-    # set -e
+    set -e -x -u
     # set -o errexit
 
     WORKDIR=$1
