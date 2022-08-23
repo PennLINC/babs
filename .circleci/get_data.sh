@@ -13,7 +13,8 @@ get_bids_data() {
 
     # raw BIDS data, multi-ses:
     if [[ "${DS}" == "rawBIDS_multises" ]]; then
-        datalad clone osf://fhm8b/ ${DS}
+        #datalad clone osf://fhm8b/ ${DS}
+        datalad clone osf://osf_does_not_exist ${DS}
     fi
 
     # check the dataset has been cloned:
