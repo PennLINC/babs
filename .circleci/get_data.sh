@@ -2,8 +2,9 @@
 
 
 get_bids_data() {
-    set -e
-    set -o errexit
+    # set -x
+    # set -e
+    # set -o errexit
 
     WORKDIR=$1
     DS=$2
@@ -19,6 +20,7 @@ get_bids_data() {
 
     # check the dataset has been cloned:
     cd ${DS}
+    #set -ex
     datalad status
 
     # go back to the dir before running this current function:

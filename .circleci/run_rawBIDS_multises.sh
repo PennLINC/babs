@@ -2,10 +2,13 @@
 
 # This script is to run toy BIDS App upon the raw BIDS data (multi-ses)
 
+set -exu
+
 # Step 1. get the data
 source ./get_data.sh
 TESTDIR=${PWD}
 TESTNAME="rawBIDS_multises"
+# set -ex
 get_bids_data ${TESTDIR} rawBIDS_multises
 
 # Step 2. call `babs-init`
