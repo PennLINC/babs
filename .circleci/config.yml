@@ -27,6 +27,18 @@ jobs:
             cd .circleci
             bash run_rawBIDS.sh multises
 
+  run_rawBIDS_singleses:
+    <<: *dockersetup
+    steps:
+      - checkout
+      # - run: *runinstall
+      - run:
+          name: "Run BABS upon raw BIDS, single-session dataset"
+          no_output_timeout: 1h
+          command: |
+            cd .circleci
+            bash run_rawBIDS.sh singleses
+
 
 workflows:
   # version: 2

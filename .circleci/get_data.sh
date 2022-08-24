@@ -15,6 +15,8 @@ get_bids_data() {
     if [[ "${DS}" == "rawBIDS_multises" ]]; then
         datalad clone osf://j854e/ ${DS}  
         # tested: if osf project does not exist, there will be datalad install error, and the circle ci test will stop immediately with error
+    elif [[ "${DS}" == "rawBIDS_singleses" ]]; then
+        datalad clone osf://zd9a6/ ${DS}
     fi
 
     # check the dataset has been cloned:
