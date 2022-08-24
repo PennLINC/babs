@@ -13,14 +13,14 @@ get_bids_data() {
 
     # raw BIDS data, multi-ses:
     if [[ "${DS}" == "rawBIDS_multises" ]]; then
-        #datalad clone osf://fhm8b/ ${DS}
-        datalad clone osf://osf_does_not_exist ${DS}
+        datalad clone osf://j854e/ ${DS}  
+        # tested: if osf project does not exist, there will be datalad install error, and the circle ci test will stop immediately with error
     fi
 
     # check the dataset has been cloned:
     cd ${DS}
-    exit 1
     datalad status
+    tree
 
     # go back to the dir before running this current function:
     cd ${ENTRYDIR}
