@@ -8,7 +8,7 @@ set -e -x -u     # -u: raise error if any variable you haven't defined yet | -x:
 source ./get_data.sh
 TESTDIR=${PWD}
 TESTNAME="rawBIDS_multises"
-# set -ex
+set -e -x -u
 get_bids_data ${TESTDIR} rawBIDS_multises
 
 # Step 2. call `babs-init`
