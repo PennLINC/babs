@@ -52,3 +52,9 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - run_rawBIDS_singleses:
+          # requires:
+          #  - build
+          filters:
+            tags:
+              only: /.*/
