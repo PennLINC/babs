@@ -25,7 +25,7 @@ jobs:
           command: |
             # echo ${PWD}  # current pwd is /root/project
             cd .circleci
-            bash run_rawBIDS_multises.sh
+            bash run_rawBIDS.sh multises
 
 
 workflows:

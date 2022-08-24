@@ -20,7 +20,7 @@ get_bids_data() {
     # check the dataset has been cloned:
     cd ${DS}
     datalad status
-    ls sub-01/ses-A/dwi
+    #ls sub-01/ses-A/dwi
 
     # go back to the dir before running this current function:
     cd ${ENTRYDIR}
