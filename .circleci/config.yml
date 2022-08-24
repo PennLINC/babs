@@ -1,0 +1,60 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine.
+# See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+
+.dockersetup: &dockersetup
+  docker:
+    - image: chenyingzhao/datalad:datalad0.17.2_v1
+
+# TODO:
+# runinstall: &runinstall
+#     name: Install BABS
+
+
+jobs:
+  # TODO: build; build_docs; see QSIPrep
+
+  run_rawBIDS_multises:
+    <<: *dockersetup
+    steps:
+      - checkout
+      # - run: *runinstall
+      - run:
+          name: "Run BABS upon raw BIDS, multi-session dataset"
+          no_output_timeout: 1h
+          command: |
+            # echo ${PWD}  # current pwd is /root/project
+            cd .circleci
+            bash run_rawBIDS.sh multises
+
+  run_rawBIDS_singleses:
+    <<: *dockersetup
+    steps:
+      - checkout
+      # - run: *runinstall
+      - run:
+          name: "Run BABS upon raw BIDS, single-session dataset"
+          no_output_timeout: 1h
+          command: |
+            cd .circleci
+            bash run_rawBIDS.sh singleses
+
+
+workflows:
+  # version: 2
+  build_test_deploy:
+    jobs:
+      # - build
+      # - build_docs
+      - run_rawBIDS_multises:
+          # requires:
+          #  - build
+          filters:
+            tags:
+              only: /.*/
+      - run_rawBIDS_singleses:
+          # requires:
+          #  - build
+          filters:
+            tags:
+              only: /.*/
