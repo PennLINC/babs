@@ -5,8 +5,8 @@ import os.path as op
 import datalad.api as dlapi
 import pandas as pd
 
-class babs(object):
-    """The babs class is for babs projects of BIDS Apps"""
+class BABS():
+    """The BABS class is for babs projects of BIDS Apps"""
 
     def __init__(self, project_root, type_session, system):
         '''
@@ -25,13 +25,16 @@ class babs(object):
         self.system = system
 
 
-    def babs_bootstrap(self, input_ds_pd, container_ds):
+    def babs_bootstrap(self, input_pd, container_ds):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
         """
 
-        print("")
+        print("hey you entered babs_bootstrap method of BABS class!")
+        print("input_pd:")
+        print(input_pd)
 
+        print(container_ds)
         # Initialize: TODO
 
         # Bootstrap scripts: TODO
