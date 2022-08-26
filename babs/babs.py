@@ -2,6 +2,7 @@
 
 import os
 import os.path as op
+import subprocess
 import datalad.api as dlapi
 import pandas as pd
 
@@ -31,10 +32,16 @@ class BABS():
             the job scheduling system, "sge" or "slurm"
         analysis_datalad_handle: datalad dataset
             the `analysis` datalad dataset
+        input_ria_path: str
+            Path to the input RIA store, the sibling of `analysis`. The computation of each job will start with a clone from this input RIA store.
+        output_ria_path: str
+            Path to the output RIA store, the sibling of `analysis`. The results of jobs will be pushed to this output RIA store.
         input_ria_url: str
-            URL of input RIA store, sibling of `analysis`, starting with "ria+file://". The computation of each job will start with a clone from this input RIA store.
+            URL of input RIA store, starting with "ria+file://". 
         output_ria_url: str
-            URL of output RIA store, sibling of `analysis`, starting with "ria+file://". The results of jobs will be pushed to this output RIA store.
+            URL of output RIA store, starting with "ria+file://". 
+        output_ria_data_dir: str
+            Path to the output RIA's data directory. Example: /full/path/to/project_root/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
         '''
 
         self.project_root = project_root
@@ -44,8 +51,13 @@ class BABS():
         self.analysis_path = op.join(project_root, "analysis")
         self.analysis_datalad_handle = None
 
-        self.input_ria_url = "ria+file://" + op.join(project_root, "input_ria")
-        self.output_ria_url = "ria+file://" + op.join(project_root, "output_ria")
+        self.input_ria_path = op.join(project_root, "input_ria")
+        self.output_ria_path = op.join(project_root, "output_ria")
+
+        self.input_ria_url = "ria+file://" + self.input_ria_path
+        self.output_ria_url = "ria+file://" + self.output_ria_path
+
+        self.output_ria_data_dir = None     # not known yet before output_ria is created
 
 
     def babs_bootstrap(self, input_pd, container_ds):
@@ -62,6 +74,8 @@ class BABS():
             path to the container datalad dataset
 
         """
+
+        entry_pwd = os.getcwd()
 
         print("hey you entered babs_bootstrap method of BABS class!")
         print("input_pd:")
@@ -85,22 +99,46 @@ class BABS():
                 print("Folder 'analysis' exists in the `project_root` and is a datalad dataset; not to re-create it.")
                 self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
             except:
-                raise Exception("Folder 'analysis' exists but is not datalad dataset. Please remove this folder and rerun.")
+                raise Exception("Folder 'analysis' exists but is not a datalad dataset. Please remove this folder and rerun.")
         else:
             self.analysis_datalad_handle = dlapi.create(self.analysis_path,
                                                         cfg_proc='yoda',
                                                         annex=True)
 
-        # create RIA siblings:
-
-        # TODO: add sanity check: if the input_ria and output_ria have been created, check if they are analysis's siblings + they are ria siblings; then, update them with datalad push from anlaysis folder
-
-        self.analysis_datalad_handle.create_sibling_ria(name = "output",
-                                                        url = self.output_ria_url,
-                                                        new_store_ok = True)
+        # Create output RIA sibling:
+        if op.exists(self.output_ria_path):
+            pass
+            # TODO: add sanity check: if the input_ria and output_ria have been created, check if they are analysis's siblings + they are ria siblings; then, update them with datalad push from anlaysis folder
+        else:
+            self.analysis_datalad_handle.create_sibling_ria(name = "output",
+                                                            url = self.output_ria_url,
+                                                            new_store_ok = True)
         # ^ ref: in python environment: import datalad; help(datalad.distributed.create_sibling_ria)
+            # sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`, then `help(temp.create_sibling_ria)`, you can stop here, or now you can help(datalad.distributed.create_sibling_ria)
             # seems there is no docs online?
         # source code: https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
+
+        # get the `self.output_ria_data_dir`, e.g., /full/path/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
+        analysis_git_path = op.join(self.analysis_path, ".git")
+        proc_output_ria_data_dir = subprocess.run(
+            ["git", "--git-dir", analysis_git_path, "remote", "get-url", "--push", "output"],
+            stdout=subprocess.PIPE)   # another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
+        proc_output_ria_data_dir.check_returncode()   # if success: no output; if failed: will raise CalledProcessError
+        self.output_ria_data_dir = proc_output_ria_data_dir.stdout.decode('utf-8')
+        if self.output_ria_data_dir[-1:] == "\n":
+            self.output_ria_data_dir = self.output_ria_data_dir[:-1]  # remove the last 2 characters
+        
+        # Create input RIA sibling:
+        if op.exists(self.input_ria_path):
+            pass
+            # TODO: add sanity check: if the input_ria and output_ria have been created, check if they are analysis's siblings + they are ria siblings; then, update them with datalad push from anlaysis folder
+        else:
+            self.analysis_datalad_handle.create_sibling_ria(name = "input",
+                                                            url = self.input_ria_url,
+                                                            storage_sibling = False,   # False is `off` in CLI of datalad
+                                                            new_store_ok = True)
+            
+        # Register the input dataset:
 
 
         # ==============================================================
