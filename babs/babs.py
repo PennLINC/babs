@@ -74,14 +74,18 @@ class BABS():
         # ==============================================================
         
         # make a directory of project_root:
-        os.makedirs(self.project_root)  
+        if not op.exists(self.project_root):
+            os.makedirs(self.project_root)  
 
         # create `analysis` folder:
         if op.exists(self.analysis_path):
             # check if it's a datalad dataset:
-            _ = dlapi.status(dataset = self.analysis_path)  
-            print("Folder `analysis` exists in the `project_root`; not to re-create it.")
-            self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+            try:
+                _ = dlapi.status(dataset = self.analysis_path)  
+                print("Folder 'analysis' exists in the `project_root` and is a datalad dataset; not to re-create it.")
+                self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+            except:
+                raise Exception("Folder 'analysis' exists but is not datalad dataset. Please remove this folder and rerun.")
         else:
             self.analysis_datalad_handle = dlapi.create(self.analysis_path,
                                                         cfg_proc='yoda',

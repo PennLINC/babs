@@ -7,6 +7,7 @@ import pandas as pd
 import datalad.api as dlapi
 
 from babs.babs import BABS
+from babs.utils import *
 
 def babs_init(where_project, project_name, 
             input, container_ds,
@@ -40,9 +41,9 @@ def babs_init(where_project, project_name,
     # =================================================================
     project_root = op.join(where_project, project_name)
 
-    # check if it exists:
-    if op.exists(project_root):
-        raise Exception("the folder `project_name` already exists in the directory `where_project`!")
+    # # check if it exists:
+    # if op.exists(project_root):
+    #     raise Exception("the folder `project_name` already exists in the directory `where_project`!")
     
     # check if `where_project` is writable:
     if not os.access(where_project, os.W_OK):
@@ -57,7 +58,7 @@ def babs_init(where_project, project_name,
                             'input_ds': [input[1]]})
                             #  # TODO: make ^ generalized to more than one --input flags!
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
-    for the_input_ds in input_pd["input_ds"]
+    for the_input_ds in input_pd["input_ds"]:
         _ = dlapi.status(dataset = the_input_ds)  
         # ^^ if not datalad dataset, there will be an error saying no installed dataset found
         # if fine, will print "nothing to save, working tree clean"
