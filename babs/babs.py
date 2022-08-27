@@ -2,6 +2,7 @@
 
 import os
 import os.path as op
+from re import L
 import subprocess
 import datalad.api as dlapi
 import pandas as pd
@@ -84,7 +85,7 @@ class BABS():
         print(container_ds)
 
         # ==============================================================
-        # Initialize: TODO
+        # Initialize:
         # ==============================================================
         
         # make a directory of project_root:
@@ -106,6 +107,7 @@ class BABS():
                                                         annex=True)
 
         # Create output RIA sibling:
+        print("Creating output and input RIA...")
         if op.exists(self.output_ria_path):
             pass
             # TODO: add sanity check: if the input_ria and output_ria have been created, check if they are analysis's siblings + they are ria siblings; then, update them with datalad push from anlaysis folder
@@ -139,8 +141,28 @@ class BABS():
                                                             new_store_ok = True)
             
         # Register the input dataset:
+        if op.exists(op.join(self.analysis_path, "inputs/data")):
+            print("The input dataset has been copied into `analysis` folder; not to copy again.")
+            pass
+            # TODO: add sanity check: if its datalad sibling is input dataset
+        else:
+            print("Cloning input dataset(s)...")
+            dlapi.clone(dataset = self.analysis_path,  # clone input dataset(s) as sub-dataset into `analysis` dataset
+                        source = input_pd.at[0, "input_ds"],    # input dataset(s)
+                        path = op.join(self.analysis_path, "inputs/data"))   # path to clone into
 
+            # amend the previous commit with a nicer commit message:
+            proc_git_commit_amend = subprocess.run(
+                ["git", "commit", "--amend", "-m", "Register input data dataset as a subdataset"],
+                cwd = self.analysis_path,
+                stdout=subprocess.PIPE
+            )
+            proc_git_commit_amend.check_returncode()
 
+            # confirm there are subject folders in the cloned dataset:
+        # ^^ TODO: to be generalized to multiple input datasets!
+
+        print("")
         # ==============================================================
         # Bootstrap scripts: TODO
         # ==============================================================
