@@ -159,10 +159,31 @@ class BABS():
             )
             proc_git_commit_amend.check_returncode()
 
-            # confirm there are subject folders in the cloned dataset:
+            # confirm the cloned dataset is valid: if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
+            check_validity_input_dataset(op.join(self.analysis_path, "inputs/data"),
+                                        self.type_session)
         # ^^ TODO: to be generalized to multiple input datasets!
 
+        # Add container as sub-dataset of `analysis`:
+        # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
+        # dlapi.clone(source = container_ds,    # container datalad dataset
+        #             path = op.join(self.project_root, "containers"))   # path to clone into
+
+        # directly add container as sub-dataset of `analysis`:
+        dlapi.install(dataset = self.analysis_path,  # clone input dataset(s) as sub-dataset into `analysis` dataset
+                    source = container_ds,    # container datalad dataset
+                    path = op.join(self.analysis_path, "containers"))    # into `analysis\containers` folder
+
+        # original bash command, if directly going into as sub-dataset:
+        # datalad install -d . --source ../../toybidsapp-container-docker/ containers
+
+        # from our the way:
+        # cd ${PROJECTROOT}/analysis
+        # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
+
         print("")
+
+
         # ==============================================================
         # Bootstrap scripts: TODO
         # ==============================================================

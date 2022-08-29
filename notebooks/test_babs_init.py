@@ -10,9 +10,9 @@ from babs.cli import *
 
 where_project = "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data"
 project_name = "test_babs"
-input_ds = op.join(where_project, "zd9a6")
+input_ds = op.join(where_project, "j854e")
 type_session = "multi-ses"
-container_ds = op.join(where_project, "xxxx")
+container_ds = op.join(where_project, "toybidsapp-container-docker")
 
 babs_init(where_project, project_name, 
             input = ["False", input_ds],
