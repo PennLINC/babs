@@ -23,6 +23,11 @@ def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
         path to the input dataset. It should be the one after it's cloned to `analysis` folder
     type_session: str
         multi-ses or single-ses
+
+    Notes:
+    -----------
+    Tested with multi-ses and single-ses data; made sure that only single-ses data + type_session = "multi-ses" raise error.
+    TODO: add above tests to pytests
     """
 
     if type_session not in ["multi-ses", "single-ses"]:
@@ -40,6 +45,8 @@ def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
 
     if type_session == "multi-ses":
         for sub_temp in list_subs:   # every sub- folder should contain a session folder
+            if sub_temp[0] == ".":   # hidden folder
+                continue    # skip it
             is_valid_seslevel = False
             list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
             for ses_temp in list_sess:
@@ -50,9 +57,3 @@ def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
             if not is_valid_seslevel:
                 raise Exception("There is no `ses-*` folder in subject folder " + sub_temp)
 
-
-
-check_validity_input_dataset("/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs/analysis/inputs/data",
-"multi-ses")
-
-print("")
