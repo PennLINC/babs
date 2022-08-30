@@ -57,3 +57,14 @@ def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
             if not is_valid_seslevel:
                 raise Exception("There is no `ses-*` folder in subject folder " + sub_temp)
 
+def validate_type_session(type_session):
+
+    if type_session in ['single-ses', 'single_ses', 'single-session', 'single_session']:
+        type_session = "single-ses"
+    elif type_session in ['multi-ses', 'multi_ses', 'multiple-ses', 'multiple_ses', 
+                'multi-session', 'multi_session','multiple-session', 'multiple_session']:
+        type_session = "multi-ses"
+    else:
+        print('`type_session = ' + type_session + '` is not allowed!')
+
+    return type_session

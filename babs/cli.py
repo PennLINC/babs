@@ -4,7 +4,9 @@ import argparse
 import os
 import os.path as op
 
-from babs import babs, core_functions
+from babs.babs import *
+from babs.core_functions import *
+from babs.utils import *
 
 def babs_init_cli():
     """
@@ -37,6 +39,14 @@ def babs_init_cli():
         help="Path to the container datalad dataset",
         required=True)
     parser.add_argument(
+        '--container_name', '--container-name',
+        help="The name of the BIDS App container, the `NAME` in `datalad containers-add NAME`",
+        required=True)
+    parser.add_argument(
+        '--container_config_yaml_file', '--container_config_yaml_file',
+        help="A YAML file that contains the configurations of how to run the BIDS App container",
+        required=True)
+    parser.add_argument(
         "type_session", "type-session",
         choices=['single-ses', 'single_ses', 'single-session', 'single_session',
                 'multi-ses', 'multi_ses', 'multiple-ses', 'multiple_ses',
@@ -51,14 +61,9 @@ def babs_init_cli():
 
     args = parser.parse_args()
 
-
-    if args.type_session in ['single-ses', 'single_ses', 'single-session', 'single_session']:
-        type_session = "single-ses"
-    elif args.type_session in ['multi-ses', 'multi_ses', 'multiple-ses', 'multiple_ses', 
-                'multi-session', 'multi_session','multiple-session', 'multiple_session']:
-        type_session = "multi-ses"
-
+    type_session = validate_type_session(args.type_session)
     
     babs_init(args.where_project, args.project_name,
             args.input, args.container_ds,
+            args.container_name, args.container_config_yaml_file,
             type_session, args.system)

@@ -11,6 +11,7 @@ from babs.utils import *
 
 def babs_init(where_project, project_name, 
             input, container_ds,
+            container_name, container_config_yaml_file,
             type_session, system):
     
     """
@@ -74,4 +75,4 @@ def babs_init(where_project, project_name,
     print("job scheduling system of this BABS project: " + babs_proj.system)
 
     # call method `babs_bootstrap()`:
-    babs_proj.babs_bootstrap(input_pd, container_ds)
+    babs_proj.babs_bootstrap(input_pd, container_ds, container_name, container_config_yaml_file)

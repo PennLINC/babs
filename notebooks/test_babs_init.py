@@ -13,10 +13,15 @@ project_name = "test_babs"
 input_ds = op.join(where_project, "j854e")
 type_session = "multi-ses"
 container_ds = op.join(where_project, "toybidsapp-container-docker")
+container_name = "toybidsapp-0-0-3"
+container_config_yaml_file = "../notebooks/example_container.yaml"
+
 
 babs_init(where_project, project_name, 
             input = ["False", input_ds],
             container_ds = container_ds,
+            container_name = container_name,
+            container_config_yaml_file= container_config_yaml_file,
             type_session = type_session,
             system = "sge")
 
