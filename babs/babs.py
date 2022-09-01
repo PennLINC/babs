@@ -2,15 +2,16 @@
 
 import os
 import os.path as op
-from re import L
+# from re import L
 import subprocess
-import pandas as pd
+# import pandas as pd
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
-from babs.utils import *
-#from utils import *
+from babs.utils import (
+    check_validity_input_dataset, validate_type_session, read_container_config_yaml)
+
 
 class BABS():
     """The BABS class is for babs projects of BIDS Apps"""
@@ -37,15 +38,18 @@ class BABS():
         analysis_datalad_handle: datalad dataset
             the `analysis` datalad dataset
         input_ria_path: str
-            Path to the input RIA store, the sibling of `analysis`. The computation of each job will start with a clone from this input RIA store.
+            Path to the input RIA store, the sibling of `analysis`.
+            The computation of each job will start with a clone from this input RIA store.
         output_ria_path: str
-            Path to the output RIA store, the sibling of `analysis`. The results of jobs will be pushed to this output RIA store.
+            Path to the output RIA store, the sibling of `analysis`.
+            The results of jobs will be pushed to this output RIA store.
         input_ria_url: str
-            URL of input RIA store, starting with "ria+file://". 
+            URL of input RIA store, starting with "ria+file://".
         output_ria_url: str
-            URL of output RIA store, starting with "ria+file://". 
+            URL of output RIA store, starting with "ria+file://".
         output_ria_data_dir: str
-            Path to the output RIA's data directory. Example: /full/path/to/project_root/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
+            Path to the output RIA's data directory.
+            Example: /full/path/to/project_root/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
         '''
 
         self.project_root = project_root
@@ -63,7 +67,6 @@ class BABS():
 
         self.output_ria_data_dir = None     # not known yet before output_ria is created
 
-
     def babs_bootstrap(self, input_pd, container_ds, container_name, container_config_yaml_file):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
@@ -71,15 +74,15 @@ class BABS():
         Parameters:
         -------------
         input_pd: pandas DataFrame
-            Input dataset(s). 
-            Columns are: "is_zipped" (True or False) and "input_ds" (path to the input dataset) 
+            Input dataset(s).
+            Columns are: "is_zipped" (True or False) and "input_ds" (path to the input dataset)
             Can have more than one row (i.e., more than one input dataset).
         container_ds: str
             path to the container datalad dataset
 
         """
 
-        entry_pwd = os.getcwd()
+        # entry_pwd = os.getcwd()
 
         # print("hey you entered babs_bootstrap method of BABS class!")
         # print("input_pd:")
@@ -90,44 +93,55 @@ class BABS():
         # ==============================================================
         # Initialize:
         # ==============================================================
-        
+
         # make a directory of project_root:
         if not op.exists(self.project_root):
-            os.makedirs(self.project_root)  
+            os.makedirs(self.project_root)
 
         # create `analysis` folder:
+        print("\nCreating `analysis` folder (also a datalad dataset)...")
         if op.exists(self.analysis_path):
             # check if it's a datalad dataset:
             try:
-                _ = dlapi.status(dataset = self.analysis_path)  
-                print("Folder 'analysis' exists in the `project_root` and is a datalad dataset; not to re-create it.")
+                _ = dlapi.status(dataset=self.analysis_path)
+                print("Folder 'analysis' exists in the `project_root` and is a datalad dataset; "
+                      "not to re-create it.")
                 self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
             except:
-                raise Exception("Folder 'analysis' exists but is not a datalad dataset. Please remove this folder and rerun.")
+                raise Exception("Folder 'analysis' exists but is not a datalad dataset. "
+                                "Please remove this folder and rerun.")
         else:
             self.analysis_datalad_handle = dlapi.create(self.analysis_path,
                                                         cfg_proc='yoda',
                                                         annex=True)
 
         # Create output RIA sibling:
-        print("Creating output and input RIA...")
+        print("\nCreating output and input RIA...")
         if op.exists(self.output_ria_path):
             pass
-            # TODO: add sanity check: if the input_ria and output_ria have been created, check if they are analysis's siblings + they are ria siblings; then, update them with datalad push from anlaysis folder
+            # TODO: add sanity check: if the input_ria and output_ria have been created,
+            # check if they are analysis's siblings + they are ria siblings;
+            # then, update them with datalad push from anlaysis folder
         else:
-            self.analysis_datalad_handle.create_sibling_ria(name = "output",
-                                                            url = self.output_ria_url,
-                                                            new_store_ok = True)
-        # ^ ref: in python environment: import datalad; help(datalad.distributed.create_sibling_ria)
-            # sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`, then `help(temp.create_sibling_ria)`, you can stop here, or now you can help(datalad.distributed.create_sibling_ria)
+            self.analysis_datalad_handle.create_sibling_ria(name="output",
+                                                            url=self.output_ria_url,
+                                                            new_store_ok=True)
+        # ^ ref: in python environment:
+            # import datalad; help(datalad.distributed.create_sibling_ria)
+            # sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`,
+            # then `help(temp.create_sibling_ria)`, you can stop here,
+            # or now you can help(datalad.distributed.create_sibling_ria)
             # seems there is no docs online?
-        # source code: https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
+        # source code:
+            # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
 
-        # get the `self.output_ria_data_dir`, e.g., /full/path/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
+        # get the `self.output_ria_data_dir`,
+            # e.g., /full/path/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
         analysis_git_path = op.join(self.analysis_path, ".git")
         proc_output_ria_data_dir = subprocess.run(
             ["git", "--git-dir", analysis_git_path, "remote", "get-url", "--push", "output"],
-            stdout=subprocess.PIPE)   # another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
+            stdout=subprocess.PIPE)
+        # another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
         proc_output_ria_data_dir.check_returncode()   # if success: no output; if failed: will raise CalledProcessError
         self.output_ria_data_dir = proc_output_ria_data_dir.stdout.decode('utf-8')
         if self.output_ria_data_dir[-1:] == "\n":
@@ -144,7 +158,7 @@ class BABS():
                                                             new_store_ok = True)
             
         # Register the input dataset:
-        print("Register the input dataset...")
+        print("\nRegister the input dataset...")
         if op.exists(op.join(self.analysis_path, "inputs/data")):
             print("The input dataset has been copied into `analysis` folder; not to copy again.")
             pass
@@ -174,7 +188,7 @@ class BABS():
         #             path = op.join(self.project_root, "containers"))   # path to clone into
 
         # directly add container as sub-dataset of `analysis`:
-        print("Add the container as a sub-dataset of `analysis` dataset...")
+        print("\nAdd the container as a sub-dataset of `analysis` dataset...")
         if op.exists(op.join(self.analysis_path, "containers")):
             print("The container has been added as a sub-dataset; not to do it again.")
             pass
