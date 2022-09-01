@@ -3,7 +3,6 @@
         "--key": "value",
         "--another-key": "value",
         "--stop-on-first-crash": "",
-        "--participant-label": "{subid}"   // <-- placeholder: {subid}, to be changed to $subid
     },
     "babs_zip_filename": {
         "foldername1": "zip_filename_core1",
