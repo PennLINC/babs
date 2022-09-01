@@ -1,12 +1,18 @@
-{
-    "babs_singularity_run": {
-        "--key": "value",
-        "--another-key": "value",
-        "--stop-on-first-crash": "",
-    },
-    "babs_zip_filename": {
-        "foldername1": "zip_filename_core1",
-        "foldername2": "zip_filename_core2",
-        "fmriprep": "fmriprep"
-    }
-}
+# Below is example config yaml file for fMRIPrep:
+babs_singularity_run:
+    two_dash:
+        n_cpus: 1
+        stop-on-first-crash: ""
+        fs-license-file: code/license.txt
+        skip-bids-validation: ""
+        output-spaces: MNI152NLin6Asym:res-2 
+        force-bbr: ""
+        cifti-output: 91k
+    one_dash:
+        v: ""
+
+
+babs_zip_filename:
+    - fmriprep
+    - freesurfer
+

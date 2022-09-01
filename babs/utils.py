@@ -3,6 +3,7 @@
 import os
 import os.path as op
 import pkg_resources
+from ruamel.yaml import YAML
 
 def get_datalad_version():
     return pkg_resources.get_distribution('datalad').version
@@ -68,3 +69,13 @@ def validate_type_session(type_session):
         print('`type_session = ' + type_session + '` is not allowed!')
 
     return type_session
+
+def read_container_config_yaml(container_config_yaml_file):
+    yaml=YAML()
+    with open(container_config_yaml_file) as f:
+        config = yaml.load(f)
+        # ^^ config is an ordereddict; elements can be accessed by `config["key"]["sub-key"]`
+    f.close()
+    
+    print()
+    return config

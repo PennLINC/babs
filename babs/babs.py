@@ -200,7 +200,8 @@ class BABS():
         container = Container(container_ds, container_name, container_config_yaml_file)
 
         # Generate bash script of singularity run + zip:
-        
+        bash_path = op.join(self.analysis_path, "code", container_name, "_zip.sh")  # e.g., analysis/code/fmriprep-0-0-0_zip.sh
+        container.generate_bash_run_bidsapp(bash_path, self.type_session)
         print()
 
 
@@ -210,7 +211,7 @@ class BABS():
 
 class Container():
     """This class is for the BIDS App Container"""
-    def __init__(self, container_ds, container_name, config_yaml_file):
+    def __init__(self, container_ds, container_name, config_yaml_file=None):
         """
         This is to initalize Container class.
 
@@ -220,8 +221,9 @@ class Container():
             The path to the container datalad dataset as the input of `babs-init`
         container_name: str
             The name of the container when adding to datalad dataset (e.g., `NAME` in `datalad containers-add NAME`), e.g., fmriprep-0-0-0
-        config_yaml_file: str
+        config_yaml_file: str or None
             The YAML file that contains the configurations of how to run the container
+            This is optional argument (of the CLI `babs-init`)
         """
 
         self.container_ds = container_ds
@@ -242,12 +244,32 @@ class Container():
 
         type_session = validate_type_session(type_session)
 
-        # check if the folder exist; if not, create it:
+        # Check if the folder exist; if not, create it:
         bash_dir = op.dirname(bash_path)
         if not op.exists(bash_dir):
-            op.mkdir(bash_dir)
+            os.makedirs(bash_dir)
 
-        # write into the bash file:
+        
+        # TODO: continue adding commands......
+
+        # Read container config YAML file:
+        if self.config_yaml_file is None:
+            config = None
+            print("Did not provide `container_config_yaml_file`; command of singularity run will be read from information saved by `call-fmt` when `datalad containers-add.`")
+        else:
+            config = read_container_config_yaml(self.config_yaml_file)
+            # check if it contains information we need:
+            if "babs_singularity_run" not in config:
+                print("The key 'babs_singularity_run' was not included in the `container_config_yaml_file`. Therefore will not to refer to yaml for command of singularity run.")
+            else:   
+                print("temp: generate command for xxxx")   # contain \ for each key-value
+        print()
+
+
+        # TODO: read yaml file and parse the arguments in singularity run
+        # TODO: also corporate the `call-fmt` in `datalad containers-add`
+
+        # Write into the bash file:
         bash_file = open(bash_path, "a")   # open in append mode 
 
         bash_file.write('''\
@@ -260,10 +282,6 @@ class Container():
         if type_session == "multi-ses":
             bash_file.write('sesid="$2"')   # also have the input of `sesid`
             bash_file.write("\n")
-
-        # TODO: continue adding commands......
-
+        
+        
         bash_file.close()
-
-        # TODO: read yaml file and parse the arguments in singularity run
-        # TODO: also corporate the `call-fmt` in `datalad containers-add`

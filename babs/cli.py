@@ -48,8 +48,7 @@ def babs_init_cli():
         required=True)
     parser.add_argument(
         '--container_config_yaml_file', '--container_config_yaml_file',
-        help="A YAML file that contains the configurations of how to run the BIDS App container",
-        required=True)
+        help="A YAML file that contains the configurations of how to run the BIDS App container")
     parser.add_argument(
         "--type_session", "--type-session",
         choices=['single-ses', 'single_ses', 'single-session', 'single_session',
