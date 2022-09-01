@@ -72,5 +72,5 @@ def babs_init_cli():
             args.container_name, args.container_config_yaml_file,
             type_session, args.system)
 
-if __name__ == "__main__":
-    babs_init_cli()
+# if __name__ == "__main__":
+#     babs_init_cli()

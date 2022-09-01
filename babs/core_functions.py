@@ -23,8 +23,10 @@ def babs_init(where_project, project_name,
         absolute path to the directory where the project will be created
     project_name: str
         the babs project name
-    input: list
-        type of the input (is_zipped) and path to the input datalad dataset
+    input: nested list
+        for each sub-list: 
+            element 1: type of the input (is_zipped), True or False
+            element 2: path to the input datalad dataset
     container_ds: str
         path to the container datalad dataset
     type_session: str
@@ -70,9 +72,10 @@ def babs_init(where_project, project_name,
                     type_session,
                     system)
     # print out key information for visual check:
+    print("")
     print("project_root of this BABS project: " + babs_proj.project_root)
     print("type of data of this BABS project: " + babs_proj.type_session)
     print("job scheduling system of this BABS project: " + babs_proj.system)
-
+    print("")
     # call method `babs_bootstrap()`:
     babs_proj.babs_bootstrap(input_pd, container_ds, container_name, container_config_yaml_file)

@@ -18,7 +18,7 @@ container_config_yaml_file = "../notebooks/example_container.yaml"
 
 
 babs_init(where_project, project_name, 
-            input = ["False", input_ds],
+            input = [["False", input_ds]],
             container_ds = container_ds,
             container_name = container_name,
             container_config_yaml_file= container_config_yaml_file,
