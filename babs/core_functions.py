@@ -54,9 +54,9 @@ def babs_init(where_project, project_name,
 
 
     # change the `args.input` as a pandas table easy to read:
-    print(input)
-    input_pd = pd.DataFrame({'is_zipped':[input[0]], 
-                            'input_ds': [input[1]]})
+    #print(input)
+    input_pd = pd.DataFrame({'is_zipped':[input[0][0]], 
+                            'input_ds': [input[0][1]]})
                             #  # TODO: make ^ generalized to more than one --input flags!
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
     for the_input_ds in input_pd["input_ds"]:

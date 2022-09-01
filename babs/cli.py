@@ -3,6 +3,9 @@
 import argparse
 import os
 import os.path as op
+import sys
+
+#sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from babs.babs import *
 from babs.core_functions import *
@@ -33,6 +36,7 @@ def babs_init_cli():
         metavar=('is_zipped', 'path_input_dataset'),
         help='Input datalad dataset. First argument is whether the input dataset is zipped [True] or not [False]. Default is False. Second argument is the path to this input dataset.',
         required=True)
+    # args.input is a nested list, access the first input's first element: `args.input[0][0]` which gives False or True
     # TODO: ^^ should be able to accept multiple input datasets!
     parser.add_argument(
         '--container_ds', '--container-ds',
@@ -47,7 +51,7 @@ def babs_init_cli():
         help="A YAML file that contains the configurations of how to run the BIDS App container",
         required=True)
     parser.add_argument(
-        "type_session", "type-session",
+        "--type_session", "--type-session",
         choices=['single-ses', 'single_ses', 'single-session', 'single_session',
                 'multi-ses', 'multi_ses', 'multiple-ses', 'multiple_ses',
                 'multi-session', 'multi_session','multiple-session', 'multiple_session'], 
@@ -67,3 +71,6 @@ def babs_init_cli():
             args.input, args.container_ds,
             args.container_name, args.container_config_yaml_file,
             type_session, args.system)
+
+if __name__ == "__main__":
+    babs_init_cli()
