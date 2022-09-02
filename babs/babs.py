@@ -10,7 +10,8 @@ import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
 from babs.utils import (
-    check_validity_input_dataset, validate_type_session, read_container_config_yaml)
+    check_validity_input_dataset, generate_cmd_singularityRun_from_config,
+    validate_type_session, read_container_config_yaml)
 
 
 class BABS():
@@ -289,8 +290,14 @@ class Container():
                       "in the `container_config_yaml_file`. "
                       "Therefore will not to refer to yaml for command of singularity run.")
             else:
-                print("")
-                # print("temp: generate command for xxxx")   # contain \ for each key-value
+                # print("Generate singularity run command from `container_config_yaml_file`")
+                # # contain \ for each key-value
+
+                # read config from the yaml file:
+                cmd_singularity_flags = generate_cmd_singularityRun_from_config(config)
+                print("the command for singularity run, read from yaml file:")
+                print(cmd_singularity_flags)
+
         print()
 
         # TODO: read yaml file and parse the arguments in singularity run
