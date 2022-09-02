@@ -5,16 +5,20 @@ import os.path as op
 import pkg_resources
 from ruamel.yaml import YAML
 
+
 def get_datalad_version():
-    return pkg_resources.get_distribution('datalad').version
+    return pkg_resources.get_distribution("datalad").version
+
 
 def get_immediate_subdirectories(a_dir):
-    return [name for name in os.listdir(a_dir)
-            if os.path.isdir(os.path.join(a_dir, name))]
+    return [
+        name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))
+    ]
 
-def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
+
+def check_validity_input_dataset(input_ds_path, type_session="single-ses"):
     """
-    Check if the input dataset is valid. 
+    Check if the input dataset is valid.
     * if it's multi-ses: subject + session should both appear
     * if it's single-ses: there should be sub folder, but no ses folder
 
@@ -27,7 +31,8 @@ def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
 
     Notes:
     -----------
-    Tested with multi-ses and single-ses data; made sure that only single-ses data + type_session = "multi-ses" raise error.
+    Tested with multi-ses and single-ses data;
+        made sure that only single-ses data + type_session = "multi-ses" raise error.
     TODO: add above tests to pytests
     """
 
@@ -42,40 +47,55 @@ def check_validity_input_dataset(input_ds_path, type_session = "single-ses"):
             is_valid_sublevel = True
             break
     if not is_valid_sublevel:
-        raise Exception("There is no `sub-*` folder in this input dataset: " + input_ds_path)
+        raise Exception(
+            "There is no `sub-*` folder in this input dataset: " + input_ds_path
+        )
 
     if type_session == "multi-ses":
-        for sub_temp in list_subs:   # every sub- folder should contain a session folder
-            if sub_temp[0] == ".":   # hidden folder
-                continue    # skip it
+        for sub_temp in list_subs:  # every sub- folder should contain a session folder
+            if sub_temp[0] == ".":  # hidden folder
+                continue  # skip it
             is_valid_seslevel = False
             list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
             for ses_temp in list_sess:
-                if ses_temp[0:4] == "ses-":   # if one of the folder starts with "ses-", then it's fine
+                if ses_temp[0:4] == "ses-":
+                    # if one of the folder starts with "ses-", then it's fine
                     is_valid_seslevel = True
                     break
-                
+
             if not is_valid_seslevel:
-                raise Exception("There is no `ses-*` folder in subject folder " + sub_temp)
+                raise Exception(
+                    "There is no `ses-*` folder in subject folder " + sub_temp
+                )
+
 
 def validate_type_session(type_session):
 
-    if type_session in ['single-ses', 'single_ses', 'single-session', 'single_session']:
+    if type_session in ["single-ses", "single_ses", "single-session", "single_session"]:
         type_session = "single-ses"
-    elif type_session in ['multi-ses', 'multi_ses', 'multiple-ses', 'multiple_ses', 
-                'multi-session', 'multi_session','multiple-session', 'multiple_session']:
+    elif type_session in [
+        "multi-ses",
+        "multi_ses",
+        "multiple-ses",
+        "multiple_ses",
+        "multi-session",
+        "multi_session",
+        "multiple-session",
+        "multiple_session",
+    ]:
         type_session = "multi-ses"
     else:
-        print('`type_session = ' + type_session + '` is not allowed!')
+        print("`type_session = " + type_session + "` is not allowed!")
 
     return type_session
 
+
 def read_container_config_yaml(container_config_yaml_file):
-    yaml=YAML()
+    yaml = YAML()
     with open(container_config_yaml_file) as f:
         config = yaml.load(f)
         # ^^ config is an ordereddict; elements can be accessed by `config["key"]["sub-key"]`
     f.close()
-    
+
     print()
     return config

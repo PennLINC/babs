@@ -7,15 +7,15 @@ import pandas as pd
 import datalad.api as dlapi
 
 from babs.babs import BABS
-from babs.utils import *
+from babs.utils import (get_datalad_version)
 
-def babs_init(where_project, project_name, 
-            input, container_ds,
-            container_name, container_config_yaml_file,
-            type_session, system):
-    
+
+def babs_init(where_project, project_name,
+              input, container_ds,
+              container_name, container_config_yaml_file,
+              type_session, system):
     """
-    This is to core function of babs-init. 
+    This is to core function of babs-init.
 
     Parameters:
     --------------
@@ -24,7 +24,7 @@ def babs_init(where_project, project_name,
     project_name: str
         the babs project name
     input: nested list
-        for each sub-list: 
+        for each sub-list:
             element 1: type of the input (is_zipped), True or False
             element 2: path to the input datalad dataset
     container_ds: str
@@ -37,7 +37,8 @@ def babs_init(where_project, project_name,
 
     """
     # print datalad version:
-    print("DataLad version: " + get_datalad_version())   # if no datalad is installed, will raise error
+    # if no datalad is installed, will raise error
+    print("DataLad version: " + get_datalad_version())
 
     # =================================================================
     # Sanity checks:
@@ -47,30 +48,28 @@ def babs_init(where_project, project_name,
     # # check if it exists:
     # if op.exists(project_root):
     #     raise Exception("the folder `project_name` already exists in the directory `where_project`!")
-    
+
     # check if `where_project` is writable:
     if not os.access(where_project, os.W_OK):
         raise Exception("the `where_project` is not writable!")
 
     # TODO: add sanity check of type_session and system!
 
-
     # change the `args.input` as a pandas table easy to read:
-    #print(input)
-    input_pd = pd.DataFrame({'is_zipped':[input[0][0]], 
+    # print(input)
+    input_pd = pd.DataFrame({'is_zipped': [input[0][0]],
                             'input_ds': [input[0][1]]})
-                            #  # TODO: make ^ generalized to more than one --input flags!
+    #  # TODO: make ^ generalized to more than one --input flags!
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
     for the_input_ds in input_pd["input_ds"]:
-        _ = dlapi.status(dataset = the_input_ds)  
+        _ = dlapi.status(dataset=the_input_ds)
         # ^^ if not datalad dataset, there will be an error saying no installed dataset found
         # if fine, will print "nothing to save, working tree clean"
 
-
     # Create an instance of babs class:
     babs_proj = BABS(project_root,
-                    type_session,
-                    system)
+                     type_session,
+                     system)
     # print out key information for visual check:
     print("")
     print("project_root of this BABS project: " + babs_proj.project_root)

@@ -142,21 +142,25 @@ class BABS():
             ["git", "--git-dir", analysis_git_path, "remote", "get-url", "--push", "output"],
             stdout=subprocess.PIPE)
         # another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
-        proc_output_ria_data_dir.check_returncode()   # if success: no output; if failed: will raise CalledProcessError
+        # if success: no output; if failed: will raise CalledProcessError
+        proc_output_ria_data_dir.check_returncode()
         self.output_ria_data_dir = proc_output_ria_data_dir.stdout.decode('utf-8')
         if self.output_ria_data_dir[-1:] == "\n":
-            self.output_ria_data_dir = self.output_ria_data_dir[:-1]  # remove the last 2 characters
-        
+            # remove the last 2 characters
+            self.output_ria_data_dir = self.output_ria_data_dir[:-1]
+
         # Create input RIA sibling:
         if op.exists(self.input_ria_path):
             pass
-            # TODO: add sanity check: if the input_ria and output_ria have been created, check if they are analysis's siblings + they are ria siblings; then, update them with datalad push from anlaysis folder
+            # TODO: add sanity check: if the input_ria and output_ria have been created,
+            # check if they are analysis's siblings + they are ria siblings;
+            # then, update them with datalad push from anlaysis folder
         else:
-            self.analysis_datalad_handle.create_sibling_ria(name = "input",
-                                                            url = self.input_ria_url,
-                                                            storage_sibling = False,   # False is `off` in CLI of datalad
-                                                            new_store_ok = True)
-            
+            self.analysis_datalad_handle.create_sibling_ria(name="input",
+                                                            url=self.input_ria_url,
+                                                            storage_sibling=False,   # False is `off` in CLI of datalad
+                                                            new_store_ok=True)
+
         # Register the input dataset:
         print("\nRegister the input dataset...")
         if op.exists(op.join(self.analysis_path, "inputs/data")):
@@ -165,21 +169,23 @@ class BABS():
             # TODO: add sanity check: if its datalad sibling is input dataset
         else:
             print("Cloning input dataset(s)...")
-            dlapi.clone(dataset = self.analysis_path,  # clone input dataset(s) as sub-dataset into `analysis` dataset
-                        source = input_pd.at[0, "input_ds"],    # input dataset(s)
-                        path = op.join(self.analysis_path, "inputs/data"))   # path to clone into
+            # clone input dataset(s) as sub-dataset into `analysis` dataset:
+            dlapi.clone(dataset=self.analysis_path,
+                        source=input_pd.at[0, "input_ds"],    # input dataset(s)
+                        path=op.join(self.analysis_path, "inputs/data"))   # path to clone into
 
             # amend the previous commit with a nicer commit message:
             proc_git_commit_amend = subprocess.run(
                 ["git", "commit", "--amend", "-m", "Register input data dataset as a subdataset"],
-                cwd = self.analysis_path,
+                cwd=self.analysis_path,
                 stdout=subprocess.PIPE
             )
             proc_git_commit_amend.check_returncode()
 
-            # confirm the cloned dataset is valid: if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
+            # confirm the cloned dataset is valid:
+            # if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
             check_validity_input_dataset(op.join(self.analysis_path, "inputs/data"),
-                                        self.type_session)
+                                         self.type_session)
         # ^^ TODO: to be generalized to multiple input datasets!
 
         # Add container as sub-dataset of `analysis`:
@@ -194,9 +200,11 @@ class BABS():
             pass
             # TODO: check if the container has been successfully added as a sub-dataset!
         else:
-            dlapi.install(dataset = self.analysis_path,  # clone input dataset(s) as sub-dataset into `analysis` dataset
-                        source = container_ds,    # container datalad dataset
-                        path = op.join(self.analysis_path, "containers"))    # into `analysis\containers` folder
+            # clone input dataset(s) as sub-dataset into `analysis` dataset
+            dlapi.install(dataset=self.analysis_path,
+                          source=container_ds,    # container datalad dataset
+                          path=op.join(self.analysis_path, "containers"))
+            # into `analysis\containers` folder
 
         # original bash command, if directly going into as sub-dataset:
         # datalad install -d . --source ../../toybidsapp-container-docker/ containers
@@ -205,8 +213,6 @@ class BABS():
         # cd ${PROJECTROOT}/analysis
         # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
-
-
         # ==============================================================
         # Bootstrap scripts: TODO
         # ==============================================================
@@ -214,17 +220,19 @@ class BABS():
         container = Container(container_ds, container_name, container_config_yaml_file)
 
         # Generate bash script of singularity run + zip:
-        bash_path = op.join(self.analysis_path, "code", container_name, "_zip.sh")  # e.g., analysis/code/fmriprep-0-0-0_zip.sh
+        # e.g., analysis/code/fmriprep-0-0-0_zip.sh
+        bash_path = op.join(self.analysis_path, "code", container_name, "_zip.sh")
         container.generate_bash_run_bidsapp(bash_path, self.type_session)
         print()
-
 
         # ==============================================================
         # Clean up: TODO
         # ==============================================================
 
+
 class Container():
     """This class is for the BIDS App Container"""
+
     def __init__(self, container_ds, container_name, config_yaml_file=None):
         """
         This is to initalize Container class.
@@ -234,7 +242,9 @@ class Container():
         container_ds: str
             The path to the container datalad dataset as the input of `babs-init`
         container_name: str
-            The name of the container when adding to datalad dataset (e.g., `NAME` in `datalad containers-add NAME`), e.g., fmriprep-0-0-0
+            The name of the container when adding to datalad dataset (e.g., `NAME` in
+             `datalad containers-add NAME`)
+             e.g., fmriprep-0-0-0
         config_yaml_file: str or None
             The YAML file that contains the configurations of how to run the container
             This is optional argument (of the CLI `babs-init`)
@@ -263,28 +273,31 @@ class Container():
         if not op.exists(bash_dir):
             os.makedirs(bash_dir)
 
-        
         # TODO: continue adding commands......
 
         # Read container config YAML file:
         if self.config_yaml_file is None:
             config = None
-            print("Did not provide `container_config_yaml_file`; command of singularity run will be read from information saved by `call-fmt` when `datalad containers-add.`")
+            print("Did not provide `container_config_yaml_file`; "
+                  "command of singularity run will be read from information "
+                  "saved by `call-fmt` when `datalad containers-add.`")
         else:
             config = read_container_config_yaml(self.config_yaml_file)
             # check if it contains information we need:
             if "babs_singularity_run" not in config:
-                print("The key 'babs_singularity_run' was not included in the `container_config_yaml_file`. Therefore will not to refer to yaml for command of singularity run.")
-            else:   
-                print("temp: generate command for xxxx")   # contain \ for each key-value
+                print("The key 'babs_singularity_run' was not included "
+                      "in the `container_config_yaml_file`. "
+                      "Therefore will not to refer to yaml for command of singularity run.")
+            else:
+                print("")
+                # print("temp: generate command for xxxx")   # contain \ for each key-value
         print()
-
 
         # TODO: read yaml file and parse the arguments in singularity run
         # TODO: also corporate the `call-fmt` in `datalad containers-add`
 
         # Write into the bash file:
-        bash_file = open(bash_path, "a")   # open in append mode 
+        bash_file = open(bash_path, "a")   # open in append mode
 
         bash_file.write('''\
             #!/bin/bash
@@ -296,6 +309,5 @@ class Container():
         if type_session == "multi-ses":
             bash_file.write('sesid="$2"')   # also have the input of `sesid`
             bash_file.write("\n")
-        
-        
+
         bash_file.close()
