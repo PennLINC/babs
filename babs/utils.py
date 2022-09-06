@@ -101,6 +101,24 @@ def read_container_config_yaml(container_config_yaml_file):
     return config
 
 
+def replace_placeholder_from_config(value):
+    """
+    Replace the placeholder in values in container config yaml file
+
+    Parameters:
+    -------------
+    value: str (or number)
+        the value (v.s. key) in the input container config yaml file. Read in by babs.
+        Okay to be a number; we will change it to str.
+
+    """
+    value = str(value)
+    if value == "$BABS_TMPDIR":
+        replaced = "${PWD}/.git/tmp/wkdir"
+
+    return replaced
+
+
 def generate_cmd_singularityRun_from_config(config):
     """
     This is to generate command (in strings) of singularity run
@@ -139,7 +157,11 @@ def generate_cmd_singularityRun_from_config(config):
         if value == "":   # a flag, without value
             cmd += "\n\t" + "--" + str(key)
         else:  # a flag with value
-            cmd += "\n\t" + "--" + str(key) + " " + str(value)
+            if str(value)[:6] == "$BABS_":   # placeholder
+                replaced = replace_placeholder_from_config(value)
+                cmd += "\n\t" + "--" + str(key) + " " + str(replaced)
+            else:
+                cmd += "\n\t" + "--" + str(key) + " " + str(value)
 
         is_first_flag = False
 
@@ -153,7 +175,14 @@ def generate_cmd_singularityRun_from_config(config):
         if not is_first_flag:
             cmd += " \ "
 
-        cmd += "\n\t" + "-" + str(key)
+        if value == "":   # a flag, without value
+            cmd += "\n\t" + "-" + str(key)
+        else:   # a flag with value
+            if str(value)[:6] == "$BABS_":   # placeholder
+                replaced = replace_placeholder_from_config(value)
+                cmd += "\n\t" + "-" + str(key) + " " + str(replaced)
+            else:
+                cmd += "\n\t" + "-" + str(key) + " " + str(value)
 
         is_first_flag = False
 
