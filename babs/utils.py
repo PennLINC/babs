@@ -137,7 +137,7 @@ def generate_cmd_singularityRun_from_config(config):
     """
 
     # human readable: (just like appearance in a yaml file;
-    print(yaml.dump(config, sort_keys=False))
+    print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
 
     # not very human readable way, if nested structure:
     # for key, value in config.items():
@@ -146,8 +146,9 @@ def generate_cmd_singularityRun_from_config(config):
     cmd = ""
     is_first_flag = True
 
-    # two_dash:
-    for key, value in config["babs_singularity_run"]["two_dash"].items():
+    # example key: "-w", "--n_cpus"
+    # example value: "", "xxx", Null (placeholder)
+    for key, value in config["babs_singularity_run"].items():
         # print(key + ": " + str(value))
 
         if not is_first_flag:
@@ -155,41 +156,28 @@ def generate_cmd_singularityRun_from_config(config):
             cmd += " \ "
 
         if value == "":   # a flag, without value
-            cmd += "\n\t" + "--" + str(key)
+            cmd += "\n\t" + str(key)
         else:  # a flag with value
-            if str(value)[:6] == "$BABS_":   # placeholder
+            # check if it is a placeholder which needs to be replaced:
+            if str(value)[:6] == "$BABS_":
                 replaced = replace_placeholder_from_config(value)
-                cmd += "\n\t" + "--" + str(key) + " " + str(replaced)
+                cmd += "\n\t" + str(key) + " " + str(replaced)
+
+            elif value is None:    # if entered `Null` or `NULL` without quotes
+                cmd += "\n\t" + str(key)
+            elif value in ["Null", "NULL"]:  # "Null" or "NULL" w/ quotes, i.e., as strings
+                cmd += "\n\t" + str(key)
+
+            # there is no placeholder to deal with:
             else:
-                cmd += "\n\t" + "--" + str(key) + " " + str(value)
-
-        is_first_flag = False
-
-        # print(cmd)
-
-    # one dash:
-    # similar to two dash, one dash's value is '': e.g., {'key': ''}
-    for key, value in config["babs_singularity_run"]["one_dash"].items():
-        # print(key + ": " + str(value))
-
-        if not is_first_flag:
-            cmd += " \ "
-
-        if value == "":   # a flag, without value
-            cmd += "\n\t" + "-" + str(key)
-        else:   # a flag with value
-            if str(value)[:6] == "$BABS_":   # placeholder
-                replaced = replace_placeholder_from_config(value)
-                cmd += "\n\t" + "-" + str(key) + " " + str(replaced)
-            else:
-                cmd += "\n\t" + "-" + str(key) + " " + str(value)
+                cmd += "\n\t" + str(key) + " " + str(value)
 
         is_first_flag = False
 
         # print(cmd)
 
     # example of access one slot:
-    # config["babs_singularity_run"]["two_dash"]["n_cpus"]
+    # config["babs_singularity_run"]["n_cpus"]
 
     # print(cmd)
     return (cmd)

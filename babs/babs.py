@@ -80,7 +80,10 @@ class BABS():
             Can have more than one row (i.e., more than one input dataset).
         container_ds: str
             path to the container datalad dataset
-
+        container_name: str
+            TODO: add desc!
+        container_config_yaml_file: str
+            TODO: add desc!
         """
 
         # entry_pwd = os.getcwd()
@@ -222,7 +225,7 @@ class BABS():
 
         # Generate bash script of singularity run + zip:
         # e.g., analysis/code/fmriprep-0-0-0_zip.sh
-        bash_path = op.join(self.analysis_path, "code", container_name, "_zip.sh")
+        bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
         container.generate_bash_run_bidsapp(bash_path, self.type_session)
         print()
 
@@ -303,18 +306,35 @@ class Container():
         # TODO: read yaml file and parse the arguments in singularity run
         # TODO: also corporate the `call-fmt` in `datalad containers-add`
 
+        # Check if the bash file already exist:
+        if op.exists(bash_path):
+            os.remove(bash_path)  # remove it
+
         # Write into the bash file:
         bash_file = open(bash_path, "a")   # open in append mode
 
         bash_file.write('''\
-            #!/bin/bash
-            set -e -u -x
+        #!/bin/bash
+        set -e -u -x
 
-            subid="$1"
-            ''')
+        subid="$1"
+        ''')
 
         if type_session == "multi-ses":
-            bash_file.write('sesid="$2"')   # also have the input of `sesid`
-            bash_file.write("\n")
+            # also have the input of `sesid`:
+            bash_file.write('sesid="$2"')
+            bash_file.write("\n\n")
+
+            if any(ele in self.container_name.lower() for ele in ["fmriprep", "qsiprep"]):
+                # ^^ if the container_name (changed to lower case) contains `fmriprep` or `qsiprep`:
+                # ^^ case insensitive, accept "fMRIPrep-0-0-0"
+                # also needs a $filterfile flag:
+                cmd_singularity_flags += " \ " + "\n\t"
+                cmd_singularity_flags += "--bids-filter-file ${filterfile}"  # <- TODO: test out!!
+
+        bash_file.write(cmd_singularity_flags)
+        bash_file.write("\n\n")
 
         bash_file.close()
+
+        print()
