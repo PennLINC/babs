@@ -133,11 +133,11 @@ def generate_cmd_singularityRun_from_config(config):
     ---------
     cmd: str
         It's part of the singularity run command; it is generated
-        based on yaml file's `babs_singularity_run`.
+        based on section `babs_singularity_run` in the yaml file.
     """
 
     # human readable: (just like appearance in a yaml file;
-    print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
+    # print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
 
     # not very human readable way, if nested structure:
     # for key, value in config.items():
@@ -188,3 +188,41 @@ def generate_cmd_singularityRun_from_config(config):
     #     raise Exception("Invalid element under `one_dash`: " + str(key) + ": " + str(value) +
     #                     "\n" + "The value should be empty '', instead of " + str(value))
     #     # tested: '' or "" is the same to pyyaml
+
+
+def generate_cmd_zipping_from_config(config, type_session, output_foldername="outputs"):
+    """
+    This is to generate bash command to zip BIDS App outputs.
+    Parameters:
+    ------------
+    config: dictionary
+        got from `read_container_config_yaml()`.
+    type_session: str
+        "multi-ses" or "single-ses"
+    output_foldername: str
+        the foldername of the outputs of BIDS App; default is "outputs".
+
+    Returns:
+    ---------
+    cmd: str
+        It's part of the `<containerName_zip.sh>`; it is generated
+        based on section `babs_zip_foldername` in the yaml file.
+    """
+
+    # cd to output folder:
+    cmd = "cd " + output_foldername + "\n"
+
+    # 7z:
+    if type_session == "multi-ses":
+        str_sesid = "_${sesid}"
+    else:
+        str_sesid = ""
+
+    for zipname in config["babs_zip_foldername"]:  # each element is a foldername to be zipped
+        cmd += "7z a ../${subid}" + str_sesid + "_" + zipname + ".zip" + " " + zipname + "\n"
+        # e.g., 7z a ../${subid}_${sesid}_fmriprep.zip fmriprep  # this is multi-ses
+
+    # return to original dir:
+    cmd += "cd ..\n"
+
+    return cmd

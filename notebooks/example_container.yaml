@@ -27,7 +27,7 @@ cli_call: |
     # "", `Null`, `NULL` (without quotes), or with quotes: "Null", "NULL":
         # will all be taken as there is no value in the arguments
 babs_singularity_run:
-    --test: NULL
+    #--test: NULL
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""
@@ -38,7 +38,7 @@ babs_singularity_run:
     --cifti-output: 91k
     -v: ''
 
-babs_zip_filename:
+babs_zip_foldername:   # the foldername(s) to get zipped
     - fmriprep
     - freesurfer
 

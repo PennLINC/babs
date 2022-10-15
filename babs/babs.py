@@ -10,7 +10,7 @@ import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
 from babs.utils import (
-    check_validity_input_dataset, generate_cmd_singularityRun_from_config,
+    check_validity_input_dataset, generate_cmd_singularityRun_from_config, generate_cmd_zipping_from_config,
     validate_type_session, read_container_config_yaml)
 
 
@@ -79,7 +79,7 @@ class BABS():
             Columns are: "is_zipped" (True or False) and "input_ds" (path to the input dataset)
             Can have more than one row (i.e., more than one input dataset).
         container_ds: str
-            path to the container datalad dataset
+            path to the container datalad dataset which the user provides
         container_name: str
             TODO: add desc!
         container_config_yaml_file: str
@@ -166,7 +166,7 @@ class BABS():
                                                             new_store_ok=True)
 
         # Register the input dataset:
-        print("\nRegister the input dataset...")
+        print("\nRegistering the input dataset...")
         if op.exists(op.join(self.analysis_path, "inputs/data")):
             print("The input dataset has been copied into `analysis` folder; not to copy again.")
             pass
@@ -198,7 +198,7 @@ class BABS():
         #             path = op.join(self.project_root, "containers"))   # path to clone into
 
         # directly add container as sub-dataset of `analysis`:
-        print("\nAdd the container as a sub-dataset of `analysis` dataset...")
+        print("\nAdding the container as a sub-dataset of `analysis` dataset...")
         if op.exists(op.join(self.analysis_path, "containers")):
             print("The container has been added as a sub-dataset; not to do it again.")
             pass
@@ -225,6 +225,8 @@ class BABS():
 
         # Generate bash script of singularity run + zip:
         # e.g., analysis/code/fmriprep-0-0-0_zip.sh
+        print("\nGenerating bash script for running container and zipping the outputs...")
+        print("This bash script will be named as `" + container_name + "_zip.sh`")
         bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
         container.generate_bash_run_bidsapp(bash_path, self.type_session)
         print()
@@ -237,26 +239,46 @@ class BABS():
 class Container():
     """This class is for the BIDS App Container"""
 
-    def __init__(self, container_ds, container_name, config_yaml_file=None):
+    def __init__(self, container_ds, container_name, config_yaml_file):
         """
         This is to initalize Container class.
 
         Parameters:
         --------------
         container_ds: str
-            The path to the container datalad dataset as the input of `babs-init`
+            The path to the container datalad dataset as the input of `babs-init`.
+            This container datalad ds is prepared by the user.
         container_name: str
             The name of the container when adding to datalad dataset (e.g., `NAME` in
-             `datalad containers-add NAME`)
+             `datalad containers-add NAME`),
              e.g., fmriprep-0-0-0
-        config_yaml_file: str or None
+        config_yaml_file: str
+            The YAML file that contains the configurations of how to run the container
+
+        Attributes:
+        --------------
+        container_ds: str
+            The path to the container datalad dataset as the input of `babs-init`.
+            This container datalad ds is prepared by the user.
+        container_name: str
+            The name of the container when adding to datalad dataset (e.g., `NAME` in
+            `datalad containers-add NAME`),
+             e.g., fmriprep-0-0-0
+        config_yaml_file: str
             The YAML file that contains the configurations of how to run the container
             This is optional argument (of the CLI `babs-init`)
+        container_path_relToAnalysis: str
+            The path to the container image saved in BABS project;
+            this path is relative to `analysis` folder.
+            e.g., `containers/.datalad/environments/fmriprep-0-0-0/image`
         """
 
         self.container_ds = container_ds
         self.container_name = container_name
         self.config_yaml_file = config_yaml_file
+
+        self.container_path_relToAnalysis = op.join("containers", ".datalad", "environments",
+                                                    self.container_name, "image")
 
     def generate_bash_run_bidsapp(self, bash_path, type_session):
         """
@@ -271,6 +293,7 @@ class Container():
         """
 
         type_session = validate_type_session(type_session)
+        output_foldername = "outputs"    # folername of BIDS App outputs
 
         # Check if the folder exist; if not, create it:
         bash_dir = op.dirname(bash_path)
@@ -280,30 +303,25 @@ class Container():
         # TODO: continue adding commands......
 
         # Read container config YAML file:
-        if self.config_yaml_file is None:
-            config = None
-            print("Did not provide `container_config_yaml_file`; "
-                  "command of singularity run will be read from information "
-                  "saved by `call-fmt` when `datalad containers-add.`")
+        config = read_container_config_yaml(self.config_yaml_file)
+        # check if it contains information we need:
+        if "babs_singularity_run" not in config:
+            print("The key 'babs_singularity_run' was not included "
+                  "in the `container_config_yaml_file`. "
+                  "Therefore we will not refer to the yaml file for `singularity run` arguments, "
+                  "but will use regular `singularity run` command.")
+        #       "command of singularity run will be read from information "
+        #       "saved by `call-fmt` when `datalad containers-add.`")
+            cmd_singularity_flags = "\n\t"
         else:
-            config = read_container_config_yaml(self.config_yaml_file)
-            # check if it contains information we need:
-            if "babs_singularity_run" not in config:
-                print("The key 'babs_singularity_run' was not included "
-                      "in the `container_config_yaml_file`. "
-                      "Therefore will not to refer to yaml for command of singularity run.")
-            else:
-                # print("Generate singularity run command from `container_config_yaml_file`")
-                # # contain \ for each key-value
+            # print("Generate singularity run command from `container_config_yaml_file`")
+            # # contain \ for each key-value
 
-                # read config from the yaml file:
-                cmd_singularity_flags = generate_cmd_singularityRun_from_config(config)
-                print("the command for singularity run, read from yaml file:")
-                print(cmd_singularity_flags)
+            # read config from the yaml file:
+            cmd_singularity_flags = generate_cmd_singularityRun_from_config(config)
 
         print()
 
-        # TODO: read yaml file and parse the arguments in singularity run
         # TODO: also corporate the `call-fmt` in `datalad containers-add`
 
         # Check if the bash file already exist:
@@ -313,28 +331,70 @@ class Container():
         # Write into the bash file:
         bash_file = open(bash_path, "a")   # open in append mode
 
-        bash_file.write('''\
-        #!/bin/bash
-        set -e -u -x
+        bash_file.write("#!/bin/bash\n")
+        bash_file.write("set -e -u -x\n")
 
-        subid="$1"
-        ''')
+        bash_file.write('\nsubid="$1"\n')
 
         if type_session == "multi-ses":
             # also have the input of `sesid`:
-            bash_file.write('sesid="$2"')
-            bash_file.write("\n\n")
+            bash_file.write('sesid="$2"\n')
 
+        bash_file.write("\n")
+
+        # Write the head of the command `singularity run`:
+        bash_file.write("mkdir -p ${PWD}/.git/tmp/wdir\n")
+        cmd_head_singularityRun = "singularity run --cleanenv -B ${PWD}"
+        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += self.container_path_relToAnalysis
+        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += "inputs/data"
+        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += output_foldername   # output folder
+        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += "participant"  # at participant-level
+        cmd_head_singularityRun += " \ "
+        bash_file.write(cmd_head_singularityRun)
+
+        # Write the named arguments + values:
+        # add more arguments that are covered by BABS (instead of users):
+        if type_session == "multi-ses":
             if any(ele in self.container_name.lower() for ele in ["fmriprep", "qsiprep"]):
-                # ^^ if the container_name (changed to lower case) contains `fmriprep` or `qsiprep`:
-                # ^^ case insensitive, accept "fMRIPrep-0-0-0"
+                # ^^ if the container_name contains `fmriprep` or `qsiprep`:
+                # ^^ case insensitive (as have changed to lower case), accept "fMRIPrep-0-0-0"
                 # also needs a $filterfile flag:
                 cmd_singularity_flags += " \ " + "\n\t"
                 cmd_singularity_flags += "--bids-filter-file ${filterfile}"  # <- TODO: test out!!
 
+                # generate the ${filterfile}:
+                # TODO ^^
+
+        cmd_singularity_flags += " \ \n\t"
+        cmd_singularity_flags += "--participant-label ${subid}"   # standard argument in BIDS App
+
         bash_file.write(cmd_singularity_flags)
         bash_file.write("\n\n")
 
+        print("Below is the generated `singularity run` command:")
+        print(cmd_head_singularityRun + cmd_singularity_flags)
+
+        # Zip:
+        cmd_zip = generate_cmd_zipping_from_config(config, type_session, output_foldername)
+        bash_file.write(cmd_zip)
+
+        # Delete folders and files:
+        """
+        rm -rf prep .git/tmp/wkdir
+        rm ${filterfile}
+        """
+        cmd_clean = "rm -rf " + output_foldername + " " + ".git/tmp/wkdir" + "\n"
+        if type_session == "multi-ses":
+            cmd_clean += "rm ${filterfile}" + " \n"
+
+        bash_file.write(cmd_clean)
+
+        # Done:
+        bash_file.write("\n")
         bash_file.close()
 
         print()
