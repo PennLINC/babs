@@ -10,7 +10,8 @@ import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
 from babs.utils import (
-    check_validity_input_dataset, generate_cmd_singularityRun_from_config, generate_cmd_zipping_from_config,
+    check_validity_input_dataset, generate_cmd_filterfile, generate_cmd_singularityRun_from_config, generate_cmd_envvar,
+    generate_cmd_zipping_from_config,
     validate_type_session, read_container_config_yaml)
 
 
@@ -342,6 +343,24 @@ class Container():
 
         bash_file.write("\n")
 
+        # Check if `--bids-filter-file "${filterfile}"` is needed:
+        flag_filterfile = False
+        if type_session == "multi-ses":
+            if any(ele in self.container_name.lower() for ele in ["fmriprep", "qsiprep"]):
+                # ^^ if the container_name contains `fmriprep` or `qsiprep`:
+                # ^^ case insensitive (as have changed to lower case), accept "fMRIPrep-0-0-0"
+                flag_filterfile = True
+
+                # generate the command of generating the `$filterfile`,
+                # i.e., `${sesid}_filter.json`:
+                cmd_filterfile = generate_cmd_filterfile(self.container_name)
+                bash_file.write(cmd_filterfile)
+
+        # Other necessary commands for preparation:
+        cmd_envvar = generate_cmd_envvar(config, self.container_name)
+        # If it's xcp, we expect there is `SINGULARITYENV_TEMPLATEFLOW_HOME`
+        bash_file.write(cmd_envvar)
+
         # Write the head of the command `singularity run`:
         bash_file.write("mkdir -p ${PWD}/.git/tmp/wdir\n")
         cmd_head_singularityRun = "singularity run --cleanenv -B ${PWD}"
@@ -358,19 +377,13 @@ class Container():
 
         # Write the named arguments + values:
         # add more arguments that are covered by BABS (instead of users):
-        if type_session == "multi-ses":
-            if any(ele in self.container_name.lower() for ele in ["fmriprep", "qsiprep"]):
-                # ^^ if the container_name contains `fmriprep` or `qsiprep`:
-                # ^^ case insensitive (as have changed to lower case), accept "fMRIPrep-0-0-0"
-                # also needs a $filterfile flag:
-                cmd_singularity_flags += " \ " + "\n\t"
-                cmd_singularity_flags += "--bids-filter-file ${filterfile}"  # <- TODO: test out!!
-
-                # generate the ${filterfile}:
-                # TODO ^^
+        if flag_filterfile is True:
+            # also needs a $filterfile flag:
+            cmd_singularity_flags += " \ " + "\n\t"
+            cmd_singularity_flags += '--bids-filter-file "${filterfile}"'  # <- TODO: test out!!
 
         cmd_singularity_flags += " \ \n\t"
-        cmd_singularity_flags += "--participant-label ${subid}"   # standard argument in BIDS App
+        cmd_singularity_flags += '--participant-label "${subid}"'   # standard argument in BIDS App
 
         bash_file.write(cmd_singularity_flags)
         bash_file.write("\n\n")

@@ -17,7 +17,7 @@ type_session = "multi-ses"
 
 project_name = "test_babs_" + type_session
 container_ds = op.join(where_project, "toybidsapp-container-docker")
-container_name = "toybidsapp-0-0-3"
+container_name = "qsiprep-0-0-0"  # "toybidsapp-0-0-3"
 container_config_yaml_file = \
     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container.yaml"
 

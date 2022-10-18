@@ -2,8 +2,9 @@
 
 import os
 import os.path as op
+import warnings
 import pkg_resources
-#from ruamel.yaml import YAML
+# from ruamel.yaml import YAML
 import yaml
 
 
@@ -190,6 +191,50 @@ def generate_cmd_singularityRun_from_config(config):
     #     # tested: '' or "" is the same to pyyaml
 
 
+def generate_cmd_envvar(config, container_name):
+    """
+    This is to generate bash command to export necessary environment variables.
+
+    Parameters:
+    ------------
+    config: dictionary
+        got from `read_container_config_yaml()`.
+    container_name: str
+        The name of the container when adding to datalad dataset.
+        e.g., fmriprep-0-0-0.
+        See class `Container` for more.
+    """
+    cmd = ""
+
+    if "environment_variable" in config:
+        # the user provides environment variable(s) to export:
+        for key, value in config["environment_variable"].items():
+            cmd += "\nexport " + key + "='" + value + "'"
+            # e.g., for xcp: # export SINGULARITYENV_TEMPLATEFLOW_HOME='~/.cache/templateflow'
+        cmd += "\n"
+
+    # If it's xcp but user did not provide env var:
+    if "xcp" in container_name.lower():
+        # usually we need to `export SINGULARITYENV_TEMPLATEFLOW_HOME`
+        flag_templateflow_done = False
+        if "environment_variable" in config:
+            if "SINGULARITYENV_TEMPLATEFLOW_HOME" in config["environment_variable"]:
+                flag_templateflow_done = True   # is set in yaml
+
+        if flag_templateflow_done is False:   # user did not provide in yaml
+            print("This is a XCP container," +
+                  " but there is no `SINGULARITYENV_TEMPLATEFLOW_HOME`" +
+                  " set in section `environment_variable` in" +
+                  " `container_config_yaml_file`." +
+                  " We will directly get it from `templateflow`...")
+
+            # check template flow by babs:
+
+            # if still not found, warning...
+
+    return cmd
+
+
 def generate_cmd_zipping_from_config(config, type_session, output_foldername="outputs"):
     """
     This is to generate bash command to zip BIDS App outputs.
@@ -218,11 +263,74 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     else:
         str_sesid = ""
 
-    for zipname in config["babs_zip_foldername"]:  # each element is a foldername to be zipped
-        cmd += "7z a ../${subid}" + str_sesid + "_" + zipname + ".zip" + " " + zipname + "\n"
-        # e.g., 7z a ../${subid}_${sesid}_fmriprep.zip fmriprep  # this is multi-ses
+    if "babs_zip_foldername" in config:
+        value_temp = ""
+        temp = 0
+
+        for key, value in config["babs_zip_foldername"].items():
+            # each key is a foldername to be zipped;
+            # each value is the version string;
+            temp = temp + 1
+            if (temp != 1) & (value_temp != value):    # not matching last value
+                warnings.warn("In section `babs_zip_foldername` in `container_config_yaml_file`: \n"
+                              "The version string of '" + key + "': '" + value + "'" +
+                              " does not match with the last version string; " +
+                              "we suggest using the same version string across all foldernames.")
+            value_temp = value
+
+            cmd += "7z a ../${subid}" + str_sesid + "_" + \
+                key + "-" + value + ".zip" + " " + key + "\n"
+            # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
+
+    else:    # the yaml file does not have the section `babs_zip_foldername`:
+        raise Exception("The `container_config_yaml_file` does not contain" +
+                        " the section `babs_zip_foldername`. Please add this section!")
 
     # return to original dir:
     cmd += "cd ..\n"
+
+    return cmd
+
+
+def generate_cmd_filterfile(container_name):
+    """
+    This is to generate the command for generating the filter file (.json)
+    which is used by BIDS App e.g., fMRIPrep and QSIPrep's argument
+    `--bids-filter-file $filterfile`.
+    This command will be part of `<containerName_zip.sh>`.
+    """
+
+    cmd = ""
+
+    cmd += """# Create a filter file that only allows this session
+filterfile=${PWD}/${sesid}_filter.json
+echo "{" > ${filterfile}"""
+
+    cmd += """\necho "'fmap': {'datatype': 'fmap'}," >> ${filterfile}"""
+
+    if "fmriprep" in container_name.lower():
+        cmd += """\necho "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'}," >> ${filterfile}"""  # noqa: E731,E123
+
+    elif "qsiprep" in container_name.lower():
+        cmd += """\necho "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'}," >> ${filterfile}"""  # noqa: E731,E123
+
+    cmd += """
+echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'}," >> ${filterfile}
+echo "'flair': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'FLAIR'}," >> ${filterfile}
+echo "'t2w': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'T2w'}," >> ${filterfile}
+echo "'t1w': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'T1w'}," >> ${filterfile}
+echo "'roi': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'roi'}" >> ${filterfile}
+echo "}" >> ${filterfile}
+
+# remove ses and get valid json"""
+
+    # below is one command but has to be cut into several pieces to print:
+    cmd += """\nsed -i "s/'/"""
+    cmd += """\\"""     # this is to print out "\";
+    cmd += '"/g" ${filterfile}'
+
+    cmd += """\nsed -i "s/ses-//g" ${filterfile}"""
+
+    cmd += "\n\n"
 
     return cmd
