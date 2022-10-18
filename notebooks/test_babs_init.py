@@ -16,11 +16,12 @@ type_session = "multi-ses"
 # type_session = "single-ses"
 
 project_name = "test_babs_" + type_session
+bidsapp = "qsiprep"
 container_ds = op.join(where_project, "toybidsapp-container-docker")
-container_name = "qsiprep-0-0-0"  # "toybidsapp-0-0-3"
-container_config_yaml_file = \
-    "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container.yaml"
-
+container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
+container_config_yaml_file = op.join("/Users/chenyzh/Desktop/Research/Satterthwaite_Lab",
+                                     "datalad_wrapper/babs/notebooks",
+                                     "example_container_" + bidsapp + ".yaml")
 
 babs_init(where_project, project_name,
           input=[["False", input_ds]],

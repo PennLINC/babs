@@ -116,7 +116,8 @@ def replace_placeholder_from_config(value):
     value = str(value)
     if value == "$BABS_TMPDIR":
         replaced = "${PWD}/.git/tmp/wkdir"
-
+    elif value == "$FREESURFER_LICENSE":
+        replaced = "code/license.txt"
     return replaced
 
 
@@ -135,6 +136,8 @@ def generate_cmd_singularityRun_from_config(config):
     cmd: str
         It's part of the singularity run command; it is generated
         based on section `babs_singularity_run` in the yaml file.
+    flag_fs_license: True or False
+        Whether FreeSurfer's license will be used; if so, BABS needs to copy it to workspace.
     """
 
     # human readable: (just like appearance in a yaml file;
@@ -146,6 +149,7 @@ def generate_cmd_singularityRun_from_config(config):
 
     cmd = ""
     is_first_flag = True
+    flag_fs_license = False
 
     # example key: "-w", "--n_cpus"
     # example value: "", "xxx", Null (placeholder)
@@ -162,6 +166,10 @@ def generate_cmd_singularityRun_from_config(config):
             # check if it is a placeholder which needs to be replaced:
             if str(value)[:6] == "$BABS_":
                 replaced = replace_placeholder_from_config(value)
+                cmd += "\n\t" + str(key) + " " + str(replaced)
+            elif str(value) == "$FREESURFER_LICENSE":
+                replaced = replace_placeholder_from_config(value)
+                flag_fs_license = True
                 cmd += "\n\t" + str(key) + " " + str(replaced)
 
             elif value is None:    # if entered `Null` or `NULL` without quotes
@@ -181,7 +189,7 @@ def generate_cmd_singularityRun_from_config(config):
     # config["babs_singularity_run"]["n_cpus"]
 
     # print(cmd)
-    return (cmd)
+    return cmd, flag_fs_license
 
 
 # adding zip filename:

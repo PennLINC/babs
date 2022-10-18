@@ -4,15 +4,18 @@ import os
 import os.path as op
 # from re import L
 import subprocess
-# import pandas as pd
+import warnings
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
-from babs.utils import (
-    check_validity_input_dataset, generate_cmd_filterfile, generate_cmd_singularityRun_from_config, generate_cmd_envvar,
-    generate_cmd_zipping_from_config,
-    validate_type_session, read_container_config_yaml)
+from babs.utils import (check_validity_input_dataset, generate_cmd_envvar,
+                        generate_cmd_filterfile,
+                        generate_cmd_singularityRun_from_config,
+                        generate_cmd_zipping_from_config,
+                        read_container_config_yaml, validate_type_session)
+
+# import pandas as pd
 
 
 class BABS():
@@ -319,7 +322,8 @@ class Container():
             # # contain \ for each key-value
 
             # read config from the yaml file:
-            cmd_singularity_flags = generate_cmd_singularityRun_from_config(config)
+            cmd_singularity_flags, flag_fs_license = generate_cmd_singularityRun_from_config(
+                config)
 
         print()
 
@@ -406,8 +410,47 @@ class Container():
 
         bash_file.write(cmd_clean)
 
-        # Done:
+        # Done generating `<containerName>_zip.sh`:
         bash_file.write("\n")
         bash_file.close()
+
+        # Execute necessary commands:
+        # change the permission of this bash file:
+        proc_chmod_bashfile = subprocess.run(
+            ["chmod", "+x", bash_path],  # e.g., chmod +x code/fmriprep_zip.sh
+            stdout=subprocess.PIPE
+            )
+        proc_chmod_bashfile.check_returncode()
+
+        # if needed, copy Freesurfer license:
+        if flag_fs_license is True:
+            # check if `${FREESURFER_HOME}/license.txt` exists: if not, error.. # <-- TODO
+            freesurfer_home = os.getenv('FREESURFER_HOME')  # get env variable
+            if freesurfer_home is None:    # did not set
+                raise Exception(
+                    "FreeSurfer's license will be used" +
+                    " but `$FREESURFER_HOME` was not set." +
+                    " Therefore, BABS cannot copy and paste FreeSurfer's license..."
+                    )
+            fs_license_path_from = op.join(freesurfer_home, "license.txt")
+            if op.exists(fs_license_path_from) is False:
+                raise Exception("There is no `license.txt` file in $FREESURFER_HOME to be copied!")
+
+            fs_license_path_to = op.join(bash_dir, "license.txt")  # `bash_dir` is `analysis/code`
+            proc_copy_fs_license = subprocess.run(
+                # e.g., cp ${FREESURFER_HOME}/license.txt code/license.txt
+                ["cp", fs_license_path_from, fs_license_path_to],
+                stdout=subprocess.PIPE
+            )
+            proc_copy_fs_license.check_returncode()
+
+        # TODO (not necessary in this function):
+        """
+        mkdir logs
+        echo .SGE_datalad_lock >> .gitignore
+        echo logs >> .gitignore
+
+        datalad save -m "Participant compute job implementation"
+        """
 
         print()
