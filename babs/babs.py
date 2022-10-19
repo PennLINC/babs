@@ -40,6 +40,8 @@ class BABS():
             whether the input dataset is "multi-ses" or "single-ses"
         system: str
             the job scheduling system, "sge" or "slurm"
+        analysis_path: str
+            path to the `analysis` folder.
         analysis_datalad_handle: datalad dataset
             the `analysis` datalad dataset
         input_ria_path: str
@@ -227,14 +229,45 @@ class BABS():
 
         container = Container(container_ds, container_name, container_config_yaml_file)
 
-        # Generate bash script of singularity run + zip:
-        # e.g., analysis/code/fmriprep-0-0-0_zip.sh
+        # Generate `<containerName>_zip.sh`: ----------------------------------
+        # which is a bash script of singularity run + zip
+        # in folder: `analysis/code`
         print("\nGenerating bash script for running container and zipping the outputs...")
         print("This bash script will be named as `" + container_name + "_zip.sh`")
         bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
         container.generate_bash_run_bidsapp(bash_path, self.type_session)
-        print()
 
+        # Generate `participant_job.sh`: --------------------------------------
+        # TODO: ^^
+
+        # Finish up and get ready for clusters running: -----------------------
+        # datalad save:
+        # TODO (not necessary in this function):
+        """
+        datalad save -m "Participant compute job implementation"
+        """
+
+        # create folder `logs` in `analysis`; future log files go here
+        log_path = op.join(self.analysis_path, "logs")
+        if not op.exists(log_path):
+            os.makedirs(log_path)
+
+        # write into .gitignore so won't be tracked by git:
+        gitignore_path = op.join(self.analysis_path, ".gitignore")
+        gitignore_file = open(gitignore_path, "a")   # open in append mode
+
+        gitignore_file.write("\nlogs")   # not to track `logs` folder
+        # not to track `.*_datalad_lock`:
+        if self.system == "sge":
+            gitignore_file.write("\n.SGE_datalad_lock")
+        elif self.system == "slurm":
+            # TODO: add command for `slurm`!!!
+            print("Not supported yet... To work on...")
+        gitignore_file.write("\n")
+
+        gitignore_file.close()
+
+        print()
         # ==============================================================
         # Clean up: TODO
         # ==============================================================
@@ -283,6 +316,8 @@ class Container():
 
         self.container_path_relToAnalysis = op.join("containers", ".datalad", "environments",
                                                     self.container_name, "image")
+
+        # TODO: validate that this `container_name` really exists in `container_ds`...
 
     def generate_bash_run_bidsapp(self, bash_path, type_session):
         """
@@ -361,13 +396,20 @@ class Container():
                 bash_file.write(cmd_filterfile)
 
         # Other necessary commands for preparation:
-        cmd_envvar = generate_cmd_envvar(config, self.container_name)
-        # If it's xcp, we expect there is `SINGULARITYENV_TEMPLATEFLOW_HOME`
+        cmd_envvar, templateflow_home, singularityenv_templateflow_home = generate_cmd_envvar(
+            config, self.container_name)
         bash_file.write(cmd_envvar)
 
         # Write the head of the command `singularity run`:
-        bash_file.write("mkdir -p ${PWD}/.git/tmp/wdir\n")
+        bash_file.write("mkdir -p ${PWD}/.git/tmp/wkdir\n")
         cmd_head_singularityRun = "singularity run --cleanenv -B ${PWD}"
+
+        # check if `templateflow_home` needs to be bind:
+        if templateflow_home is not None:
+            cmd_head_singularityRun += "," + templateflow_home + ":"
+            cmd_head_singularityRun += singularityenv_templateflow_home
+            # ^^ bind to dir in container
+
         cmd_head_singularityRun += " \ " + "\n\t"
         cmd_head_singularityRun += self.container_path_relToAnalysis
         cmd_head_singularityRun += " \ " + "\n\t"
@@ -444,13 +486,4 @@ class Container():
             )
             proc_copy_fs_license.check_returncode()
 
-        # TODO (not necessary in this function):
-        """
-        mkdir logs
-        echo .SGE_datalad_lock >> .gitignore
-        echo logs >> .gitignore
-
-        datalad save -m "Participant compute job implementation"
-        """
-
-        print()
+        # print()

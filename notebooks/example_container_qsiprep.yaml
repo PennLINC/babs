@@ -2,7 +2,7 @@
 
 cli_call: |
     -v -v \
-    -w ${PWD}/.git/tmp/wdir \
+    -w ${PWD}/.git/tmp/wkdir \
     --n_cpus $NSLOTS \
     --stop-on-first-crash \
     --fs-license-file code/license.txt \
