@@ -25,8 +25,8 @@ def babs_init(where_project, project_name,
         the babs project name
     input: nested list
         for each sub-list:
-            element 1: type of the input (is_zipped), True or False
-            element 2: path to the input datalad dataset
+            element 1: name of input datalad dataset (str)
+            element 2: path to the input datalad dataset (str)
     container_ds: str
         path to the container datalad dataset
     type_session: str
@@ -55,11 +55,14 @@ def babs_init(where_project, project_name,
 
     # TODO: add sanity check of type_session and system!
 
-    # change the `args.input` as a pandas table easy to read:
-    # print(input)
-    input_pd = pd.DataFrame({'is_zipped': [input[0][0]],
-                            'input_ds': [input[0][1]]})
-    #  # TODO: make ^ generalized to more than one --input flags!
+    # change the `args.input` from list to a pandas table easy to read:
+    input_pd = pd.DataFrame("",
+                            index=list(range(0, len(input))),
+                            columns=['input_ds_name', 'input_ds'])
+    for i in range(0, len(input)):
+        input_pd["input_ds_name"][i] = input[i][0]
+        input_pd["input_ds"][i] = input[i][1]
+
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
     for the_input_ds in input_pd["input_ds"]:
         _ = dlapi.status(dataset=the_input_ds)

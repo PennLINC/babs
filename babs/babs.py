@@ -82,7 +82,8 @@ class BABS():
         -------------
         input_pd: pandas DataFrame
             Input dataset(s).
-            Columns are: "is_zipped" (True or False) and "input_ds" (path to the input dataset)
+            Columns are: "input_ds_name" (input dataset name)
+            and "input_ds" (path to the input dataset)
             Can have more than one row (i.e., more than one input dataset).
         container_ds: str
             path to the container datalad dataset which the user provides
@@ -171,32 +172,45 @@ class BABS():
                                                             storage_sibling=False,   # False is `off` in CLI of datalad
                                                             new_store_ok=True)
 
-        # Register the input dataset:
-        print("\nRegistering the input dataset...")
-        if op.exists(op.join(self.analysis_path, "inputs/data")):
-            print("The input dataset has been copied into `analysis` folder; not to copy again.")
-            pass
-            # TODO: add sanity check: if its datalad sibling is input dataset
-        else:
-            print("Cloning input dataset(s)...")
-            # clone input dataset(s) as sub-dataset into `analysis` dataset:
-            dlapi.clone(dataset=self.analysis_path,
-                        source=input_pd.at[0, "input_ds"],    # input dataset(s)
-                        path=op.join(self.analysis_path, "inputs/data"))   # path to clone into
+        # Register the input dataset(s):
+        print("\nRegistering the input dataset(s)...")
+        num_input_ds = input_pd.shape[0]
+        for i_ds in range(0, num_input_ds):
+            # path to cloned dataset:
+            i_ds_path = op.join(self.analysis_path,
+                                "inputs/data",
+                                input_pd["input_ds_name"][i_ds])
+            if op.exists(i_ds_path):
+                print("The input dataset #" + str(i_ds+1) + " '"
+                      + input_pd["input_ds_name"][i_ds] + "'"
+                      + " has been copied into `analysis` folder; "
+                      "not to copy again.")
+                pass
+                # TODO: add sanity check: if its datalad sibling is input dataset
+            else:
+                print("Cloning input dataset #" + str(i_ds+1) + ": '"
+                      + input_pd["input_ds_name"][i_ds] + "'")
+                # clone input dataset(s) as sub-dataset into `analysis` dataset:
+                dlapi.clone(dataset=self.analysis_path,
+                            source=input_pd.at[0, "input_ds"],    # input dataset(s)
+                            path=i_ds_path)  # path to clone into
 
-            # amend the previous commit with a nicer commit message:
-            proc_git_commit_amend = subprocess.run(
-                ["git", "commit", "--amend", "-m", "Register input data dataset as a subdataset"],
-                cwd=self.analysis_path,
-                stdout=subprocess.PIPE
-            )
-            proc_git_commit_amend.check_returncode()
+                # amend the previous commit with a nicer commit message:
+                proc_git_commit_amend = subprocess.run(
+                    ["git", "commit", "--amend", "-m",
+                     "Register input data dataset '" + input_pd["input_ds_name"][i_ds]
+                     + "' as a subdataset"],
+                    cwd=self.analysis_path,
+                    stdout=subprocess.PIPE
+                )
+                proc_git_commit_amend.check_returncode()
 
-            # confirm the cloned dataset is valid:
-            # if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
-            check_validity_input_dataset(op.join(self.analysis_path, "inputs/data"),
-                                         self.type_session)
-        # ^^ TODO: to be generalized to multiple input datasets!
+                # confirm the cloned dataset is valid:
+                # if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
+                check_validity_input_dataset(i_ds_path,
+                                             self.type_session)
+                # ^^ TODO: add checking it's a zipped or unzipped dataset before this!!
+                #    may be another for loop
 
         # Add container as sub-dataset of `analysis`:
         # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
@@ -470,9 +484,9 @@ class Container():
             freesurfer_home = os.getenv('FREESURFER_HOME')  # get env variable
             if freesurfer_home is None:    # did not set
                 raise Exception(
-                    "FreeSurfer's license will be used" +
-                    " but `$FREESURFER_HOME` was not set." +
-                    " Therefore, BABS cannot copy and paste FreeSurfer's license..."
+                    "FreeSurfer's license will be used"
+                    + " but `$FREESURFER_HOME` was not set."
+                    + " Therefore, BABS cannot copy and paste FreeSurfer's license..."
                     )
             fs_license_path_from = op.join(freesurfer_home, "license.txt")
             if op.exists(fs_license_path_from) is False:

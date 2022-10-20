@@ -33,10 +33,10 @@ def babs_init_cli():
         '--input',
         action='append',
         nargs=2,   # expect 2 arguments from the command line; they will be gathered as one list
-        metavar=('is_zipped', 'path_input_dataset'),
+        metavar=('input_dataset_name', 'input_dataset_path'),
         help="Input datalad dataset. "
-             "First argument is whether the input dataset is zipped [True] or not [False]. "
-             "Default is False. Second argument is the path to this input dataset.",
+             "First argument is a name of this input dataset. "
+             "Second argument is the path to this input dataset.",
         required=True)
     # args.input is a nested list,
     # access the first input's first element:
