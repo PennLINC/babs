@@ -1,27 +1,5 @@
-# Below is example config yaml file for fMRIPrep:
-# currently we only support the option of "babs_singularity_run"
-# In the future, we might:
-    # Priority: cli_call > babs_singularity_run > cli_options
-        # If anything provided at higher level, the lower levels will be ignored.
-
-# below is currently not supported.
-# In the future: below will overwrite `cli_options`!
-# Matt: below is easiest, and should be easy to implement
-cli_call: |
-    -w $BABS_TMPDIR \   # instead of using `${PWD}/.git/tmp/wkdir`, you may specify `BABS_TMPDIR` and `BABS` will change this placeholder to the former string.
-    --n_cpus 1 \
-    --stop-on-first-crash \
-    --fs-license-file code/license.txt \
-    --skip-bids-validation \
-    --output-spaces MNI152NLin6Asym:res-2 \
-    --force-bbr \
-    --cifti-output 91k \
-    -v –v
-
-# You should not have flags of : `--participant-label`, or `--bids-filter-file`!
-# TODO: detect these strings and throw out warning message & replace them?
-
-# below is the only option we currently support:
+# Below is example config yaml file for XCP-D:
+# THIS IS STILL IN PROGRESS...
 
 # placeholders:
     # "$BABS_TMPDIR"
@@ -44,28 +22,3 @@ babs_singularity_run:
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
     fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
     freesurfer: "20-2-3"   # use the same as fmriprep
-
-environment_variable:
-    SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # needed by xcp-d
-    # test: "testvalue"
-
-
-# Below generic full list of options of fMRIPrep is based on fMRIPrep version xxxx.
-# there are almost 70 options in fMRIPrep (22.0.0) and QSIPrep (0.15.2?), and 30+ options in XCP-D
-# currently we are not supporting this option.
-# In the future it might: if cli_call is provided, only read cli_call;
-    # otherwise, check out cli_options
-cli_options:
-    - n_cpus:
-      value: 1
-      type: int
-      desc: <description>   # why we need this desc? People won't check out another documentation but directly ask you.....
-      argstr: "--n_cpus %d"
-    - stop-on-first-crash:
-      value: True
-      type: bool
-      desc: if True, just "--"; if False, ; if Null, not to include this flag at all
-    - xxx:
-        value: Null
-        type: str    # this means that this Null will go into, instead of interpreted by BABS
-

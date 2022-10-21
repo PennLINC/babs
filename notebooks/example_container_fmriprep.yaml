@@ -46,7 +46,7 @@ babs_zip_foldername:   # the foldername(s) to get zipped and the version string(
     freesurfer: "20-2-3"   # use the same as fmriprep
 
 # environment_variable:
-#     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # needed by xcp-d
+#     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs
 
 
 # Below generic full list of options of fMRIPrep is based on fMRIPrep version xxxx.

@@ -212,12 +212,15 @@ class BABS():
                 # ^^ TODO: add checking it's a zipped or unzipped dataset before this!!
                 #    may be another for loop
 
-        # Add container as sub-dataset of `analysis`:
-        # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
-        # dlapi.clone(source = container_ds,    # container datalad dataset
-        #             path = op.join(self.project_root, "containers"))   # path to clone into
+        # Check the type of each input dataset: (zipped? unzipped?)
+        for i_ds in range(0, num_input_ds):
+            print("")
+            # Add container as sub-dataset of `analysis`:
+            # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
+            # dlapi.clone(source = container_ds,    # container datalad dataset
+            #             path = op.join(self.project_root, "containers"))   # path to clone into
 
-        # directly add container as sub-dataset of `analysis`:
+            # directly add container as sub-dataset of `analysis`:
         print("\nAdding the container as a sub-dataset of `analysis` dataset...")
         if op.exists(op.join(self.analysis_path, "containers")):
             print("The container has been added as a sub-dataset; not to do it again.")

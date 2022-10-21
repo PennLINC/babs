@@ -31,29 +31,28 @@ def babs_init_cli():
         required=True)
     parser.add_argument(
         '--input',
-        action='append',
-        nargs=2,   # expect 2 arguments from the command line; they will be gathered as one list
+        action='append',   # append each `--input` as a list;
+        # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
+        # ref: https://docs.python.org/3/library/argparse.html
+        nargs=2,   # expect 2 arguments per `--input` from the command line;
+        #            they will be gathered as one list
         metavar=('input_dataset_name', 'input_dataset_path'),
         help="Input datalad dataset. "
              "First argument is a name of this input dataset. "
              "Second argument is the path to this input dataset.",
         required=True)
-    # args.input is a nested list,
-    # access the first input's first element:
-    # `args.input[0][0]` which gives False or True
-    # TODO: ^^ should be able to accept multiple input datasets!
     parser.add_argument(
         '--container_ds', '--container-ds',
         help="Path to the container datalad dataset",
         required=True)
     parser.add_argument(
         '--container_name', '--container-name',
-        help="The name of the BIDS App container, the `NAME` in `datalad containers-add NAME`." +
-        " Importantly, this should include the BIDS App's name" +
-        " to make sure the bootstrap scripts are set up correctly;" +
-        " Also, the version number should be added, too. " +
-        " `babs-init` is not case sensitive to this `--container_name`" +
-        " Example: `QSIPrep-0-0-0`",
+        help="The name of the BIDS App container, the `NAME` in `datalad containers-add NAME`."
+        + " Importantly, this should include the BIDS App's name"
+        + " to make sure the bootstrap scripts are set up correctly;"
+        + " Also, the version number should be added, too. "
+        + " `babs-init` is not case sensitive to this `--container_name`"
+        + " Example: `QSIPrep-0-0-0`",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(
@@ -74,6 +73,7 @@ def babs_init_cli():
         required=True)
 
     args = parser.parse_args()
+    # print(args.input)
 
     type_session = validate_type_session(args.type_session)
 

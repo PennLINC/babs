@@ -2,7 +2,7 @@
 
 import os
 import os.path as op
-import warnings
+import warnings   # built-in, no need to install
 import pkg_resources
 # from ruamel.yaml import YAML
 import yaml
@@ -253,10 +253,10 @@ def generate_cmd_envvar(config, container_name):
     else:
         # we have checked existing env var;
         # if it still does not exist, warning:
-        warnings.warn("Usually BIDS App depends on TemplateFlow," +
-                      " but environment variable `TEMPLATEFLOW_HOME` was not set up." +
-                      " Therefore, BABS will not export it or bind its directory" +
-                      " when running the container. This may cause errors.")
+        warnings.warn("Usually BIDS App depends on TemplateFlow,"
+                      + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
+                      + " Therefore, BABS will not export it or bind its directory"
+                      + " when running the container. This may cause errors.")
 
     cmd += "\n"
     return cmd, templateflow_home, singularityenv_templateflow_home
@@ -300,9 +300,9 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
             temp = temp + 1
             if (temp != 1) & (value_temp != value):    # not matching last value
                 warnings.warn("In section `babs_zip_foldername` in `container_config_yaml_file`: \n"
-                              "The version string of '" + key + "': '" + value + "'" +
-                              " does not match with the last version string; " +
-                              "we suggest using the same version string across all foldernames.")
+                              "The version string of '" + key + "': '" + value + "'"
+                              + " does not match with the last version string; "
+                              + "we suggest using the same version string across all foldernames.")
             value_temp = value
 
             cmd += "7z a ../${subid}" + str_sesid + "_" + \
@@ -310,8 +310,8 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
             # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
 
     else:    # the yaml file does not have the section `babs_zip_foldername`:
-        raise Exception("The `container_config_yaml_file` does not contain" +
-                        " the section `babs_zip_foldername`. Please add this section!")
+        raise Exception("The `container_config_yaml_file` does not contain"
+                        + " the section `babs_zip_foldername`. Please add this section!")
 
     # return to original dir:
     cmd += "cd ..\n"
