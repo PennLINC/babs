@@ -3,7 +3,6 @@
 
 babs_singularity_run:
     $INPUT_PATH: inputs/data/BIDS   # the key is a placeholder
-    $OUTPUT_PATH: outputs/fmriprep   # the key is a placeholder
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""
