@@ -5,6 +5,7 @@ import os.path as op
 # from re import L
 import subprocess
 import warnings
+import pandas as pd
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
@@ -74,17 +75,14 @@ class BABS():
 
         self.output_ria_data_dir = None     # not known yet before output_ria is created
 
-    def babs_bootstrap(self, input_pd, container_ds, container_name, container_config_yaml_file):
+    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config_yaml_file):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
         Parameters:
         -------------
-        input_pd: pandas DataFrame
+        input_ds: class `Input_ds`
             Input dataset(s).
-            Columns are: "input_ds_name" (input dataset name)
-            and "input_ds" (path to the input dataset)
-            Can have more than one row (i.e., more than one input dataset).
         container_ds: str
             path to the container datalad dataset which the user provides
         container_name: str
@@ -94,12 +92,6 @@ class BABS():
         """
 
         # entry_pwd = os.getcwd()
-
-        # print("hey you entered babs_bootstrap method of BABS class!")
-        # print("input_pd:")
-        # print(input_pd)
-
-        # print(container_ds)
 
         # ==============================================================
         # Initialize:
@@ -174,31 +166,30 @@ class BABS():
 
         # Register the input dataset(s):
         print("\nRegistering the input dataset(s)...")
-        num_input_ds = input_pd.shape[0]
-        for i_ds in range(0, num_input_ds):
+        for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
             i_ds_path = op.join(self.analysis_path,
                                 "inputs/data",
-                                input_pd["input_ds_name"][i_ds])
+                                input_ds.df["name"][i_ds])
             if op.exists(i_ds_path):
                 print("The input dataset #" + str(i_ds+1) + " '"
-                      + input_pd["input_ds_name"][i_ds] + "'"
+                      + input_ds.df["name"][i_ds] + "'"
                       + " has been copied into `analysis` folder; "
                       "not to copy again.")
                 pass
                 # TODO: add sanity check: if its datalad sibling is input dataset
             else:
                 print("Cloning input dataset #" + str(i_ds+1) + ": '"
-                      + input_pd["input_ds_name"][i_ds] + "'")
+                      + input_ds.df["name"][i_ds] + "'")
                 # clone input dataset(s) as sub-dataset into `analysis` dataset:
                 dlapi.clone(dataset=self.analysis_path,
-                            source=input_pd.at[0, "input_ds"],    # input dataset(s)
+                            source=input_ds.df["path_in"][i_ds],    # input dataset(s)
                             path=i_ds_path)  # path to clone into
 
                 # amend the previous commit with a nicer commit message:
                 proc_git_commit_amend = subprocess.run(
                     ["git", "commit", "--amend", "-m",
-                     "Register input data dataset '" + input_pd["input_ds_name"][i_ds]
+                     "Register input data dataset '" + input_ds.df["name"][i_ds]
                      + "' as a subdataset"],
                     cwd=self.analysis_path,
                     stdout=subprocess.PIPE
@@ -207,13 +198,13 @@ class BABS():
 
                 # confirm the cloned dataset is valid:
                 # if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
-                check_validity_input_dataset(i_ds_path,
-                                             self.type_session)
+                # check_validity_input_dataset(i_ds_path,
+                #                             self.type_session)
                 # ^^ TODO: add checking it's a zipped or unzipped dataset before this!!
                 #    may be another for loop
 
         # Check the type of each input dataset: (zipped? unzipped?)
-        for i_ds in range(0, num_input_ds):
+        for i_ds in range(0, input_ds.num_ds):
             print("")
 
         # Add container as sub-dataset of `analysis`:
@@ -253,7 +244,7 @@ class BABS():
         print("\nGenerating bash script for running container and zipping the outputs...")
         print("This bash script will be named as `" + container_name + "_zip.sh`")
         bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
-        container.generate_bash_run_bidsapp(bash_path, self.type_session)
+        container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
 
         # Generate `participant_job.sh`: --------------------------------------
         # TODO: ^^
@@ -289,6 +280,41 @@ class BABS():
         # ==============================================================
         # Clean up: TODO
         # ==============================================================
+
+class Input_ds():
+    """This class is for input dataset(s)"""
+
+    def __init__(self, input_cli):
+        """
+        This is to initalize Container class.
+
+        Parameters:
+        --------------
+        input_cli: nested list of strings - see CLI `babs-init --input` for more
+
+        Attributes:
+        --------------
+        df: pandas DataFrame
+            includes necessary information:
+            - name: str: a name the user gives
+            - path_in: str: the path to the input ds
+            - is_zipped: True or False, is the input data zipped or not
+        num_ds: int
+            number of input dataset(s)
+        """
+
+        # create an empty pandas DataFrame:
+        self.df = pd.DataFrame(None,
+                               index=list(range(0, len(input_cli))),
+                               columns=['name', 'path_in', 'is_zipped'])
+
+        # number of dataset(s):
+        self.num_ds = self.df.shape[0]   # number of rows in `df`
+
+        # change the `input_cli` from nested list to a pandas dataframe:
+        for i in range(0, self.num_ds):
+            self.df["name"][i] = input_cli[i][0]
+            self.df["path_in"][i] = input_cli[i][1]
 
 
 class Container():
@@ -337,7 +363,7 @@ class Container():
 
         # TODO: validate that this `container_name` really exists in `container_ds`...
 
-    def generate_bash_run_bidsapp(self, bash_path, type_session):
+    def generate_bash_run_bidsapp(self, bash_path, input_ds, type_session):
         """
         This is to generate a bash script that runs the BIDS App singularity image.
 
@@ -345,6 +371,8 @@ class Container():
         -------------
         bash_path: str
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
+        input_ds: class `Input_ds`
+            input dataset(s) information
         type_session: str
             multi-ses or single-ses.
         """
@@ -375,8 +403,8 @@ class Container():
             # # contain \ for each key-value
 
             # read config from the yaml file:
-            cmd_singularity_flags, flag_fs_license = generate_cmd_singularityRun_from_config(
-                config)
+            cmd_singularity_flags, flag_fs_license, singuRun_input_dir = \
+                generate_cmd_singularityRun_from_config(config, input_ds)
 
         print()
 
@@ -431,7 +459,7 @@ class Container():
         cmd_head_singularityRun += " \ " + "\n\t"
         cmd_head_singularityRun += self.container_path_relToAnalysis
         cmd_head_singularityRun += " \ " + "\n\t"
-        cmd_head_singularityRun += "inputs/data"
+        cmd_head_singularityRun += singuRun_input_dir  # inputs/data/<name>
         cmd_head_singularityRun += " \ " + "\n\t"
         cmd_head_singularityRun += output_foldername   # output folder
         cmd_head_singularityRun += " \ " + "\n\t"

@@ -121,7 +121,7 @@ def replace_placeholder_from_config(value):
     return replaced
 
 
-def generate_cmd_singularityRun_from_config(config):
+def generate_cmd_singularityRun_from_config(config, input_ds):
     """
     This is to generate command (in strings) of singularity run
     from config read from container config yaml file.
@@ -130,7 +130,8 @@ def generate_cmd_singularityRun_from_config(config):
     ------------
     config: dictionary
         got from `read_container_config_yaml()`
-
+    input_ds: class `Input_ds`
+        input dataset(s) information
     Returns:
     ---------
     cmd: str
@@ -138,6 +139,8 @@ def generate_cmd_singularityRun_from_config(config):
         based on section `babs_singularity_run` in the yaml file.
     flag_fs_license: True or False
         Whether FreeSurfer's license will be used; if so, BABS needs to copy it to workspace.
+    singuRun_input_dir: None or str
+        The positional argument of input dataset path in `singularity run`
     """
 
     # human readable: (just like appearance in a yaml file;
@@ -150,6 +153,15 @@ def generate_cmd_singularityRun_from_config(config):
     cmd = ""
     is_first_flag = True
     flag_fs_license = False
+    singuRun_input_dir = None
+
+    # re: positional argu `$INPUT_PATH`:
+    if input_ds.num_ds > 1:   # more than 1 input dataset:
+        # check if `$INPUT_PATH` is one of the keys (must):
+        if "$INPUT_PATH" not in config["babs_singularity_run"]:
+            raise Exception("'$INPUT_PATH' is expected in section `babs_singularity_run`"
+                            + " in `container_config_yaml_file`, because there are more than"
+                            + " one input dataset!")
 
     # example key: "-w", "--n_cpus"
     # example value: "", "xxx", Null (placeholder)
@@ -160,36 +172,49 @@ def generate_cmd_singularityRun_from_config(config):
             # if it's not the first flag, not to add "\"
             cmd += " \ "
 
-        if value == "":   # a flag, without value
-            cmd += "\n\t" + str(key)
-        else:  # a flag with value
-            # check if it is a placeholder which needs to be replaced:
-            if str(value)[:6] == "$BABS_":
-                replaced = replace_placeholder_from_config(value)
-                cmd += "\n\t" + str(key) + " " + str(replaced)
-            elif str(value) == "$FREESURFER_LICENSE":
-                replaced = replace_placeholder_from_config(value)
-                flag_fs_license = True
-                cmd += "\n\t" + str(key) + " " + str(replaced)
+        if key == "$INPUT_PATH":  # placeholder
+            singuRun_input_dir = value
+            # ^^ no matter one or more input dataset(s)
+            # and not add to the flag cmd
 
-            elif value is None:    # if entered `Null` or `NULL` without quotes
+        else:   # check on values:
+            if value == "":   # a flag, without value
                 cmd += "\n\t" + str(key)
-            elif value in ["Null", "NULL"]:  # "Null" or "NULL" w/ quotes, i.e., as strings
-                cmd += "\n\t" + str(key)
+            else:  # a flag with value
+                # check if it is a placeholder which needs to be replaced:
+                if str(value)[:6] == "$BABS_":
+                    replaced = replace_placeholder_from_config(value)
+                    cmd += "\n\t" + str(key) + " " + str(replaced)
+                elif str(value) == "$FREESURFER_LICENSE":
+                    replaced = replace_placeholder_from_config(value)
+                    flag_fs_license = True
+                    cmd += "\n\t" + str(key) + " " + str(replaced)
 
-            # there is no placeholder to deal with:
-            else:
-                cmd += "\n\t" + str(key) + " " + str(value)
+                elif value is None:    # if entered `Null` or `NULL` without quotes
+                    cmd += "\n\t" + str(key)
+                elif value in ["Null", "NULL"]:  # "Null" or "NULL" w/ quotes, i.e., as strings
+                    cmd += "\n\t" + str(key)
+
+                # there is no placeholder to deal with:
+                else:
+                    cmd += "\n\t" + str(key) + " " + str(value)
 
         is_first_flag = False
 
         # print(cmd)
 
+    if singuRun_input_dir is None:
+        # now, it must be only one input dataset, and user did not provide `$INPUT_PATH` key:
+        assert input_ds.num_ds == 1
+        singuRun_input_dir = "inputs/data/" + input_ds.df["name"][0]
+        # ^^ TODO: try this out!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     # example of access one slot:
     # config["babs_singularity_run"]["n_cpus"]
 
     # print(cmd)
-    return cmd, flag_fs_license
+    return cmd, flag_fs_license, singuRun_input_dir
 
 
 # adding zip filename:

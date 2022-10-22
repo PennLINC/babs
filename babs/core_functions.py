@@ -6,7 +6,7 @@ import pandas as pd
 # from tqdm import tqdm
 import datalad.api as dlapi
 
-from babs.babs import BABS
+from babs.babs import BABS, Input_ds
 from babs.utils import (get_datalad_version)
 
 
@@ -55,16 +55,10 @@ def babs_init(where_project, project_name,
 
     # TODO: add sanity check of type_session and system!
 
-    # change the `args.input` from list to a pandas table easy to read:
-    input_pd = pd.DataFrame("",
-                            index=list(range(0, len(input))),
-                            columns=['input_ds_name', 'input_ds'])
-    for i in range(0, len(input)):
-        input_pd["input_ds_name"][i] = input[i][0]
-        input_pd["input_ds"][i] = input[i][1]
+    input_ds = Input_ds(input)
 
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
-    for the_input_ds in input_pd["input_ds"]:
+    for the_input_ds in input_ds.df["path_in"]:
         _ = dlapi.status(dataset=the_input_ds)
         # ^^ if not datalad dataset, there will be an error saying no installed dataset found
         # if fine, will print "nothing to save, working tree clean"
@@ -80,4 +74,4 @@ def babs_init(where_project, project_name,
     print("job scheduling system of this BABS project: " + babs_proj.system)
     print("")
     # call method `babs_bootstrap()`:
-    babs_proj.babs_bootstrap(input_pd, container_ds, container_name, container_config_yaml_file)
+    babs_proj.babs_bootstrap(input_ds, container_ds, container_name, container_config_yaml_file)

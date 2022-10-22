@@ -1,12 +1,12 @@
 # Below is example config yaml file for XCP-D:
 # THIS IS STILL IN PROGRESS...
 
-# placeholders:
-    # "$BABS_TMPDIR"
-    # "", `Null`, `NULL` (without quotes), or with quotes: "Null", "NULL":
-        # will all be taken as there is no value in the arguments
+cli_call: |
+ inputs/data/fmriprep xcp \   # here `fmriprep` is the foldername after unzipping – how do we know this?
+--despike --lower-bpf 0.01 --upper-bpf 0.08 --participant_label $subid -p 36P -f 10 -w ${PWD}/.git/tmp/wkdir --nthreads 6
+
+
 babs_singularity_run:
-    #--test: NULL
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""
