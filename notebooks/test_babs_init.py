@@ -1,17 +1,24 @@
 # This is a temporary file to test babs-init
-
+# Note: first time running (with debugging mode) this in a vscode window
+#   will have error:
+#   e.g., $FREESURFER_HOME was not successfully exported
+#   solution: stop the debugging; in `Python Debug Console`:
+#   $ source ~/.bashrc
+#   $ conda activate mydatalad
+#   then start the debugging again
 
 from babs.core_functions import babs_init
 import sys
 import os
 import os.path as op
+import subprocess
+
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep_ingressed_fs"
-type_session = "multi-ses"
-
+flag_instance = "fmriprep"
+type_session = "single-ses"
 
 flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -32,22 +39,25 @@ if flag_instance == "fmriprep":
         input_ds = op.join(where_project, "zd9a6")
 
     input_cli = [["BIDS", input_ds]]
-
-    print("NOT FINISHED YET....")
-
-
+    project_name = "test_babs_" + type_session + "_fmriprep"
+    bidsapp = "fmriprep"
 elif flag_instance == "qsiprep":
     print("")
 elif flag_instance == "xcpd":
     print("")
 elif flag_instance == "fmriprep_ingressed_fs":
-    assert type_session == "multi-ses"
     project_name = "test_babs_" + type_session + "_fpfsin"
     bidsapp = "fmriprep"
-    input_cli = [["BIDS", op.join(where_project, "j854e")],
-                 ["freesurfer", op.join(where_project, "fmriprep_multises_outputs")]]
-
-
+    if type_session == "multi-ses":
+        input_cli = [["BIDS", op.join(where_project, "j854e")],   # bids, multi-ses
+                     ["freesurfer", op.join(where_project, "k9zw2")]]   # fmriprep done, multi-ses
+    elif type_session == "single-ses":
+        input_cli = [["BIDS", op.join(where_project, "zd9a6")],   # bids, single-ses
+                     ["freesurfer", "osf://2jvub/"]]   # fmriprep done, single-ses
+elif flag_instance == "empty":
+    project_name = "test_babs_emptyInputds"
+    bidsapp = "fmriprep"
+    input_cli = [["empty", op.join(where_project, "empty_dataset")]]
 else:
     raise Exception("not valid `flag_instance`!")
 

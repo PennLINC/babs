@@ -59,7 +59,10 @@ def babs_init(where_project, project_name,
 
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
     for the_input_ds in input_ds.df["path_in"]:
-        _ = dlapi.status(dataset=the_input_ds)
+        if the_input_ds[0:6] == "osf://":  # first 6 char
+            pass   # not to check, as cannot be checked by `dlapi.status`
+        else:
+            _ = dlapi.status(dataset=the_input_ds)
         # ^^ if not datalad dataset, there will be an error saying no installed dataset found
         # if fine, will print "nothing to save, working tree clean"
 

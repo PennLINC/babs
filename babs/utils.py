@@ -6,7 +6,8 @@ import warnings   # built-in, no need to install
 import pkg_resources
 # from ruamel.yaml import YAML
 import yaml
-
+import glob
+import regex
 
 def get_datalad_version():
     return pkg_resources.get_distribution("datalad").version
@@ -159,9 +160,19 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     if input_ds.num_ds > 1:   # more than 1 input dataset:
         # check if `$INPUT_PATH` is one of the keys (must):
         if "$INPUT_PATH" not in config["babs_singularity_run"]:
-            raise Exception("'$INPUT_PATH' is expected in section `babs_singularity_run`"
+            raise Exception("The key '$INPUT_PATH' is expected in section `babs_singularity_run`"
                             + " in `container_config_yaml_file`, because there are more than"
                             + " one input dataset!")
+    else:   # only 1 input dataset:
+        # check if the path is consistent with the name of the only input ds's name:
+        if "$INPUT_PATH" in config["babs_singularity_run"]:
+            expected_temp = "inputs/data/" + input_ds.df["name"][0]
+            if config["babs_singularity_run"]["$INPUT_PATH"] != expected_temp:
+                raise Exception("As there is only one input dataset, the value of '$INPUT_PATH'"
+                                + " in section `babs_singularity_run`"
+                                + " in `container_config_yaml_file` should be"
+                                + " '" + expected_temp + "'; You can also choose"
+                                + " not to specify '$INPUT_PATH'.")
 
     # example key: "-w", "--n_cpus"
     # example value: "", "xxx", Null (placeholder)
@@ -290,6 +301,7 @@ def generate_cmd_envvar(config, container_name):
 def generate_cmd_zipping_from_config(config, type_session, output_foldername="outputs"):
     """
     This is to generate bash command to zip BIDS App outputs.
+
     Parameters:
     ------------
     config: dictionary
@@ -383,6 +395,84 @@ echo "}" >> ${filterfile}
 
     cmd += """\nsed -i "s/ses-//g" ${filterfile}"""
 
-    cmd += "\n\n"
+    cmd += "\n"
+
+    return cmd
+
+
+def generate_cmd_unzip_inputds(input_ds, type_session):
+    """
+    This is to generate command in `<containerName>_zip.sh` to unzip
+    a specific input dataset if needed.
+
+    Parameters:
+    -------------
+    input_ds: class `Input_ds`
+    i_ds: int
+        the i-th dataset (starting from 0) that needs to be unzipped
+
+    Returns:
+    ---------
+    cmd: str
+        It's part of the `<containerName_zip.sh>`.
+    """
+
+    cmd = ""
+
+    if True in input_ds.df["is_zipped"]:
+        # print("there is zipped dataset to be unzipped.")
+        cmd += "\nwd=${PWD}"
+
+    for i_ds in range(0, input_ds.num_ds):
+        if input_ds.df["is_zipped"][i_ds] is True:  # zipped ds
+            cmd += "\ncd " + input_ds.df["path_now_rel"][i_ds]
+
+            # get the zip filename:
+            if type_session == "multi-ses":
+                list_zipfiles = \
+                    glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
+                                      "sub-*_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
+                if len(list_zipfiles) == 0:
+                    raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
+                                    + " the zip file(s) does not follow the pattern of "
+                                    + "'sub-*_ses-*_'" + input_ds.df["name"][i_ds] + "*.zip")
+            elif type_session == "single-ses":
+                list_zipfiles = \
+                    glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
+                                      "sub-*_" + input_ds.df["name"][i_ds] + "*.zip"))
+                if len(list_zipfiles) == 0:
+                    raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
+                                    + " the zip file(s) does not follow the pattern of "
+                                    + "'sub-*_'" + input_ds.df["name"][i_ds] + "*.zip")
+            else:
+                raise Exception("invalid `type_session`: " + type_session)
+
+            # assume all the zip filenames are regular, so only check out the first one:
+
+            temp_filename = op.basename(list_zipfiles[0])
+            temp_regex = regex.search(input_ds.df["name"][i_ds] + '(.*)' + '.zip',
+                                      temp_filename)
+            temp_pattern = temp_regex.group(0)   # e.g., "fmriprep-0.0.0.zip"
+            # ^^ .group(1) will be "-0.0.0"
+            if type_session == "multi-ses":
+                cmd += "\n7z x ${subid}_${sesid}_" + \
+                    temp_pattern
+            elif type_session == "single-ses":
+                cmd += "\n7z x ${subid}_" + temp_pattern
+
+            cmd += "\ncd $wd\n"
+
+    """
+wd=${PWD}
+
+cd inputs/data
+7z x ${subid}_${sesid}_fmriprep-20.2.3.zip
+cd $wd
+
+wd=${PWD}
+cd inputs/data/freesurfer
+7z x `basename ${freesurfer_zip}`
+cd $wd
+    """
 
     return cmd

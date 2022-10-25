@@ -29,6 +29,7 @@ cli_call: |
         # will all be taken as there is no value in the arguments
 babs_singularity_run:
     #--test: NULL
+    # $INPUT_PATH: inputs/data/BIDS   # the key is a placeholder; optional to one input ds
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""

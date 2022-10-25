@@ -6,13 +6,14 @@ import os.path as op
 import subprocess
 import warnings
 import pandas as pd
+import glob
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
 from babs.utils import (check_validity_input_dataset, generate_cmd_envvar,
                         generate_cmd_filterfile,
-                        generate_cmd_singularityRun_from_config,
+                        generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
                         generate_cmd_zipping_from_config,
                         read_container_config_yaml, validate_type_session)
 
@@ -169,8 +170,7 @@ class BABS():
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
             i_ds_path = op.join(self.analysis_path,
-                                "inputs/data",
-                                input_ds.df["name"][i_ds])
+                                input_ds.df["path_now_rel"][i_ds])
             if op.exists(i_ds_path):
                 print("The input dataset #" + str(i_ds+1) + " '"
                       + input_ds.df["name"][i_ds] + "'"
@@ -200,12 +200,13 @@ class BABS():
                 # if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
                 # check_validity_input_dataset(i_ds_path,
                 #                             self.type_session)
-                # ^^ TODO: add checking it's a zipped or unzipped dataset before this!!
-                #    may be another for loop
+
+        # get the current absolute path to the input dataset:
+        input_ds.assign_path_now_abs(self.analysis_path)
 
         # Check the type of each input dataset: (zipped? unzipped?)
-        for i_ds in range(0, input_ds.num_ds):
-            print("")
+        print("\nChecking whether each input dataset is a zipped or unzipped dataset...")
+        input_ds.check_if_zipped()
 
         # Add container as sub-dataset of `analysis`:
         # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
@@ -298,6 +299,8 @@ class Input_ds():
             includes necessary information:
             - name: str: a name the user gives
             - path_in: str: the path to the input ds
+            - path_now_rel: after cloning, the path to the input ds, relative to `analysis` folder
+            - path_now_abs: after cloning, the absolute path to the input ds
             - is_zipped: True or False, is the input data zipped or not
         num_ds: int
             number of input dataset(s)
@@ -306,7 +309,8 @@ class Input_ds():
         # create an empty pandas DataFrame:
         self.df = pd.DataFrame(None,
                                index=list(range(0, len(input_cli))),
-                               columns=['name', 'path_in', 'is_zipped'])
+                               columns=['name', 'path_in', 'path_now_rel',
+                                        'path_now_abs', 'is_zipped'])
 
         # number of dataset(s):
         self.num_ds = self.df.shape[0]   # number of rows in `df`
@@ -315,6 +319,53 @@ class Input_ds():
         for i in range(0, self.num_ds):
             self.df["name"][i] = input_cli[i][0]
             self.df["path_in"][i] = input_cli[i][1]
+            self.df["path_now_rel"][i] = op.join("inputs/data", self.df["name"][i])
+
+        # sanity check: input ds names should not be identical:
+        if len(set(self.df["name"].tolist())) != self.num_ds:  # length of the set = number of ds
+            raise Exception("There are identical names in input datasets' names!")
+
+    def assign_path_now_abs(self, analysis_path):
+        """
+        This is the assign the absolute path to input dataset
+
+        Parameters:
+        --------------
+        analysis_path: str
+            absolute path to the `analysis` folder.
+        """
+
+        for i in range(0, self.num_ds):
+            self.df["path_now_abs"][i] = op.join(analysis_path,
+                                                 self.df["path_now_rel"][i])
+
+    def check_if_zipped(self):
+        for i_ds in range(0, self.num_ds):
+            temp_list = glob.glob(self.df["path_now_abs"][i_ds] + "/sub-*")
+            count_zip = 0
+            count_dir = 0
+            for i_temp in range(0, len(temp_list)):
+                if op.isdir(temp_list[i_temp]):
+                    count_dir += 1
+                elif temp_list[i_temp][-4:] == ".zip":
+                    count_zip += 1
+
+            if (count_zip > 0) & (count_dir == 0):   # all are zip files:
+                self.df["is_zipped"][i_ds] = True
+                print("input dataset '" + self.df["name"][i_ds] + "'"
+                      + " is considered as a zipped dataset.")
+            elif (count_dir > 0) & (count_zip == 0):   # all are directories:
+                self.df["is_zipped"][i_ds] = False
+                print("input dataset '" + self.df["name"][i_ds] + "'"
+                      + " is considered as an unzipped dataset.")
+            elif (count_zip > 0) & (count_dir > 0):  # detect both:
+                self.df["is_zipped"][i_ds] = True   # consider as zipped
+                print("input dataset '" + self.df["name"][i_ds] + "'"
+                      + " has both zipped files and unzipped folders;"
+                      + " thus it's considered as a zipped dataset.")
+            else:   # did not detect any of them...
+                raise Exception("BABS did not detect any folder or zip file of `sub-*`"
+                                + " in input dataset '" + self.df["name"][i_ds] + "'.")
 
 
 class Container():
@@ -322,7 +373,7 @@ class Container():
 
     def __init__(self, container_ds, container_name, config_yaml_file):
         """
-        This is to initalize Container class.
+        This is to initalize Container class .
 
         Parameters:
         --------------
@@ -330,8 +381,8 @@ class Container():
             The path to the container datalad dataset as the input of `babs-init`.
             This container datalad ds is prepared by the user.
         container_name: str
-            The name of the container when adding to datalad dataset (e.g., `NAME` in
-             `datalad containers-add NAME`),
+            The name of the container when adding to datalad dataset(e.g., `NAME` in
+            `datalad containers-add NAME`),
              e.g., fmriprep-0-0-0
         config_yaml_file: str
             The YAML file that contains the configurations of how to run the container
@@ -342,7 +393,7 @@ class Container():
             The path to the container datalad dataset as the input of `babs-init`.
             This container datalad ds is prepared by the user.
         container_name: str
-            The name of the container when adding to datalad dataset (e.g., `NAME` in
+            The name of the container when adding to datalad dataset(e.g., `NAME` in
             `datalad containers-add NAME`),
              e.g., fmriprep-0-0-0
         config_yaml_file: str
@@ -441,7 +492,15 @@ class Container():
                 cmd_filterfile = generate_cmd_filterfile(self.container_name)
                 bash_file.write(cmd_filterfile)
 
+        # Check if any dataset is zipped; if so, add commands of unzipping:
+        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, type_session)
+        if len(cmd_unzip_inputds) > 0:   # not "":
+            bash_file.write(cmd_unzip_inputds)
+
         # Other necessary commands for preparation:
+        bash_file.write("\n")
+
+        # Export environment variable:
         cmd_envvar, templateflow_home, singularityenv_templateflow_home = generate_cmd_envvar(
             config, self.container_name)
         bash_file.write(cmd_envvar)
