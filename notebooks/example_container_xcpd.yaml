@@ -2,23 +2,18 @@
 # THIS IS STILL IN PROGRESS...
 
 cli_call: |
- inputs/data/fmriprep xcp \   # here `fmriprep` is the foldername after unzipping – how do we know this?
---despike --lower-bpf 0.01 --upper-bpf 0.08 --participant_label $subid -p 36P -f 10 -w ${PWD}/.git/tmp/wkdir --nthreads 6
+    --despike --lower-bpf 0.01 --upper-bpf 0.08 --participant_label $subid -p 36P -f 10 -w ${PWD}/.git/tmp/wkdir --nthreads 6
 
 
 babs_singularity_run:
-    -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
-    --n_cpus: 1
-    --stop-on-first-crash: ""
-    --fs-license-file: code/license.txt
-    --skip-bids-validation: Null  # Null or NULL is also a placeholder
-    --output-spaces: MNI152NLin6Asym:res-2
-    --force-bbr: ""
-    --cifti-output: 91k
-    -v: '-v'   # TODO: explain in docs: this is for double "-v". # as it's dict, cannot have identical keys... otherwise the latter key + value will overwrite the former one..
-        # if tripple `-v`: `-v: '-v -v'`
+    --despike: ""
+    --lower-bpf: 0.01
+    --upper-bpf: 0.08
+    -p: 36P
+    -f: 10
+    -w: "$BABS_TMPDIR"   # this is a placeholder.
+    --nthreads: 6
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
-    fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
-    freesurfer: "20-2-3"   # use the same as fmriprep
+    xcp_d: "0-1-2"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."

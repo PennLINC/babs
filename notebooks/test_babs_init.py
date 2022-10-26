@@ -17,8 +17,8 @@ import subprocess
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep"
-type_session = "single-ses"
+flag_instance = "qsiprep"
+type_session = "multi-ses"
 
 flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -32,7 +32,6 @@ else:
     raise Exception("not valid `flag_where`!")
 
 if flag_instance == "fmriprep":
-    input_ds_name = "fmriprep"
     if type_session == "multi-ses":
         input_ds = op.join(where_project, "j854e")
     elif type_session == "single-ses":
@@ -41,10 +40,24 @@ if flag_instance == "fmriprep":
     input_cli = [["BIDS", input_ds]]
     project_name = "test_babs_" + type_session + "_fmriprep"
     bidsapp = "fmriprep"
+
 elif flag_instance == "qsiprep":
-    print("")
+    project_name = "test_babs_" + type_session + "_qsiprep"
+    bidsapp = "qsiprep"
+    if type_session == "multi-ses":
+        input_ds = op.join(where_project, "j854e")
+    elif type_session == "single-ses":
+        input_ds = op.join(where_project, "zd9a6")
+    input_cli = [["BIDS", input_ds]]
+
 elif flag_instance == "xcpd":
-    print("")
+    project_name = "test_babs_" + type_session + "_xcpd"
+    bidsapp = "xcpd"
+    if type_session == "multi-ses":
+        input_cli = [["fmriprep", op.join(where_project, "k9zw2")]]   # fmriprep, multi-ses
+    elif type_session == "single-ses":
+        print("TO WORK ON....")
+
 elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"
     bidsapp = "fmriprep"
@@ -54,10 +67,12 @@ elif flag_instance == "fmriprep_ingressed_fs":
     elif type_session == "single-ses":
         input_cli = [["BIDS", op.join(where_project, "zd9a6")],   # bids, single-ses
                      ["freesurfer", "osf://2jvub/"]]   # fmriprep done, single-ses
+
 elif flag_instance == "empty":
     project_name = "test_babs_emptyInputds"
     bidsapp = "fmriprep"
     input_cli = [["empty", op.join(where_project, "empty_dataset")]]
+
 else:
     raise Exception("not valid `flag_instance`!")
 

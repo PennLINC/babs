@@ -7,11 +7,14 @@ import subprocess
 import warnings
 import pandas as pd
 import glob
+import shutil
+import tempfile
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
 
-from babs.utils import (check_validity_input_dataset, generate_cmd_envvar,
+from babs.utils import (get_immediate_subdirectories,
+                        check_validity_unzipped_input_dataset, generate_cmd_envvar,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
                         generate_cmd_zipping_from_config,
@@ -196,17 +199,17 @@ class BABS():
                 )
                 proc_git_commit_amend.check_returncode()
 
-                # confirm the cloned dataset is valid:
-                # if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
-                # check_validity_input_dataset(i_ds_path,
-                #                             self.type_session)
-
         # get the current absolute path to the input dataset:
         input_ds.assign_path_now_abs(self.analysis_path)
 
         # Check the type of each input dataset: (zipped? unzipped?)
+        #   this also includes a sanity check of the foldername within the zip file (for zipped ds)
         print("\nChecking whether each input dataset is a zipped or unzipped dataset...")
         input_ds.check_if_zipped()
+
+        # Check validity of unzipped ds:
+        #   if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
+        check_validity_unzipped_input_dataset(input_ds, self.type_session)
 
         # Add container as sub-dataset of `analysis`:
         # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
@@ -299,8 +302,13 @@ class Input_ds():
             includes necessary information:
             - name: str: a name the user gives
             - path_in: str: the path to the input ds
-            - path_now_rel: after cloning, the path to the input ds, relative to `analysis` folder
-            - path_now_abs: after cloning, the absolute path to the input ds
+            - path_now_rel: the path to where the input ds is cloned, relative to `analysis` folder
+            - path_now_abs: the absolute path to the input ds
+            - path_data_rel: the path to where the input data (for a sub or a ses) is,
+                relative to `analysis` folder.
+                If it's zipped ds, `path_data_rel` = `path_now_rel`/`name`,
+                i.e., extra layer of folder got from unzipping
+                If it's an unzipped ds, `path_data_rel` = `path_now_rel`
             - is_zipped: True or False, is the input data zipped or not
         num_ds: int
             number of input dataset(s)
@@ -310,7 +318,8 @@ class Input_ds():
         self.df = pd.DataFrame(None,
                                index=list(range(0, len(input_cli))),
                                columns=['name', 'path_in', 'path_now_rel',
-                                        'path_now_abs', 'is_zipped'])
+                                        'path_now_abs', 'path_data_rel',
+                                        'is_zipped'])
 
         # number of dataset(s):
         self.num_ds = self.df.shape[0]   # number of rows in `df`
@@ -340,6 +349,18 @@ class Input_ds():
                                                  self.df["path_now_rel"][i])
 
     def check_if_zipped(self):
+        """
+        This is to check if each input dataset is zipped, and assign `path_data_rel`.
+        If it's a zipped ds, it will:
+            1) also do a sanity check to make sure the 1st level folder in zipfile
+                is consistent to this input dataset's name;
+                Only checks the first zipfile.
+            2) `path_data_rel` = `path_now_rel`/`name`,
+                i.e., extra layer of folder got from unzipping
+
+        If it's an unzipped ds, `path_data_rel` = `path_now_rel`
+        """
+
         for i_ds in range(0, self.num_ds):
             temp_list = glob.glob(self.df["path_now_abs"][i_ds] + "/sub-*")
             count_zip = 0
@@ -366,6 +387,49 @@ class Input_ds():
             else:   # did not detect any of them...
                 raise Exception("BABS did not detect any folder or zip file of `sub-*`"
                                 + " in input dataset '" + self.df["name"][i_ds] + "'.")
+
+        if True in list(self.df["is_zipped"]):  # there is at least one dataset is zipped
+            print("Performing sanity check for any zipped input dataset..."
+                  " Getting example zip file(s) to check...")
+        for i_ds in range(0, self.num_ds):
+            if self.df["is_zipped"][i_ds] is True:   # zipped ds
+                # Sanity check: -----------------------------------
+                # find a zipfile, `datalad get`
+                temp_list = glob.glob(self.df["path_now_abs"][i_ds]
+                                      + "/sub-*" + self.df["name"][i_ds] + "*.zip")
+                if len(temp_list) == 0:    # did not find any matched
+                    raise Exception("In zipped input dataset #" + str(i_ds + 1)
+                                    + " (named '" + self.df["name"][i_ds] + "'),"
+                                    + " there is no zip file"
+                                    + " whose filename includes the dataset's name: '"
+                                    + self.df["name"][i_ds] + "'")
+                temp_zipfile = temp_list[0]   # try out the first one
+                temp_zipfilename = op.basename(temp_zipfile)
+                dlapi.get(path=temp_zipfile, dataset=self.df["path_now_abs"][i_ds])
+                # unzip to a temporary folder and get the foldername
+                temp_unzip_to = tempfile.mkdtemp()
+                shutil.unpack_archive(temp_zipfile, temp_unzip_to)
+                list_unzip_foldernames = get_immediate_subdirectories(temp_unzip_to)
+                # remove the temporary folder:
+                shutil.rmtree(temp_unzip_to)
+                # `datalad drop` the zipfile:
+                dlapi.drop(path=temp_zipfile, dataset=self.df["path_now_abs"][i_ds])
+
+                # check if there is folder named as ds's name:
+                if self.df["name"][i_ds] not in list_unzip_foldernames:
+                    warnings.warn("In input dataset #" + str(i_ds + 1)
+                                  + " (named '" + self.df["name"][i_ds]
+                                  + "'), there is no folder called '"
+                                  + self.df["name"][i_ds] + "' in zipped input file '"
+                                  + temp_zipfilename + "'. This may cause error"
+                                  + " when running BIDS App for this subject/session")
+
+                # Assign `path_data_rel`: ----------------------------------
+                self.df["path_data_rel"][i_ds] = op.join(self.df["path_now_rel"][i_ds],
+                                                         self.df["name"][i_ds])
+            else:   # unzipped ds:
+                # Assign `path_data_rel`:
+                self.df["path_data_rel"][i_ds] = self.df["path_now_rel"][i_ds]
 
 
 class Container():
@@ -426,6 +490,11 @@ class Container():
             input dataset(s) information
         type_session: str
             multi-ses or single-ses.
+
+        Notes:
+        --------------
+        When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
+        meaning, starting with space, a backward slash, a return, and a tab.
         """
 
         type_session = validate_type_session(type_session)
@@ -515,25 +584,30 @@ class Container():
             cmd_head_singularityRun += singularityenv_templateflow_home
             # ^^ bind to dir in container
 
-        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += self.container_path_relToAnalysis
-        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += singuRun_input_dir  # inputs/data/<name>
-        cmd_head_singularityRun += " \ " + "\n\t"
+        cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += output_foldername   # output folder
-        cmd_head_singularityRun += " \ " + "\n\t"
-        cmd_head_singularityRun += "participant"  # at participant-level
-        cmd_head_singularityRun += " \ "
+
+        # if not xcp-d (which does not support `participant` positional argu):
+        if any(ele in self.container_name.lower() for ele in ["xcp"]):
+            pass
+        else:
+            cmd_head_singularityRun += " \\" + "\n\t"
+            cmd_head_singularityRun += "participant"  # at participant-level
+
         bash_file.write(cmd_head_singularityRun)
 
         # Write the named arguments + values:
         # add more arguments that are covered by BABS (instead of users):
         if flag_filterfile is True:
             # also needs a $filterfile flag:
-            cmd_singularity_flags += " \ " + "\n\t"
+            cmd_singularity_flags += " \\" + "\n\t"
             cmd_singularity_flags += '--bids-filter-file "${filterfile}"'  # <- TODO: test out!!
 
-        cmd_singularity_flags += " \ \n\t"
+        cmd_singularity_flags += " \\" + "\n\t"
         cmd_singularity_flags += '--participant-label "${subid}"'   # standard argument in BIDS App
 
         bash_file.write(cmd_singularity_flags)
@@ -552,7 +626,7 @@ class Container():
         rm ${filterfile}
         """
         cmd_clean = "rm -rf " + output_foldername + " " + ".git/tmp/wkdir" + "\n"
-        if type_session == "multi-ses":
+        if flag_filterfile is True:
             cmd_clean += "rm ${filterfile}" + " \n"
 
         bash_file.write(cmd_clean)

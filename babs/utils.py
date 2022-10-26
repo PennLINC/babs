@@ -19,16 +19,19 @@ def get_immediate_subdirectories(a_dir):
     ]
 
 
-def check_validity_input_dataset(input_ds_path, type_session="single-ses"):
+def check_validity_unzipped_input_dataset(input_ds, type_session):
     """
-    Check if the input dataset is valid.
+    Check if each of the unzipped input datasets is valid.
+    Here we only check the "unzipped" datasets;
+    the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
+
     * if it's multi-ses: subject + session should both appear
     * if it's single-ses: there should be sub folder, but no ses folder
 
     Parameters:
     ------------------
-    input_ds_path: str
-        path to the input dataset. It should be the one after it's cloned to `analysis` folder
+    input_ds: class `Input_ds`
+        info on input dataset(s)
     type_session: str
         multi-ses or single-ses
 
@@ -42,34 +45,44 @@ def check_validity_input_dataset(input_ds_path, type_session="single-ses"):
     if type_session not in ["multi-ses", "single-ses"]:
         raise Exception("invalid `type_session`!")
 
-    is_valid_sublevel = False
+    if False in list(input_ds.df["is_zipped"]):  # there is at least one dataset is unzipped
+        print("Performing sanity check for any unzipped input dataset...")
 
-    list_subs = get_immediate_subdirectories(input_ds_path)
-    for sub_temp in list_subs:   # if one of the folder starts with "sub-", then it's fine
-        if sub_temp[0:4] == "sub-":
-            is_valid_sublevel = True
-            break
-    if not is_valid_sublevel:
-        raise Exception(
-            "There is no `sub-*` folder in this input dataset: " + input_ds_path
-        )
+    for i_ds in range(0, input_ds.num_ds):
+        if input_ds.df["is_zipped"][i_ds] is False:   # unzipped ds:
+            is_valid_sublevel = False
 
-    if type_session == "multi-ses":
-        for sub_temp in list_subs:  # every sub- folder should contain a session folder
-            if sub_temp[0] == ".":  # hidden folder
-                continue  # skip it
-            is_valid_seslevel = False
-            list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
-            for ses_temp in list_sess:
-                if ses_temp[0:4] == "ses-":
-                    # if one of the folder starts with "ses-", then it's fine
-                    is_valid_seslevel = True
+            input_ds_path = input_ds.df["path_now_abs"][i_ds]
+            list_subs = get_immediate_subdirectories(input_ds_path)
+            for sub_temp in list_subs:   # if one of the folder starts with "sub-", then it's fine
+                if sub_temp[0:4] == "sub-":
+                    is_valid_sublevel = True
                     break
-
-            if not is_valid_seslevel:
+            if not is_valid_sublevel:
                 raise Exception(
-                    "There is no `ses-*` folder in subject folder " + sub_temp
+                    "There is no `sub-*` folder in input dataset #" + str(i_ds+1)
+                    + " '" + input_ds.df["name"][i_ds] + "'!"
                 )
+
+            if type_session == "multi-ses":
+                for sub_temp in list_subs:  # every sub- folder should contain a session folder
+                    if sub_temp[0] == ".":  # hidden folder
+                        continue  # skip it
+                    is_valid_seslevel = False
+                    list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
+                    for ses_temp in list_sess:
+                        if ses_temp[0:4] == "ses-":
+                            # if one of the folder starts with "ses-", then it's fine
+                            is_valid_seslevel = True
+                            break
+
+                    if not is_valid_seslevel:
+                        raise Exception(
+                            "In input dataset #" + str(i_ds+1)
+                            + " '" + input_ds.df["name"][i_ds] + "',"
+                            + " there is no `ses-*` folder in subject folder '" + sub_temp
+                            + "'!"
+                        )
 
 
 def validate_type_session(type_session):
@@ -152,7 +165,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     #     print(key + " : " + str(value))
 
     cmd = ""
-    is_first_flag = True
+    # is_first_flag = True
     flag_fs_license = False
     singuRun_input_dir = None
 
@@ -179,47 +192,55 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     for key, value in config["babs_singularity_run"].items():
         # print(key + ": " + str(value))
 
-        if not is_first_flag:
-            # if it's not the first flag, not to add "\"
-            cmd += " \ "
-
         if key == "$INPUT_PATH":  # placeholder
+
+            #   if not, warning....
+            if value[-1] == "/":
+                value = value[:-1]   # remove the unnecessary forward slash at the end
+
+            # sanity check that `value` should match with one of input ds's `path_data_rel`
+            if value not in list(input_ds.df["path_data_rel"]):  # after unzip, if needed
+                warnings.warn("'" + value + "' specified after $INPUT_PATH"
+                              + " (in section `babs_singularity_run`"
+                              + " in `container_config_yaml_file`), does not"
+                                + " match with any dataset's current path."
+                                + " This may cause error when running the BIDS App.")
+
             singuRun_input_dir = value
             # ^^ no matter one or more input dataset(s)
             # and not add to the flag cmd
 
         else:   # check on values:
             if value == "":   # a flag, without value
-                cmd += "\n\t" + str(key)
+                cmd += " \\" + "\n\t" + str(key)
             else:  # a flag with value
                 # check if it is a placeholder which needs to be replaced:
                 if str(value)[:6] == "$BABS_":
                     replaced = replace_placeholder_from_config(value)
-                    cmd += "\n\t" + str(key) + " " + str(replaced)
+                    cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
                 elif str(value) == "$FREESURFER_LICENSE":
                     replaced = replace_placeholder_from_config(value)
                     flag_fs_license = True
-                    cmd += "\n\t" + str(key) + " " + str(replaced)
+                    cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
 
                 elif value is None:    # if entered `Null` or `NULL` without quotes
-                    cmd += "\n\t" + str(key)
+                    cmd += " \\" + "\n\t" + str(key)
                 elif value in ["Null", "NULL"]:  # "Null" or "NULL" w/ quotes, i.e., as strings
-                    cmd += "\n\t" + str(key)
+                    cmd += " \\" + "\n\t" + str(key)
 
                 # there is no placeholder to deal with:
                 else:
-                    cmd += "\n\t" + str(key) + " " + str(value)
+                    cmd += " \\" + "\n\t" + str(key) + " " + str(value)
 
-        is_first_flag = False
+        # is_first_flag = False
 
         # print(cmd)
 
     if singuRun_input_dir is None:
         # now, it must be only one input dataset, and user did not provide `$INPUT_PATH` key:
         assert input_ds.num_ds == 1
-        singuRun_input_dir = "inputs/data/" + input_ds.df["name"][0]
-        # ^^ TODO: try this out!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        singuRun_input_dir = input_ds.df["path_data_rel"][0]
+        # ^^ path to data (if zipped ds: after unzipping)
 
     # example of access one slot:
     # config["babs_singularity_run"]["n_cpus"]
@@ -419,7 +440,7 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
 
     cmd = ""
 
-    if True in input_ds.df["is_zipped"]:
+    if True in list(input_ds.df["is_zipped"]):
         # print("there is zipped dataset to be unzipped.")
         cmd += "\nwd=${PWD}"
 
