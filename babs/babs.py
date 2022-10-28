@@ -9,6 +9,7 @@ import pandas as pd
 import glob
 import shutil
 import tempfile
+import yaml
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
@@ -18,7 +19,9 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
                         generate_cmd_zipping_from_config,
-                        read_container_config_yaml, validate_type_session)
+                        validate_type_session,
+                        generate_bashhead_resources,
+                        generate_cmd_datalad_run)
 
 # import pandas as pd
 
@@ -26,7 +29,7 @@ from babs.utils import (get_immediate_subdirectories,
 class BABS():
     """The BABS class is for babs projects of BIDS Apps"""
 
-    def __init__(self, project_root, type_session, system):
+    def __init__(self, project_root, type_session, type_system):
         '''
         Parameters:
         ------------
@@ -34,8 +37,8 @@ class BABS():
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
-        system: str
-            the job scheduling system, "sge" or "slurm"
+        type_system: str
+            the type of job scheduling system, "sge" or "slurm"
 
         Attributes:
         ---------------
@@ -43,8 +46,8 @@ class BABS():
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
-        system: str
-            the job scheduling system, "sge" or "slurm"
+        type_system: str
+            the type of job scheduling system, "sge" or "slurm"
         analysis_path: str
             path to the `analysis` folder.
         analysis_datalad_handle: datalad dataset
@@ -66,7 +69,7 @@ class BABS():
 
         self.project_root = project_root
         self.type_session = type_session
-        self.system = system
+        self.type_system = type_system
 
         self.analysis_path = op.join(project_root, "analysis")
         self.analysis_datalad_handle = None
@@ -79,7 +82,8 @@ class BABS():
 
         self.output_ria_data_dir = None     # not known yet before output_ria is created
 
-    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config_yaml_file):
+    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config_yaml_file,
+                       system):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
@@ -93,6 +97,8 @@ class BABS():
             TODO: add desc!
         container_config_yaml_file: str
             TODO: add desc!
+        system: class System
+            information about the cluster management system
         """
 
         # entry_pwd = os.getcwd()
@@ -252,6 +258,11 @@ class BABS():
 
         # Generate `participant_job.sh`: --------------------------------------
         # TODO: ^^
+        print("\nGenerating bash script for running jobs at participant level...")
+        print("This bash script will be named as `participant_job.sh`")
+        bash_path = op.join(self.analysis_path, "code", "participant_job.sh")
+        container.generate_bash_participant_job(bash_path, input_ds, self.type_session,
+                                                system)
 
         # Finish up and get ready for clusters running: -----------------------
         # datalad save:
@@ -271,9 +282,9 @@ class BABS():
 
         gitignore_file.write("\nlogs")   # not to track `logs` folder
         # not to track `.*_datalad_lock`:
-        if self.system == "sge":
+        if system.type == "sge":
             gitignore_file.write("\n.SGE_datalad_lock")
-        elif self.system == "slurm":
+        elif system.type == "slurm":
             # TODO: add command for `slurm`!!!
             print("Not supported yet... To work on...")
         gitignore_file.write("\n")
@@ -432,12 +443,64 @@ class Input_ds():
                 self.df["path_data_rel"][i_ds] = self.df["path_now_rel"][i_ds]
 
 
+class System():
+    """This class is for cluster management system"""
+
+    def __init__(self, system_type):
+        """
+        This is to initialize System class.
+
+        Parameters:
+        -------------
+        system_type: str
+            Type of the cluster management system.
+            Options are: "sge" and "slurm"
+
+        Attributes:
+        -------------
+        type: str
+            Type of the cluster management system.
+            Options are: "sge" and "slurm"
+        dict: dict
+            Guidance dict (loaded from `dict_cluster_systems.yaml`)
+            for how to run this type of cluster.
+        """
+        self.type = system_type
+        self.validate_name()
+
+        # get attribute `dict` - the guidance dict for how to run this type of cluster:
+        self.get_dict()
+
+    def validate_name(self):
+        """
+        To validate if the type of the cluster system is valid.
+        For valid ones, the type string will be changed to lower case.
+        """
+        if self.type.lower() in ["sge", "slurm"]:
+            self.type = self.type.lower()   # change to lower case, if needed
+        else:
+            raise Exception("Invalid cluster system type: '" + self.type + "'!")
+
+    def get_dict(self):
+        with open("babs/dict_cluster_systems.yaml") as f:
+            dict = yaml.load(f, Loader=yaml.FullLoader)
+            # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
+
+        # sanity check:
+        if self.type not in dict:
+            raise Exception("There is no key called '" + self.type + "' in"
+                            + " file `dict_cluster_systems.yaml`!")
+
+        self.dict = dict[self.type]
+        f.close()
+
+
 class Container():
     """This class is for the BIDS App Container"""
 
     def __init__(self, container_ds, container_name, config_yaml_file):
         """
-        This is to initalize Container class .
+        This is to initialize Container class.
 
         Parameters:
         --------------
@@ -463,6 +526,9 @@ class Container():
         config_yaml_file: str
             The YAML file that contains the configurations of how to run the container
             This is optional argument (of the CLI `babs-init`)
+        config: dict
+            The configurations regaring running the BIDS App on a cluster
+            read from `config_yaml_file`.
         container_path_relToAnalysis: str
             The path to the container image saved in BABS project;
             this path is relative to `analysis` folder.
@@ -473,10 +539,27 @@ class Container():
         self.container_name = container_name
         self.config_yaml_file = config_yaml_file
 
+        # sanity check if `config_yaml_file` exists:
+        if op.exists(self.config_yaml_file) is False:
+            raise Exception("The yaml file of the container's configurations '"
+                            + self.config_yaml_file + "' does not exist!")
+
+        # read the container's config yaml file and get the `config`:
+        self.read_container_config_yaml()
+
         self.container_path_relToAnalysis = op.join("containers", ".datalad", "environments",
                                                     self.container_name, "image")
 
         # TODO: validate that this `container_name` really exists in `container_ds`...
+
+    def read_container_config_yaml(self):
+        """
+        This is to get the config dict from `config_yaml_file`
+        """
+        with open(self.config_yaml_file) as f:
+            self.config = yaml.load(f, Loader=yaml.FullLoader)
+            # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
+        f.close()
 
     def generate_bash_run_bidsapp(self, bash_path, input_ds, type_session):
         """
@@ -507,10 +590,8 @@ class Container():
 
         # TODO: continue adding commands......
 
-        # Read container config YAML file:
-        config = read_container_config_yaml(self.config_yaml_file)
-        # check if it contains information we need:
-        if "babs_singularity_run" not in config:
+        # check if `self.config` from the YAML file contains information we need:
+        if "babs_singularity_run" not in self.config:
             print("The key 'babs_singularity_run' was not included "
                   "in the `container_config_yaml_file`. "
                   "Therefore we will not refer to the yaml file for `singularity run` arguments, "
@@ -524,7 +605,7 @@ class Container():
 
             # read config from the yaml file:
             cmd_singularity_flags, flag_fs_license, singuRun_input_dir = \
-                generate_cmd_singularityRun_from_config(config, input_ds)
+                generate_cmd_singularityRun_from_config(self.config, input_ds)
 
         print()
 
@@ -571,7 +652,7 @@ class Container():
 
         # Export environment variable:
         cmd_envvar, templateflow_home, singularityenv_templateflow_home = generate_cmd_envvar(
-            config, self.container_name)
+            self.config, self.container_name)
         bash_file.write(cmd_envvar)
 
         # Write the head of the command `singularity run`:
@@ -617,7 +698,7 @@ class Container():
         print(cmd_head_singularityRun + cmd_singularity_flags)
 
         # Zip:
-        cmd_zip = generate_cmd_zipping_from_config(config, type_session, output_foldername)
+        cmd_zip = generate_cmd_zipping_from_config(self.config, type_session, output_foldername)
         bash_file.write(cmd_zip)
 
         # Delete folders and files:
@@ -666,3 +747,138 @@ class Container():
             proc_copy_fs_license.check_returncode()
 
         # print()
+
+    def generate_bash_participant_job(self, bash_path, input_ds, type_session,
+                                      system):
+        """
+        This is to generate a bash script that runs jobs for each participant (or session).
+
+        Parameters:
+        -------------
+        bash_path: str
+            The path to the bash file to be generated. It should be in the `analysis/code` folder.
+        input_ds: class `Input_ds`
+            input dataset(s) information
+        type_session: str
+            "multi-ses" or "single-ses".
+        system: class `System`
+            information on cluster management system
+        """
+
+        # Sanity check:
+        if type_session not in ["multi-ses", "single-ses"]:
+            raise Exception("Invalid `type_session`: " + type_session)
+
+        # Check if the bash file already exist:
+        if op.exists(bash_path):
+            os.remove(bash_path)  # remove it
+
+        # Write into the bash file:
+        bash_file = open(bash_path, "a")   # open in append mode
+
+        bash_file.write("#!/bin/bash\n")
+
+        # Cluster resources requesting:
+        cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
+        bash_file.write(cmd_bashhead_resources)
+
+        # Set up correct conda environment:
+        bash_file.write("\n# Set up the conda environment:\n")
+
+        # sanity check:
+        if "script_preamble" not in self.config:
+            raise Exception("Did not find the required section 'script_preamble'"
+                            + " in `container_config_yaml_file`!")
+        if "conda_env_name" not in self.config["script_preamble"]:
+            raise Exception("Did not find the required key 'conda_env_name'"
+                            + " in section 'script_preamble'"
+                            + " in `container_config_yaml_file`!")
+
+        if system.type == "sge":
+            bash_file.write("source ${CONDA_PREFIX}/bin/activate"
+                            + self.config["script_preamble"]["conda_env_name"]
+                            + "\n")
+        # TODO: add slurm's
+
+        bash_file.write("echo I\'m in $PWD using `which python`\n")
+
+        # Change how this bash file is run:
+        bash_file.write("\n# Fail whenever something is fishy,"
+                        + " use -x to get verbose logfiles:\n")
+        bash_file.write("set -e -u -x\n")
+
+        # Inputs of the bash script:
+        bash_file.write("\n")
+        bash_file.write('dssource="$1"\n')
+        bash_file.write('pushgitremote="$2"\t# i.e., `output_ria`\n')
+        bash_file.write('subid="$3"\n')
+
+        if type_session == "multi-ses":
+            # also have the input of `sesid`:
+            bash_file.write('sesid="$4"\n')
+            bash_file.write('where_to_run="$5"\n')
+        elif type_session == "single-ses":
+            bash_file.write('where_to_run="$4"\n')
+
+        # TODO: if `where_to_run` is not specified, change to default = ??
+
+        bash_file.write("\n# Change to a temporary directory or compute space:\n")
+        bash_file.write("cd ${where_to_run}" + "\n")
+
+        # Setups: ---------------------------------------------------------------
+        # set up the branch:
+        bash_file.write("\n# Branch name (also used as temporary directory):\n")
+        if system.type == "sge":
+            varname_jobid = "JOB_ID"
+        elif system.type == "slurm":
+            varname_jobid = "SLURM_JOBID"
+
+        if type_session == "multi-ses":
+            bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}-${sesid}"' + '\n')
+        elif type_session == "single-ses":
+            bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}"' + '\n')
+
+        bash_file.write('mkdir ${BRANCH}' + '\n')
+        bash_file.write('cd ${BRANCH}' + '\n')
+
+        # datalad clone the input ria:
+        bash_file.write("\n# Clone the data from input RIA:\n")
+        bash_file.write('datalad clone "${dssource}" ds' + "\n")
+        bash_file.write("cd ds")
+
+        # set up the result deposition:
+        bash_file.write("\n# Register output RIA as remote for result deposition:\n")
+        bash_file.write('git remote add outputstore "${pushgitremote}"' + "\n")
+        # ^^ `git remote add <give a name> <folder where the remote is>`
+        #   is to add a new remote to your git repo
+
+        # set up a new branch:
+        bash_file.write("\n# Create a new branch for this job's results:" + "\n")
+        bash_file.write('git checkout -b "${BRANCH}"' + "\n")
+
+        # Start of the application-specific code: ------------------------------
+        # # pull the input data ????????:
+        # bash_file.write("\n# Pull down input data manully:")
+        # bash_file.write('datalad get -n "inputs/data/${subid}"')
+        # ^^ TODO: if to include, change:
+        # 1) based on type_session
+        # 2) zip or not
+        # checkout: fmriprep; fmriprep_ingressed_fs
+
+        # `datalad get` the container??????
+        # TODO: include ^^?
+
+        # `datalad run`:
+        bash_file.write("\n# datalad run:\n")
+        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, type_session)
+
+        # Finish up:
+
+        # Done generating `participant_job.sh`:
+        bash_file.write("\n")
+        bash_file.close()
+
+        # TODO: add: change permission of this bash script
+        # see: end of `generate_bash_run_bidsapp()`!
+
+        print("")

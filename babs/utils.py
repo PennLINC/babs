@@ -106,16 +106,6 @@ def validate_type_session(type_session):
     return type_session
 
 
-def read_container_config_yaml(container_config_yaml_file):
-
-    with open(container_config_yaml_file) as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-        # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
-    f.close()
-
-    return config
-
-
 def replace_placeholder_from_config(value):
     """
     Replace the placeholder in values in container config yaml file
@@ -143,6 +133,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     Parameters:
     ------------
     config: dictionary
+        attribute `config` in class Container;
         got from `read_container_config_yaml()`
     input_ds: class `Input_ds`
         input dataset(s) information
@@ -265,7 +256,8 @@ def generate_cmd_envvar(config, container_name):
     Parameters:
     ------------
     config: dictionary
-        got from `read_container_config_yaml()`.
+        attribute `config` in class Container;
+        got from `read_container_config_yaml()`
     container_name: str
         The name of the container when adding to datalad dataset.
         e.g., fmriprep-0-0-0.
@@ -326,7 +318,8 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     Parameters:
     ------------
     config: dictionary
-        got from `read_container_config_yaml()`.
+        attribute `config` in class Container;
+        got from `read_container_config_yaml()`
     type_session: str
         "multi-ses" or "single-ses"
     output_foldername: str
@@ -436,6 +429,17 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
     ---------
     cmd: str
         It's part of the `<containerName_zip.sh>`.
+        Examples #1:
+            wd=${PWD}
+            cd inputs/data
+            7z x ${subid}_${sesid}_fmriprep-20.2.3.zip
+            cd $wd
+        Example #2:
+            wd=${PWD}
+            cd inputs/data/freesurfer
+            7z x `basename ${freesurfer_zip}`
+            cd $wd
+
     """
 
     cmd = ""
@@ -483,17 +487,138 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
 
             cmd += "\ncd $wd\n"
 
-    """
-wd=${PWD}
+    return cmd
 
-cd inputs/data
-7z x ${subid}_${sesid}_fmriprep-20.2.3.zip
-cd $wd
 
-wd=${PWD}
-cd inputs/data/freesurfer
-7z x `basename ${freesurfer_zip}`
-cd $wd
+def generate_one_bashhead_resources(system, key, value):
     """
+    This is to generate one command in the head of the bash file
+    for requesting cluster resources.
+
+    Parameters:
+    ------------
+    system: class `System`
+        information about cluster managemenet system
+    value: str
+        value of a key in section `cluster_resources` container's config yaml
+
+    Returns:
+    -----------
+    cmd: str
+        one command of requesting cluster resource.
+        This does not include "\n" at the end.
+        e.g., "#$ -S /bin/bash".
+
+    """
+    cmd = "#"
+    if system.type == "sge":
+        cmd += "$ "
+    # TODO: add slurm's
+
+    # find the key in the `system.dict`:
+    if key not in system.dict:
+        raise Exception("Invalid key '" + key + "' in section `cluster_resources`"
+                        + " in `container_config_yaml_file`; This key has not been defined"
+                        + " in file 'dict_cluster_systems.yaml'.")
+
+    # get the format:
+    the_format = system.dict[key]
+    # replace the placeholder "$VALUE" in the format with the real value defined by user:
+    cmd += the_format.replace("$VALUE", value)
+
+    return cmd
+
+def generate_bashhead_resources(system, config):
+    """
+    This is to generate the head of the bash file
+    for requesting cluster resources.
+
+    Parameters:
+    ------------
+    system: class `System`
+        information about cluster managemenet system
+    config: dictionary
+        attribute `config` in class Container;
+        got from `read_container_config_yaml()`
+
+    Returns:
+    ------------
+    cmd: str
+        It's part of the `participant_job.sh`; it is generated
+        based on config yaml file and the system's dict.
+    """
+
+    cmd = ""
+
+    # sanity check: `cluster_resources` exists:
+    if "cluster_resources" not in config:
+        raise Exception("There is no section `cluster_resources`"
+                        + " in `container_config_yaml_file`!")
+
+    # loop: for each key, call `generate_one_bashhead_resources()`:
+    for key, value in config["cluster_resources"].items():
+        one_cmd = generate_one_bashhead_resources(system, key, value)
+        cmd += one_cmd + "\n"
+
+    return cmd
+
+def generate_cmd_datalad_run(container, input_ds, type_session):
+    """
+    This is to generate the command of `datalad run`
+    included in `participant_job.sh`.
+
+    Parameters:
+    ------------
+    container: class `Container`
+        Information about the container
+    input_ds: class `Input_ds`
+        Information about input dataset(s)
+    type_session: str
+        "multi-ses" or "single-ses"
+
+    Returns:
+    ------------
+    cmd: str
+        `datalad run`, part of the `participant_job.sh`.
+    """
+
+    cmd = ""
+    cmd += "datalad run \\" + "\n"
+
+    # input: `<containerName>_zip.sh`:
+    bash_bidsapp_zip_path_rel = op.join("code", container.container_name + "_zip.sh")
+    cmd += "\t" + "-i " + bash_bidsapp_zip_path_rel + " \\" + "\n"
+
+    # input: each input dataset (depending on zipped or not)
+    for i_ds in range(0, input_ds.num_ds):
+        if input_ds.df["is_zipped"][i_ds] is False:  # not zipped
+            # input: a subject or session folder
+            if type_session == "multi-ses":
+                cmd += "\t" + "-i " + input_ds.df["path_now_rel"][i_ds] + "/" \
+                    + '${subid}/${sesid}' + " \\" + "\n"
+            elif type_session == "single-ses":
+                cmd += "\t" + "-i " + input_ds.df["path_now_rel"][i_ds] + "/" \
+                    + '${subid}' + " \\" + "\n"
+
+            # input: also the json file:
+            cmd += "\t" + "-i " + input_ds.df["path_now_rel"][i_ds] + "/" \
+                + "*json" + " \\" + "\n"
+        else:   # zipped:
+            print("")
+            # TODO
+
+    # input: container image
+
+    # --explicit
+
+    # output: each zipped file
+
+    # message:
+
+    # the real command:
+
+    # TODO: finish this function!
+    # TODO: test on multi-ses and single-ses data!
+    # TODO: test on 1) fmriprep; 2) xcpd; 3) fmriprep_ingressed_fs
 
     return cmd

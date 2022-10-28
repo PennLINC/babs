@@ -67,9 +67,9 @@ def babs_init_cli():
              "or multiple-session ['multi-ses']",
         required=True)
     parser.add_argument(
-        "--system",
+        "--type_system",
         choices=["sge", "slurm"],
-        help="The name of the job scheduling system that you will use. Choices are sge and slurm.",
+        help="The name of the job scheduling type_system that you will use. Choices are sge and slurm.",
         required=True)
 
     args = parser.parse_args()
@@ -80,7 +80,7 @@ def babs_init_cli():
     babs_init(args.where_project, args.project_name,
               args.input, args.container_ds,
               args.container_name, args.container_config_yaml_file,
-              type_session, args.system)
+              type_session, args.type_system)
 
 # if __name__ == "__main__":
 #     babs_init_cli()

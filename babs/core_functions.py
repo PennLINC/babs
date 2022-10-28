@@ -6,14 +6,14 @@ import pandas as pd
 # from tqdm import tqdm
 import datalad.api as dlapi
 
-from babs.babs import BABS, Input_ds
+from babs.babs import BABS, Input_ds, System
 from babs.utils import (get_datalad_version)
 
 
 def babs_init(where_project, project_name,
               input, container_ds,
               container_name, container_config_yaml_file,
-              type_session, system):
+              type_session, type_system):
     """
     This is to core function of babs-init.
 
@@ -31,7 +31,7 @@ def babs_init(where_project, project_name,
         path to the container datalad dataset
     type_session: str
         multi-ses or single-ses
-    system: str
+    type_system: str
         sge or slurm
 
 
@@ -53,7 +53,7 @@ def babs_init(where_project, project_name,
     if not os.access(where_project, os.W_OK):
         raise Exception("the `where_project` is not writable!")
 
-    # TODO: add sanity check of type_session and system!
+    # TODO: add sanity check of type_session and type_system!
 
     input_ds = Input_ds(input)
 
@@ -69,12 +69,17 @@ def babs_init(where_project, project_name,
     # Create an instance of babs class:
     babs_proj = BABS(project_root,
                      type_session,
-                     system)
+                     type_system)
+
+    # Validate system's type name:
+    system = System(type_system)
+
     # print out key information for visual check:
     print("")
     print("project_root of this BABS project: " + babs_proj.project_root)
     print("type of data of this BABS project: " + babs_proj.type_session)
-    print("job scheduling system of this BABS project: " + babs_proj.system)
+    print("job scheduling system of this BABS project: " + babs_proj.type_system)
     print("")
     # call method `babs_bootstrap()`:
-    babs_proj.babs_bootstrap(input_ds, container_ds, container_name, container_config_yaml_file)
+    babs_proj.babs_bootstrap(input_ds, container_ds, container_name, container_config_yaml_file,
+                             system)
