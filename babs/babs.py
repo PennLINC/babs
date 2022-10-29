@@ -21,7 +21,8 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_zipping_from_config,
                         validate_type_session,
                         generate_bashhead_resources,
-                        generate_cmd_datalad_run)
+                        generate_cmd_datalad_run,
+                        generate_cmd_determine_zipfilename)
 
 # import pandas as pd
 
@@ -117,6 +118,8 @@ class BABS():
             # check if it's a datalad dataset:
             try:
                 _ = dlapi.status(dataset=self.analysis_path)
+                # TODO: we should apply `datalad update`
+                #   in case there is any updates from the original place
                 print("Folder 'analysis' exists in the `project_root` and is a datalad dataset; "
                       "not to re-create it.")
                 self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
@@ -209,9 +212,10 @@ class BABS():
         input_ds.assign_path_now_abs(self.analysis_path)
 
         # Check the type of each input dataset: (zipped? unzipped?)
-        #   this also includes a sanity check of the foldername within the zip file (for zipped ds)
         print("\nChecking whether each input dataset is a zipped or unzipped dataset...")
         input_ds.check_if_zipped()
+        # sanity checks:
+        input_ds.check_validity_zipped_input_dataset(self.type_session)
 
         # Check validity of unzipped ds:
         #   if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
@@ -362,16 +366,12 @@ class Input_ds():
     def check_if_zipped(self):
         """
         This is to check if each input dataset is zipped, and assign `path_data_rel`.
-        If it's a zipped ds, it will:
-            1) also do a sanity check to make sure the 1st level folder in zipfile
-                is consistent to this input dataset's name;
-                Only checks the first zipfile.
-            2) `path_data_rel` = `path_now_rel`/`name`,
+        If it's a zipped ds: `path_data_rel` = `path_now_rel`/`name`,
                 i.e., extra layer of folder got from unzipping
-
         If it's an unzipped ds, `path_data_rel` = `path_now_rel`
         """
 
+        # Determine if it's a zipped dataset, for each input ds:
         for i_ds in range(0, self.num_ds):
             temp_list = glob.glob(self.df["path_now_abs"][i_ds] + "/sub-*")
             count_zip = 0
@@ -399,22 +399,69 @@ class Input_ds():
                 raise Exception("BABS did not detect any folder or zip file of `sub-*`"
                                 + " in input dataset '" + self.df["name"][i_ds] + "'.")
 
+        # Assign `path_data_rel`:
+        for i_ds in range(0, self.num_ds):
+            if self.df["is_zipped"][i_ds] is True:   # zipped ds
+                self.df["path_data_rel"][i_ds] = op.join(self.df["path_now_rel"][i_ds],
+                                                         self.df["name"][i_ds])
+            else:   # unzipped ds:
+                self.df["path_data_rel"][i_ds] = self.df["path_now_rel"][i_ds]
+
+    def check_validity_zipped_input_dataset(self, type_session):
+        """
+        This is to perform two sanity checks on each zipped input dataset:
+        1) sanity check on the zip filename:
+            if multi-ses: sub-*_ses-*_<input_ds_name>*.zip
+            if single-ses: sub-*_<input_ds_name>*.zip, without `ses-*`
+        2) sanity check to make sure the 1st level folder in zipfile
+            is consistent to this input dataset's name;
+            Only checks the first zipfile.
+
+        Parameters:
+        ------------
+        type_session: str
+            "multi-ses" or "single-ses"
+        container_name: str
+            Name of the container
+        """
+
         if True in list(self.df["is_zipped"]):  # there is at least one dataset is zipped
             print("Performing sanity check for any zipped input dataset..."
                   " Getting example zip file(s) to check...")
         for i_ds in range(0, self.num_ds):
             if self.df["is_zipped"][i_ds] is True:   # zipped ds
-                # Sanity check: -----------------------------------
-                # find a zipfile, `datalad get`
-                temp_list = glob.glob(self.df["path_now_abs"][i_ds]
-                                      + "/sub-*" + self.df["name"][i_ds] + "*.zip")
-                if len(temp_list) == 0:    # did not find any matched
-                    raise Exception("In zipped input dataset #" + str(i_ds + 1)
-                                    + " (named '" + self.df["name"][i_ds] + "'),"
-                                    + " there is no zip file"
-                                    + " whose filename includes the dataset's name: '"
-                                    + self.df["name"][i_ds] + "'")
-                temp_zipfile = temp_list[0]   # try out the first one
+                # Sanity check #1: zip filename: ----------------------------------
+                if type_session == "multi-ses":
+                    # check if matches the pattern of `sub-*_ses-*_<input_ds_name>*.zip`:
+                    temp_list = glob.glob(self.df["path_now_abs"][i_ds]
+                                          + "/sub-*_ses-*_" + self.df["name"][i_ds] + "*.zip")
+                    if len(temp_list) == 0:    # did not find any matched
+                        raise Exception("In zipped input dataset #" + str(i_ds + 1)
+                                        + " (named '" + self.df["name"][i_ds] + "'),"
+                                        + " no zip filename matches the pattern of"
+                                        + " 'sub-*_ses-*_"
+                                        + self.df["name"][i_ds] + "*.zip'")
+                elif type_session == "single-ses":
+                    temp_list = glob.glob(self.df["path_now_abs"][i_ds]
+                                          + "/sub-*_" + self.df["name"][i_ds] + "*.zip")
+                    if len(temp_list) == 0:    # did not find any matched
+                        raise Exception("In zipped input dataset #" + str(i_ds + 1)
+                                        + " (named '" + self.df["name"][i_ds] + "'),"
+                                        + " no zip filename matches the pattern of"
+                                        + " 'sub-*_"
+                                        + self.df["name"][i_ds] + "*.zip'")
+                    # also check there should not be `_ses-*_`
+                    temp_list_2 = glob.glob(self.df["path_now_abs"][i_ds]
+                                            + "/*_ses-*_*.zip")
+                    if len(temp_list_2) > 0:   # exists:
+                        raise Exception("In zipped input dataset #" + str(i_ds + 1)
+                                        + " (named '" + self.df["name"][i_ds] + "'),"
+                                        + " as it's a single-ses dataset,"
+                                        + " zip filename should not contain"
+                                        + " '_ses-*_'")
+
+                # Sanity check #2: foldername within zipped file: -------------------
+                temp_zipfile = temp_list[0]   # try out the first zipfile
                 temp_zipfilename = op.basename(temp_zipfile)
                 dlapi.get(path=temp_zipfile, dataset=self.df["path_now_abs"][i_ds])
                 # unzip to a temporary folder and get the foldername
@@ -434,13 +481,6 @@ class Input_ds():
                                   + self.df["name"][i_ds] + "' in zipped input file '"
                                   + temp_zipfilename + "'. This may cause error"
                                   + " when running BIDS App for this subject/session")
-
-                # Assign `path_data_rel`: ----------------------------------
-                self.df["path_data_rel"][i_ds] = op.join(self.df["path_now_rel"][i_ds],
-                                                         self.df["name"][i_ds])
-            else:   # unzipped ds:
-                # Assign `path_data_rel`:
-                self.df["path_data_rel"][i_ds] = self.df["path_now_rel"][i_ds]
 
 
 class System():
@@ -857,13 +897,55 @@ class Container():
         bash_file.write('git checkout -b "${BRANCH}"' + "\n")
 
         # Start of the application-specific code: ------------------------------
-        # # pull the input data ????????:
-        # bash_file.write("\n# Pull down input data manully:")
-        # bash_file.write('datalad get -n "inputs/data/${subid}"')
+        # pull the input data and remove other sub's data:
+        #   purpose of removing other sub's data: otherwise pybids would take
+        #   extremely long time in large dataset due to lots of subjects
+        bash_file.write("\n# Pull down input data manually:\n")
+        for i_ds in range(0, input_ds.num_ds):
+            if input_ds.df["is_zipped"][i_ds] is False:   # unzipped ds:
+                # seems regardless of multi-ses or not
+                #   as for multi-ses, it might uses other ses's data e.g., anat?
+                bash_file.write('datalad get -n "' + input_ds.df["path_now_rel"][i_ds]
+                                + "/${subid}" + '"' + "\n")
+                # ^^ `-n` means "Get (clone) a registered subdataset, but don’t retrieve data"
+                #   here input ds is a sub-dataset of dataset `analysis`.
+                # NOTE: not sure why `bootstrap-fmriprep-ingressed-fs.sh` uses:
+                # `datalad get -n -r "inputs/data/BIDS/${subid}"`
+                # that has `-r`? `-r` means "recursively" - is it for cases that each sub
+                #   is a sub-dataset of `inputs/data/<name>`?
+                # TODO: try out if adding `-r` still works?
+
+                # remove other sub's data:
+                bash_file.write("(cd " + input_ds.df["path_now_rel"][i_ds]
+                                + " && rm -rf `find . -type d -name 'sub*'"
+                                + " | grep - v $subid`" + ")" + "\n")
+                """
+                e.g.,:
+                datalad get -n "inputs/data/<name>/${subid}"
+                (cd inputs/data/<name> && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
+                """
+            else:    # zipped ds:
+                bash_file.write('datalad get -n "' + input_ds.df["path_now_rel"][i_ds]
+                                + "/${subid}_*" + input_ds.df["name"][i_ds] + "*.zip"
+                                + '"' + "\n")
+                bash_file.write("(cd " + input_ds.df["path_now_rel"][i_ds]
+                                + " && rm -f `ls sub-*.zip | grep -v ${subid}`"
+                                + ")" + "\n")
+                """
+                e.g.,:
+                datalad get -n "inputs/data/freesurfer/${subid}_*<name>*.zip"
+                (cd inputs/data/<name> && rm -f `ls sub-*.zip | grep -v ${subid}`)
+                """
+
         # ^^ TODO: if to include, change:
         # 1) based on type_session
         # 2) zip or not
         # checkout: fmriprep; fmriprep_ingressed_fs
+
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
+        bash_file.write(cmd_determine_zipfilename)
+
+        # TODO: might use e.g., `FREESURFER_ZIP` variable in above `datalad get`?
 
         # `datalad get` the container??????
         # TODO: include ^^?

@@ -18,7 +18,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 flag_instance = "fmriprep_ingressed_fs"
-type_session = "multi-ses"
+type_session = "single-ses"
 
 flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++

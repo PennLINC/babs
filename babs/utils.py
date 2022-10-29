@@ -562,6 +562,96 @@ def generate_bashhead_resources(system, config):
 
     return cmd
 
+def generate_cmd_determine_zipfilename(input_ds, type_session):
+    """
+    This is to generate bash cmd that determines the path to the zipfile of a specific
+    subject (or session). This command will be used in `participant_job.sh`
+
+    Parameters:
+    -----------
+    input_ds: class Input_ds
+        information about input dataset(s)
+    type_session: str
+        "multi-ses" or "single-ses"
+
+    Returns:
+    -----------
+    cmd: str
+        the bash command used in `participant_job.sh`
+
+    Notes:
+    -----------
+    ref: `bootstrap-fmriprep-ingressed-fs.sh`
+    """
+
+    cmd = ""
+
+    if True in list(input_ds.df["is_zipped"]):  # there is at least one dataset is zipped
+        cmd += "\nGetting the zip filename of current subject (or session):\n"
+
+    for i_ds in range(0, input_ds.num_ds):
+        if input_ds.df["is_zipped"][i_ds] is True:   # is zipped:
+            variable_name_zip = input_ds.df["name"][i_ds] + "_ZIP"
+            variable_name_zip = variable_name_zip.upper()   # change to upper case
+            cmd += variable_name_zip + "=" + "$(ls " \
+                + input_ds.df["path_now_rel"][i_ds] + "/${subid}_"
+
+            if type_session == "multi-ses":
+                cmd += "${sesid}_"
+
+            cmd += "*" + input_ds.df["name"][i_ds] + "*.zip" \
+                + " | cut -d '@' -f 1 || true)" + "\n"
+            # `cut -d '@' -f 1` means:
+            #   field separator (or delimiter) is @ (`-d '@'`), and get the 1st field (`-f 1`)
+            # `<command> || true` means:
+            #   the bash script won't abort even if <command> fails
+            #   useful when `set -e` (where any error would cause the shell to exit)
+
+            cmd += "echo 'found " + input_ds.df["name"][i_ds] + " zipfile:'" + "\n"
+            cmd += "echo ${" + variable_name_zip + "}" + "\n"
+
+            # check if it exists:
+            cmd += 'if [ -z "${' + variable_name_zip + '}" ]; then' + "\n"
+            cmd += "\t" + "echo 'No input zipfile of " + input_ds.df["name"][i_ds] \
+                + " found for ${subid}"
+            if type_session == "multi-ses":
+                cmd += " ${sesid}"
+            cmd += "'" + "\n"
+            cmd += "\t" + "exit 99" + "\n"
+            cmd += "fi" + "\n"
+
+            # sanity check: there should be only 1 matched file:
+            # change into array: e.g., array=($FREESURFER_ZIP)
+            cmd += 'array=($' + variable_name_zip + ')' + "\n"
+            # if [ "$a" -gt "$b" ]; then
+            cmd += 'if [ "${#array[@]}" -gt "1" ]; then' + "\n"
+            cmd += "\t" + "echo 'There is more than one input zipfile of " \
+                + input_ds.df["name"][i_ds] \
+                + " found for ${subid}"
+            if type_session == "multi-ses":
+                cmd += " ${sesid}"
+            cmd += "'" + "\n"
+            cmd += "\t" + "exit 98" + "\n"
+            cmd += "fi" + "\n"
+
+            # TODO: test this out: multi-ses and singl-ses...
+
+    """
+    example:
+    FREESURFER_ZIP=$(ls inputs/data/freesurfer/${subid}_free*.zip | cut -d '@' -f 1 || true)
+
+    echo Freesurfer Zipfile
+    echo ${FREESURFER_ZIP}
+
+    if [ -z "${FREESURFER_ZIP}" ]; then
+        echo "No freesurfer results found for ${subid}"
+        exit 99
+    fi
+    """
+
+    return cmd
+
+
 def generate_cmd_datalad_run(container, input_ds, type_session):
     """
     This is to generate the command of `datalad run`
@@ -604,7 +694,10 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
             cmd += "\t" + "-i " + input_ds.df["path_now_rel"][i_ds] + "/" \
                 + "*json" + " \\" + "\n"
         else:   # zipped:
+            # TODO: using the variable name of zip filenames (see `generate_cmd_determine_zipfilename()`)
             print("")
+
+            # TODO: add input argument in `<container>_zip.sh` for each zipfilename....
             # TODO
 
     # input: container image
