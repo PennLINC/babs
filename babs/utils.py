@@ -499,8 +499,9 @@ def generate_one_bashhead_resources(system, key, value):
     ------------
     system: class `System`
         information about cluster managemenet system
-    value: str
+    value: str or number
         value of a key in section `cluster_resources` container's config yaml
+        if it's number, will be changed to a string.
 
     Returns:
     -----------
@@ -524,7 +525,7 @@ def generate_one_bashhead_resources(system, key, value):
     # get the format:
     the_format = system.dict[key]
     # replace the placeholder "$VALUE" in the format with the real value defined by user:
-    cmd += the_format.replace("$VALUE", value)
+    cmd += the_format.replace("$VALUE", str(value))
 
     return cmd
 
@@ -587,7 +588,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     cmd = ""
 
     if True in list(input_ds.df["is_zipped"]):  # there is at least one dataset is zipped
-        cmd += "\nGetting the zip filename of current subject (or session):\n"
+        cmd += "\n# Getting the zip filename of current subject (or session):\n"
 
     for i_ds in range(0, input_ds.num_ds):
         if input_ds.df["is_zipped"][i_ds] is True:   # is zipped:
@@ -680,6 +681,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     cmd += "\t" + "-i " + bash_bidsapp_zip_path_rel + " \\" + "\n"
 
     # input: each input dataset (depending on zipped or not)
+    flag_expand_inputs = False
     for i_ds in range(0, input_ds.num_ds):
         if input_ds.df["is_zipped"][i_ds] is False:  # not zipped
             # input: a subject or session folder
@@ -693,22 +695,49 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
             # input: also the json file:
             cmd += "\t" + "-i " + input_ds.df["path_now_rel"][i_ds] + "/" \
                 + "*json" + " \\" + "\n"
-        else:   # zipped:
-            # TODO: using the variable name of zip filenames (see `generate_cmd_determine_zipfilename()`)
-            print("")
+            flag_expand_inputs = True    # `--expand inputs`
 
-            # TODO: add input argument in `<container>_zip.sh` for each zipfilename....
-            # TODO
+        else:   # zipped:
+            cmd += "\t" + "-i ${" + input_ds.df["name"][i_ds].upper() + "_ZIP}" \
+                + " \\" + "\n"
 
     # input: container image
+    cmd += "\t" + "-i " + container.container_path_relToAnalysis + " \\" + "\n"
+
+    # --expand:
+    # ^^ Expand globs when storing inputs and/or outputs in the commit message.
+    # might be needed when `*` in --inputs or --outputs?
+    # NOTE: why `bootstrap-fmriprep-ingressed-fs.sh` has `--expand outputs`???
+    if flag_expand_inputs is True:
+        cmd += "\t" + "--expand inputs" + " \\" + "\n"
 
     # --explicit
+    cmd += "\t" + "--explicit" + " \\" + "\n"
 
     # output: each zipped file
+    fixed_cmd = "\t" + "-o ${subid}_"
+    if type_session == 'multi-ses':
+        fixed_cmd += "${sesid}_"
+
+    for key, value in container.config["babs_zip_foldername"].items():
+        cmd += fixed_cmd + key + "-" + value + ".zip" + " \\" + "\n"
 
     # message:
+    cmd += "\t" + '-m "' + container.container_name \
+        + " ${subid}"
+    if type_session == "multi-ses":
+        cmd += " ${sesid}"
+    cmd += '"' + " \\" + "\n"
 
     # the real command:
+    cmd += "\t" + '"' + "bash ./code/" + container.container_name \
+        + "_zip.sh" + " ${subid}"
+    if type_session == "multi-ses":
+        cmd += " ${sesid}"
+    for i_ds in range(0, input_ds.num_ds):
+        if input_ds.df["is_zipped"][i_ds] is True:   # is zipped:
+            cmd += " ${" + input_ds.df["name"][i_ds].upper() + "_ZIP}"
+    cmd += '"' + "\n"
 
     # TODO: finish this function!
     # TODO: test on multi-ses and single-ses data!

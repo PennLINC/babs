@@ -83,6 +83,28 @@ class BABS():
 
         self.output_ria_data_dir = None     # not known yet before output_ria is created
 
+    def datalad_save(self, path, message=None):
+        """
+        Save the current status of datalad dataset `analysis`
+        Also checks that all the statuses returned are "ok"
+
+        Parameters:
+        ------------
+        path: str
+            the path to the file(s) or folder(s) to save
+        message: str or None
+            commit message in `datalad save`
+        """
+
+        statuses = self.analysis_datalad_handle.save(path=path, message=message)
+        # check that all statuses returned are "okay":
+        # below is from cubids
+        saved_status = set([status['status'] for status in statuses])
+        if saved_status.issubset(set(["ok", "notneeded"])) is False:
+            # exists element in `saved_status` that is not "ok" or "notneeded"
+            # ^^ "notneeded": nothing to save
+            raise Exception("`datalad save` failed!")
+
     def babs_bootstrap(self, input_ds, container_ds, container_name, container_config_yaml_file,
                        system):
         """
@@ -247,7 +269,7 @@ class BABS():
         # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
         # ==============================================================
-        # Bootstrap scripts: TODO
+        # Bootstrap scripts:
         # ==============================================================
 
         container = Container(container_ds, container_name, container_config_yaml_file)
@@ -255,25 +277,41 @@ class BABS():
         # Generate `<containerName>_zip.sh`: ----------------------------------
         # which is a bash script of singularity run + zip
         # in folder: `analysis/code`
-        print("\nGenerating bash script for running container and zipping the outputs...")
+        print("\nGenerating a bash script for running container and zipping the outputs...")
         print("This bash script will be named as `" + container_name + "_zip.sh`")
         bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
         container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
 
         # Generate `participant_job.sh`: --------------------------------------
-        # TODO: ^^
-        print("\nGenerating bash script for running jobs at participant level...")
+        print("\nGenerating a bash script for running jobs at participant (or session) level...")
         print("This bash script will be named as `participant_job.sh`")
         bash_path = op.join(self.analysis_path, "code", "participant_job.sh")
         container.generate_bash_participant_job(bash_path, input_ds, self.type_session,
                                                 system)
 
+        # datalad save `<containerName>_zip.sh` and `participant_job.sh`:
+        self.datalad_save(path="code/", message="Participant compute job implementation")
+        # NOTE: `dlapi.save()` does not work...
+        # e.g., datalad save -m "Participant compute job implementation"
+
+        # Generate `submit_jobs.sh`: ------------------------------------------
+        # this is temporary, and will be replaced by `babs-submit`
+        # TODO
+        print("\nGenerating a bash script for submitting jobs"
+              + "at participant (or session) level...")
+        print("This bash script will be named as `submit_jobs.sh`")
+        print("This will be deprecated and replaced by `babs-submit`")
+        bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
+        container.generate_bash_submit_jobs(bash_path, input_ds, self.type_session,
+                                            system)
+        # TODO: datalad save this: datalad save -m "SGE submission setup" code/ .gitignore
+
+        # Generate `merge_outputs.sh`: ----------------------------------------
+        # this is temporary, and will be replaced by `babs-merge`
+        # TODO
+        # TODO: datalad save this!
+
         # Finish up and get ready for clusters running: -----------------------
-        # datalad save:
-        # TODO (not necessary in this function):
-        """
-        datalad save -m "Participant compute job implementation"
-        """
 
         # create folder `logs` in `analysis`; future log files go here
         log_path = op.join(self.analysis_path, "logs")
@@ -295,7 +333,8 @@ class BABS():
 
         gitignore_file.close()
 
-        print()
+        # TODO: datalad save this!
+
         # ==============================================================
         # Clean up: TODO
         # ==============================================================
@@ -412,7 +451,7 @@ class Input_ds():
         This is to perform two sanity checks on each zipped input dataset:
         1) sanity check on the zip filename:
             if multi-ses: sub-*_ses-*_<input_ds_name>*.zip
-            if single-ses: sub-*_<input_ds_name>*.zip, without `ses-*`
+            if single-ses: sub-*_<input_ds_name>*.zip
         2) sanity check to make sure the 1st level folder in zipfile
             is consistent to this input dataset's name;
             Only checks the first zipfile.
@@ -450,15 +489,16 @@ class Input_ds():
                                         + " no zip filename matches the pattern of"
                                         + " 'sub-*_"
                                         + self.df["name"][i_ds] + "*.zip'")
-                    # also check there should not be `_ses-*_`
-                    temp_list_2 = glob.glob(self.df["path_now_abs"][i_ds]
-                                            + "/*_ses-*_*.zip")
-                    if len(temp_list_2) > 0:   # exists:
-                        raise Exception("In zipped input dataset #" + str(i_ds + 1)
-                                        + " (named '" + self.df["name"][i_ds] + "'),"
-                                        + " as it's a single-ses dataset,"
-                                        + " zip filename should not contain"
-                                        + " '_ses-*_'")
+                    # not to check below stuff anymore:
+                    # # also check there should not be `_ses-*_`
+                    # temp_list_2 = glob.glob(self.df["path_now_abs"][i_ds]
+                    #                         + "/*_ses-*_*.zip")
+                    # if len(temp_list_2) > 0:   # exists:
+                    #     raise Exception("In zipped input dataset #" + str(i_ds + 1)
+                    #                     + " (named '" + self.df["name"][i_ds] + "'),"
+                    #                     + " as it's a single-ses dataset,"
+                    #                     + " zip filename should not contain"
+                    #                     + " '_ses-*_'")
 
                 # Sanity check #2: foldername within zipped file: -------------------
                 temp_zipfile = temp_list[0]   # try out the first zipfile
@@ -661,11 +701,21 @@ class Container():
         bash_file.write("#!/bin/bash\n")
         bash_file.write("set -e -u -x\n")
 
+        count_inputs_bash = 0
         bash_file.write('\nsubid="$1"\n')
+        count_inputs_bash += 1
 
         if type_session == "multi-ses":
             # also have the input of `sesid`:
             bash_file.write('sesid="$2"\n')
+            count_inputs_bash += 1
+
+        # zip filename as input of bash file:
+        for i_ds in range(0, input_ds.num_ds):
+            if input_ds.df["is_zipped"][i_ds] is True:  # is zipped:
+                count_inputs_bash += 1
+                bash_file.write(input_ds.df["name"][i_ds].upper()
+                                + '_ZIP="$' + str(count_inputs_bash) + '"\n')
 
         bash_file.write("\n")
 
@@ -835,12 +885,12 @@ class Container():
                             + " in `container_config_yaml_file`!")
 
         if system.type == "sge":
-            bash_file.write("source ${CONDA_PREFIX}/bin/activate"
+            bash_file.write("source ${CONDA_PREFIX}/bin/activate "
                             + self.config["script_preamble"]["conda_env_name"]
                             + "\n")
         # TODO: add slurm's
 
-        bash_file.write("echo I\'m in $PWD using `which python`\n")
+        bash_file.write("echo I" + "\\" + "\'" + "m in $PWD using `which python`\n")
 
         # Change how this bash file is run:
         bash_file.write("\n# Fail whenever something is fishy,"
@@ -849,7 +899,7 @@ class Container():
 
         # Inputs of the bash script:
         bash_file.write("\n")
-        bash_file.write('dssource="$1"\n')
+        bash_file.write('dssource="$1\t# i.e., `input_ria`"\n')
         bash_file.write('pushgitremote="$2"\t# i.e., `output_ria`\n')
         bash_file.write('subid="$3"\n')
 
@@ -897,6 +947,10 @@ class Container():
         bash_file.write('git checkout -b "${BRANCH}"' + "\n")
 
         # Start of the application-specific code: ------------------------------
+        # determine the zip filename:
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
+        bash_file.write(cmd_determine_zipfilename)
+
         # pull the input data and remove other sub's data:
         #   purpose of removing other sub's data: otherwise pybids would take
         #   extremely long time in large dataset due to lots of subjects
@@ -925,9 +979,16 @@ class Container():
                 (cd inputs/data/<name> && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
                 """
             else:    # zipped ds:
-                bash_file.write('datalad get -n "' + input_ds.df["path_now_rel"][i_ds]
-                                + "/${subid}_*" + input_ds.df["name"][i_ds] + "*.zip"
+                # using the determined zip filename in previous command:
+                bash_file.write('datalad get -n "'
+                                + "${" + input_ds.df["name"][i_ds].upper() + "_ZIP}"
                                 + '"' + "\n")
+                # e.g., `${FREESURFER_ZIP}`, which includes `path_now_rel`
+
+                # below is another version: using `*` instead of a specific file:
+                # bash_file.write('datalad get -n "' + input_ds.df["path_now_rel"][i_ds]
+                #                 + "/${subid}_*" + input_ds.df["name"][i_ds] + "*.zip"
+                #                 + '"' + "\n")
                 bash_file.write("(cd " + input_ds.df["path_now_rel"][i_ds]
                                 + " && rm -f `ls sub-*.zip | grep -v ${subid}`"
                                 + ")" + "\n")
@@ -937,30 +998,89 @@ class Container():
                 (cd inputs/data/<name> && rm -f `ls sub-*.zip | grep -v ${subid}`)
                 """
 
-        # ^^ TODO: if to include, change:
-        # 1) based on type_session
-        # 2) zip or not
-        # checkout: fmriprep; fmriprep_ingressed_fs
+        # ^^ TODO: might use e.g., `FREESURFER_ZIP` variable (got below) in above `datalad get`?
 
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
-        bash_file.write(cmd_determine_zipfilename)
-
-        # TODO: might use e.g., `FREESURFER_ZIP` variable in above `datalad get`?
-
-        # `datalad get` the container??????
-        # TODO: include ^^?
+        # `datalad get` the container ??
+        # NOTE: only found in `bootstrap-fmriprep-ingressed-fs.sh`...
+        #   not sure if this is really needed
+        bash_file.write("\n" + "datalad get -r containers" + "\n")
+        # NOTE: ^^ not sure if `-r` is needed....
 
         # `datalad run`:
         bash_file.write("\n# datalad run:\n")
         cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, type_session)
+        bash_file.write(cmd_datalad_run)
 
         # Finish up:
+        # push result file content to output RIA storage:
+        bash_file.write("\n" + "# Push result file content to output RIA storage:\n")
+        bash_file.write("datalad push --to output-storage" + "\n")
+        # ^^: # `output-storage`: defined when start of bootstrap: `datalad create-sibling-ria`
+
+        # push the output branch:
+        bash_file.write("# Push the branch with provenance records:\n")
+        bash_file.write("flock $DSLOCKFILE git push outputstore" + "\n")
+        # ^^: `outputstore` was defined at the beginning of `participant_job.sh`
+        # this push needs a global lock to prevent write conflicts - FAIRly big paper
+
+        # Delete:
+        bash_file.write("\necho 'Delete temporary directory:'" + "\n")
+        bash_file.write("echo ${BRANCH}" + "\n")
+        # each input dataset:
+        for i_ds in range(0, input_ds.num_ds):
+            bash_file.write("datalad drop -d " + input_ds.df["path_now_rel"][i_ds] + " -r" + "\n")
+            # e.g., datalad drop -d inputs/data/<name> -r
+            # NOTE: sometimes also adds `--nocheck --if-dirty ignore` - check if this is necessary!
+
+        # also `datalad drop` the current `ds` (clone of input RIA)?
+        bash_file.write("datalad drop -r . --nocheck" + "\n")
+
+        bash_file.write("git annex dead here" + "\n")
+        # ^^: as the data has been dropped, we don't want to be reminded of this
+
+        # cd out of $BRANCH:
+        bash_file.write("cd ../.." + "\n")
+        bash_file.write("rm -rf $BRANCH" + "\n")
 
         # Done generating `participant_job.sh`:
-        bash_file.write("\n")
+        bash_file.write("\necho SUCCESS" + "\n")
         bash_file.close()
 
-        # TODO: add: change permission of this bash script
-        # see: end of `generate_bash_run_bidsapp()`!
+        # change the permission of this bash file:
+        proc_chmod_bashfile = subprocess.run(
+            ["chmod", "+x", bash_path],  # e.g., chmod +x code/participant_job.sh
+            stdout=subprocess.PIPE
+            )
+        proc_chmod_bashfile.check_returncode()
+
+    def generate_bash_submit_jobs(self, bash_path, input_ds, type_session, system):
+        """
+        This is to generate a bash script that submit jobs for each participant (or session).
+        This is a temporary function which will be deprecated and replaced
+        by `babs-submit`.
+
+        Parameters:
+        -------------
+        bash_path: str
+            The path to the bash file to be generated. It should be in the `analysis/code` folder.
+        input_ds: class `Input_ds`
+            input dataset(s) information
+        type_session: str
+            "multi-ses" or "single-ses".
+        system: class `System`
+            information on cluster management system
+        """
+
+        if system.type == "sge":
+            env_flags = "-v DSLOCKFILE=${PWD}/.SGE_datalad_lock"
+        else:
+            warnings.warn("not supporting systems other than sge...")
+
+        # change the permission of this bash file:
+        proc_chmod_bashfile = subprocess.run(
+            ["chmod", "+x", bash_path],  # e.g., chmod +x code/submit_jobs.sh
+            stdout=subprocess.PIPE
+            )
+        proc_chmod_bashfile.check_returncode()
 
         print("")
