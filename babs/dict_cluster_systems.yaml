@@ -10,5 +10,4 @@ sge:
   soft_memory_limit: "-l s_vmem=$VALUE"   # "-l s_vmem=23.5G" on cubic
   temporary_disk_space: "-l tmpfree=$VALUE"   # "-l tmpfree=200G" on cubic
   number_of_cpus: "-pe threaded $VALUE"   # "-pe threaded N" or a range: "-pe threaded N-M", N<M on cubic
-  restart_job: "-R $VALUE"   # "-R y" on cubic; "-r yes" or "-r no" on other SGE?
   hard_runtime_limit: "-l h_rt=$VALUE"    # "-l h_rt=24:00:00" on cubic

@@ -2,12 +2,21 @@
 
 import os
 import os.path as op
+import sys
 import warnings   # built-in, no need to install
 import pkg_resources
 # from ruamel.yaml import YAML
 import yaml
 import glob
 import regex
+
+# Disable the behavior of printing messages:
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+# Restore the behavior of printing messages:
+def enablePrint():
+    sys.stdout = sys.__stdout__
 
 def get_datalad_version():
     return pkg_resources.get_distribution("datalad").version
@@ -558,8 +567,15 @@ def generate_bashhead_resources(system, config):
 
     # loop: for each key, call `generate_one_bashhead_resources()`:
     for key, value in config["cluster_resources"].items():
-        one_cmd = generate_one_bashhead_resources(system, key, value)
-        cmd += one_cmd + "\n"
+        if key == "customized_text":
+            pass   # handle this below
+        else:
+            one_cmd = generate_one_bashhead_resources(system, key, value)
+            cmd += one_cmd + "\n"
+
+    if "customized_text" in config["cluster_resources"]:
+        cmd += config["cluster_resources"]["customized_text"]
+        cmd += "\n"
 
     return cmd
 
@@ -744,3 +760,87 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     # TODO: test on 1) fmriprep; 2) xcpd; 3) fmriprep_ingressed_fs
 
     return cmd
+
+def get_list_sub_ses(input_ds, type_session):
+    """
+    This is to get the list of subjects (and sessions).
+
+    Parameters:
+    ------------
+    input_ds: class `Input_ds`
+        information about input dataset(s)
+    type_session: str
+        "multi-ses" or "single-ses"
+
+    Returns:
+    -----------
+    multi-ses project: a list of subjects
+    single-ses project: a dict of subjects and their sessions
+    """
+
+    # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
+    # for now, only check the first dataset
+
+    i_ds = 0
+    if input_ds.df["is_zipped"][i_ds] is False:   # not zipped:
+        full_paths = sorted(glob.glob(input_ds.df["path_now_abs"][i_ds]
+                                      + "/sub-*"))
+        # no need to check if there is `sub-*` in this dataset
+        #   have been checked in `check_validity_unzipped_input_dataset()`
+        # only get the sub's foldername, if it's a directory:
+        subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
+    else:    # zipped:
+        # full paths to the zip files:
+        if type_session == "single-ses":
+            full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
+                                   + "/sub-*_" + input_ds.df["name"][i_ds] + "*.zip")
+        elif type_session == "multi-ses":
+            full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
+                                   + "/sub-*_ses-*" + input_ds.df["name"][i_ds] + "*.zip")
+            # ^^ above pattern makes sure only gets subs who have more than one ses
+        full_paths = sorted(full_paths)
+        zipfilenames = [op.basename(temp) for temp in full_paths]
+        subs = [temp.split('_', 3)[0] for temp in zipfilenames]
+        # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
+        # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
+        subs = sorted(list(set(subs)))   # list(set()): acts like "unique"
+
+    # if it's multi-ses, get list of sessions for each subject:
+    if type_session == "multi-ses":
+        # a nested list of sub and ses:
+        #   first level is sub; second level is sess of a sub
+        list_sub_ses = [None] * len(subs)   # predefine a list
+        if input_ds.df["is_zipped"][i_ds] is False:   # not zipped:
+            for i_sub, sub in enumerate(subs):
+                # get the list of sess:
+                full_paths = glob.glob(
+                    op.join(input_ds.df["path_now_abs"][i_ds],
+                            sub, "ses-*"))
+                full_paths = sorted(full_paths)
+                sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
+                # no need to validate again that session exists
+                # -  have been done in `check_validity_unzipped_input_dataset()`
+
+                list_sub_ses[i_sub] = sess
+
+        else:    # zipped:
+            for i_sub, sub in enumerate(subs):
+                # get the list of sess:
+                full_paths = glob.glob(
+                    op.join(input_ds.df["path_now_abs"][i_ds],
+                            sub + "_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
+                full_paths = sorted(full_paths)
+                zipfilenames = [op.basename(temp) for temp in full_paths]
+                sess = [temp.split('_', 3)[1] for temp in zipfilenames]
+                # ^^ field #1, i.e., 2nd field which is `ses-*`
+                # no need to validate if sess exists; as it's done when getting `subs`
+
+                list_sub_ses[i_sub] = sess
+
+        # then turn `subs` and `list_sub_ses` into a dict:
+        dict_sub_ses = dict(zip(subs, list_sub_ses))
+
+    if type_session == "single-ses":
+        return subs
+    elif type_session == "multi-ses":
+        return dict_sub_ses

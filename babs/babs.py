@@ -22,7 +22,8 @@ from babs.utils import (get_immediate_subdirectories,
                         validate_type_session,
                         generate_bashhead_resources,
                         generate_cmd_datalad_run,
-                        generate_cmd_determine_zipfilename)
+                        generate_cmd_determine_zipfilename,
+                        get_list_sub_ses)
 
 # import pandas as pd
 
@@ -65,7 +66,11 @@ class BABS():
             URL of output RIA store, starting with "ria+file://".
         output_ria_data_dir: str
             Path to the output RIA's data directory.
-            Example: /full/path/to/project_root/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
+            Example: /full/path/to/project_root/output_ria/238/da2f2-2fc4-4b88-a2c5-aa6e754b5d0b
+        self.analysis_dataset_id: str
+            The ID of DataLad dataset `analysis`.
+            This will be used to get the full path to the dataset in input RIA.
+            Example: '238da2f2-2fc4-4b88-a2c5-aa6e754b5d0b'
         '''
 
         self.project_root = project_root
@@ -82,6 +87,7 @@ class BABS():
         self.output_ria_url = "ria+file://" + self.output_ria_path
 
         self.output_ria_data_dir = None     # not known yet before output_ria is created
+        self.analysis_dataset_id = None    # to update later
 
     def datalad_save(self, path, message=None):
         """
@@ -104,6 +110,61 @@ class BABS():
             # exists element in `saved_status` that is not "ok" or "notneeded"
             # ^^ "notneeded": nothing to save
             raise Exception("`datalad save` failed!")
+
+    def wtf_key_info(self):
+        """
+        This is to get some key information on DataLad dataset `analysis`,
+        and assign to `output_ria_data_dir` and `analysis_dataset_id`.
+        This function relies on `git` and `datalad wtf`
+        This needs to be done after the output RIA is created.
+        """
+
+        # Get the `self.output_ria_data_dir`:
+        # e.g., /full/path/output_ria/238/da2f2-2fc4-4b88-a2c5-aa6e754b5d0b
+        analysis_git_path = op.join(self.analysis_path, ".git")
+        proc_output_ria_data_dir = subprocess.run(
+            ["git", "--git-dir", analysis_git_path, "remote", "get-url", "--push", "output"],
+            stdout=subprocess.PIPE)
+        # ^^: for `analysis`: git remote get-url --push output
+        # ^^ another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
+        # if success: no output; if failed: will raise CalledProcessError
+        proc_output_ria_data_dir.check_returncode()
+        self.output_ria_data_dir = proc_output_ria_data_dir.stdout.decode('utf-8')
+        if self.output_ria_data_dir[-1:] == "\n":
+            # remove the last 2 characters
+            self.output_ria_data_dir = self.output_ria_data_dir[:-1]
+
+        # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
+        # way #1: using datalad api; however, it always prints out the full, lengthy wtf report....
+        # # full dict from `datalad wtf`:
+        # blockPrint()
+        # full_wtf_list = dlapi.wtf(dataset=self.analysis_path)
+        # enablePrint()
+        # # ^^ this is a list
+        # if len(full_wtf_list) > 1:
+        #     warnings.warn("There are more than one dictionary for input RIA's `datalad wtf`."
+        #                   + " We'll only use the first one.")
+        # full_wtf = full_wtf_list[0]
+        # # ^^ only take the first dict (element) from the full list
+        # self.analysis_dataset_id = full_wtf["infos"]["dataset"]["id"]
+        # # ^^: $ datalad -f '{infos[dataset][id]}' wtf -S dataset
+
+        # way #2: command line of datalad:
+        proc_analysis_dataset_id = subprocess.run(
+            ["datalad", "-f", "'{infos[dataset][id]}'", "wtf", "-S", "dataset"],
+            cwd=self.analysis_path,
+            stdout=subprocess.PIPE)
+        # datalad -f '{infos[dataset][id]}' wtf -S dataset
+        proc_analysis_dataset_id.check_returncode()
+        self.analysis_dataset_id = proc_analysis_dataset_id.stdout.decode('utf-8')
+        # remove the `\n`:
+        if self.analysis_dataset_id[-1:] == "\n":
+            # remove the last 2 characters
+            self.analysis_dataset_id = self.analysis_dataset_id[:-1]
+        # remove the double quotes:
+        if (self.analysis_dataset_id[0] == "'") & (self.analysis_dataset_id[-1] == "'"):
+            # if first and the last characters are quotes: remove them
+            self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
     def babs_bootstrap(self, input_ds, container_ds, container_name, container_config_yaml_file,
                        system):
@@ -173,19 +234,9 @@ class BABS():
         # source code:
             # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
 
-        # get the `self.output_ria_data_dir`,
-            # e.g., /full/path/output_ria/e48/03bc1-9eec-4543-9387-90415ca3477e
-        analysis_git_path = op.join(self.analysis_path, ".git")
-        proc_output_ria_data_dir = subprocess.run(
-            ["git", "--git-dir", analysis_git_path, "remote", "get-url", "--push", "output"],
-            stdout=subprocess.PIPE)
-        # another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
-        # if success: no output; if failed: will raise CalledProcessError
-        proc_output_ria_data_dir.check_returncode()
-        self.output_ria_data_dir = proc_output_ria_data_dir.stdout.decode('utf-8')
-        if self.output_ria_data_dir[-1:] == "\n":
-            # remove the last 2 characters
-            self.output_ria_data_dir = self.output_ria_data_dir[:-1]
+        # Get some key information re: DataLad dataset `analysis`,
+        # after creating output RIA:
+        self.wtf_key_info()
 
         # Create input RIA sibling:
         if op.exists(self.input_ria_path):
@@ -302,7 +353,7 @@ class BABS():
         print("This bash script will be named as `submit_jobs.sh`")
         print("This will be deprecated and replaced by `babs-submit`")
         bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
-        container.generate_bash_submit_jobs(bash_path, input_ds, self.type_session,
+        container.generate_bash_submit_jobs(bash_path, input_ds, self,
                                             system)
         # TODO: datalad save this: datalad save -m "SGE submission setup" code/ .gitignore
 
@@ -474,6 +525,7 @@ class Input_ds():
                     # check if matches the pattern of `sub-*_ses-*_<input_ds_name>*.zip`:
                     temp_list = glob.glob(self.df["path_now_abs"][i_ds]
                                           + "/sub-*_ses-*_" + self.df["name"][i_ds] + "*.zip")
+                    temp_list = sorted(temp_list)   # sort by name
                     if len(temp_list) == 0:    # did not find any matched
                         raise Exception("In zipped input dataset #" + str(i_ds + 1)
                                         + " (named '" + self.df["name"][i_ds] + "'),"
@@ -483,6 +535,7 @@ class Input_ds():
                 elif type_session == "single-ses":
                     temp_list = glob.glob(self.df["path_now_abs"][i_ds]
                                           + "/sub-*_" + self.df["name"][i_ds] + "*.zip")
+                    temp_list = sorted(temp_list)   # sort by name
                     if len(temp_list) == 0:    # did not find any matched
                         raise Exception("In zipped input dataset #" + str(i_ds + 1)
                                         + " (named '" + self.df["name"][i_ds] + "'),"
@@ -1053,7 +1106,7 @@ class Container():
             )
         proc_chmod_bashfile.check_returncode()
 
-    def generate_bash_submit_jobs(self, bash_path, input_ds, type_session, system):
+    def generate_bash_submit_jobs(self, bash_path, input_ds, babs, system):
         """
         This is to generate a bash script that submit jobs for each participant (or session).
         This is a temporary function which will be deprecated and replaced
@@ -1065,18 +1118,52 @@ class Container():
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
             input dataset(s) information
-        type_session: str
-            "multi-ses" or "single-ses".
+        babs: class `BABS`
+            information about the BABS project
         system: class `System`
             information on cluster management system
         """
 
+        # Flags when submitting the job:
         if system.type == "sge":
+            submit_head = "qsub -cwd"
             env_flags = "-v DSLOCKFILE=${PWD}/.SGE_datalad_lock"
+            eo_args = "-e ${PWD}/logs -o ${PWD}/logs"
         else:
             warnings.warn("not supporting systems other than sge...")
 
-        # change the permission of this bash file:
+        # Check if the bash file already exist:
+        if op.exists(bash_path):
+            os.remove(bash_path)  # remove it
+
+        # Write into the bash file:
+        bash_file = open(bash_path, "a")   # open in append mode
+
+        bash_file.write("#!/bin/bash\n")
+
+        # Variables to use:
+        # `dssource`: Input RIA:
+        dssource = babs.input_ria_path + "#" + babs.analysis_dataset_id
+
+        # `pushgitremote`: Output RIA:
+        pushgitremote = babs.output_ria_data_dir
+
+        # Get the list of subjects:
+        if babs.type_session == "single-ses":
+            subs = get_list_sub_ses(input_ds, babs.type_session)
+            # iterate across subs:
+            for sub in subs:
+                str = submit_head + " " + env_flags + "???" + "\n"
+                # TODO: finish ^^
+                # TODO: check the possible input args of `participant_job.sh`- more than sydney's
+                bash_file.write(str)
+
+        else:   # multi-ses
+            dict_sub_ses = get_list_sub_ses(input_ds, babs.type_session)
+            # iterate across subs, then iterate across sess:
+            # TODO: ^^
+
+        # Change the permission of this bash file:
         proc_chmod_bashfile = subprocess.run(
             ["chmod", "+x", bash_path],  # e.g., chmod +x code/submit_jobs.sh
             stdout=subprocess.PIPE
