@@ -37,3 +37,7 @@ cluster_resources:
 
 script_preamble:
     conda_env_name: "mydatalad"
+
+required_files:
+    $INPUT_DATASET_#1:
+        - "dwi/*_dwi.nii*"   # QSIPrep

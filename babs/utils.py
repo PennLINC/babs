@@ -9,6 +9,8 @@ import pkg_resources
 import yaml
 import glob
 import regex
+import copy
+import pandas as pd
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -761,7 +763,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
 
     return cmd
 
-def get_list_sub_ses(input_ds, type_session):
+def get_list_sub_ses(input_ds, config, babs):
     """
     This is to get the list of subjects (and sessions).
 
@@ -769,8 +771,10 @@ def get_list_sub_ses(input_ds, type_session):
     ------------
     input_ds: class `Input_ds`
         information about input dataset(s)
-    type_session: str
-        "multi-ses" or "single-ses"
+    config: config from class `Container`
+        container's yaml file that's read into python
+    babs: class `BABS`
+        information about the BABS project.
 
     Returns:
     -----------
@@ -778,9 +782,9 @@ def get_list_sub_ses(input_ds, type_session):
     single-ses project: a dict of subjects and their sessions
     """
 
+    # Get the initial list of subjects (and sessions): -------------------------------
     # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
     # for now, only check the first dataset
-
     i_ds = 0
     if input_ds.df["is_zipped"][i_ds] is False:   # not zipped:
         full_paths = sorted(glob.glob(input_ds.df["path_now_abs"][i_ds]
@@ -791,10 +795,10 @@ def get_list_sub_ses(input_ds, type_session):
         subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
     else:    # zipped:
         # full paths to the zip files:
-        if type_session == "single-ses":
+        if babs.type_session == "single-ses":
             full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
                                    + "/sub-*_" + input_ds.df["name"][i_ds] + "*.zip")
-        elif type_session == "multi-ses":
+        elif babs.type_session == "multi-ses":
             full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
                                    + "/sub-*_ses-*" + input_ds.df["name"][i_ds] + "*.zip")
             # ^^ above pattern makes sure only gets subs who have more than one ses
@@ -806,7 +810,7 @@ def get_list_sub_ses(input_ds, type_session):
         subs = sorted(list(set(subs)))   # list(set()): acts like "unique"
 
     # if it's multi-ses, get list of sessions for each subject:
-    if type_session == "multi-ses":
+    if babs.type_session == "multi-ses":
         # a nested list of sub and ses:
         #   first level is sub; second level is sess of a sub
         list_sub_ses = [None] * len(subs)   # predefine a list
@@ -840,7 +844,206 @@ def get_list_sub_ses(input_ds, type_session):
         # then turn `subs` and `list_sub_ses` into a dict:
         dict_sub_ses = dict(zip(subs, list_sub_ses))
 
-    if type_session == "single-ses":
+    # Remove the subjects (or sessions) which does not have the required files:
+    #   ------------------------------------------------------------------------
+    # read `required_files` section from yaml file, if there is:
+    if "required_files" in config:
+        print("Filtering out subjects (and sessions) based on `required files`"
+              + " designated in `container_config_yaml_file`...")
+
+        # sanity check on the target input dataset(s):
+        if len(config["required_files"]) > input_ds.num_ds:
+            raise Exception("Number of input datasets designated in `required_files`"
+                            + " in `container_config_yaml_file`"
+                            + " is more than actual number of input datasets!")
+        for i in range(0, len(config["required_files"])):
+            i_ds_str = list(config["required_files"].keys())[i]  # $INPUT_DATASET_#?
+            i_ds = int(i_ds_str.split('#', 1)[1]) - 1
+            # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
+            if (i_ds + 1) > input_ds.num_ds:   # if '?' > acutal # of input ds:
+                raise Exception("'" + i_ds_str + "' does not exist!"
+                                + " There is only " + str(input_ds.num_ds)
+                                + " input dataset(s)!")
+
+        # for the designated ds, iterate all subjects (or sessions),
+        #   remove if does not have the required files, and save to a list -> a csv
+        if babs.type_session == "single-ses":
+            subs_missing = []
+            which_dataset_missing = []
+            which_file_missing = []
+            # iter across designated input ds in `required_files`:
+            for i in range(0, len(config["required_files"])):
+                i_ds_str = list(config["required_files"].keys())[i]  # $INPUT_DATASET_#?
+                i_ds = int(i_ds_str.split('#', 1)[1]) - 1
+                # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
+                if input_ds.df["is_zipped"][i_ds] is True:
+                    print(i_ds_str + ": '" + input_ds.df["name"][i_ds] + "'"
+                          + " is a zipped input dataset; Currently BABS does not support"
+                          + " checking if there is missing file in a zipped dataset."
+                          + " Skip checking this input dataset...")
+                    continue   # skip
+                list_required_files = config["required_files"][i_ds_str]
+
+                # iter across subs:
+                updated_subs = copy.copy(subs)   # not to reference `subs`, but copy!
+                # ^^ only update this list, not `subs` (as it's used in for loop)
+                for sub in subs:
+                    # iter of list of required files:
+                    for required_file in list_required_files:
+                        temp_files = glob.glob(
+                            op.join(
+                                input_ds.df["path_now_abs"][i_ds],
+                                sub,
+                                required_file))
+                        temp_files_2 = glob.glob(
+                            op.join(
+                                input_ds.df["path_now_abs"][i_ds],
+                                sub,
+                                "**",   # consider potential `ses-*` folder
+                                required_file))
+                        #  ^^ "**" means checking "all folders" in a subject
+                        #  ^^ "**" does not work if there is no `ses-*` folder,
+                        #       so also needs `temp_files`
+                        if (len(temp_files) == 0) & (len(temp_files_2) == 0):   # didn't find any:
+                            # remove from the `subs` list:
+                            #   it shouldn't be removed by earlier datasets,
+                            #   as we're iter across updated list `sub`
+                            updated_subs.remove(sub)
+                            # add to missing list:
+                            subs_missing.append(sub)
+                            which_dataset_missing.append(input_ds.df["name"][i_ds])
+                            which_file_missing.append(required_file)
+                            # no need to check other required files:
+                            break
+                # after getting out of for loops of `subs`, update `subs`:
+                subs = copy.copy(updated_subs)
+
+            # TODO: when having two unzipped input datasets, test if above works as expected!
+            #   esp: removing missing subs (esp missing lists in two input ds are different)
+            #   for both 1) single-ses; 2) multi-ses data!
+
+            # save `subs_missing` into a csv file:
+            if len(subs_missing) > 0:   # there is missing one
+                df_missing = pd.DataFrame(
+                    list(zip(
+                        subs_missing, which_dataset_missing, which_file_missing)),
+                    columns=['sub_id', 'input_dataset_name', 'missing_required_file'])
+                fn_csv_missing = op.join(babs.analysis_path, "code/sub_missing_required_file.csv")
+                df_missing.to_csv(fn_csv_missing, index=False)
+                print("There are " + str(len(subs_missing)) + " subject(s)"
+                      + " who don't have required files."
+                      + " Please refer to this CSV file for full list and information: "
+                      + fn_csv_missing)
+                print("BABS will not run the BIDS App on these subjects' data.")
+                print("Note for this file: For each reported subject, only"
+                      + " one missing required file"
+                      + " in one input dataset is recorded,"
+                      + " even if there are multiple.")
+
+            else:
+                print("All subjects have required files.")
+
+        elif babs.type_session == "multi-ses":
+            subs_missing = []  # elements can repeat if more than one ses in a sub has missing file
+            sess_missing = []
+            which_dataset_missing = []
+            which_file_missing = []
+            # iter across designated input ds in `required_files`:
+            for i in range(0, len(config["required_files"])):
+                i_ds_str = list(config["required_files"].keys())[i]  # $INPUT_DATASET_#?
+                i_ds = int(i_ds_str.split('#', 1)[1]) - 1
+                # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
+                if input_ds.df["is_zipped"][i_ds] is True:
+                    print(i_ds_str + ": '" + input_ds.df["name"][i_ds] + "'"
+                          + " is a zipped input dataset; Currently BABS does not support"
+                          + " checking if there is missing file in a zipped dataset."
+                          + " Skip checking this input dataset...")
+                    continue   # skip
+                list_required_files = config["required_files"][i_ds_str]
+
+                # iter across subs: (not to update subs for now)
+                for sub in list(dict_sub_ses.keys()):
+                    # iter across sess:
+                    # make sure there is at least one ses in this sub to loop:
+                    if len(dict_sub_ses[sub]) > 0:  # deal with len=0 later
+                        updated_sess = copy.deepcopy(dict_sub_ses[sub])
+                        for ses in dict_sub_ses[sub]:
+                            # iter across list of required files:
+                            for required_file in list_required_files:
+                                temp_files = glob.glob(
+                                    op.join(
+                                        input_ds.df["path_now_abs"][i_ds],
+                                        sub,
+                                        ses,
+                                        required_file))
+                                if len(temp_files) == 0:  # did not find any:
+                                    # remove this ses from dict:
+                                    updated_sess.remove(ses)
+                                    # add to missing list:
+                                    subs_missing.append(sub)
+                                    sess_missing.append(ses)
+                                    which_dataset_missing.append(input_ds.df["name"][i_ds])
+                                    which_file_missing.append(required_file)
+                                    # no need to check other required files:
+                                    break
+
+                        # after getting out of loops of `sess`, update `sess`:
+                        dict_sub_ses[sub] = copy.deepcopy(updated_sess)
+
+            # after getting out of loops of `subs` and list of required files,
+            #   go thru the list of subs, and see if the list of ses is empty:
+            subs_delete = []
+            subs_forloop = copy.deepcopy(list(dict_sub_ses.keys()))
+            for sub in subs_forloop:
+                # if the list of ses is empty:
+                if len(dict_sub_ses[sub]) == 0:
+                    # remove this key from the dict:
+                    dict_sub_ses.pop(sub)
+                    # add to missing sub list:
+                    subs_delete.append(sub)
+
+            # save missing ones into a csv file:
+            if len(subs_missing) > 0:   # there is missing one:
+                df_missing = pd.DataFrame(
+                    list(zip(
+                        subs_missing, sess_missing,
+                        which_dataset_missing, which_file_missing)),
+                    columns=['sub_id', 'ses_id',
+                             'input_dataset_name', 'missing_required_file'])
+                fn_csv_missing = op.join(
+                    babs.analysis_path, "code/sub_ses_missing_required_file.csv")
+                df_missing.to_csv(fn_csv_missing, index=False)
+                print("There are " + str(len(sess_missing)) + " session(s)"
+                      + " which don't have required files."
+                      + " Please refer to this CSV file for full list and information: "
+                      + fn_csv_missing)
+                print("BABS will not run the BIDS App on these sessions' data.")
+                print("Note for this file: For each reported session, only"
+                      + " one missing required file"
+                      + " in one input dataset is recorded,"
+                      + " even if there are multiple.")
+            else:
+                print("All sessions from all subjects have required files.")
+            # save deleted subjects into a list:
+            if len(subs_delete) > 0:
+                df_sub_delete = pd.DataFrame(
+                    list(zip(
+                        subs_delete)),
+                    columns=['sub_id'])
+                fn_csv_sub_delete = op.join(
+                    babs.analysis_path, "code/sub_missing_any_ses_required_file.csv")
+                df_sub_delete.to_csv(fn_csv_sub_delete, index=False)
+                print("Regarding subjects, " + str(len(subs_delete)) + " subject(s)"
+                      + " don't have any session that includes required files."
+                      + " Please refer to this CSV file for the full list: "
+                      + fn_csv_sub_delete)
+
+    else:
+        print("Did not provide `required files` in `container_config_yaml_file`."
+              + " Not to filter subjects (or sessions)...")
+
+    # Return: -------------------------------------------------------
+    if babs.type_session == "single-ses":
         return subs
-    elif type_session == "multi-ses":
+    elif babs.type_session == "multi-ses":
         return dict_sub_ses

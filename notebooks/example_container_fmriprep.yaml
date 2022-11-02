@@ -63,6 +63,14 @@ script_preamble:
                             # it's not necessary the same one for running `babs-init`
     # might need to add key e.g., "module_load" for MSI.
 
+# Below is to filter out subjects (or sessions)
+#   right now we only filter based on unzipped dataset
+required_files:
+    $INPUT_DATASET_#1:
+        - "func/*_bold.nii*"
+        - "anat/*_T1w.nii*"
+
+# - "dwi/*_dwi.nii*"   # QSIPrep
 
 
 # Below generic full list of options of fMRIPrep is based on fMRIPrep version xxxx.

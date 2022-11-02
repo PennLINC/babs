@@ -67,7 +67,7 @@ class BABS():
         output_ria_data_dir: str
             Path to the output RIA's data directory.
             Example: /full/path/to/project_root/output_ria/238/da2f2-2fc4-4b88-a2c5-aa6e754b5d0b
-        self.analysis_dataset_id: str
+        analysis_dataset_id: str
             The ID of DataLad dataset `analysis`.
             This will be used to get the full path to the dataset in input RIA.
             Example: '238da2f2-2fc4-4b88-a2c5-aa6e754b5d0b'
@@ -1051,8 +1051,6 @@ class Container():
                 (cd inputs/data/<name> && rm -f `ls sub-*.zip | grep -v ${subid}`)
                 """
 
-        # ^^ TODO: might use e.g., `FREESURFER_ZIP` variable (got below) in above `datalad get`?
-
         # `datalad get` the container ??
         # NOTE: only found in `bootstrap-fmriprep-ingressed-fs.sh`...
         #   not sure if this is really needed
@@ -1127,8 +1125,9 @@ class Container():
         # Flags when submitting the job:
         if system.type == "sge":
             submit_head = "qsub -cwd"
-            env_flags = "-v DSLOCKFILE=${PWD}/.SGE_datalad_lock"
-            eo_args = "-e ${PWD}/logs -o ${PWD}/logs"
+            env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
+            eo_args = "-e " + babs.analysis_path + "/logs " \
+                + "-o " + babs.analysis_path + "/logs"
         else:
             warnings.warn("not supporting systems other than sge...")
 
@@ -1143,25 +1142,44 @@ class Container():
 
         # Variables to use:
         # `dssource`: Input RIA:
-        dssource = babs.input_ria_path + "#" + babs.analysis_dataset_id
-
+        dssource = babs.input_ria_url + "#" + babs.analysis_dataset_id
         # `pushgitremote`: Output RIA:
         pushgitremote = babs.output_ria_data_dir
 
-        # Get the list of subjects:
+        # Get the list of subjects + generate the commands:
         if babs.type_session == "single-ses":
-            subs = get_list_sub_ses(input_ds, babs.type_session)
+            subs = get_list_sub_ses(input_ds, self.config, babs)
             # iterate across subs:
             for sub in subs:
-                str = submit_head + " " + env_flags + "???" + "\n"
-                # TODO: finish ^^
-                # TODO: check the possible input args of `participant_job.sh`- more than sydney's
+                str = submit_head + " " + env_flags \
+                    + " -N " + self.container_name[0:3] + "_" + sub + " " \
+                    + eo_args + " " \
+                    + babs.analysis_path + "/code/participant_job.sh" + " " \
+                    + dssource + " " \
+                    + pushgitremote + " " \
+                    + sub + " " \
+                    + "${CBICA_TMPDIR}" + "\n"
                 bash_file.write(str)
 
         else:   # multi-ses
-            dict_sub_ses = get_list_sub_ses(input_ds, babs.type_session)
+            dict_sub_ses = get_list_sub_ses(input_ds, self.config, babs)
             # iterate across subs, then iterate across sess:
-            # TODO: ^^
+            for sub in list(dict_sub_ses.keys()):   # keys are subs
+                for ses in dict_sub_ses[sub]:
+                    str = submit_head + " " + env_flags \
+                        + " -N " + self.container_name[0:3] + "_" + sub + "_" + ses + " " \
+                        + eo_args + " " \
+                        + babs.analysis_path + "/code/participant_job.sh" + " " \
+                        + dssource + " " \
+                        + pushgitremote + " " \
+                        + sub + " " \
+                        + ses + " " \
+                        + "${CBICA_TMPDIR}" + "\n"
+                    bash_file.write(str)
+
+        # TODO: currently only support SGE.
+
+        bash_file.close()
 
         # Change the permission of this bash file:
         proc_chmod_bashfile = subprocess.run(
@@ -1169,5 +1187,3 @@ class Container():
             stdout=subprocess.PIPE
             )
         proc_chmod_bashfile.check_returncode()
-
-        print("")
