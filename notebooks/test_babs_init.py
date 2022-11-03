@@ -17,8 +17,8 @@ import subprocess
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "qsiprep"
-type_session = "multi-ses"
+flag_instance = "xcpd"
+type_session = "single-ses"
 
 flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -56,7 +56,7 @@ elif flag_instance == "xcpd":
     if type_session == "multi-ses":
         input_cli = [["fmriprep", op.join(where_project, "k9zw2")]]   # fmriprep, multi-ses
     elif type_session == "single-ses":
-        print("TO WORK ON....")
+        input_cli = [["fmriprep", "osf://2jvub/"]]   # fmriprep, single-ses
 
 elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"

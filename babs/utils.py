@@ -433,23 +433,25 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
     Parameters:
     -------------
     input_ds: class `Input_ds`
-    i_ds: int
-        the i-th dataset (starting from 0) that needs to be unzipped
+        information about input dataset(s)
+    type_session: str
+        "multi-ses" or "single-ses"
 
     Returns:
     ---------
     cmd: str
         It's part of the `<containerName_zip.sh>`.
-        Examples #1:
-            wd=${PWD}
-            cd inputs/data
-            7z x ${subid}_${sesid}_fmriprep-20.2.3.zip
-            cd $wd
-        Example #2:
+        Example of Way #1:
             wd=${PWD}
             cd inputs/data/freesurfer
-            7z x `basename ${freesurfer_zip}`
+            7z x `basename ${FREESURFER_ZIP}`
             cd $wd
+        Examples of Way #2: (now commented out)
+            wd=${PWD}
+            cd inputs/data/fmriprep
+            7z x ${subid}_${sesid}_fmriprep-20.2.3.zip
+            cd $wd
+
 
     """
 
@@ -463,38 +465,47 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
         if input_ds.df["is_zipped"][i_ds] is True:  # zipped ds
             cmd += "\ncd " + input_ds.df["path_now_rel"][i_ds]
 
-            # get the zip filename:
-            if type_session == "multi-ses":
-                list_zipfiles = \
-                    glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
-                                      "sub-*_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
-                if len(list_zipfiles) == 0:
-                    raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
-                                    + " the zip file(s) does not follow the pattern of "
-                                    + "'sub-*_ses-*_'" + input_ds.df["name"][i_ds] + "*.zip")
-            elif type_session == "single-ses":
-                list_zipfiles = \
-                    glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
-                                      "sub-*_" + input_ds.df["name"][i_ds] + "*.zip"))
-                if len(list_zipfiles) == 0:
-                    raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
-                                    + " the zip file(s) does not follow the pattern of "
-                                    + "'sub-*_'" + input_ds.df["name"][i_ds] + "*.zip")
-            else:
-                raise Exception("invalid `type_session`: " + type_session)
+            # Way #1: directly use the argument in `<container>_zip.sh`, e.g., ${FREESURFER_ZIP}
+            # -----------------------------------------------------------------------------------
+            #   basically getting the zipfilename will be done in `participant_job.sh` by bash
+            cmd += "\n7z x `basename ${" + input_ds.df["name"][i_ds].upper() + "_ZIP}`"
+            #   ^^ ${FREESURFER_ZIP} includes `path_now_rel` of input_ds
+            #   so needs to get the basename
 
-            # assume all the zip filenames are regular, so only check out the first one:
+            # Way #2: get the tag in the zipfilename ---------------------------------------------
+            #   but need to assume it's consistent across all zipfilename...
+            # # get the zip filename:
+            # if type_session == "multi-ses":
+            #     list_zipfiles = \
+            #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
+            #                           "sub-*_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
+            #     if len(list_zipfiles) == 0:
+            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
+            #                         + " the zip file(s) does not follow the pattern of "
+            #                         + "'sub-*_ses-*_'" + input_ds.df["name"][i_ds] + "*.zip")
+            # elif type_session == "single-ses":
+            #     list_zipfiles = \
+            #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
+            #                           "sub-*_" + input_ds.df["name"][i_ds] + "*.zip"))
+            #     if len(list_zipfiles) == 0:
+            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
+            #                         + " the zip file(s) does not follow the pattern of "
+            #                         + "'sub-*_'" + input_ds.df["name"][i_ds] + "*.zip")
+            # else:
+            #     raise Exception("invalid `type_session`: " + type_session)
 
-            temp_filename = op.basename(list_zipfiles[0])
-            temp_regex = regex.search(input_ds.df["name"][i_ds] + '(.*)' + '.zip',
-                                      temp_filename)
-            temp_pattern = temp_regex.group(0)   # e.g., "fmriprep-0.0.0.zip"
-            # ^^ .group(1) will be "-0.0.0"
-            if type_session == "multi-ses":
-                cmd += "\n7z x ${subid}_${sesid}_" + \
-                    temp_pattern
-            elif type_session == "single-ses":
-                cmd += "\n7z x ${subid}_" + temp_pattern
+            # # assume all the zip filenames are regular, so only check out the first one:
+
+            # temp_filename = op.basename(list_zipfiles[0])
+            # temp_regex = regex.search(input_ds.df["name"][i_ds] + '(.*)' + '.zip',
+            #                           temp_filename)
+            # temp_pattern = temp_regex.group(0)   # e.g., "fmriprep-0.0.0.zip"
+            # # ^^ .group(1) will be "-0.0.0"
+            # if type_session == "multi-ses":
+            #     cmd += "\n7z x ${subid}_${sesid}_" + \
+            #         temp_pattern
+            # elif type_session == "single-ses":
+            #     cmd += "\n7z x ${subid}_" + temp_pattern
 
             cmd += "\ncd $wd\n"
 
@@ -847,20 +858,18 @@ def get_list_sub_ses(input_ds, config, babs):
     # Remove the subjects (or sessions) which does not have the required files:
     #   ------------------------------------------------------------------------
     # remove existing csv files first:
-    if babs.type_session == "single-ses":
-        fn_csv_missing = op.join(
-            babs.analysis_path, "code/sub_missing_required_file.csv")
-        if op.exists(fn_csv_missing):
-            os.remove(fn_csv_missing)
-    else:   # multi-ses:
-        fn_csv_missing = op.join(
-            babs.analysis_path, "code/sub_ses_missing_required_file.csv")
-        fn_csv_sub_delete = op.join(
-            babs.analysis_path, "code/sub_missing_any_ses_required_file.csv")
-        if op.exists(fn_csv_missing):
-            os.remove(fn_csv_missing)
-        if op.exists(fn_csv_sub_delete):
-            os.remove(fn_csv_sub_delete)
+    temp_files = glob.glob(op.join(
+        babs.analysis_path, "code/sub_*missing_required_file.csv"))
+    # ^^ single-ses: `sub_missing*`; multi-ses: `sub_ses_missing*`
+    if len(temp_files) > 0:
+        for temp_file in temp_files:
+            os.remove(temp_file)
+    temp_files = []   # clear
+    # for multi-ses:
+    fn_csv_sub_delete = op.join(
+        babs.analysis_path, "code/sub_missing_any_ses_required_file.csv")
+    if op.exists(fn_csv_sub_delete):
+        os.remove(fn_csv_sub_delete)
 
     # read `required_files` section from yaml file, if there is:
     if "required_files" in config:

@@ -349,7 +349,7 @@ class BABS():
         # this is temporary, and will be replaced by `babs-submit`
         # TODO
         print("\nGenerating a bash script for submitting jobs"
-              + "at participant (or session) level...")
+              + " at participant (or session) level...")
         print("This bash script will be named as `submit_jobs.sh`")
         print("This will be deprecated and replaced by `babs-submit`")
         bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
