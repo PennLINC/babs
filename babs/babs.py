@@ -615,7 +615,12 @@ class System():
             raise Exception("Invalid cluster system type: '" + self.type + "'!")
 
     def get_dict(self):
-        with open("babs/dict_cluster_systems.yaml") as f:
+        # location of current python script:
+        __location__ = os.path.realpath(
+            os.path.join(os.getcwd(), os.path.dirname(__file__)))
+
+        fn_dict_cluster_systems_yaml = op.join(__location__, "dict_cluster_systems.yaml")
+        with open(fn_dict_cluster_systems_yaml) as f:
             dict = yaml.load(f, Loader=yaml.FullLoader)
             # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
 
@@ -1147,6 +1152,8 @@ class Container():
         pushgitremote = babs.output_ria_data_dir
 
         # Get the list of subjects + generate the commands:
+        #   `get_list_sub_ses` will also remove the sub/ses
+        #   that does not have required file(s) (based on input yaml file)
         if babs.type_session == "single-ses":
             subs = get_list_sub_ses(input_ds, self.config, babs)
             # iterate across subs:

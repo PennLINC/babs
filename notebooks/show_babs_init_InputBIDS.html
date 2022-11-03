@@ -3,7 +3,7 @@
 <head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>show_babs_init</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
+<title>show_babs_init_InputBIDS</title><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js"></script>
 
 
 
@@ -14610,8 +14610,10 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <span class="c1"># 1. set up the terminal:</span>
 <span class="c1">#   $ source ~/.bashrc   # freesurfer and templateflow env variables</span>
 <span class="c1">#   $ conda activate mydatalad</span>
-<span class="c1"># 2. then run:</span>
-<span class="c1">#   $ jupyter nbconvert --execute --to html notebooks/show_babs_init.ipynb</span>
+<span class="c1"># 2. manually install BABS:</span>
+<span class="c1">#   $ pip install -e .</span>
+<span class="c1"># 3. then run:</span>
+<span class="c1">#   $ jupyter nbconvert --execute --to html notebooks/show_babs_init_InputBIDS.ipynb</span>
 
 <span class="c1"># flake8: noqa</span>
 
@@ -14626,9 +14628,6 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 
 <span class="c1"># from babs.core_functions import babs_init</span>
 <span class="c1"># from babs.cli import *</span>
-
-<span class="c1"># manually: </span>
-<span class="c1"># pip install -e .</span>
 </pre></div>
 
      </div>
@@ -14656,15 +14655,37 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="n">where_project</span> <span class="o">=</span> <span class="s2">"/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data"</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># This notebook only accepts qsiprep or fmriprep (input ds: BIDS)</span>
+<span class="c1"># ++++++++++++++++++++++++++++++++++</span>
+<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">"qsiprep"</span>
 <span class="n">type_session</span> <span class="o">=</span> <span class="s2">"multi-ses"</span>
+<span class="c1"># ++++++++++++++++++++++++++++++++++</span>
+<span class="n">where_project</span> <span class="o">=</span> <span class="s2">"/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data"</span>
+<span class="n">where_notebooks</span> <span class="o">=</span> <span class="s2">"/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks"</span>
 
-<span class="n">project_name</span> <span class="o">=</span> <span class="s2">"test_babs_cli_"</span> <span class="o">+</span> <span class="n">type_session</span>
-<span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">"j854e"</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">"fmriprep"</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">"multi-ses"</span><span class="p">:</span>
+        <span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">"j854e"</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">"single-ses"</span><span class="p">:</span>
+        <span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">"zd9a6"</span><span class="p">)</span>
+
+    <span class="n">project_name</span> <span class="o">=</span> <span class="s2">"test_babs_"</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">"_fmriprep"</span>
+    <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">"fmriprep"</span>
+
+<span class="k">elif</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">"qsiprep"</span><span class="p">:</span>
+    <span class="n">project_name</span> <span class="o">=</span> <span class="s2">"test_babs_"</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">"_qsiprep"</span>
+    <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">"qsiprep"</span>
+    <span class="k">if</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">"multi-ses"</span><span class="p">:</span>
+        <span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">"j854e"</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">"single-ses"</span><span class="p">:</span>
+        <span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">"zd9a6"</span><span class="p">)</span>
+
+<span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">"`flag_instance` is not QSIPrep or fMRIPrep!"</span><span class="p">)</span>
 
 <span class="n">container_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">"toybidsapp-container-docker"</span><span class="p">)</span>
-<span class="n">container_name</span> <span class="o">=</span> <span class="s2">"qsiprep-0-0-0"</span>
-<span class="n">container_config_yaml_file</span> <span class="o">=</span> <span class="s2">"../notebooks/example_container_"</span> <span class="o">+</span> <span class="s2">"qsiprep"</span> <span class="o">+</span> <span class="s2">".yaml"</span>
+<span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">"-0-0-0"</span>  <span class="c1"># "toybidsapp-0-0-3"</span>
+<span class="n">container_config_yaml_file</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_notebooks</span><span class="p">,</span> <span class="s2">"example_container_"</span> <span class="o">+</span> <span class="n">flag_instance</span> <span class="o">+</span> <span class="s2">".yaml"</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14700,7 +14721,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
     <span class="o">--</span><span class="n">container_name</span> <span class="err">$</span><span class="n">container_name</span> \
     <span class="o">--</span><span class="n">container_config_yaml_file</span> <span class="err">$</span><span class="n">container_config_yaml_file</span> \
     <span class="o">--</span><span class="n">type_session</span> <span class="err">$</span><span class="n">type_session</span> \
-    <span class="o">--</span><span class="n">system</span> <span class="n">sge</span><span class="p">)</span>
+    <span class="o">--</span><span class="n">type_system</span> <span class="n">sge</span><span class="p">)</span>
 </pre></div>
 
      </div>
@@ -14723,13 +14744,14 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <pre>DataLad version: 0.17.2
 nothing to save, working tree clean
 
-project_root of this BABS project: /Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_cli_multi-ses
+project_root of this BABS project: /Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_qsiprep
 type of data of this BABS project: multi-ses
 job scheduling system of this BABS project: sge
 
 
 Creating `analysis` folder (also a datalad dataset)...
 <span class="ansi-red-intense-fg ansi-bold">untracked</span>: .gitignore (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+ <span class="ansi-red-intense-fg ansi-bold">modified</span>: code/submit_jobs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 Folder &#39;analysis&#39; exists in the `project_root` and is a datalad dataset; not to re-create it.
 
 Creating output and input RIA...
@@ -14737,30 +14759,50 @@ Creating output and input RIA...
 Registering the input dataset(s)...
 The input dataset #1 &#39;BIDS&#39; has been copied into `analysis` folder; not to copy again.
 
+Checking whether each input dataset is a zipped or unzipped dataset...
+input dataset &#39;BIDS&#39; is considered as an unzipped dataset.
+Performing sanity check for any unzipped input dataset...
 
 Adding the container as a sub-dataset of `analysis` dataset...
 The container has been added as a sub-dataset; not to do it again.
 
-Generating bash script for running container and zipping the outputs...
+Generating a bash script for running container and zipping the outputs...
 This bash script will be named as `qsiprep-0-0-0_zip.sh`
 
 Below is the generated `singularity run` command:
-singularity run --cleanenv -B ${PWD},/test/templateflow_home:/TEMPLATEFLOW_HOME \ 
-	containers/.datalad/environments/qsiprep-0-0-0/image \ 
-	inputs/data \ 
-	outputs \ 
-	participant \ 
-	-v -v \ 
-	-w ${PWD}/.git/tmp/wkdir \ 
-	--n_cpus $NSLOTS \ 
-	--stop-on-first-crash \ 
-	--fs-license-file code/license.txt \ 
-	--skip-bids-validation \ 
-	--unringing-method mrdegibbs \ 
-	--output-resolution 2.0 \ 
-	--bids-filter-file &#34;${filterfile}&#34; \ 
+singularity run --cleanenv -B ${PWD},/test/templateflow_home:/TEMPLATEFLOW_HOME \
+	containers/.datalad/environments/qsiprep-0-0-0/image \
+	inputs/data/BIDS \
+	outputs \
+	participant \
+	-v -v \
+	-w ${PWD}/.git/tmp/wkdir \
+	--n_cpus $NSLOTS \
+	--stop-on-first-crash \
+	--fs-license-file code/license.txt \
+	--skip-bids-validation \
+	--unringing-method mrdegibbs \
+	--output-resolution 2.0 \
+	--bids-filter-file &#34;${filterfile}&#34; \
 	--participant-label &#34;${subid}&#34;
 
+Generating a bash script for running jobs at participant (or session) level...
+This bash script will be named as `participant_job.sh`
+Total: 0.00 datasets [00:00, ? datasets/s]
+Total:   0%|                                   | 0.00/4.35k [00:00&lt;?, ? Bytes/s]
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/submit_jobs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+action summary:
+  add (ok: 1)
+  save (ok: 1)
+
+Generating a bash script for submitting jobsat participant (or session) level...
+This bash script will be named as `submit_jobs.sh`
+This will be deprecated and replaced by `babs-submit`
+Filtering out subjects (and sessions) based on `required files` designated in `container_config_yaml_file`...
+There are 1 session(s) which don&#39;t have required files. Please refer to this CSV file for full list and information: /Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_qsiprep/analysis/code/sub_ses_missing_required_file.csv
+BABS will not run the BIDS App on these sessions&#39; data.
+Note for this file: For each reported session, only one missing required file in one input dataset is recorded, even if there are multiple.
 </pre>
 </div>
 </div>

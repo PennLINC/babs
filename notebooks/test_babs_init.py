@@ -17,7 +17,7 @@ import subprocess
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep_ingressed_fs"
+flag_instance = "qsiprep"
 type_session = "multi-ses"
 
 flag_where = "local"   # "cubic" or "local"

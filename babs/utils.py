@@ -846,6 +846,22 @@ def get_list_sub_ses(input_ds, config, babs):
 
     # Remove the subjects (or sessions) which does not have the required files:
     #   ------------------------------------------------------------------------
+    # remove existing csv files first:
+    if babs.type_session == "single-ses":
+        fn_csv_missing = op.join(
+            babs.analysis_path, "code/sub_missing_required_file.csv")
+        if op.exists(fn_csv_missing):
+            os.remove(fn_csv_missing)
+    else:   # multi-ses:
+        fn_csv_missing = op.join(
+            babs.analysis_path, "code/sub_ses_missing_required_file.csv")
+        fn_csv_sub_delete = op.join(
+            babs.analysis_path, "code/sub_missing_any_ses_required_file.csv")
+        if op.exists(fn_csv_missing):
+            os.remove(fn_csv_missing)
+        if op.exists(fn_csv_sub_delete):
+            os.remove(fn_csv_sub_delete)
+
     # read `required_files` section from yaml file, if there is:
     if "required_files" in config:
         print("Filtering out subjects (and sessions) based on `required files`"
@@ -903,7 +919,7 @@ def get_list_sub_ses(input_ds, config, babs):
                                 required_file))
                         #  ^^ "**" means checking "all folders" in a subject
                         #  ^^ "**" does not work if there is no `ses-*` folder,
-                        #       so also needs `temp_files`
+                        #       so also needs to check `temp_files`
                         if (len(temp_files) == 0) & (len(temp_files_2) == 0):   # didn't find any:
                             # remove from the `subs` list:
                             #   it shouldn't be removed by earlier datasets,
