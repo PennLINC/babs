@@ -92,17 +92,23 @@ class BABS():
     def datalad_save(self, path, message=None):
         """
         Save the current status of datalad dataset `analysis`
-        Also checks that all the statuses returned are "ok"
+        Also checks that all the statuses returned are "ok" (or "notneeded")
 
         Parameters:
         ------------
-        path: str
+        path: str or list of str
             the path to the file(s) or folder(s) to save
         message: str or None
             commit message in `datalad save`
+
+        Notes:
+        ------------
+        If the path does not exist, the status will be "notneeded", and won't be error message
+            And there won't be a commit with that message
         """
 
         statuses = self.analysis_datalad_handle.save(path=path, message=message)
+        # ^^ number of dicts in list `statuses` = len(path)
         # check that all statuses returned are "okay":
         # below is from cubids
         saved_status = set([status['status'] for status in statuses])
@@ -335,6 +341,8 @@ class BABS():
         print("This bash script will be named as `" + container_name + "_zip.sh`")
         bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
         container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
+        self.datalad_save(path="code/" + container_name + "_zip.sh",
+                          message="Generate script of running container")
 
         # Generate `participant_job.sh`: --------------------------------------
         print("\nGenerating a bash script for running jobs at participant (or session) level...")
@@ -344,13 +352,13 @@ class BABS():
                                                 system)
 
         # datalad save `<containerName>_zip.sh` and `participant_job.sh`:
-        self.datalad_save(path="code/", message="Participant compute job implementation")
+        self.datalad_save(path="code/participant_job.sh",
+                          message="Participant compute job implementation")
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
 
         # Generate `submit_jobs.sh`: ------------------------------------------
         # this is temporary, and will be replaced by `babs-submit`
-        # TODO
         print("\nGenerating a bash script for submitting jobs"
               + " at participant (or session) level...")
         print("This bash script will be named as `submit_jobs.sh`")
@@ -358,7 +366,10 @@ class BABS():
         bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
         container.generate_bash_submit_jobs(bash_path, input_ds, self,
                                             system)
-        # TODO: datalad save this: datalad save -m "SGE submission setup" code/ .gitignore
+        self.datalad_save(path="code/submit_jobs.sh",
+                          message="Commands for job submission")
+        self.datalad_save(path="code/*.csv",
+                          message="Record of inclusion/exclusion of participants")
 
         # Generate `merge_outputs.sh`: ----------------------------------------
         # this is temporary, and will be replaced by `babs-merge`
@@ -387,18 +398,64 @@ class BABS():
 
         gitignore_file.close()
 
-        # TODO: datalad save this!
+        self.datalad_save(path=["code/", ".gitignore"],
+                          message="Submission setup")
 
         # ==============================================================
-        # Clean up: TODO
+        # Clean up:
         # ==============================================================
+
+        print("\nCleaning up...")
+        # No need to keep the input dataset(s):
+        #   old version: datalad uninstall -r --nocheck inputs/data
+        print("DataLad dropping input dataset's contents...")
+        for i_ds in range(0, input_ds.num_ds):
+            _ = self.analysis_datalad_handle.drop(
+                path=input_ds.df["path_now_rel"][i_ds],
+                recursive=True,   # and potential subdataset
+                reckless='availability')
+            # not to check availability
+            # seems have to specify the dataset (by above `handle`);
+            # otherwise, dl thinks the dataset is where current python is running
+
+        # Update input and output RIA:
+        print("Updating input and output RIA...")
+        #   datalad push --to input
+        #   datalad push --to output
+        self.analysis_datalad_handle.push(to="input")
+        self.analysis_datalad_handle.push(to="input")
+
+        # Add an alias to the data in output RIA store:
+        print("Adding an alias 'data' to output RIA store...")
+        """
+        RIA_DIR=$(find $PROJECTROOT/output_ria/???/ -maxdepth 1 -type d | sort | tail -n 1)
+        mkdir -p ${PROJECTROOT}/output_ria/alias
+        ln -s ${RIA_DIR} ${PROJECTROOT}/output_ria/alias/data
+        """
+        if not op.exists(op.join(self.output_ria_path,
+                                 "alias")):
+            os.makedirs(op.join(self.output_ria_path,
+                                "alias"))
+        # create a symbolic link:
+        the_symlink = op.join(self.output_ria_path,
+                              "alias", "data")
+        if op.exists(the_symlink) & op.islink(the_symlink):
+            # exists and is a symlink: remove first
+            os.remove(the_symlink)
+        os.symlink(self.output_ria_data_dir,
+                   the_symlink)
+        # to check this symbolic link, just: $ ls -l <output_ria/alias/data>
+        #   it should point to /full/path/output_ria/xxx/xxx-xxx-xxx-xxx
+
+        # SUCCESS!
+        print("\n`babs-init` was successsfully!")
 
 class Input_ds():
     """This class is for input dataset(s)"""
 
     def __init__(self, input_cli, list_sub_file, type_session):
         """
-        This is to initalize Container class.
+        This is to initalize `Input_ds` class.
 
         Parameters:
         --------------
@@ -476,16 +533,23 @@ class Input_ds():
                 raise Exception("There is no 'ses_id' column in `list_sub_file`!"
                                 + " It is expected as this is a multi-session dataset.")
 
-        # Sanity check: no repeated sub (or session?):
+        # Sanity check: no repeated sub (or sessions):
         if type_session == "single-ses":
-            # there should only be one occurance per sub:
+            # there should only be one occurrence per sub:
             if len(set(self.initial_inclu_df["sub_id"])) != \
                     len(self.initial_inclu_df["sub_id"]):
                 raise Exception("There are repeated 'sub_id' in"
                                 + "`list_sub_file`!")
         elif type_session == "multi-ses":
-            print("TODO: validate sessions....")
-            # TODO
+            # there should not be repeated combinations of `sub_id` and `ses_id`:
+            after_dropping = \
+                self.initial_inclu_df.drop_duplicates(
+                    subset=['sub_id', 'ses_id'], keep='first')
+            # ^^ remove duplications in specific cols, and keep the first occurrence
+            if after_dropping.shape[0] < self.initial_inclu_df.shape[0]:
+                print("Combinations of 'sub_id' and 'ses_id' in some rows are duplicated."
+                      + " Will only keep the first occurrence...")
+                self.initial_inclu_df = after_dropping
 
         # Sort:
         if type_session == "single-ses":
@@ -670,11 +734,15 @@ class System():
         """
         To validate if the type of the cluster system is valid.
         For valid ones, the type string will be changed to lower case.
+        If not valid, raise error message.
         """
-        if self.type.lower() in ["sge", "slurm"]:
+        list_supported = ['sge']  # TODO: add 'slurm'
+        if self.type.lower() in list_supported:
             self.type = self.type.lower()   # change to lower case, if needed
         else:
-            raise Exception("Invalid cluster system type: '" + self.type + "'!")
+            raise Exception("Invalid cluster system type: '" + self.type + "'!"
+                            + " Currently BABS only support one of these: "
+                            + ', '.join(list_supported))   # names separated by ', '
 
     def get_dict(self):
         # location of current python script:
@@ -787,8 +855,6 @@ class Container():
         bash_dir = op.dirname(bash_path)
         if not op.exists(bash_dir):
             os.makedirs(bash_dir)
-
-        # TODO: continue adding commands......
 
         # check if `self.config` from the YAML file contains information we need:
         if "babs_singularity_run" not in self.config:
@@ -936,7 +1002,7 @@ class Container():
 
         # if needed, copy Freesurfer license:
         if flag_fs_license is True:
-            # check if `${FREESURFER_HOME}/license.txt` exists: if not, error.. # <-- TODO
+            # check if `${FREESURFER_HOME}/license.txt` exists: if not, error
             freesurfer_home = os.getenv('FREESURFER_HOME')  # get env variable
             if freesurfer_home is None:    # did not set
                 raise Exception(

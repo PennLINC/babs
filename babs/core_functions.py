@@ -7,7 +7,8 @@ import pandas as pd
 import datalad.api as dlapi
 
 from babs.babs import BABS, Input_ds, System
-from babs.utils import (get_datalad_version)
+from babs.utils import (get_datalad_version,
+                        validate_type_session)
 
 
 def babs_init(where_project, project_name,
@@ -65,7 +66,8 @@ def babs_init(where_project, project_name,
     if not os.access(where_project, os.W_OK):
         raise Exception("the `where_project` is not writable!")
 
-    # TODO: add sanity check of type_session and type_system!
+    # validate `type_session`:
+    type_session = validate_type_session(type_session)
 
     input_ds = Input_ds(input, list_sub_file, type_session)
 
@@ -83,7 +85,7 @@ def babs_init(where_project, project_name,
                      type_session,
                      type_system)
 
-    # Validate system's type name:
+    # Validate system's type name `type_system`:
     system = System(type_system)
 
     # print out key information for visual check:

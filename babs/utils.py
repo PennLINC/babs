@@ -97,7 +97,11 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
 
 
 def validate_type_session(type_session):
-
+    """
+    This is to validate variable `type_session`'s value
+    If it's one of supported string, change to the standard string
+    if not, raise error message.
+    """
     if type_session in ["single-ses", "single_ses", "single-session", "single_session"]:
         type_session = "single-ses"
     elif type_session in [
@@ -112,7 +116,7 @@ def validate_type_session(type_session):
     ]:
         type_session = "multi-ses"
     else:
-        print("`type_session = " + type_session + "` is not allowed!")
+        raise Exception("`type_session = " + type_session + "` is not allowed!")
 
     return type_session
 
@@ -664,8 +668,6 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
             cmd += "\t" + "exit 98" + "\n"
             cmd += "fi" + "\n"
 
-            # TODO: test this out: multi-ses and singl-ses...
-
     """
     example:
     FREESURFER_ZIP=$(ls inputs/data/freesurfer/${subid}_free*.zip | cut -d '@' -f 1 || true)
@@ -767,10 +769,6 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         if input_ds.df["is_zipped"][i_ds] is True:   # is zipped:
             cmd += " ${" + input_ds.df["name"][i_ds].upper() + "_ZIP}"
     cmd += '"' + "\n"
-
-    # TODO: finish this function!
-    # TODO: test on multi-ses and single-ses data!
-    # TODO: test on 1) fmriprep; 2) xcpd; 3) fmriprep_ingressed_fs
 
     return cmd
 
@@ -1087,6 +1085,33 @@ def get_list_sub_ses(input_ds, config, babs):
     else:
         print("Did not provide `required files` in `container_config_yaml_file`."
               + " Not to filter subjects (or sessions)...")
+
+    # Save the final list of sub/ses in a CSV file:
+    if babs.type_session == "single-ses":
+        fn_csv_final = op.join(
+            babs.analysis_path, "code/sub_final_inclu.csv")
+        df_final = pd.DataFrame(
+            list(zip(subs)),
+            columns=['sub_id'])
+        df_final.to_csv(fn_csv_final, index=False)
+        print("The final list of included subjects has been saved to this CSV file: "
+              + fn_csv_final)
+    elif babs.type_session == "multi-ses":
+        fn_csv_final = op.join(
+            babs.analysis_path, "code/sub_ses_final_inclu.csv")
+        subs_final = []
+        sess_final = []
+        for sub in list(dict_sub_ses.keys()):
+            for ses in dict_sub_ses[sub]:
+                subs_final.append(sub)
+                sess_final.append(ses)
+        df_final = pd.DataFrame(
+            list(zip(
+                subs_final, sess_final)),
+            columns=['sub_id', 'ses_id'])
+        df_final.to_csv(fn_csv_final, index=False)
+        print("The final list of included subjects and sessions has been saved to this CSV file: "
+              + fn_csv_final)
 
     # Return: -------------------------------------------------------
     if babs.type_session == "single-ses":

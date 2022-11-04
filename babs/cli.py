@@ -83,13 +83,11 @@ def babs_init_cli():
     args = parser.parse_args()
     # print(args.input)
 
-    type_session = validate_type_session(args.type_session)
-
     babs_init(args.where_project, args.project_name,
               args.input, args.list_sub_file,
               args.container_ds,
               args.container_name, args.container_config_yaml_file,
-              type_session, args.type_system)
+              args.type_session, args.type_system)
 
 # if __name__ == "__main__":
 #     babs_init_cli()

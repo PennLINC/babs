@@ -14796,7 +14796,6 @@ babs-init \
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>DataLad version: 0.17.2
-None
 nothing to save, working tree clean
 
 project_root of this BABS project: /Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_qsiprep
@@ -14806,7 +14805,6 @@ job scheduling system of this BABS project: sge
 
 Creating `analysis` folder (also a datalad dataset)...
 <span class="ansi-red-intense-fg ansi-bold">untracked</span>: .gitignore (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
- <span class="ansi-red-intense-fg ansi-bold">modified</span>: code/submit_jobs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 Folder &#39;analysis&#39; exists in the `project_root` and is a datalad dataset; not to re-create it.
 
 Creating output and input RIA...
@@ -14843,21 +14841,23 @@ singularity run --cleanenv -B ${PWD},/test/templateflow_home:/TEMPLATEFLOW_HOME 
 
 Generating a bash script for running jobs at participant (or session) level...
 This bash script will be named as `participant_job.sh`
+
+Generating a bash script for submitting jobs at participant (or session) level...
+This bash script will be named as `submit_jobs.sh`
+This will be deprecated and replaced by `babs-submit`
+Did not provide `list_sub_file`. Will look into the first input dataset to get the initial inclusion list.
+Filtering out subjects (and sessions) based on `required files` designated in `container_config_yaml_file`...
+There are 1 session(s) which don&#39;t have required files. Please refer to this CSV file for full list and information: /Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_qsiprep/analysis/code/sub_ses_missing_required_file.csv
+BABS will not run the BIDS App on these sessions&#39; data.
+Note for this file: For each reported session, only one missing required file in one input dataset is recorded, even if there are multiple.
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/4.35k [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/submit_jobs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+Total:   0%|                                     | 0.00/192 [00:00&lt;?, ? Bytes/s]
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitignore (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   add (ok: 1)
   save (ok: 1)
 
-Generating a bash script for submitting jobs at participant (or session) level...
-This bash script will be named as `submit_jobs.sh`
-This will be deprecated and replaced by `babs-submit`
-Filtering out subjects (and sessions) based on `required files` designated in `container_config_yaml_file`...
-There are 1 session(s) which don&#39;t have required files. Please refer to this CSV file for full list and information: /Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_qsiprep/analysis/code/sub_ses_missing_required_file.csv
-BABS will not run the BIDS App on these sessions&#39; data.
-Note for this file: For each reported session, only one missing required file in one input dataset is recorded, even if there are multiple.
 </pre>
 </div>
 </div>
