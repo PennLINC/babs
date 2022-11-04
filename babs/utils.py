@@ -776,7 +776,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
 
 def get_list_sub_ses(input_ds, config, babs):
     """
-    This is to get the list of subjects (and sessions).
+    This is to get the list of subjects (and sessions) to analyze.
 
     Parameters:
     ------------
@@ -789,71 +789,92 @@ def get_list_sub_ses(input_ds, config, babs):
 
     Returns:
     -----------
-    multi-ses project: a list of subjects
-    single-ses project: a dict of subjects and their sessions
+    single-ses project: a list of subjects
+    multi-ses project: a dict of subjects and their sessions
     """
 
     # Get the initial list of subjects (and sessions): -------------------------------
-    # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
-    # for now, only check the first dataset
-    i_ds = 0
-    if input_ds.df["is_zipped"][i_ds] is False:   # not zipped:
-        full_paths = sorted(glob.glob(input_ds.df["path_now_abs"][i_ds]
-                                      + "/sub-*"))
-        # no need to check if there is `sub-*` in this dataset
-        #   have been checked in `check_validity_unzipped_input_dataset()`
-        # only get the sub's foldername, if it's a directory:
-        subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
-    else:    # zipped:
-        # full paths to the zip files:
+    #   This depends on flag `list_sub_file`
+    #       If it is None: get the initial list from input dataset
+    #       If it's a csv file, use it as initial list
+    if input_ds.initial_inclu_df is not None:   # there is initial including list
+        # no need to sort (as already done when validating)
+        print("Using the subjects (sessions) list provided in `list_sub_file`"
+              + " as the initial inclusion list.")
         if babs.type_session == "single-ses":
-            full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
-                                   + "/sub-*_" + input_ds.df["name"][i_ds] + "*.zip")
+            subs = list(input_ds.initial_inclu_df["sub_id"])
+            # ^^ turn into a list
         elif babs.type_session == "multi-ses":
-            full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
-                                   + "/sub-*_ses-*" + input_ds.df["name"][i_ds] + "*.zip")
-            # ^^ above pattern makes sure only gets subs who have more than one ses
-        full_paths = sorted(full_paths)
-        zipfilenames = [op.basename(temp) for temp in full_paths]
-        subs = [temp.split('_', 3)[0] for temp in zipfilenames]
-        # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
-        # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
-        subs = sorted(list(set(subs)))   # list(set()): acts like "unique"
+            dict_sub_ses = \
+                input_ds.initial_inclu_df.groupby('sub_id')['ses_id'].apply(list).to_dict()
+            # ^^ group based on 'sub_id', apply list to every group,
+            #   then turn into a dict.
+            #   above won't change `input_ds.initial_inclu_df`
 
-    # if it's multi-ses, get list of sessions for each subject:
-    if babs.type_session == "multi-ses":
-        # a nested list of sub and ses:
-        #   first level is sub; second level is sess of a sub
-        list_sub_ses = [None] * len(subs)   # predefine a list
+    else:   # no intial list:
+        # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
+        # for now, only check the first dataset
+        print("Did not provide `list_sub_file`."
+              + " Will look into the first input dataset"
+              + " to get the initial inclusion list.")
+        i_ds = 0
         if input_ds.df["is_zipped"][i_ds] is False:   # not zipped:
-            for i_sub, sub in enumerate(subs):
-                # get the list of sess:
-                full_paths = glob.glob(
-                    op.join(input_ds.df["path_now_abs"][i_ds],
-                            sub, "ses-*"))
-                full_paths = sorted(full_paths)
-                sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
-                # no need to validate again that session exists
-                # -  have been done in `check_validity_unzipped_input_dataset()`
-
-                list_sub_ses[i_sub] = sess
-
+            full_paths = sorted(glob.glob(input_ds.df["path_now_abs"][i_ds]
+                                          + "/sub-*"))
+            # no need to check if there is `sub-*` in this dataset
+            #   have been checked in `check_validity_unzipped_input_dataset()`
+            # only get the sub's foldername, if it's a directory:
+            subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
         else:    # zipped:
-            for i_sub, sub in enumerate(subs):
-                # get the list of sess:
-                full_paths = glob.glob(
-                    op.join(input_ds.df["path_now_abs"][i_ds],
-                            sub + "_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
-                full_paths = sorted(full_paths)
-                zipfilenames = [op.basename(temp) for temp in full_paths]
-                sess = [temp.split('_', 3)[1] for temp in zipfilenames]
-                # ^^ field #1, i.e., 2nd field which is `ses-*`
-                # no need to validate if sess exists; as it's done when getting `subs`
+            # full paths to the zip files:
+            if babs.type_session == "single-ses":
+                full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
+                                       + "/sub-*_" + input_ds.df["name"][i_ds] + "*.zip")
+            elif babs.type_session == "multi-ses":
+                full_paths = glob.glob(input_ds.df["path_now_abs"][i_ds]
+                                       + "/sub-*_ses-*" + input_ds.df["name"][i_ds] + "*.zip")
+                # ^^ above pattern makes sure only gets subs who have more than one ses
+            full_paths = sorted(full_paths)
+            zipfilenames = [op.basename(temp) for temp in full_paths]
+            subs = [temp.split('_', 3)[0] for temp in zipfilenames]
+            # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
+            # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
+            subs = sorted(list(set(subs)))   # list(set()): acts like "unique"
 
-                list_sub_ses[i_sub] = sess
+        # if it's multi-ses, get list of sessions for each subject:
+        if babs.type_session == "multi-ses":
+            # a nested list of sub and ses:
+            #   first level is sub; second level is sess of a sub
+            list_sub_ses = [None] * len(subs)   # predefine a list
+            if input_ds.df["is_zipped"][i_ds] is False:   # not zipped:
+                for i_sub, sub in enumerate(subs):
+                    # get the list of sess:
+                    full_paths = glob.glob(
+                        op.join(input_ds.df["path_now_abs"][i_ds],
+                                sub, "ses-*"))
+                    full_paths = sorted(full_paths)
+                    sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
+                    # no need to validate again that session exists
+                    # -  have been done in `check_validity_unzipped_input_dataset()`
 
-        # then turn `subs` and `list_sub_ses` into a dict:
-        dict_sub_ses = dict(zip(subs, list_sub_ses))
+                    list_sub_ses[i_sub] = sess
+
+            else:    # zipped:
+                for i_sub, sub in enumerate(subs):
+                    # get the list of sess:
+                    full_paths = glob.glob(
+                        op.join(input_ds.df["path_now_abs"][i_ds],
+                                sub + "_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
+                    full_paths = sorted(full_paths)
+                    zipfilenames = [op.basename(temp) for temp in full_paths]
+                    sess = [temp.split('_', 3)[1] for temp in zipfilenames]
+                    # ^^ field #1, i.e., 2nd field which is `ses-*`
+                    # no need to validate if sess exists; as it's done when getting `subs`
+
+                    list_sub_ses[i_sub] = sess
+
+            # then turn `subs` and `list_sub_ses` into a dict:
+            dict_sub_ses = dict(zip(subs, list_sub_ses))
 
     # Remove the subjects (or sessions) which does not have the required files:
     #   ------------------------------------------------------------------------

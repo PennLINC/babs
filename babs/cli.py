@@ -42,6 +42,13 @@ def babs_init_cli():
              "Second argument is the path to this input dataset.",
         required=True)
     parser.add_argument(
+        '--list_sub_file', '--list-sub-file',   # optional flag
+        type=str,
+        help="Path to the CSV file that lists the subject (and sessions) to analyze; "
+        " If there is no such file, please not to specify this flag."
+        " Single-session data: column of 'sub_id';"
+        " Multi-session data: columns of 'sub_id' and 'ses_id'.",)
+    parser.add_argument(
         '--container_ds', '--container-ds',
         help="Path to the container datalad dataset",
         required=True)
@@ -57,7 +64,8 @@ def babs_init_cli():
         required=True)
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
-        help="A YAML file that contains the configurations of how to run the BIDS App container")
+        help="Path to a YAML file that contains the configurations"
+        " of how to run the BIDS App container")
     parser.add_argument(
         "--type_session", "--type-session",
         choices=['single-ses', 'single_ses', 'single-session', 'single_session',
@@ -78,7 +86,8 @@ def babs_init_cli():
     type_session = validate_type_session(args.type_session)
 
     babs_init(args.where_project, args.project_name,
-              args.input, args.container_ds,
+              args.input, args.list_sub_file,
+              args.container_ds,
               args.container_name, args.container_config_yaml_file,
               type_session, args.type_system)
 

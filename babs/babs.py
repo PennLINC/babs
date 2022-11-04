@@ -166,7 +166,8 @@ class BABS():
             # if first and the last characters are quotes: remove them
             self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
-    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config_yaml_file,
+    def babs_bootstrap(self, input_ds,
+                       container_ds, container_name, container_config_yaml_file,
                        system):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
@@ -175,13 +176,15 @@ class BABS():
         -------------
         input_ds: class `Input_ds`
             Input dataset(s).
+        container_name: str
+            name of the container, best to include version number.
+            e.g., 'fmriprep-0-0-0'
         container_ds: str
             path to the container datalad dataset which the user provides
-        container_name: str
-            TODO: add desc!
         container_config_yaml_file: str
-            TODO: add desc!
-        system: class System
+            Path to a YAML file that contains the configurations
+            of how to run the BIDS App container
+        system: class `System`
             information about the cluster management system
         """
 
@@ -393,13 +396,22 @@ class BABS():
 class Input_ds():
     """This class is for input dataset(s)"""
 
-    def __init__(self, input_cli):
+    def __init__(self, input_cli, list_sub_file, type_session):
         """
         This is to initalize Container class.
 
         Parameters:
         --------------
-        input_cli: nested list of strings - see CLI `babs-init --input` for more
+        input_cli: nested list of strings
+            see CLI `babs-init --input` for more
+        list_sub_file: str or None
+            Path to the CSV file that lists the subject (and sessions) to analyze;
+            or `None` if that CLI flag was not specified.
+            single-ses data: column of 'sub_id';
+            multi-ses data: columns of 'sub_id' and 'ses_id'
+        type_session: str
+            "multi-ses" or "single-ses"
+
 
         Attributes:
         --------------
@@ -417,8 +429,13 @@ class Input_ds():
             - is_zipped: True or False, is the input data zipped or not
         num_ds: int
             number of input dataset(s)
+        initial_inclu_df: pandas DataFrame or None
+            got from `list_sub_file`
+            single-session data: column of 'sub_id';
+            multi-session data: columns of 'sub_id' and 'ses_id'
         """
 
+        # About input dataset(s):
         # create an empty pandas DataFrame:
         self.df = pd.DataFrame(None,
                                index=list(range(0, len(input_cli))),
@@ -438,6 +455,51 @@ class Input_ds():
         # sanity check: input ds names should not be identical:
         if len(set(self.df["name"].tolist())) != self.num_ds:  # length of the set = number of ds
             raise Exception("There are identical names in input datasets' names!")
+
+        # Get the initial included sub/ses list from `list_sub_file` CSV:
+        if list_sub_file is None:  # if not to specify that flag in CLI, it'll be `None`
+            self.initial_inclu_df = None
+        else:
+            if op.exists(list_sub_file) is False:    # does not exist:
+                raise Exception("`list_sub_file` does not exists! Please check: "
+                                + list_sub_file)
+            else:   # exists:
+                self.initial_inclu_df = pd.read_csv(list_sub_file)
+                self.validate_initial_inclu_df(type_session)
+
+    def validate_initial_inclu_df(self, type_session):
+        # Sanity check: there are expected column(s):
+        if "sub_id" not in list(self.initial_inclu_df.columns):
+            raise Exception("There is no 'sub_id' column in `list_sub_file`!")
+        if type_session == "multi-ses":
+            if "ses_id" not in list(self.initial_inclu_df.columns):
+                raise Exception("There is no 'ses_id' column in `list_sub_file`!"
+                                + " It is expected as this is a multi-session dataset.")
+
+        # Sanity check: no repeated sub (or session?):
+        if type_session == "single-ses":
+            # there should only be one occurance per sub:
+            if len(set(self.initial_inclu_df["sub_id"])) != \
+                    len(self.initial_inclu_df["sub_id"]):
+                raise Exception("There are repeated 'sub_id' in"
+                                + "`list_sub_file`!")
+        elif type_session == "multi-ses":
+            print("TODO: validate sessions....")
+            # TODO
+
+        # Sort:
+        if type_session == "single-ses":
+            # sort:
+            self.initial_inclu_df = \
+                self.initial_inclu_df.sort_values(by=['sub_id'])
+            # reset the index, and remove the additional colume:
+            self.initial_inclu_df = \
+                self.initial_inclu_df.reset_index().drop(columns=['index'])
+        elif type_session == "multi-ses":
+            self.initial_inclu_df = \
+                self.initial_inclu_df.sort_values(by=['sub_id', 'ses_id'])
+            self.initial_inclu_df = \
+                self.initial_inclu_df.reset_index().drop(columns=['index'])
 
     def assign_path_now_abs(self, analysis_path):
         """

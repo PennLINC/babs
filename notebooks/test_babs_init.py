@@ -17,13 +17,14 @@ import subprocess
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "xcpd"
+flag_instance = "fmriprep"
 type_session = "single-ses"
+list_sub_file = "file"    # "file" or None (without quotes!)
 
 flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
-# if else:
+# where:
 if flag_where == "cubic":
     where_project = "/cbica/projects/BABS/data"
 elif flag_where == "local":
@@ -31,6 +32,11 @@ elif flag_where == "local":
 else:
     raise Exception("not valid `flag_where`!")
 
+# initial included sub list:
+if list_sub_file == "file":
+    list_sub_file = "notebooks/initial_sub_list_" + type_session + ".csv"
+
+# bids-app specific:
 if flag_instance == "fmriprep":
     if type_session == "multi-ses":
         input_ds = op.join(where_project, "j854e")
@@ -90,6 +96,7 @@ if os.getenv("TEMPLATEFLOW_HOME") is None:
 
 babs_init(where_project, project_name,
           input=input_cli,
+          list_sub_file=list_sub_file,
           container_ds=container_ds,
           container_name=container_name,
           container_config_yaml_file=container_config_yaml_file,
