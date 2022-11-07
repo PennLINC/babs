@@ -11,6 +11,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
+            "env": {
+                "PYDEVD_WARN_EVALUATION_TIMEOUT": "500"
+            }
             // "args": [
             //     "--where-project",
             //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data",

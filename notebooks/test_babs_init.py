@@ -3,25 +3,33 @@
 #   will have error:
 #   e.g., $FREESURFER_HOME was not successfully exported
 #   solution: stop the debugging; in `Python Debug Console`:
-#   $ source ~/.bashrc
-#   $ conda activate mydatalad
+#   if on my local Mac:
+#       $ source ~/.bashrc
+#       $ conda activate mydatalad
+#   if on cubic:
+#       $ module unload freesurfer/5.3.0
+#           # ^^ 5.3.0 is not folder and does not contain `license.txt`....
+#       $ module load freesurfer/7.2.0
+#       $ echo $FREESURFER_HOME
+#   if on cubic but using vscode to debug:
+#       $ export FREESURFER_HOME=/cbica/software/external/freesurfer/centos7/7.2.0
 #   then start the debugging again
 
 from babs.core_functions import babs_init
 import sys
 import os
 import os.path as op
-import subprocess
+# import subprocess
 
 
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep_ingressed_fs"
+flag_instance = "toybidsapp"
 type_session = "multi-ses"
 list_sub_file = "file"    # "file" or None (without quotes!)
 
-flag_where = "local"   # "cubic" or "local"
+flag_where = "cubic"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # where:
@@ -37,7 +45,18 @@ if list_sub_file == "file":
     list_sub_file = "notebooks/initial_sub_list_" + type_session + ".csv"
 
 # bids-app specific:
-if flag_instance == "fmriprep":
+if flag_instance == "toybidsapp":
+    if type_session == "multi-ses":
+        input_ds = op.join(where_project, "j854e")
+    elif type_session == "single-ses":
+        input_ds = op.join(where_project, "zd9a6")
+
+    input_cli = [["BIDS", input_ds]]
+    project_name = "test_babs_" + type_session + "_" + flag_instance
+    bidsapp = "toybidsapp"
+    container_name = bidsapp + "0-0-4"
+
+elif flag_instance == "fmriprep":
     if type_session == "multi-ses":
         input_ds = op.join(where_project, "j854e")
     elif type_session == "single-ses":
@@ -46,6 +65,7 @@ if flag_instance == "fmriprep":
     input_cli = [["BIDS", input_ds]]
     project_name = "test_babs_" + type_session + "_fmriprep"
     bidsapp = "fmriprep"
+    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
 
 elif flag_instance == "qsiprep":
     project_name = "test_babs_" + type_session + "_qsiprep"
@@ -55,6 +75,7 @@ elif flag_instance == "qsiprep":
     elif type_session == "single-ses":
         input_ds = op.join(where_project, "zd9a6")
     input_cli = [["BIDS", input_ds]]
+    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
 
 elif flag_instance == "xcpd":
     project_name = "test_babs_" + type_session + "_xcpd"
@@ -63,6 +84,8 @@ elif flag_instance == "xcpd":
         input_cli = [["fmriprep", op.join(where_project, "k9zw2")]]   # fmriprep, multi-ses
     elif type_session == "single-ses":
         input_cli = [["fmriprep", "osf://2jvub/"]]   # fmriprep, single-ses
+
+    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
 
 elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"
@@ -73,7 +96,8 @@ elif flag_instance == "fmriprep_ingressed_fs":
     elif type_session == "single-ses":
         input_cli = [["BIDS", op.join(where_project, "zd9a6")],   # bids, single-ses
                      ["freesurfer", "osf://2jvub/"]]   # fmriprep done, single-ses
-
+    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
+    
 elif flag_instance == "empty":
     project_name = "test_babs_emptyInputds"
     bidsapp = "fmriprep"
@@ -88,7 +112,7 @@ if flag_where == "cubic":
     container_ds = op.join(where_project, "toybidsapp-container")
 elif flag_where == "local":
     container_ds = op.join(where_project, "toybidsapp-container-docker")
-container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
+
 container_config_yaml_file = "notebooks/example_container_" + flag_instance + ".yaml"
 
 if os.getenv("TEMPLATEFLOW_HOME") is None:
