@@ -26,10 +26,10 @@ sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__f
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 flag_instance = "toybidsapp"
-type_session = "multi-ses"
+type_session = "single-ses"
 list_sub_file = "file"    # "file" or None (without quotes!)
 
-flag_where = "cubic"   # "cubic" or "local"
+flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # where:
@@ -54,7 +54,16 @@ if flag_instance == "toybidsapp":
     input_cli = [["BIDS", input_ds]]
     project_name = "test_babs_" + type_session + "_" + flag_instance
     bidsapp = "toybidsapp"
-    container_name = bidsapp + "0-0-4"
+    container_name = bidsapp + "-0-0-5"
+
+elif flag_instance == "toybidsapp_zippedInput":
+    project_name = "test_babs_" + type_session + "_toybidsapp_zippedIn"
+    bidsapp = "toybidsapp"
+    if type_session == "multi-ses":
+        input_cli = [["fmriprep", op.join(where_project, "k9zw2")]]   # fmriprep done, multi-ses
+    elif type_session == "single-ses":
+        input_cli = [["fmriprep", "osf://2jvub/"]]   # fmriprep done, single-ses
+    container_name = bidsapp + "-0-0-5"
 
 elif flag_instance == "fmriprep":
     if type_session == "multi-ses":
@@ -65,7 +74,7 @@ elif flag_instance == "fmriprep":
     input_cli = [["BIDS", input_ds]]
     project_name = "test_babs_" + type_session + "_fmriprep"
     bidsapp = "fmriprep"
-    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
+    container_name = bidsapp + "-0-0-0"  # TODO: to change
 
 elif flag_instance == "qsiprep":
     project_name = "test_babs_" + type_session + "_qsiprep"
@@ -75,7 +84,7 @@ elif flag_instance == "qsiprep":
     elif type_session == "single-ses":
         input_ds = op.join(where_project, "zd9a6")
     input_cli = [["BIDS", input_ds]]
-    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
+    container_name = bidsapp + "-0-0-0"  # TODO: to change
 
 elif flag_instance == "xcpd":
     project_name = "test_babs_" + type_session + "_xcpd"
@@ -85,7 +94,7 @@ elif flag_instance == "xcpd":
     elif type_session == "single-ses":
         input_cli = [["fmriprep", "osf://2jvub/"]]   # fmriprep, single-ses
 
-    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
+    container_name = bidsapp + "-0-0-0"  # TODO: to change
 
 elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"
@@ -96,8 +105,8 @@ elif flag_instance == "fmriprep_ingressed_fs":
     elif type_session == "single-ses":
         input_cli = [["BIDS", op.join(where_project, "zd9a6")],   # bids, single-ses
                      ["freesurfer", "osf://2jvub/"]]   # fmriprep done, single-ses
-    container_name = bidsapp + "-0-0-0"  # "toybidsapp-0-0-3"
-    
+    container_name = bidsapp + "-0-0-0"  # TODO: to change
+
 elif flag_instance == "empty":
     project_name = "test_babs_emptyInputds"
     bidsapp = "fmriprep"
