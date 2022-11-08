@@ -21,6 +21,7 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_zipping_from_config,
                         validate_type_session,
                         generate_bashhead_resources,
+                        generate_cmd_script_preamble,
                         generate_cmd_datalad_run,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses)
@@ -1058,25 +1059,9 @@ class Container():
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
         bash_file.write(cmd_bashhead_resources)
 
-        # Set up correct conda environment:
-        bash_file.write("\n# Set up the conda environment:\n")
-
-        # sanity check:
-        if "script_preamble" not in self.config:
-            raise Exception("Did not find the required section 'script_preamble'"
-                            + " in `container_config_yaml_file`!")
-        if "conda_env_name" not in self.config["script_preamble"]:
-            raise Exception("Did not find the required key 'conda_env_name'"
-                            + " in section 'script_preamble'"
-                            + " in `container_config_yaml_file`!")
-
-        if system.type == "sge":
-            bash_file.write("source ${CONDA_PREFIX}/bin/activate "
-                            + self.config["script_preamble"]["conda_env_name"]
-                            + "\n")
-        # TODO: add slurm's
-
-        bash_file.write("echo I" + "\\" + "\'" + "m in $PWD using `which python`\n")
+        # Script preambles:
+        cmd_script_preamble = generate_cmd_script_preamble(self.config)
+        bash_file.write(cmd_script_preamble)
 
         # Change how this bash file is run:
         bash_file.write("\n# Fail whenever something is fishy,"

@@ -35,8 +35,12 @@ cluster_resources:
     customized_text: |
         #$ -R y
 
-script_preamble:
-    conda_env_name: "mydatalad"
+# Users need to add their customized bash command below,
+#   they will be used as preambles in `participant_job.sh`
+#   the commands should not be quoted!
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+
 
 required_files:
     $INPUT_DATASET_#1:

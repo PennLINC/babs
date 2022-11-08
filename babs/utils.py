@@ -596,6 +596,39 @@ def generate_bashhead_resources(system, config):
 
     return cmd
 
+def generate_cmd_script_preamble(config):
+    """
+    This is to generate bash cmd based on `script_preamble`
+    from the `container_config_yaml_file`
+
+    Parameters:
+    ------------
+    config: dictionary
+        attribute `config` in class Container;
+        got from `read_container_config_yaml()`
+
+    Returns:
+    ------------
+    cmd: str
+        It's part of the `participant_job.sh`; it is generated
+        based on config yaml file.
+    """
+
+    cmd = ""
+
+    if "script_preamble" not in config:
+        warnings.warn("Did not find the section 'script_preamble'"
+                      + " in `container_config_yaml_file`."
+                        + " Not to generate script preamble.")
+    else:   # there is `script_preamble`:
+        # directly grab the commands in the section:
+        cmd += "\n# Script preambles:\n"
+        cmd += config["script_preamble"]
+
+    cmd += "\necho I" + "\\" + "\'" + "m in $PWD using `which python`\n"
+
+    return cmd
+
 def generate_cmd_determine_zipfilename(input_ds, type_session):
     """
     This is to generate bash cmd that determines the path to the zipfile of a specific
