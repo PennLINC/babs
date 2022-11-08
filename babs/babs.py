@@ -1085,7 +1085,7 @@ class Container():
 
         # Inputs of the bash script:
         bash_file.write("\n")
-        bash_file.write('dssource="$1\t# i.e., `input_ria`"\n')
+        bash_file.write('dssource="$1"\t# i.e., `input_ria`\n')
         bash_file.write('pushgitremote="$2"\t# i.e., `output_ria`\n')
         bash_file.write('subid="$3"\n')
 
@@ -1158,7 +1158,7 @@ class Container():
                 # remove other sub's data:
                 bash_file.write("(cd " + input_ds.df["path_now_rel"][i_ds]
                                 + " && rm -rf `find . -type d -name 'sub*'"
-                                + " | grep - v $subid`" + ")" + "\n")
+                                + " | grep -v $subid`" + ")" + "\n")
                 """
                 e.g.,:
                 datalad get -n "inputs/data/<name>/${subid}"
@@ -1215,8 +1215,12 @@ class Container():
             bash_file.write("datalad drop -d " + input_ds.df["path_now_rel"][i_ds] + " -r" + "\n")
             # e.g., datalad drop -d inputs/data/<name> -r
             # NOTE: sometimes also adds `--nocheck --if-dirty ignore` - check if this is necessary!
+            # ^^ seems `toybidsapp` with BIDS as input was fine even without ^^
+            #   (even though other sub were removed in `participant_job.sh`
+            #   -> input ds changed)
 
         # also `datalad drop` the current `ds` (clone of input RIA)?
+        #   this includes dropping of images in `containers` dataset
         bash_file.write("datalad drop -r . --nocheck" + "\n")
 
         bash_file.write("git annex dead here" + "\n")
