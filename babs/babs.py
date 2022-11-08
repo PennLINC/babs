@@ -1089,7 +1089,11 @@ class Container():
         # TODO: if `where_to_run` is not specified, change to default = ??
 
         bash_file.write("\n# Change to a temporary directory or compute space:\n")
-        bash_file.write("cd ${where_to_run}" + "\n")
+        bash_file.write('if [[ "${where_to_run} == "cbica_tmpdir"  ]];then\n')
+        bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
+        bash_file.write('elif [[ "${where_to_run} == "comp_space"   ]]; then\n')
+        bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
+        bash_file.write("fi\n")
 
         # Setups: ---------------------------------------------------------------
         # set up the branch:
@@ -1287,7 +1291,7 @@ class Container():
                     + dssource + " " \
                     + pushgitremote + " " \
                     + sub + " " \
-                    + "${CBICA_TMPDIR}" + "\n"
+                    + "cbica_tmpdir" + "\n"
                 bash_file.write(str)
 
         else:   # multi-ses
@@ -1303,7 +1307,7 @@ class Container():
                         + pushgitremote + " " \
                         + sub + " " \
                         + ses + " " \
-                        + "${CBICA_TMPDIR}" + "\n"
+                        + "cbica_tmpdir" + "\n"
                     bash_file.write(str)
 
         # TODO: currently only support SGE.
