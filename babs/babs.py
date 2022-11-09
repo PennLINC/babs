@@ -1089,9 +1089,9 @@ class Container():
         # TODO: if `where_to_run` is not specified, change to default = ??
 
         bash_file.write("\n# Change to a temporary directory or compute space:\n")
-        bash_file.write('if [[ "${where_to_run} == "cbica_tmpdir"  ]];then\n')
+        bash_file.write('if [[ "${where_to_run}" == "cbica_tmpdir"  ]]; then\n')
         bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
-        bash_file.write('elif [[ "${where_to_run} == "comp_space"   ]]; then\n')
+        bash_file.write('elif [[ "${where_to_run}" == "comp_space"   ]]; then\n')
         bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
         bash_file.write("fi\n")
 

@@ -25,7 +25,7 @@ import os.path as op
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep"
+flag_instance = "toybidsapp"
 type_session = "multi-ses"
 list_sub_file = "file"    # "file" or None (without quotes!)
 
