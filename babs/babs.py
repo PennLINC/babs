@@ -429,7 +429,7 @@ class BABS():
         #   datalad push --to input
         #   datalad push --to output
         self.analysis_datalad_handle.push(to="input")
-        self.analysis_datalad_handle.push(to="input")
+        self.analysis_datalad_handle.push(to="output")
 
         # Add an alias to the data in output RIA store:
         print("Adding an alias 'data' to output RIA store...")
