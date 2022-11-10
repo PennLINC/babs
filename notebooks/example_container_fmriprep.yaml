@@ -37,14 +37,16 @@ babs_singularity_run:
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
     --output-spaces: MNI152NLin6Asym:res-2
     --force-bbr: ""
-    --cifti-output: 91k
-    -v: '-v'   # TODO: explain in docs: this is for double "-v". # as it's dict, cannot have identical keys... otherwise the latter key + value will overwrite the former one..
-        # if tripple `-v`: `-v: '-v -v'`
+    #--cifti-output: 91k   # ADD THIS WHEN FULL RUN!
+    -v: '-v'   # TODO: explain in docs: this is for double "-v". # as it's dict, cannot have identical keys... otherwise the latter key + value will overwrite the former one..# if tripple `-v`: `-v: '-v -v'`
+    --sloppy: ''      # ADD THIS WHEN TEST RUN!
+    --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
     fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
-    freesurfer: "20-2-3"   # use the same as fmriprep
+    # freesurfer: "20-2-3"   # use the same as fmriprep
+    # ^^ # ADD THIS WHEN FULL RUN!
 
 # environment_variable:
 #     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs
