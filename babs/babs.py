@@ -1127,14 +1127,12 @@ class Container():
         bash_file.write('git checkout -b "${BRANCH}"' + "\n")
 
         # Start of the application-specific code: ------------------------------
-        # determine the zip filename:
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
-        bash_file.write(cmd_determine_zipfilename)
 
-        # pull the input data and remove other sub's data:
+        # pull down input data (but don't retrieve the data content) and remove other sub's data:
         #   purpose of removing other sub's data: otherwise pybids would take
         #   extremely long time in large dataset due to lots of subjects
-        bash_file.write("\n# Pull down input data manually:\n")
+        bash_file.write(
+            "\n# Pull down the input subject (or dataset) but don't retrieve data contents:\n")
         for i_ds in range(0, input_ds.num_ds):
             if input_ds.df["is_zipped"][i_ds] is False:   # unzipped ds:
                 # seems regardless of multi-ses or not
@@ -1159,11 +1157,12 @@ class Container():
                 (cd inputs/data/<name> && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
                 """
             else:    # zipped ds:
-                # using the determined zip filename in previous command:
                 bash_file.write('datalad get -n "'
-                                + "${" + input_ds.df["name"][i_ds].upper() + "_ZIP}"
+                                + input_ds.df["path_now_rel"][i_ds]
                                 + '"' + "\n")
-                # e.g., `${FREESURFER_ZIP}`, which includes `path_now_rel`
+                # e.g., `datalad get -n "inputs/data/freesurfer"`
+                # ^^ should NOT only get specific zip file, as right now we need to
+                #   get the list of all files, so that we can determine zipfilename later.
 
                 # below is another version: using `*` instead of a specific file:
                 # bash_file.write('datalad get -n "' + input_ds.df["path_now_rel"][i_ds]
@@ -1181,8 +1180,13 @@ class Container():
         # `datalad get` the container ??
         # NOTE: only found in `bootstrap-fmriprep-ingressed-fs.sh`...
         #   not sure if this is really needed
-        bash_file.write("\n" + "datalad get -r containers" + "\n")
+        bash_file.write("\n# Get the container dataset:\n")
+        bash_file.write("datalad get -r containers" + "\n")
         # NOTE: ^^ not sure if `-r` is needed....
+
+        # determine the zip filename:
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
+        bash_file.write(cmd_determine_zipfilename)
 
         # `datalad run`:
         bash_file.write("\n# datalad run:\n")

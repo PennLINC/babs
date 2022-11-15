@@ -632,7 +632,9 @@ def generate_cmd_script_preamble(config):
 def generate_cmd_determine_zipfilename(input_ds, type_session):
     """
     This is to generate bash cmd that determines the path to the zipfile of a specific
-    subject (or session). This command will be used in `participant_job.sh`
+    subject (or session). This command will be used in `participant_job.sh`.
+    This command should be generated after `datalad get -n <input_ds>`,
+    i.e., after there is list of data in <input_ds> folder
 
     Parameters:
     -----------
@@ -654,7 +656,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     cmd = ""
 
     if True in list(input_ds.df["is_zipped"]):  # there is at least one dataset is zipped
-        cmd += "\n# Getting the zip filename of current subject (or session):\n"
+        cmd += "\n# Get the zip filename of current subject (or session):\n"
 
     for i_ds in range(0, input_ds.num_ds):
         if input_ds.df["is_zipped"][i_ds] is True:   # is zipped:

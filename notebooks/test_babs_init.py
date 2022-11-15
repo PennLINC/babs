@@ -25,9 +25,9 @@ import os.path as op
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "toybidsapp"
-type_session = "multi-ses"
-list_sub_file = "file"    # "file" or None (without quotes!)
+flag_instance = "zipped_toybidsapp"
+type_session = "single-ses"
+list_sub_file = None    # "file" or None (without quotes!)
 
 flag_where = "local"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -56,13 +56,14 @@ if flag_instance == "toybidsapp":
     bidsapp = "toybidsapp"
     container_name = bidsapp + "-0-0-5"
 
-elif flag_instance == "toybidsapp_zippedInput":
-    project_name = "test_babs_" + type_session + "_toybidsapp_zippedIn"
+elif flag_instance == "zipped_toybidsapp":
+    project_name = "test_babs_" + type_session + "_" + flag_instance
     bidsapp = "toybidsapp"
     if type_session == "multi-ses":
         input_cli = [["fmriprep", op.join(where_project, "k9zw2")]]   # fmriprep done, multi-ses
     elif type_session == "single-ses":
-        input_cli = [["fmriprep", "osf://2jvub/"]]   # fmriprep done, single-ses
+        # fmriprep done, single-ses  # also allows 'osf://2jvub/'
+        input_cli = [["fmriprep", op.join(where_project, "2jvub")]]
     container_name = bidsapp + "-0-0-5"
 
 elif flag_instance == "fmriprep":
