@@ -47,9 +47,9 @@ if list_sub_file == "file":
 # bids-app specific:
 if flag_instance == "toybidsapp":
     if type_session == "multi-ses":
-        input_ds = op.join(where_project, "j854e")
+        input_ds = op.join(where_project, "w2nu3")
     elif type_session == "single-ses":
-        input_ds = op.join(where_project, "zd9a6")
+        input_ds = op.join(where_project, "t8urc")
 
     input_cli = [["BIDS", input_ds]]
     project_name = "test_babs_" + type_session + "_" + flag_instance
@@ -68,9 +68,9 @@ elif flag_instance == "zipped_toybidsapp":
 
 elif flag_instance == "fmriprep":
     if type_session == "multi-ses":
-        input_ds = op.join(where_project, "j854e")
+        input_ds = op.join(where_project, "w2nu3")
     elif type_session == "single-ses":
-        input_ds = op.join(where_project, "zd9a6")
+        input_ds = op.join(where_project, "t8urc")
 
     input_cli = [["BIDS", input_ds]]
     project_name = "test_babs_" + type_session + "_fmriprep"
@@ -81,9 +81,9 @@ elif flag_instance == "qsiprep":
     project_name = "test_babs_" + type_session + "_qsiprep"
     bidsapp = "qsiprep"
     if type_session == "multi-ses":
-        input_ds = op.join(where_project, "j854e")
+        input_ds = op.join(where_project, "w2nu3")
     elif type_session == "single-ses":
-        input_ds = op.join(where_project, "zd9a6")
+        input_ds = op.join(where_project, "t8urc")
     input_cli = [["BIDS", input_ds]]
     container_name = bidsapp + "-0-0-0"  # TODO: to change
 
@@ -101,10 +101,10 @@ elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"
     bidsapp = "fmriprep"
     if type_session == "multi-ses":
-        input_cli = [["BIDS", op.join(where_project, "j854e")],   # bids, multi-ses
+        input_cli = [["BIDS", op.join(where_project, "w2nu3")],   # bids, multi-ses
                      ["freesurfer", op.join(where_project, "k9zw2")]]   # fmriprep done, multi-ses
     elif type_session == "single-ses":
-        input_cli = [["BIDS", op.join(where_project, "zd9a6")],   # bids, single-ses
+        input_cli = [["BIDS", op.join(where_project, "t8urc")],   # bids, single-ses
                      ["freesurfer", "osf://2jvub/"]]   # fmriprep done, single-ses
     container_name = bidsapp + "-0-0-0"  # TODO: to change
 
