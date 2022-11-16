@@ -1210,12 +1210,15 @@ class Container():
         bash_file.write("echo ${BRANCH}" + "\n")
         # each input dataset:
         for i_ds in range(0, input_ds.num_ds):
-            bash_file.write("datalad drop -d " + input_ds.df["path_now_rel"][i_ds] + " -r" + "\n")
+            bash_file.write("datalad drop -d " + input_ds.df["path_now_rel"][i_ds] + " -r"
+                            + " --reckless availability"   # previous `--nocheck` (deprecated)
+                            + " --reckless modification"
+                            # ^^ previous `--if-dirty ignore` (deprecated)
+                            + "\n")
             # e.g., datalad drop -d inputs/data/<name> -r
-            # NOTE: sometimes also adds `--nocheck --if-dirty ignore` - check if this is necessary!
-            # ^^ seems `toybidsapp` with BIDS as input was fine even without ^^
-            #   (even though other sub were removed in `participant_job.sh`
-            #   -> input ds changed)
+            # NOTE: our scripts sometimes also adds `--nocheck --if-dirty ignore`
+            #   without it, `toybidsapp` with zipped ds as input was not okay (drop impossible)
+            #   without it, `toybidsapp` with BIDS as input was fine
 
         # also `datalad drop` the current `ds` (clone of input RIA)?
         #   this includes dropping of images in `containers` dataset
