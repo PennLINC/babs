@@ -954,12 +954,12 @@ class Container():
         cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += output_foldername   # output folder
 
-        # if not xcp-d (which does not support `participant` positional argu):
-        if any(ele in self.container_name.lower() for ele in ["xcp"]):
-            pass
-        else:
-            cmd_head_singularityRun += " \\" + "\n\t"
-            cmd_head_singularityRun += "participant"  # at participant-level
+        # currently all BIDS App support `participant` positional argu:
+        # if any(ele in self.container_name.lower() for ele in ["xcp"]):
+        #     pass
+        # else:
+        cmd_head_singularityRun += " \\" + "\n\t"
+        cmd_head_singularityRun += "participant"  # at participant-level
 
         bash_file.write(cmd_head_singularityRun)
 
