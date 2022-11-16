@@ -454,7 +454,7 @@ class BABS():
         #   it should point to /full/path/output_ria/xxx/xxx-xxx-xxx-xxx
 
         # SUCCESS!
-        print("\n`babs-init` was successsful!")
+        print("\n`babs-init` was successful!")
 
 class Input_ds():
     """This class is for input dataset(s)"""
