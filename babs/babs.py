@@ -1221,8 +1221,12 @@ class Container():
             #   without it, `toybidsapp` with BIDS as input was fine
 
         # also `datalad drop` the current `ds` (clone of input RIA)?
-        #   this includes dropping of images in `containers` dataset
-        bash_file.write("datalad drop -r . --nocheck" + "\n")
+        #   this includes dropping of images in `containers` dataset, and zipped output
+        bash_file.write("datalad drop -r ."
+                        + " --reckless availability"
+                        + " --reckless modification"    # this is needed for zipped input ds
+                        + "\n")
+        # ^^ old scripts: datalad drop -r . --nocheck   # `--nocheck` is deprecated...
 
         bash_file.write("git annex dead here" + "\n")
         # ^^: as the data has been dropped, we don't want to be reminded of this
