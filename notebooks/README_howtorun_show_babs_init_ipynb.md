@@ -1,4 +1,5 @@
 ## How to generate html file from this ipynb:
+NOTE: if on cubic, please run all commands in a terminal! DO NOT USE cubic + vscode!!
 1. set up the terminal:
 ```
 source ~/.bashrc   # freesurfer and templateflow env variables
@@ -6,6 +7,7 @@ conda activate mydatalad
 ```
 2. manually install BABS:
 ```
+cd ~/babs
 pip install -e .
 ```
 3. then run:
