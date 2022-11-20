@@ -14601,67 +14601,6 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 </div>
 </div>
 </div>
-</div>
-<div class="jp-Cell jp-MarkdownCell jp-Notebook-cell">
-<div class="jp-Cell-inputWrapper">
-<div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
-</div>
-<div class="jp-InputArea jp-Cell-inputArea"><div class="jp-InputPrompt jp-InputArea-prompt">
-</div><div class="jp-RenderedHTMLCommon jp-RenderedMarkdown jp-MarkdownOutput " data-mime-type="text/markdown">
-<h2 id="How-to-generate-html-file-from-this-ipynb:">How to generate html file from this ipynb:<a class="anchor-link" href="#How-to-generate-html-file-from-this-ipynb:">&#182;</a></h2><ol>
-<li>set up the terminal:</li>
-</ol>
-<pre><code>source ~/.bashrc   # freesurfer and templateflow env variables
-conda activate mydatalad
-</code></pre>
-<ol start="2">
-<li>manually install BABS:</li>
-</ol>
-<pre><code>pip install -e .
-</code></pre>
-<ol start="3">
-<li>then run:</li>
-</ol>
-<pre><code>jupyter nbconvert --execute --to html notebooks/show_babs_init_InputBIDS.ipynb
-</code></pre>
-<h2 id="After-babs-init-is-run:">After <code>babs-init</code> is run:<a class="anchor-link" href="#After-babs-init-is-run:">&#182;</a></h2><ul>
-<li>save the printed messages to <code>analysis/code</code><ul>
-<li>then: <code>datalad save</code>, <code>datalad push --to input</code>, <code>datalad push --to output</code></li>
-</ul>
-</li>
-</ul>
-<h2 id="How-to-interactively-test-out-the-bootstrapped-scripts:">How to interactively test out the bootstrapped scripts:<a class="anchor-link" href="#How-to-interactively-test-out-the-bootstrapped-scripts:">&#182;</a></h2><ul>
-<li>open <code>participant_job.sh</code> and <code>submit_jobs.sh</code></li>
-<li>enter the arguments value into terminal based on <code>submit_job.sh</code></li>
-<li><code>$ where_to_run=&quot;/cbica/comp_space/$(basename $HOME)&quot; # using comp_space</code></li>
-</ul>
-<h2 id="After-the-job-is-gone-from-the-list,-check:">After the job is gone from the list, check:<a class="anchor-link" href="#After-the-job-is-gone-from-the-list,-check:">&#182;</a></h2><ul>
-<li>output_ria/xxx/xxx-xxx-xxx-xxx: $ git branch -a  # to see if the job is success</li>
-<li><code>analysis/logs</code> for logs</li>
-<li>cd &quot;/cbica/comp_space/$(basename $HOME)&quot;   # comp_space to find out that job</li>
-<li>qaccj -j <jobID> for diagnosis</li>
-</ul>
-<h2 id="How-to-remove-a-BABS-project:">How to remove a BABS project:<a class="anchor-link" href="#How-to-remove-a-BABS-project:">&#182;</a></h2><pre><code>cd &lt;project_root&gt;/analysis
-datalad remove -d inputs/data/&lt;input_ds_name&gt;
-git annex dead here
-datalad push --to input
-datalad push --to output
-cd ../..   # outside of &lt;project_root&gt;
-rm -rf &lt;project_root&gt;
-</code></pre>
-<h2 id="How-to-remove-temporary-workspace-(from-comp_space):">How to remove temporary workspace (from comp_space):<a class="anchor-link" href="#How-to-remove-temporary-workspace-(from-comp_space):">&#182;</a></h2><pre><code># cd to `comp_space`
-cd &lt;job-name&gt;/ds
-datalad drop -d inputs/data/&lt;input_ds_name&gt; -r
-datalad drop -r . --nocheck
-git annex dead here
-pwd    # and please copy the &lt;job-name&gt;
-cd ../..   # outside of &lt;job-name&gt;
-rm -rf &lt;job-name&gt;
-</code></pre>
-
-</div>
-</div>
-</div>
 </div><div class="jp-Cell jp-CodeCell jp-Notebook-cell jp-mod-noOutputs  ">
 <div class="jp-Cell-inputWrapper">
 <div class="jp-Collapser jp-InputCollapser jp-Cell-inputCollapser">
@@ -14670,7 +14609,9 @@ rm -rf &lt;job-name&gt;
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[1]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># Clone out:</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># See `README_howtorun_show_babs_init_ipynb.md` for how to run this file!</span>
+
+<span class="c1"># Clone out:</span>
 <span class="c1">#   datalad clone ria+file:///path/to/&lt;container&gt;/output_ria#~data singleORmulti-ses_&lt;container&gt;_outputs</span>
 <span class="c1"># If you want to change `project_root`&#39;s foldername, also change `output_ria/alias/data` symlink:</span>
     <span class="c1"># cd output_ria/alias</span>
@@ -14681,14 +14622,9 @@ rm -rf &lt;job-name&gt;
 <span class="c1"># set up how Jupyter notebook behaves:</span>
 <span class="kn">from</span> <span class="nn">IPython.core.interactiveshell</span> <span class="kn">import</span> <span class="n">InteractiveShell</span>
 <span class="n">InteractiveShell</span><span class="o">.</span><span class="n">ast_node_interactivity</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span>   <span class="c1"># print all outputs</span>
- 
-<span class="c1"># import sys</span>
+
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">os.path</span> <span class="k">as</span> <span class="nn">op</span>
-<span class="c1"># sys.path.append( os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(os.path.abspath(&#39;&#39;)))), &quot;babs&quot;  ))</span>
-
-<span class="c1"># from babs.core_functions import babs_init</span>
-<span class="c1"># from babs.cli import *</span>
 </pre></div>
 
      </div>
@@ -14718,13 +14654,12 @@ rm -rf &lt;job-name&gt;
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># This notebook only accepts qsiprep or fmriprep (input ds: BIDS)</span>
 <span class="c1"># ++++++++++++++++++++++++++++++++++</span>
-<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">&quot;toybidsapp&quot;</span>
+<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">&quot;qsiprep&quot;</span>
 <span class="n">type_session</span> <span class="o">=</span> <span class="s2">&quot;multi-ses&quot;</span>
-<span class="n">is_real_data</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">is_real_data</span> <span class="o">=</span> <span class="kc">True</span>
 
 <span class="n">flag_where</span> <span class="o">=</span> <span class="s2">&quot;cubic&quot;</span>     <span class="c1"># &quot;cubic&quot; or &quot;local&quot;</span>
 <span class="c1"># ++++++++++++++++++++++++++++++++++</span>
-<span class="n">where_notebooks</span> <span class="o">=</span> <span class="s2">&quot;/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks&quot;</span>
 
 <span class="c1"># where:</span>
 <span class="k">if</span> <span class="n">flag_where</span> <span class="o">==</span> <span class="s2">&quot;cubic&quot;</span><span class="p">:</span>
@@ -14761,13 +14696,13 @@ rm -rf &lt;job-name&gt;
 <span class="k">elif</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">&quot;fmriprep&quot;</span><span class="p">:</span>
     <span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;test_babs_&quot;</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">&quot;_fmriprep&quot;</span>
     <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">&quot;fmriprep&quot;</span>
-    <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-20-2-3&quot;</span>  <span class="c1"># TODO: to change</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-20-2-3&quot;</span>
 
 <span class="k">elif</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">&quot;qsiprep&quot;</span><span class="p">:</span>
     <span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;test_babs_&quot;</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">&quot;_qsiprep&quot;</span>
     <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">&quot;qsiprep&quot;</span>
     
-    <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-0-16-0RC3&quot;</span>  <span class="c1"># TODO: to change</span>
+    <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-0-16-0RC3&quot;</span>
 
 <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;`flag_instance` is not QSIPrep or fMRIPrep!&quot;</span><span class="p">)</span>
@@ -14843,11 +14778,11 @@ rm -rf &lt;job-name&gt;
 <pre>The command to execute:
 babs-init \
 	--where_project /cbica/projects/BABS/data \
-	--project_name test_babs_multi-ses_toybidsapp \
-	--input BIDS /cbica/projects/BABS/data/w2nu3 \
-	--container_ds /cbica/projects/BABS/data/toybidsapp-container \
-	--container_name toybidsapp-0-0-5 \
-	--container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml \
+	--project_name test_babs_multi-ses_qsiprep \
+	--input BIDS /cbica/projects/BABS/data/testdata_NKI/data_hashedID_bids \
+	--container_ds /cbica/projects/BABS/data/qsiprep-container \
+	--container_name qsiprep-0-16-0RC3 \
+	--container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_qsiprep.yaml \
 	--type_session multi-ses \
 	--type_system sge
 </pre>
@@ -14889,7 +14824,7 @@ babs-init \
 <pre>DataLad version: 0.17.9
 nothing to save, working tree clean
 
-project_root of this BABS project: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+project_root of this BABS project: /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep
 type of data of this BABS project: multi-ses
 job scheduling system of this BABS project: sge
 
@@ -14900,30 +14835,30 @@ Creating `analysis` folder (also a datalad dataset)...
 Total: 0.00 datasets [00:00, ? datasets/s]
 Total:   0%|                                     | 0.00/510 [00:00&lt;?, ? Bytes/s]
 [INFO   ] == Command exit (modification check follows) ===== 
-<span class="ansi-bold">run</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [/cbica/projects/BABS/miniconda3/envs/myd...]
-<span class="ansi-bold">create</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+<span class="ansi-bold">run</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [/cbica/projects/BABS/miniconda3/envs/myd...]
+<span class="ansi-bold">create</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   create (ok: 1)
   run (ok: 1)
 
 Creating output and input RIA...
 [INFO   ] create siblings &#39;output&#39; and &#39;output-storage&#39; ... 
-[INFO   ] Fetching updates for Dataset(/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis) 
+[INFO   ] Fetching updates for Dataset(/cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis) 
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 [INFO   ] Configure additional publication dependency on &#34;output-storage&#34; 
 <span class="ansi-bold">configure-sibling</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">sibling</span>)
-<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   configure-sibling (ok: 1)
   create-sibling-ria (ok: 1)
   update (ok: 1)
 [INFO   ] create sibling &#39;input&#39; ... 
-[INFO   ] Fetching updates for Dataset(/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis) 
+[INFO   ] Fetching updates for Dataset(/cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis) 
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">configure-sibling</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">sibling</span>)
-<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   configure-sibling (ok: 1)
   create-sibling-ria (ok: 1)
@@ -14937,7 +14872,7 @@ Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets
 
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets/s]
-Total:   0%|                                     | 0.00/146 [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                     | 0.00/172 [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
@@ -14957,7 +14892,7 @@ Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets
 
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets/s]
-Total:   0%|                                     | 0.00/342 [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                     | 0.00/391 [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
@@ -14967,124 +14902,40 @@ action summary:
   save (ok: 2)
 
 Generating a bash script for running container and zipping the outputs...
-This bash script will be named as `toybidsapp-0-0-5_zip.sh`
+This bash script will be named as `qsiprep-0-16-0RC3_zip.sh`
 
 Below is the generated `singularity run` command:
 singularity run --cleanenv -B ${PWD},/cbica/projects/BABS/data/templateflow_home_4test:/TEMPLATEFLOW_HOME \
-	containers/.datalad/environments/toybidsapp-0-0-5/image \
+	containers/.datalad/environments/qsiprep-0-16-0RC3/image \
 	inputs/data/BIDS \
 	outputs \
 	participant \
-	--no-zipped \
-	-v \
+	-v -v \
+	-w ${PWD}/.git/tmp/wkdir \
+	--n_cpus $NSLOTS \
+	--omp-nthreads 3 \
+	--stop-on-first-crash \
+	--fs-license-file code/license.txt \
+	--skip-bids-validation \
+	--unringing-method mrdegibbs \
+	--output-resolution 2.0 \
+	--sloppy \
+	--hmc-model none \
+	--dwi-only \
+	--bids-filter-file &#34;${filterfile}&#34; \
 	--participant-label &#34;${subid}&#34;
-Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                     | 0.00/514 [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/toybidsapp-0-0-5_zip.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-action summary:
-  add (ok: 1)
-  save (ok: 1)
-
-Generating a bash script for running jobs at participant (or session) level...
-This bash script will be named as `participant_job.sh`
-Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/2.03k [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/participant_job.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-action summary:
-  add (ok: 1)
-  save (ok: 1)
-
-Generating a bash script for submitting jobs at participant (or session) level...
-This bash script will be named as `submit_jobs.sh`
-This will be deprecated and replaced by `babs-submit`
-Did not provide `list_sub_file`. Will look into the first input dataset to get the initial inclusion list.
-Did not provide `required files` in `container_config_yaml_file`. Not to filter subjects (or sessions)...
-The final list of included subjects and sessions has been saved to this CSV file: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code/sub_ses_final_inclu.csv
-Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/3.69k [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/submit_jobs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-action summary:
-  add (ok: 1)
-  save (ok: 1)
-Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                    | 0.00/92.0 [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/sub_ses_final_inclu.csv (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-action summary:
-  add (ok: 1)
-  save (ok: 1)
-
-Generating a bash script for merging the result branches...
-This bash script will be named as `merge_outputs.sh`
-This will be deprecated and replaced by `babs-merge`
-Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/2.37k [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/merge_outputs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-action summary:
-  add (ok: 1)
-  save (ok: 1)
-Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                    | 0.00/24.0 [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitignore (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-action summary:
-  add (ok: 1)
-  save (ok: 1)
-
-Cleaning up...
-DataLad dropping input dataset&#39;s contents...
-action summary:
-  drop (notneeded: 2)
-Updating input and output RIA...
-Update availability for &#39;input&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 8.62k Steps/s]
-Enumerating: 0.00 Objects [00:00, ? Objects/s]
-                                              
-Counting:   0%|                               | 0.00/54.0 [00:00&lt;?, ? Objects/s]
-                                                                                
-Compressing:   0%|                            | 0.00/47.0 [00:00&lt;?, ? Objects/s]
-                                                                                
-Writing:   0%|                                | 0.00/54.0 [00:00&lt;?, ? Objects/s]
-<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/master-&gt;input:refs/heads/master [new branch]]
-<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/git-annex-&gt;input:refs/heads/git-annex [new branch]]
-action summary:
-  publish (ok: 2)
-Push to &#39;output&#39;:  25%|████▎            | 1.00/4.00 [00:00&lt;00:00, 4.39k Steps/s]
-Push:   0%|                                     | 0.00/4.00 [00:00&lt;?, ? Steps/s]
-Push to &#39;output-storage&#39;:   0%|                 | 0.00/4.00 [00:00&lt;?, ? Steps/s]
-Push to &#39;output-storage&#39;:  25%|██▎      | 1.00/4.00 [00:00&lt;00:00, 2.22k Steps/s]
-Transfer data to &#39;output-storage&#39;:   0%|        | 0.00/4.00 [00:00&lt;?, ? Steps/s]
-Update availability for &#39;output&#39;:  75%|▊| 3.00/4.00 [00:00&lt;00:00, 8.00k Steps/s]
-
-Enumerating: 0.00 Objects [00:00, ? Objects/s]
-
-                                              
-
-Counting:   0%|                               | 0.00/54.0 [00:00&lt;?, ? Objects/s]
-
-                                                                                
-
-Compressing:   0%|                            | 0.00/47.0 [00:00&lt;?, ? Objects/s]
-
-                                                                                
-
-Writing:   0%|                                | 0.00/54.0 [00:00&lt;?, ? Objects/s]
-
-
-<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/master-&gt;output:refs/heads/master [new branch]]
-Update availability for &#39;output&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 11.6 Steps/s]
-
-<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/git-annex-&gt;output:refs/heads/git-annex [new branch]]
-Update availability for &#39;output&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 11.5 Steps/s]
-
-                                                                                action summary:
-  publish (ok: 2)
-Adding an alias &#39;data&#39; to output RIA store...
-
-`babs-init` was successsful!
+Traceback (most recent call last):
+  File &#34;/cbica/projects/BABS/miniconda3/envs/mydatalad/bin/babs-init&#34;, line 33, in &lt;module&gt;
+    sys.exit(load_entry_point(&#39;BABS&#39;, &#39;console_scripts&#39;, &#39;babs-init&#39;)())
+  File &#34;/cbica/projects/BABS/babs/babs/cli.py&#34;, line 86, in babs_init_cli
+    babs_init(args.where_project, args.project_name,
+  File &#34;/cbica/projects/BABS/babs/babs/core_functions.py&#34;, line 98, in babs_init
+    babs_proj.babs_bootstrap(input_ds,
+  File &#34;/cbica/projects/BABS/babs/babs/babs.py&#34;, line 344, in babs_bootstrap
+    container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
+  File &#34;/cbica/projects/BABS/babs/babs/babs.py&#34;, line 1021, in generate_bash_run_bidsapp
+    raise Exception(&#34;There is no `license.txt` file in $FREESURFER_HOME to be copied!&#34;)
+Exception: There is no `license.txt` file in $FREESURFER_HOME to be copied!
 </pre>
 </div>
 </div>

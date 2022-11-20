@@ -10,7 +10,7 @@ pip install -e .
 ```
 3. then run:
 ```
-jupyter nbconvert --execute --to html notebooks/show_babs_init_InputBIDS.ipynb
+jupyter nbconvert --execute --to html notebooks/<your_ipynb_filename>.ipynb
 ```
 
 ## After `babs-init` is run:
