@@ -2,7 +2,7 @@
 
 
 babs_singularity_run:
-    $INPUT_PATH: inputs/data/BIDS   # the key is a placeholder
+    $INPUT_PATH: inputs/data/BIDS   # the key is a placeholder  # TODO: add this to doc
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""
@@ -13,9 +13,10 @@ babs_singularity_run:
     --cifti-output: 91k
     -v: "-v"
     --fs-subjects-dir: inputs/data/freesurfer/freesurfer   # TODO: docs on how to write this value
+    --sloppy: ''      # ADD THIS WHEN TEST RUN!
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
-    fmriprep: "22-0-2"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+    fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
 
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
