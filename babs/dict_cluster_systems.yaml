@@ -1,0 +1,13 @@
+# This is the yaml file that maps UI's field name to field read by clusters
+# This includes different cluster systems, e.g., SGE, Slurm, etc
+
+# format: <name in UI>: "<cluster-understandable format>"
+# placeholder "$VALUE" will be replaced by the real value provided by the user.
+
+sge:
+  interpreting_shell: "-S $VALUE"   # "-S /bin/bash" on cubic
+  hard_memory_limit: "-l h_vmem=$VALUE"   # "-l h_vmem=25G" on cubic
+  soft_memory_limit: "-l s_vmem=$VALUE"   # "-l s_vmem=23.5G" on cubic
+  temporary_disk_space: "-l tmpfree=$VALUE"   # "-l tmpfree=200G" on cubic
+  number_of_cpus: "-pe threaded $VALUE"   # "-pe threaded N" or a range: "-pe threaded N-M", N<M on cubic
+  hard_runtime_limit: "-l h_rt=$VALUE"    # "-l h_rt=24:00:00" on cubic

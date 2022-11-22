@@ -1,0 +1,35 @@
+# Below is example config yaml file for toy BIDS App:
+
+babs_singularity_run:
+    --no-zipped: ""  # for raw BIDS dataset
+    # --zipped: ""    # for zipped input dataset
+    -v: ""
+
+babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+    toybidsapp: "0-0-5"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+
+# environment_variable:
+#     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs
+
+# TODO: add to docs: best to quote the values if numbers only
+cluster_resources:
+    interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
+    hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
+    soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic
+    temporary_disk_space: 50G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
+    customized_text: |
+        #$ -R y
+
+# Users need to add their customized bash command below,
+#   they will be used as preambles in `participant_job.sh`
+#   the commands should not be quoted!
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+
+
+# Below is to filter out subjects (or sessions)
+#   right now we only filter based on unzipped dataset
+# required_files:
+#     $INPUT_DATASET_#1:
+#         - ""
+

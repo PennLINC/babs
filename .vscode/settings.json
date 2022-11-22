@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": [
+        "./babs"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true
+}
