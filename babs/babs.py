@@ -10,6 +10,7 @@ import glob
 import shutil
 import tempfile
 import yaml
+from filelock import Timeout, FileLock
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
@@ -20,11 +21,13 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
                         generate_cmd_zipping_from_config,
                         validate_type_session,
+                        validate_type_system,
                         generate_bashhead_resources,
                         generate_cmd_script_preamble,
                         generate_cmd_datalad_run,
                         generate_cmd_determine_zipfilename,
-                        get_list_sub_ses)
+                        get_list_sub_ses,
+                        create_job_status_csv)
 
 # import pandas as pd
 
@@ -51,6 +54,8 @@ class BABS():
             whether the input dataset is "multi-ses" or "single-ses"
         type_system: str
             the type of job scheduling system, "sge" or "slurm"
+        config_path: str
+            path to the config yaml file
         analysis_path: str
             path to the `analysis` folder.
         analysis_datalad_handle: datalad dataset
@@ -72,14 +77,35 @@ class BABS():
             The ID of DataLad dataset `analysis`.
             This will be used to get the full path to the dataset in input RIA.
             Example: '238da2f2-2fc4-4b88-a2c5-aa6e754b5d0b'
+        list_sub_path_rel: str
+            Path to the list of final included subjects (and sessions) CSV file.
+            This is relative to `analysis` folder.
+        list_sub_path_abs: str
+            Absolute path of `list_sub_path_rel`.
+            Example: '/path/to/analysis/code/sub_final_inclu.csv' for singl-ses dataset;
+                '/path/to/analysis/code/sub_ses_final_inclu.csv' for multi-ses dataset.
+        job_status_path_rel: str
+            Path to the `job_status.csv` file.
+            This is relative to `analysis` folder.
+        job_status_path_abs: str
+            Absolute path of `job_status_path_abs`.
+            Example: '/path/to/analysis/code/job_status.csv'
         '''
 
+        # validation:
+        type_session = validate_type_session(type_session)
+        type_system = validate_type_system(type_system)
+
+        # attributes:
         self.project_root = project_root
         self.type_session = type_session
         self.type_system = type_system
 
         self.analysis_path = op.join(project_root, "analysis")
         self.analysis_datalad_handle = None
+
+        self.config_path = op.join(self.analysis_path,
+                                   "code/babs_proj_config.yaml")
 
         self.input_ria_path = op.join(project_root, "input_ria")
         self.output_ria_path = op.join(project_root, "output_ria")
@@ -89,6 +115,18 @@ class BABS():
 
         self.output_ria_data_dir = None     # not known yet before output_ria is created
         self.analysis_dataset_id = None    # to update later
+
+        # attribute `list_sub_path_*`:
+        if self.type_session == "single-ses":
+            self.list_sub_path_rel = 'code/sub_final_inclu.csv'
+        elif self.type_session == "multi-ses":
+            self.list_sub_path_rel = 'code/sub_ses_final_inclu.csv'
+        self.list_sub_path_abs = op.join(self.analysis_path,
+                                         self.list_sub_path_rel)
+
+        self.job_status_path_rel = 'code/job_status.csv'
+        self.job_status_path_abs = op.join(self.analysis_path,
+                                           self.job_status_path_rel)
 
     def datalad_save(self, path, message=None):
         """
@@ -201,11 +239,11 @@ class BABS():
         # Initialize:
         # ==============================================================
 
-        # make a directory of project_root:
+        # Make a directory of project_root:
         if not op.exists(self.project_root):
             os.makedirs(self.project_root)
 
-        # create `analysis` folder:
+        # Create `analysis` folder:
         print("\nCreating `analysis` folder (also a datalad dataset)...")
         if op.exists(self.analysis_path):
             # check if it's a datalad dataset:
@@ -223,6 +261,22 @@ class BABS():
             self.analysis_datalad_handle = dlapi.create(self.analysis_path,
                                                         cfg_proc='yoda',
                                                         annex=True)
+
+        # create `babs_proj_config.yaml` file:
+        print("Save configurations of BABS project in a yaml file ...")
+        print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
+        babs_proj_config_file = open(self.config_path, "w")
+        babs_proj_config_file.write("type_session: '"
+                                    + self.type_session + "'\n")
+        babs_proj_config_file.write("type_system: '"
+                                    + self.type_system + "'\n")
+        babs_proj_config_file.write("input_ds:\n")   # input dataset's name(s)
+        for i_ds in range(0, input_ds.num_ds):
+            babs_proj_config_file.write("  - " + input_ds.df["name"][i_ds] + "\n")
+
+        babs_proj_config_file.close()
+        self.datalad_save(path="code/babs_proj_config.yaml",
+                          message="Save configurations of this BABS project")
 
         # Create output RIA sibling:
         print("\nCreating output and input RIA...")
@@ -455,6 +509,45 @@ class BABS():
 
         # SUCCESS!
         print("\n`babs-init` was successful!")
+
+    def babs_submit(self, count=-1):
+        """
+        Submit jobs
+
+        Parameters:
+        -------------------
+        count: int
+            number of jobs to be submitted
+            default: -1 (no upper limit)
+        """
+
+        # update `analysis_datalad_handle`:
+        if self.analysis_datalad_handle is None:
+            self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+
+        # Check if this csv file has been created, if not, create it:
+        create_job_status_csv(self)
+
+        # Load the csv file
+        lock_path = self.job_status_path_abs + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status
+                df_job = pd.read_csv(self.job_status_path_abs)
+                # Check which row has not been submitted:
+                for i_job in range(0, df_job.shape[0]):
+                    # if
+                    print("")
+
+                # f = open(self.job_status_path_abs, "w")
+                # f.write("xxxx")
+                # f.close()
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+
 
 class Input_ds():
     """This class is for input dataset(s)"""
@@ -730,25 +823,11 @@ class System():
             Guidance dict (loaded from `dict_cluster_systems.yaml`)
             for how to run this type of cluster.
         """
-        self.type = system_type
-        self.validate_name()
+        # validate and assign to attribute `type`:
+        self.type = validate_type_system(system_type)
 
         # get attribute `dict` - the guidance dict for how to run this type of cluster:
         self.get_dict()
-
-    def validate_name(self):
-        """
-        To validate if the type of the cluster system is valid.
-        For valid ones, the type string will be changed to lower case.
-        If not valid, raise error message.
-        """
-        list_supported = ['sge']  # TODO: add 'slurm'
-        if self.type.lower() in list_supported:
-            self.type = self.type.lower()   # change to lower case, if needed
-        else:
-            raise Exception("Invalid cluster system type: '" + self.type + "'!"
-                            + " Currently BABS only support one of these: "
-                            + ', '.join(list_supported))   # names separated by ', '
 
     def get_dict(self):
         # location of current python script:

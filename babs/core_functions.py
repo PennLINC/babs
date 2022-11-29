@@ -3,6 +3,7 @@
 import os
 import os.path as op
 import pandas as pd
+import yaml
 # from tqdm import tqdm
 import datalad.api as dlapi
 
@@ -17,7 +18,7 @@ def babs_init(where_project, project_name,
               container_name, container_config_yaml_file,
               type_session, type_system):
     """
-    This is to core function of babs-init.
+    This is the core function of babs-init.
 
     Parameters:
     --------------
@@ -94,7 +95,40 @@ def babs_init(where_project, project_name,
     print("type of data of this BABS project: " + babs_proj.type_session)
     print("job scheduling system of this BABS project: " + babs_proj.type_system)
     print("")
+
     # call method `babs_bootstrap()`:
     babs_proj.babs_bootstrap(input_ds,
                              container_ds, container_name, container_config_yaml_file,
                              system)
+
+def babs_submit(project_root, count):
+    """
+    This is the core function of `babs-submit`.
+
+    Parameters:
+    --------------
+    project_root: str
+        absolute path to the directory of BABS project
+    count: int
+        number of jobs to be submitted
+    """
+
+    # Read configurations of BABS project from saved yaml file:
+    babs_proj_config_yaml = op.join(project_root,
+                                    "analysis/code/babs_proj_config.yaml")
+    if op.exists(babs_proj_config_yaml) is False:
+        raise Exception("`babs-init` was not successful:"
+                        + " there is no 'analysis/code/babs_proj_config.yaml' file!")
+
+    with open(babs_proj_config_yaml) as f:
+        babs_proj_config = yaml.load(f, Loader=yaml.FullLoader)
+        # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
+    f.close()
+
+    type_session = babs_proj_config["type_session"]
+    type_system = babs_proj_config["type_system"]
+
+    babs_proj = BABS(project_root, type_session, type_system)
+
+    # call method `babs_submit()`:
+    babs_proj.babs_submit(count)

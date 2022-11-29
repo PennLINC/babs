@@ -11,6 +11,8 @@ import glob
 import regex
 import copy
 import pandas as pd
+import numpy as np
+from filelock import Timeout, FileLock
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -119,6 +121,21 @@ def validate_type_session(type_session):
         raise Exception("`type_session = " + type_session + "` is not allowed!")
 
     return type_session
+
+def validate_type_system(type_system):
+    """
+    To validate if the type of the cluster system is valid.
+    For valid ones, the type string will be changed to lower case.
+    If not valid, raise error message.
+    """
+    list_supported = ['sge']  # TODO: add 'slurm'
+    if type_system.lower() in list_supported:
+        type_system = type_system.lower()   # change to lower case, if needed
+    else:
+        raise Exception("Invalid cluster system type: '" + type_system + "'!"
+                        + " Currently BABS only support one of these: "
+                        + ', '.join(list_supported))   # names separated by ', '
+    return type_system
 
 
 def replace_placeholder_from_config(value):
@@ -1124,7 +1141,7 @@ def get_list_sub_ses(input_ds, config, babs):
     # Save the final list of sub/ses in a CSV file:
     if babs.type_session == "single-ses":
         fn_csv_final = op.join(
-            babs.analysis_path, "code/sub_final_inclu.csv")
+            babs.analysis_path, babs.list_sub_path_rel)  # "code/sub_final_inclu.csv"
         df_final = pd.DataFrame(
             list(zip(subs)),
             columns=['sub_id'])
@@ -1133,7 +1150,7 @@ def get_list_sub_ses(input_ds, config, babs):
               + fn_csv_final)
     elif babs.type_session == "multi-ses":
         fn_csv_final = op.join(
-            babs.analysis_path, "code/sub_ses_final_inclu.csv")
+            babs.analysis_path, babs.list_sub_path_rel)  # "code/sub_ses_final_inclu.csv"
         subs_final = []
         sess_final = []
         for sub in list(dict_sub_ses.keys()):
@@ -1153,3 +1170,46 @@ def get_list_sub_ses(input_ds, config, babs):
         return subs
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
+
+
+def create_job_status_csv(babs):
+    """
+    This is to create a CSV file of `job_status`.
+    This should be used by `babs-submit` and `babs-status`.
+
+    babs: class `BABS`
+        information about a BABS project.
+    """
+
+    if op.exists(babs.job_status_path_abs) is False:
+        # Generate the table:
+        # read the subject list as a panda df:
+        df_sub = pd.read_csv(babs.list_sub_path_abs)
+        df_job = df_sub.copy()    # deep copy of pandas df
+
+        # add columns:
+        df_job["has_submitted"] = np.nan
+        df_job["job_id"] = np.nan
+        df_job["is_successful"] = np.nan   # = has branch in output_ria
+        df_job["echo_success"] = np.nan   # echoed success in log file;
+        # if ^^ is False, but `is_successful` is True, did not successfully clean the space
+        df_job["has_error"] = np.nan
+
+        # TODO: add different kinds of error
+
+        # These `NaN` will be saved as empty strings (i.e., nothing between two ",")
+        #   but when pandas read this csv, the NaN will show up in the df
+
+        # Save the df as csv file, using lock:
+        lock_path = babs.job_status_path_abs + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):
+                df_job.to_csv(babs.job_status_path_abs, index=False)
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+
+        print("")

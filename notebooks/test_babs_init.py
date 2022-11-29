@@ -25,8 +25,8 @@ import os.path as op
 sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "xcpd"
-type_session = "single-ses"
+flag_instance = "fmriprep_ingressed_fs"
+type_session = "multi-ses"
 list_sub_file = None    # "file" or None (without quotes!)
 
 flag_where = "local"   # "cubic" or "local"
