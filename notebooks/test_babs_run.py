@@ -7,7 +7,7 @@ import os.path as op
 
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep"
+flag_instance = "fmriprep_ingressed_fs"
 type_session = "multi-ses"
 count = 1
 
@@ -25,6 +25,8 @@ else:
 if flag_instance == "toybidsapp":
     project_name = "test_babs_" + type_session + "_" + flag_instance
 elif flag_instance == "fmriprep":
+    project_name = "test_babs_" + type_session + "_" + flag_instance
+elif flag_instance == "qsiprep":
     project_name = "test_babs_" + type_session + "_" + flag_instance
 elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"

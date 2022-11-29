@@ -1188,7 +1188,7 @@ def create_job_status_csv(babs):
         df_job = df_sub.copy()    # deep copy of pandas df
 
         # add columns:
-        df_job["has_submitted"] = np.nan
+        df_job["has_submitted"] = False
         df_job["job_id"] = np.nan
         df_job["is_successful"] = np.nan   # = has branch in output_ria
         df_job["echo_success"] = np.nan   # echoed success in log file;

@@ -101,7 +101,7 @@ def babs_init(where_project, project_name,
                              container_ds, container_name, container_config_yaml_file,
                              system)
 
-def babs_submit(project_root, count):
+def babs_submit(project_root, count=-1):
     """
     This is the core function of `babs-submit`.
 
@@ -111,6 +111,7 @@ def babs_submit(project_root, count):
         absolute path to the directory of BABS project
     count: int
         number of jobs to be submitted
+        default: -1 (no upper limit number of job submission)
     """
 
     # Read configurations of BABS project from saved yaml file:

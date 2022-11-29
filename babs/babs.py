@@ -412,19 +412,33 @@ class BABS():
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
 
-        # Generate `submit_jobs.sh`: ------------------------------------------
-        # this is temporary, and will be replaced by `babs-submit`
-        print("\nGenerating a bash script for submitting jobs"
-              + " at participant (or session) level...")
-        print("This bash script will be named as `submit_jobs.sh`")
-        print("This will be deprecated and replaced by `babs-submit`")
-        bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
-        container.generate_bash_submit_jobs(bash_path, input_ds, self,
-                                            system)
-        self.datalad_save(path="code/submit_jobs.sh",
-                          message="Commands for job submission")
+        # # Generate `submit_jobs.sh`: ------------------------------------------
+        # # this is temporary, and will be replaced by `babs-submit`
+        # print("\nGenerating a bash script for submitting jobs"
+        #       + " at participant (or session) level...")
+        # print("This bash script will be named as `submit_jobs.sh`")
+        # print("This will be deprecated and replaced by `babs-submit`")
+        # bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
+        # container.generate_bash_submit_jobs(bash_path, input_ds, self,
+        #                                     system)
+        # self.datalad_save(path="code/submit_jobs.sh",
+        #                   message="Commands for job submission")
+        # self.datalad_save(path="code/*.csv",
+        #                   message="Record of inclusion/exclusion of participants")
+
+        # Determine the list of subjects to analyze: -----------------------------
+        print("\nDetermining the list of subjects (and sessions) to analyze...")
+        _ = get_list_sub_ses(input_ds, container.config, self)
         self.datalad_save(path="code/*.csv",
                           message="Record of inclusion/exclusion of participants")
+
+        # Generate the template of job submission: --------------------------------
+        print("\nGenerating a template for job submission calls...")
+        print("The template text file will be named as `submit_job_template.txt`.")
+        text_path = op.join(self.analysis_path, "code", "submit_job_template.txt")
+        container.generate_job_submit_template(text_path, input_ds, self, system)
+        self.datalad_save(path="code/submit_job_template.txt",
+                          message="Template for job submission")
 
         # Generate `merge_outputs.sh`: ----------------------------------------
         # this is temporary, and will be replaced by `babs-merge`
@@ -518,12 +532,20 @@ class BABS():
         -------------------
         count: int
             number of jobs to be submitted
-            default: -1 (no upper limit)
+            default: -1 (no upper limit number of job submission)
         """
 
         # update `analysis_datalad_handle`:
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+
+        # Load the job submission template:
+        template_text_path = op.join(self.analysis_path, "code", "submit_job_template.txt")
+        with open(template_text_path, "r") as template_text_file:
+            lines_template = template_text_file.readlines()
+        # remove '\n':
+        for i, l in enumerate(lines_template):
+            lines_template[i] = l.replace("\n", "")
 
         # Check if this csv file has been created, if not, create it:
         create_job_status_csv(self)
@@ -532,13 +554,44 @@ class BABS():
         lock_path = self.job_status_path_abs + ".lock"
         lock = FileLock(lock_path)
 
+        j_count = 0
+
         try:
-            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
                 df_job = pd.read_csv(self.job_status_path_abs)
+                df_job_updated = df_job.copy()
+
                 # Check which row has not been submitted:
                 for i_job in range(0, df_job.shape[0]):
-                    # if
-                    print("")
+                    if df_job["has_submitted"][i_job] == False:  # to run
+                        # ^^ type: `numpy.bool_`, should not use `is False`!
+                        # print(df_job["sub_id"][i_job] + "_" + df_job["ses_id"][i_job])
+
+                        # generate command of job submission:
+                        #   see `generate_job_submit_template()` for how to concat
+                        if self.type_session == "single-ses":
+                            sub = df_job['sub_id'][i_job]
+                            cmd = lines_template[0] + sub \
+                                + lines_template[1] + sub \
+                                + lines_template[2]
+                        else:   # multi-ses
+                            sub = df_job['sub_id'][i_job]
+                            ses = df_job['ses_id'][i_job]
+                            cmd = lines_template[0] + sub + "_" + ses \
+                                + lines_template[1] + sub + " " + ses \
+                                + lines_template[2]
+
+                        # run the command, get the job id, assign into `df_job_updated`:
+                        print("")
+                        # update `has_submitted`:
+
+                        j_count += 1
+                        if j_count == count:
+                            break
+
+                # babs-submit is only responsible for submitting jobs that haven't run yet
+
+                print('')
 
                 # f = open(self.job_status_path_abs, "w")
                 # f.write("xxxx")
@@ -1325,8 +1378,87 @@ class Container():
             )
         proc_chmod_bashfile.check_returncode()
 
+    def generate_job_submit_template(self, text_path, input_ds, babs, system):
+        """
+        This is to generate a text file that serves as a template
+        of job submission of one participant (or session).
+
+        Parameters:
+        -------------
+        text_path: str
+            The path to the text file to be generated. It should be in the `analysis/code` folder.
+        input_ds: class `Input_ds`
+            input dataset(s) information
+        babs: class `BABS`
+            information about the BABS project
+        system: class `System`
+            information on cluster management system
+        """
+
+        # Flags when submitting the job:
+        if system.type == "sge":
+            submit_head = "qsub -cwd"
+            env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
+            eo_args = "-e " + babs.analysis_path + "/logs " \
+                + "-o " + babs.analysis_path + "/logs"
+        else:
+            warnings.warn("not supporting systems other than sge...")
+
+        # Check if the bash file already exist:
+        if op.exists(text_path):
+            os.remove(text_path)  # remove it
+
+        # Write into the bash file:
+        text_file = open(text_path, "a")   # open in append mode
+
+        # Variables to use:
+        # `dssource`: Input RIA:
+        dssource = babs.input_ria_url + "#" + babs.analysis_dataset_id
+        # `pushgitremote`: Output RIA:
+        pushgitremote = babs.output_ria_data_dir
+
+        # Generate the command:
+        #   several rows in the text file; in between, to insert sub and ses id.
+        if babs.type_session == "single-ses":
+            str1 = submit_head + " " + env_flags \
+                + " -N " + self.container_name[0:3] + "_" + "\n"
+            text_file.write(str1)
+            # in between: `sub` without space
+            str2 = " " \
+                + eo_args + " " \
+                + babs.analysis_path + "/code/participant_job.sh" + " " \
+                + dssource + " " \
+                + pushgitremote + " " + "\n"
+            text_file.write(str2)
+            # in between: `sub` without space
+            str3 = " " \
+                + "cbica_tmpdir" + "\n"
+            text_file.write(str3)
+
+        elif babs.type_session == "multi-ses":
+            str1 = submit_head + " " + env_flags \
+                + " -N " + self.container_name[0:3] + "_" + "\n"
+            text_file.write(str1)
+            # in between: `${sub}_${ses}`, without space
+            str2 = " " \
+                + eo_args + " " \
+                + babs.analysis_path + "/code/participant_job.sh" + " " \
+                + dssource + " " \
+                + pushgitremote + " " + "\n"
+            text_file.write(str2)
+            # in between: `${sub} ${ses}`, no further space
+            str3 = " " \
+                + "cbica_tmpdir" + "\n"
+            text_file.write(str3)
+
+        # TODO: currently only support SGE.
+
+        text_file.close()
+
     def generate_bash_submit_jobs(self, bash_path, input_ds, babs, system):
         """
+        !!!DEPRECATED!!!
+
         This is to generate a bash script that submit jobs for each participant (or session).
         This is a temporary function which will be deprecated and replaced
         by `babs-submit`.
