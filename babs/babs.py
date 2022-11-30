@@ -580,7 +580,8 @@ class BABS():
                             cmd = lines_template[0] + sub + "_" + ses \
                                 + lines_template[1] + sub + " " + ses \
                                 + lines_template[2]
-
+                        print(cmd)
+                        
                         # run the command, get the job id, assign into `df_job_updated`:
                         print("")
                         # update `has_submitted`:

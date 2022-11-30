@@ -1,17 +1,19 @@
 # This is a temporary file to test out `babs-submit` and `babs-status`
 
-from babs.core_functions import babs_submit
 import sys
 import os
 import os.path as op
 
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+sys.path.append(op.dirname(__location__))   # print(sys.path)
+from babs.core_functions import babs_submit
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep_ingressed_fs"
+flag_instance = "toybidsapp"
 type_session = "multi-ses"
 count = 1
 
-flag_where = "local"   # "cubic" or "local"
+flag_where = "cubic"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # where:
