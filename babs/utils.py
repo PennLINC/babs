@@ -13,6 +13,8 @@ import copy
 import pandas as pd
 import numpy as np
 from filelock import Timeout, FileLock
+import subprocess
+from qstat import qstat  # https://github.com/relleums/qstat
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -1189,7 +1191,7 @@ def create_job_status_csv(babs):
 
         # add columns:
         df_job["has_submitted"] = False
-        df_job["job_id"] = np.nan
+        df_job["job_id"] = -1    # int
         df_job["is_successful"] = np.nan   # = has branch in output_ria
         df_job["echo_success"] = np.nan   # echoed success in log file;
         # if ^^ is False, but `is_successful` is True, did not successfully clean the space
@@ -1213,3 +1215,107 @@ def create_job_status_csv(babs):
             print("Another instance of this application currently holds the lock.")
 
         print("")
+
+def read_job_status_csv(csv_path):
+    """
+    This is to read the CSV file of `job_status`.
+
+    Parameters:
+    ------------
+    csv_path: str
+        path to the `job_status.csv`
+    
+    Returns:
+    -----------
+    df: pandas dataframe
+        loaded dataframe
+    """
+    df = pd.read_csv(csv_path,
+                     dtype={"job_id": 'int',
+                            'has_submitted': 'bool'
+                            })
+    return df
+
+def report_job_status(df):
+    """
+    This is to report the job status
+    based on the dataframe loaded from `job_status.csv`.
+
+    Parameters:
+    -------------
+    df: pandas dataframe
+        loaded dataframe from `job_status.csv`
+    """
+
+    print('\nJob status:')
+
+    total_jobs = df.shape[0]
+    print('There are in total of ' + str(total_jobs) + ' jobs to complete.')
+
+    total_has_submitted = int(df["has_submitted"].sum())
+    print(str(total_has_submitted) + " job(s) have been submitted; "
+          + str(total_has_submitted) + " job(s) haven't been submitted.")
+
+    total_is_successful = int(df["is_successful"].sum())
+    print("Among submitted jobs,")
+    print(str(total_is_successful) + ' job(s) are successful;')
+
+    if total_is_successful == total_jobs:
+        print("All jobs are completed!")
+    else:
+        total_has_error = int(df["has_error"].sum())
+        print(str(total_has_error) + ' job(s) have errors.')
+
+def request_all_job_status():
+    """
+    This is to get all jobs' status
+    using e.g., `qstat` (for SGE clusters)
+
+    Parameters:
+    --------------
+    TODO: add type_system!
+
+    Returns:
+    --------------
+    df: pd.DataFrame
+        All jobs' status, including running and pending (waiting) jobs'
+
+    Notes:
+    ----------------
+    SGE: using package [`qstat`](https://github.com/relleums/qstat)
+    """
+    queue_info, job_info = qstat()
+    # ^^ queue_info: dict of jobs that are running
+    # ^^ job_info: dict of jobs that are pending
+
+    # turn all jobs into a dataframe:
+    df = pd.DataFrame(queue_info + job_info)
+    df = df.set_index('JB_job_number')   # set a column as index
+    # index `JB_job_number`: job ID (data type: str)
+    # column `@state`: 'running' or 'pending'
+    # column `state`: 'r', 'qw', etc
+
+    return df
+
+def request_job_status(job_id):
+    """
+    This is to determine the job status
+    using e.g., `qstat` (for SGE clusters)
+
+    Parameters:
+    --------------
+    job_id: int
+        The job ID. 
+        The data type is fixed when reading in the pd.dataframe of job status.
+    TODO: add type_system!
+    """
+    proc_qstat = subprocess.run(
+        ["qstat", "-xml"],
+        stdout=subprocess.PIPE
+    )
+    proc_qstat.check_returncode()
+    msg = proc_qstat.stdout.decode('utf-8')
+    print(msg)
+
+    print("")
+    

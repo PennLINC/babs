@@ -6,6 +6,7 @@ import os.path as op
 import subprocess
 import warnings
 import pandas as pd
+import numpy as np
 import glob
 import shutil
 import tempfile
@@ -27,7 +28,11 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_datalad_run,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
-                        create_job_status_csv)
+                        create_job_status_csv,
+                        read_job_status_csv,
+                        report_job_status,
+                        request_job_status,
+                        request_all_job_status)
 
 # import pandas as pd
 
@@ -156,12 +161,19 @@ class BABS():
             # ^^ "notneeded": nothing to save
             raise Exception("`datalad save` failed!")
 
-    def wtf_key_info(self):
+    def wtf_key_info(self, flag_output_ria_only=False):
         """
         This is to get some key information on DataLad dataset `analysis`,
         and assign to `output_ria_data_dir` and `analysis_dataset_id`.
         This function relies on `git` and `datalad wtf`
         This needs to be done after the output RIA is created.
+
+        Parameters:
+        ------------
+        flag_output_ria_only: bool
+            if only to get information on output RIA.
+            This may expedite the process as other information requires 
+            calling `datalad` in terminal, which would takes several seconds.
         """
 
         # Get the `self.output_ria_data_dir`:
@@ -179,37 +191,39 @@ class BABS():
             # remove the last 2 characters
             self.output_ria_data_dir = self.output_ria_data_dir[:-1]
 
-        # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
-        # way #1: using datalad api; however, it always prints out the full, lengthy wtf report....
-        # # full dict from `datalad wtf`:
-        # blockPrint()
-        # full_wtf_list = dlapi.wtf(dataset=self.analysis_path)
-        # enablePrint()
-        # # ^^ this is a list
-        # if len(full_wtf_list) > 1:
-        #     warnings.warn("There are more than one dictionary for input RIA's `datalad wtf`."
-        #                   + " We'll only use the first one.")
-        # full_wtf = full_wtf_list[0]
-        # # ^^ only take the first dict (element) from the full list
-        # self.analysis_dataset_id = full_wtf["infos"]["dataset"]["id"]
-        # # ^^: $ datalad -f '{infos[dataset][id]}' wtf -S dataset
+        if not flag_output_ria_only:   # also want other information:
+            # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
 
-        # way #2: command line of datalad:
-        proc_analysis_dataset_id = subprocess.run(
-            ["datalad", "-f", "'{infos[dataset][id]}'", "wtf", "-S", "dataset"],
-            cwd=self.analysis_path,
-            stdout=subprocess.PIPE)
-        # datalad -f '{infos[dataset][id]}' wtf -S dataset
-        proc_analysis_dataset_id.check_returncode()
-        self.analysis_dataset_id = proc_analysis_dataset_id.stdout.decode('utf-8')
-        # remove the `\n`:
-        if self.analysis_dataset_id[-1:] == "\n":
-            # remove the last 2 characters
-            self.analysis_dataset_id = self.analysis_dataset_id[:-1]
-        # remove the double quotes:
-        if (self.analysis_dataset_id[0] == "'") & (self.analysis_dataset_id[-1] == "'"):
-            # if first and the last characters are quotes: remove them
-            self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
+            # way #1: using datalad api; however, it always prints out the full, lengthy wtf report....
+            # # full dict from `datalad wtf`:
+            # blockPrint()
+            # full_wtf_list = dlapi.wtf(dataset=self.analysis_path)
+            # enablePrint()
+            # # ^^ this is a list
+            # if len(full_wtf_list) > 1:
+            #     warnings.warn("There are more than one dictionary for input RIA's `datalad wtf`."
+            #                   + " We'll only use the first one.")
+            # full_wtf = full_wtf_list[0]
+            # # ^^ only take the first dict (element) from the full list
+            # self.analysis_dataset_id = full_wtf["infos"]["dataset"]["id"]
+            # # ^^: $ datalad -f '{infos[dataset][id]}' wtf -S dataset
+
+            # way #2: command line of datalad:
+            proc_analysis_dataset_id = subprocess.run(
+                ["datalad", "-f", "'{infos[dataset][id]}'", "wtf", "-S", "dataset"],
+                cwd=self.analysis_path,
+                stdout=subprocess.PIPE)
+            # datalad -f '{infos[dataset][id]}' wtf -S dataset
+            proc_analysis_dataset_id.check_returncode()
+            self.analysis_dataset_id = proc_analysis_dataset_id.stdout.decode('utf-8')
+            # remove the `\n`:
+            if self.analysis_dataset_id[-1:] == "\n":
+                # remove the last 2 characters
+                self.analysis_dataset_id = self.analysis_dataset_id[:-1]
+            # remove the double quotes:
+            if (self.analysis_dataset_id[0] == "'") & (self.analysis_dataset_id[-1] == "'"):
+                # if first and the last characters are quotes: remove them
+                self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
     def babs_bootstrap(self, input_ds,
                        container_ds, container_name, container_config_yaml_file,
@@ -526,7 +540,7 @@ class BABS():
 
     def babs_submit(self, count=-1):
         """
-        Submit jobs
+        This function submits jobs and prints out job status.
 
         Parameters:
         -------------------
@@ -534,6 +548,9 @@ class BABS():
             number of jobs to be submitted
             default: -1 (no upper limit number of job submission)
         """
+
+        count_report_progress = 10
+        # ^^ if `j_count` is several times of `count_report_progress`, report progress
 
         # update `analysis_datalad_handle`:
         if self.analysis_datalad_handle is None:
@@ -558,13 +575,13 @@ class BABS():
 
         try:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
-                df_job = pd.read_csv(self.job_status_path_abs)
+                df_job = read_job_status_csv(self.job_status_path_abs)
                 df_job_updated = df_job.copy()
 
                 # Check which row has not been submitted:
                 for i_job in range(0, df_job.shape[0]):
-                    if df_job["has_submitted"][i_job] == False:  # to run
-                        # ^^ type: `numpy.bool_`, should not use `is False`!
+                    if not df_job["has_submitted"][i_job]:  # to run
+                        # ^^ type is bool (`numpy.bool_`), so use `if a:` or `if not a:`
                         # print(df_job["sub_id"][i_job] + "_" + df_job["ses_id"][i_job])
 
                         # generate command of job submission:
@@ -581,22 +598,123 @@ class BABS():
                                 + lines_template[1] + sub + " " + ses \
                                 + lines_template[2]
                         print(cmd)
-                        
+
                         # run the command, get the job id, assign into `df_job_updated`:
-                        print("")
-                        # update `has_submitted`:
+                        proc_cmd = subprocess.run(cmd.split(),   # separate by space
+                                                  cwd=self.analysis_path,
+                                                  stdout=subprocess.PIPE)
+                        proc_cmd.check_returncode()
+                        msg = proc_cmd.stdout.decode('utf-8')
+                        # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+                        job_id = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+                        df_job_updated.at[i_job, "job_id"] = job_id
+
+                        # update the status:
+                        df_job_updated.at[i_job, "has_submitted"] = True
+                        df_job_updated.at[i_job, "has_error"] = np.nan    # reset this
+
+                        print(df_job_updated)
 
                         j_count += 1
+                        # if it's several times of `count_report_progress`:
+                        if j_count % count_report_progress == 0:
+                            print('So far ' + str(j_count) + ' jobs have been submitted.')
+
                         if j_count == count:
                             break
 
                 # babs-submit is only responsible for submitting jobs that haven't run yet
 
-                print('')
+                # save updated df:
+                df_job_updated.to_csv(self.job_status_path_abs, index=False)
 
-                # f = open(self.job_status_path_abs, "w")
-                # f.write("xxxx")
-                # f.close()
+                # here, the job status was not checked, so below is not trustable:
+                # # Report the job status:
+                # report_job_status(df_job_updated)
+
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+
+    def babs_status(self):
+        """
+        This function checks job status and rerun jobs if requested.
+
+        Parameters:
+        -------------
+        TODO: to add!
+        """
+
+        # Load the csv file
+        lock_path = self.job_status_path_abs + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
+                df_job = read_job_status_csv(self.job_status_path_abs)
+                df_job_updated = df_job.copy()
+
+                # Get all jobs' status:
+                #df_all_job_status = request_all_job_status()
+
+                # Update job status, and rerun if requested:
+                # get the list of jobs submitted, but `is_successful` is not True:
+                temp = (df_job['has_submitted']) & (~df_job['is_successful'])
+                list_index_job_tocheck = df_job.index[temp].tolist()
+                for i_job in list_index_job_tocheck:
+                    # Get basic information for this job:
+                    job_id = df_job.at[i_job, "job_id"]
+                    job_id_str = str(job_id)
+                    if self.type_session == "single-ses":
+                        sub = df_job.at[i_job, "sub_id"]
+                        pattern_branchname = sub
+                    if self.type_session == "multi-ses":
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = df_job.at[i_job, "ses_id"]
+                        pattern_branchname = sub + "-" + ses
+
+                    # Check if there is a branch in output RIA:
+                    proc_git_branch_all = subprocess.run(
+                        ["git", "branch", "-a"],
+                        cwd=self.output_ria_data_dir,
+                        stdout=subprocess.PIPE
+                    )
+                    proc_git_branch_all.check_returncode()
+                    msg = proc_git_branch_all.stdout.decode('utf-8')
+                    # if any branch name contains the pattern of current job:
+                    if any(pattern_branchname in branchname for branchname in msg.split()):
+                        # found the branch:
+                        df_job_updated.at[i_job, "is_successful"] = True
+
+                        # check if echoed "SUCCESS":
+                        # TODO ^^
+
+                    else:   # did not find the branch
+                        # Check the job status:
+                        if job_id_str in df_all_job_status.index.to_list():
+                            state_type = df_all_job_status.at[job_id_str, '@state']
+                            # ^^ column `@state`: 'running' or 'pending'
+                            
+                            # if requested, rerun + print the msg of rerun:
+                            # TODO ^^
+                        else:   # did not find in `df_all_job_status`
+                            # probably error
+                            df_job.at[i_job, "has_error"] = "probably"
+
+                            # check the log file:
+                            # TODO ^^
+
+                        print("")
+
+
+
+
+                print(df_job_updated)
+
+                # Report the job status:
+                report_job_status(df_job_updated)
+
         except Timeout:   # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
             #   there will be a timeout error

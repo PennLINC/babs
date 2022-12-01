@@ -114,6 +114,47 @@ def babs_submit(project_root, count=-1):
         default: -1 (no upper limit number of job submission)
     """
 
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj = get_existing_babs_proj(project_root)
+
+    # Call method `babs_submit()`:
+    babs_proj.babs_submit(count)
+
+def babs_status(project_root):
+    """
+    This is the core function of `babs-status`.
+
+    Parameters:
+    --------------
+    project_root: str
+        absolute path to the directory of BABS project
+    TODO: add rerun flag!
+    """
+
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj = get_existing_babs_proj(project_root)
+
+    # Call method `babs_status()`:
+    babs_proj.babs_status()
+
+def get_existing_babs_proj(project_root):
+    """
+    This is to get `babs_proj` (class `BABS`)
+    based on existing yaml file `babs_proj_config.yaml`.
+    This should be used by `babs_submit()` and `babs_status`.
+
+    Parameters:
+    --------------
+    project_root: str
+        absolute path to the directory of BABS project
+        TODO: accept relative path too, like datalad's `-d`
+    
+    Returns:
+    --------------
+    babs_proj: class `BABS`
+        information about a BABS project
+    """
+
     # Read configurations of BABS project from saved yaml file:
     babs_proj_config_yaml = op.join(project_root,
                                     "analysis/code/babs_proj_config.yaml")
@@ -129,7 +170,10 @@ def babs_submit(project_root, count=-1):
     type_session = babs_proj_config["type_session"]
     type_system = babs_proj_config["type_system"]
 
+    # Get the class `BABS`:
     babs_proj = BABS(project_root, type_session, type_system)
 
-    # call method `babs_submit()`:
-    babs_proj.babs_submit(count)
+    # update key informations including `output_ria_data_dir`:
+    babs_proj.wtf_key_info(flag_output_ria_only=True)
+
+    return babs_proj

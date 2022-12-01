@@ -15,21 +15,23 @@
 #       $ export FREESURFER_HOME=/cbica/software/external/freesurfer/centos7/7.2.0
 #   then start the debugging again
 
-from babs.core_functions import babs_init
 import sys
 import os
 import os.path as op
 # import subprocess
 
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
+sys.path.append(op.dirname(__location__))   # print(sys.path)
+from babs.core_functions import babs_init
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
+# sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "fmriprep_ingressed_fs"
+flag_instance = "toybidsapp"
 type_session = "multi-ses"
 list_sub_file = None    # "file" or None (without quotes!)
 
-flag_where = "local"   # "cubic" or "local"
+flag_where = "cubic"   # "cubic" or "local"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # where:
