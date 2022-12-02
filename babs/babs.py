@@ -656,11 +656,11 @@ class BABS():
                 df_job_updated = df_job.copy()
 
                 # Get all jobs' status:
-                #df_all_job_status = request_all_job_status()
+                df_all_job_status = request_all_job_status()
 
                 # Update job status, and rerun if requested:
-                # get the list of jobs submitted, but `is_successful` is not True:
-                temp = (df_job['has_submitted']) & (~df_job['is_successful'])
+                # get the list of jobs submitted, but `is_done` is not True:
+                temp = (df_job['has_submitted']) & (~df_job['is_done'])
                 list_index_job_tocheck = df_job.index[temp].tolist()
                 for i_job in list_index_job_tocheck:
                     # Get basic information for this job:
@@ -685,7 +685,8 @@ class BABS():
                     # if any branch name contains the pattern of current job:
                     if any(pattern_branchname in branchname for branchname in msg.split()):
                         # found the branch:
-                        df_job_updated.at[i_job, "is_successful"] = True
+                        df_job_updated.at[i_job, "is_done"] = True
+                        # TODO: reset `job_state_category`, `job_state_code`,`has_error`
 
                         # check if echoed "SUCCESS":
                         # TODO ^^
@@ -693,7 +694,8 @@ class BABS():
                     else:   # did not find the branch
                         # Check the job status:
                         if job_id_str in df_all_job_status.index.to_list():
-                            state_type = df_all_job_status.at[job_id_str, '@state']
+                            state_category = df_all_job_status.at[job_id_str, '@state']
+                            state_code = df_all_job_status.at[job_id_str, 'state']
                             # ^^ column `@state`: 'running' or 'pending'
                             
                             # if requested, rerun + print the msg of rerun:
@@ -706,9 +708,6 @@ class BABS():
                             # TODO ^^
 
                         print("")
-
-
-
 
                 print(df_job_updated)
 

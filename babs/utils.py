@@ -1192,9 +1192,11 @@ def create_job_status_csv(babs):
         # add columns:
         df_job["has_submitted"] = False
         df_job["job_id"] = -1    # int
-        df_job["is_successful"] = np.nan   # = has branch in output_ria
-        df_job["echo_success"] = np.nan   # echoed success in log file;
-        # if ^^ is False, but `is_successful` is True, did not successfully clean the space
+        df_job["job_state_category"] = np.nan
+        df_job["job_state_code"] = np.nan
+        df_job["is_done"] = False   # = has branch in output_ria
+        # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
+        # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job["has_error"] = np.nan
 
         # TODO: add different kinds of error
@@ -1232,7 +1234,8 @@ def read_job_status_csv(csv_path):
     """
     df = pd.read_csv(csv_path,
                      dtype={"job_id": 'int',
-                            'has_submitted': 'bool'
+                            'has_submitted': 'bool',
+                            'is_done': 'bool'
                             })
     return df
 
@@ -1256,11 +1259,11 @@ def report_job_status(df):
     print(str(total_has_submitted) + " job(s) have been submitted; "
           + str(total_has_submitted) + " job(s) haven't been submitted.")
 
-    total_is_successful = int(df["is_successful"].sum())
+    total_is_done = int(df["is_done"].sum())
     print("Among submitted jobs,")
-    print(str(total_is_successful) + ' job(s) are successful;')
+    print(str(total_is_done) + ' job(s) are successfully finished;')
 
-    if total_is_successful == total_jobs:
+    if total_is_done == total_jobs:
         print("All jobs are completed!")
     else:
         total_has_error = int(df["has_error"].sum())

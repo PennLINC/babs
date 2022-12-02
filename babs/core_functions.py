@@ -120,7 +120,7 @@ def babs_submit(project_root, count=-1):
     # Call method `babs_submit()`:
     babs_proj.babs_submit(count)
 
-def babs_status(project_root):
+def babs_status(project_root, rerun):
     """
     This is the core function of `babs-status`.
 
@@ -128,11 +128,20 @@ def babs_status(project_root):
     --------------
     project_root: str
         absolute path to the directory of BABS project
-    TODO: add rerun flag!
+    rerun: nested list
+        each sub-list: one of 'failed', 'pending', 'stalled'
     """
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj = get_existing_babs_proj(project_root)
+
+    # Get the list of rerun conditions:
+    if rerun is not None:   # user specified --rerun
+        # change nested list to a simple list:
+
+        # remove dupliated elements:
+        print("")
+
 
     # Call method `babs_status()`:
     babs_proj.babs_status()

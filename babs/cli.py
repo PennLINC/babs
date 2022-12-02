@@ -5,7 +5,7 @@ import argparse
 # import os.path as op
 # import sys
 
-from babs.core_functions import babs_init
+from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import validate_type_session
 
 
@@ -88,6 +88,44 @@ def babs_init_cli():
               args.container_ds,
               args.container_name, args.container_config_yaml_file,
               args.type_session, args.type_system)
+
+
+def babs_status_cli():
+    """
+    Check job status.
+
+    Example command:
+    # TODO: to add an example command here!
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Check job status in a BABS project.")
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/myBABSproject/'.",
+        required=True)
+    parser.add_argument(
+        '--rerun',
+        action='append',   # append each `--rerun` as a list;
+        # ref: https://docs.python.org/3/library/argparse.html
+        nargs=1,   # expect 1 argument per `--rerun` from the command line;
+        choices=['failed', 'pending', 'stalled'],
+        metavar=('condition to rerun'),
+        help="Under what condition to perform job rerun. "
+             "'failed': the previous submitted job has some error "
+             "('has_error' = True in 'job_status.csv'); "
+             "'pending': the previous submitted job is pending (without error) in the queue "
+             "(example qstat code: 'qw'); "
+             "'stalled': the previous submitted job is pending with error in the queue "
+             "(example qstat code: 'eqw')."
+        )
+    # TODO: to add `--rerun-job <specific sub and ses>`
+
+    args = parser.parse_args()
+    print(args.rerun)
+    # babs_status(args.project_root,
+    #             args.rerun)
 
 # if __name__ == "__main__":
 #     babs_init_cli()
