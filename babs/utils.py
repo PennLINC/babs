@@ -891,7 +891,7 @@ def get_list_sub_ses(input_ds, config, babs):
             subs = [temp.split('_', 3)[0] for temp in zipfilenames]
             # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
             # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
-            subs = sorted(list(set(subs)))   # list(set()): acts like "unique"
+            subs = sorted(list(set(subs)))   # `list(set())`: acts like "unique"
 
         # if it's multi-ses, get list of sessions for each subject:
         if babs.type_session == "multi-ses":
@@ -1173,12 +1173,75 @@ def get_list_sub_ses(input_ds, config, babs):
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
 
+def submit_one_job(analysis_path, type_session, sub, ses=None):
+    """
+    This is to submit one job.
+
+    Parameters:
+    ----------------
+    analysis_path: str
+        path to the `analysis` folder. One attribute in class `BABS`
+    type_session: str
+        multi-ses or single-ses
+    sub: str
+        subject id
+    ses: str or None
+        session id. For type-session == "single-ses", this is None
+
+    Returns:
+    ------------------
+    job_id: int
+        the int version of ID of the submitted job.
+    job_id_str: str
+        the string version of ID of the submitted job.
+
+    Notes:
+    -----------------
+    see `generate_job_submit_template()` for how to concat and generate
+    a command for job submission.
+
+    TODO: change the `submit_job_template.txt` to one row with placeholders
+        so that we don't need to check if it's multi-ses or single-ses again 
+        (i.e., if there is no placeholder of `ses`, then no need to replace)
+    """
+
+    # Load the job submission template:
+    template_text_path = op.join(analysis_path, "code", "submit_job_template.txt")
+    with open(template_text_path, "r") as template_text_file:
+        lines_template = template_text_file.readlines()
+    # remove '\n':
+    for i, l in enumerate(lines_template):
+        lines_template[i] = l.replace("\n", "")
+
+    if type_session == "single-ses":
+        cmd = lines_template[0] + sub \
+            + lines_template[1] + sub \
+            + lines_template[2]
+    else:   # multi-ses
+        cmd = lines_template[0] + sub + "_" + ses \
+            + lines_template[1] + sub + " " + ses \
+            + lines_template[2]
+    print(cmd)
+
+    # run the command, get the job id:
+    proc_cmd = subprocess.run(cmd.split(),   # separate by space
+                              cwd=analysis_path,
+                              stdout=subprocess.PIPE)
+    proc_cmd.check_returncode()
+    msg = proc_cmd.stdout.decode('utf-8')
+    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+    job_id = int(job_id_str)
+
+    return job_id, job_id_str
 
 def create_job_status_csv(babs):
     """
     This is to create a CSV file of `job_status`.
     This should be used by `babs-submit` and `babs-status`.
 
+    Parameters:
+    ------------
     babs: class `BABS`
         information about a BABS project.
     """
@@ -1257,7 +1320,7 @@ def report_job_status(df):
 
     total_has_submitted = int(df["has_submitted"].sum())
     print(str(total_has_submitted) + " job(s) have been submitted; "
-          + str(total_has_submitted) + " job(s) haven't been submitted.")
+          + str(total_jobs - total_has_submitted) + " job(s) haven't been submitted.")
 
     total_is_done = int(df["is_done"].sum())
     print("Among submitted jobs,")
@@ -1281,7 +1344,9 @@ def request_all_job_status():
     Returns:
     --------------
     df: pd.DataFrame
-        All jobs' status, including running and pending (waiting) jobs'
+        All jobs' status, including running and pending (waiting) jobs'.
+        If there is no job in the queue, df will be an empty DataFrame 
+        (i.e., Columns: [], Index: [])
 
     Notes:
     ----------------
@@ -1293,10 +1358,15 @@ def request_all_job_status():
 
     # turn all jobs into a dataframe:
     df = pd.DataFrame(queue_info + job_info)
-    df = df.set_index('JB_job_number')   # set a column as index
-    # index `JB_job_number`: job ID (data type: str)
-    # column `@state`: 'running' or 'pending'
-    # column `state`: 'r', 'qw', etc
+
+    # check if there is no job in the queue:
+    if (not queue_info) & (not job_info):   # both are `[]`
+        pass  # don't set the index
+    else:
+        df = df.set_index('JB_job_number')   # set a column as index
+        # index `JB_job_number`: job ID (data type: str)
+        # column `@state`: 'running' or 'pending'
+        # column `state`: 'r', 'qw', etc
 
     return df
 

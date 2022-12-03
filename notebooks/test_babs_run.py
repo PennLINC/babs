@@ -9,7 +9,7 @@ sys.path.append(op.dirname(__location__))   # print(sys.path)
 from babs.core_functions import babs_submit, babs_status
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "toybidsapp"
+flag_instance = "qsiprep"
 type_session = "multi-ses"
 count = 1
 
@@ -37,7 +37,7 @@ else:
 
 babs_project = op.join(where_project, project_name)
 
-# babs_status(babs_project)
-babs_submit(babs_project, count)
+# babs_submit(babs_project, count)
+babs_status(babs_project)
 
 print()

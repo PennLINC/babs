@@ -28,6 +28,7 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_datalad_run,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
+                        submit_one_job,
                         create_job_status_csv,
                         read_job_status_csv,
                         report_job_status,
@@ -556,14 +557,6 @@ class BABS():
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
 
-        # Load the job submission template:
-        template_text_path = op.join(self.analysis_path, "code", "submit_job_template.txt")
-        with open(template_text_path, "r") as template_text_file:
-            lines_template = template_text_file.readlines()
-        # remove '\n':
-        for i, l in enumerate(lines_template):
-            lines_template[i] = l.replace("\n", "")
-
         # Check if this csv file has been created, if not, create it:
         create_job_status_csv(self)
 
@@ -584,34 +577,27 @@ class BABS():
                         # ^^ type is bool (`numpy.bool_`), so use `if a:` or `if not a:`
                         # print(df_job["sub_id"][i_job] + "_" + df_job["ses_id"][i_job])
 
-                        # generate command of job submission:
-                        #   see `generate_job_submit_template()` for how to concat
+                        # Submit a job:
                         if self.type_session == "single-ses":
-                            sub = df_job['sub_id'][i_job]
-                            cmd = lines_template[0] + sub \
-                                + lines_template[1] + sub \
-                                + lines_template[2]
+                            sub = df_job.at[i_job, "sub_id"]
+                            ses = None
                         else:   # multi-ses
-                            sub = df_job['sub_id'][i_job]
-                            ses = df_job['ses_id'][i_job]
-                            cmd = lines_template[0] + sub + "_" + ses \
-                                + lines_template[1] + sub + " " + ses \
-                                + lines_template[2]
-                        print(cmd)
+                            sub = df_job.at[i_job, "sub_id"]
+                            ses = df_job.at[i_job, "ses_id"]
 
-                        # run the command, get the job id, assign into `df_job_updated`:
-                        proc_cmd = subprocess.run(cmd.split(),   # separate by space
-                                                  cwd=self.analysis_path,
-                                                  stdout=subprocess.PIPE)
-                        proc_cmd.check_returncode()
-                        msg = proc_cmd.stdout.decode('utf-8')
-                        # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-                        job_id = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+                        job_id, _ = submit_one_job(self.analysis_path,
+                                                   self.type_session,
+                                                   sub, ses)
+
+                        # assign into `df_job_updated`:
                         df_job_updated.at[i_job, "job_id"] = job_id
 
                         # update the status:
                         df_job_updated.at[i_job, "has_submitted"] = True
-                        df_job_updated.at[i_job, "has_error"] = np.nan    # reset this
+                        # reset fields:
+                        df_job_updated.at[i_job, "job_state_category"] = np.nan  # not necessary
+                        df_job_updated.at[i_job, "job_state_code"] = np.nan   # not necessary
+                        df_job_updated.at[i_job, "has_error"] = np.nan
 
                         print(df_job_updated)
 
@@ -637,13 +623,15 @@ class BABS():
             #   there will be a timeout error
             print("Another instance of this application currently holds the lock.")
 
-    def babs_status(self):
+    def babs_status(self, flags_rerun):
         """
         This function checks job status and rerun jobs if requested.
 
         Parameters:
         -------------
-        TODO: to add!
+        flags_rerun: list
+            Under what condition to perform job rerun.
+            Element choices are: 'failed', 'pending', 'stalled'.
         """
 
         # Load the csv file
@@ -668,6 +656,7 @@ class BABS():
                     job_id_str = str(job_id)
                     if self.type_session == "single-ses":
                         sub = df_job.at[i_job, "sub_id"]
+                        ses = None
                         pattern_branchname = sub
                     if self.type_session == "multi-ses":
                         sub = df_job.at[i_job, "sub_id"]
@@ -686,7 +675,10 @@ class BABS():
                     if any(pattern_branchname in branchname for branchname in msg.split()):
                         # found the branch:
                         df_job_updated.at[i_job, "is_done"] = True
-                        # TODO: reset `job_state_category`, `job_state_code`,`has_error`
+                        # reset/update:
+                        df_job_updated.at[i_job, "job_state_category"] = np.nan
+                        df_job_updated.at[i_job, "job_state_code"] = np.nan
+                        df_job_updated.at[i_job, "has_error"] = False
 
                         # check if echoed "SUCCESS":
                         # TODO ^^
@@ -694,22 +686,96 @@ class BABS():
                     else:   # did not find the branch
                         # Check the job status:
                         if job_id_str in df_all_job_status.index.to_list():
+                            # ^^ if `df` is empty, `.index.to_list()` will return []
                             state_category = df_all_job_status.at[job_id_str, '@state']
                             state_code = df_all_job_status.at[job_id_str, 'state']
                             # ^^ column `@state`: 'running' or 'pending'
                             
-                            # if requested, rerun + print the msg of rerun:
-                            # TODO ^^
+                            if state_code == "r":
+                                df_job_updated.at[i_job, "job_state_category"] = state_category
+                                df_job_updated.at[i_job, "job_state_code"] = state_code
+                                # do nothing else, just wait
+
+                            elif state_code == "qw":
+                                if 'pending' in flags_rerun:
+                                    # Rerun:
+                                    # print a message:
+                                    to_print = "Rerun job for sub_id '" + sub + "'"
+                                    if self.type_session == "multi-ses":
+                                        to_print += ", ses_id '" + ses + "'"
+                                    to_print += ", as it was pending and rerun was requested."
+                                    print(to_print)
+
+                                    # kill original one
+                                    proc_kill = subprocess.run(
+                                        ["qdel", job_id_str],
+                                        stdout=subprocess.PIPE
+                                    )
+                                    proc_kill.check_returncode()
+                                    # submit new one:
+                                    job_id_updated, _ = \
+                                        submit_one_job(self.analysis_path,
+                                                       self.type_session,
+                                                       sub, ses)
+                                    # update fields:
+                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
+                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
+                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
+                                    df_job_updated.at[i_job, "has_error"] = np.nan
+
+                                else:   # not to rerun:
+                                    # update fields:
+                                    df_job_updated.at[i_job, "job_state_category"] = state_category
+                                    df_job_updated.at[i_job, "job_state_code"] = state_code
+
                         else:   # did not find in `df_all_job_status`
                             # probably error
-                            df_job.at[i_job, "has_error"] = "probably"
+                            df_job.at[i_job, "has_error"] = "True"
+                            # reset:
+                            df_job_updated.at[i_job, "job_state_category"] = np.nan
+                            df_job_updated.at[i_job, "job_state_code"] = np.nan
 
                             # check the log file:
                             # TODO ^^
+                            # TODO: assign error category in df; also print it out
+
+                            # rerun if requested:
+                            if "error" in flags_rerun:
+                                # Rerun:
+                                # print a message:
+                                to_print = "Rerun job for sub_id '" + sub + "'"
+                                if self.type_session == "multi-ses":
+                                    to_print += ", ses_id '" + ses + "'"
+                                to_print += ", as it has error and rerun was requested."
+                                print(to_print)
+
+                                # kill original one
+                                proc_kill = subprocess.run(
+                                    ["qdel", job_id_str],
+                                    stdout=subprocess.PIPE
+                                )
+                                proc_kill.check_returncode()
+                                # submit new one:
+                                job_id_updated, _ = \
+                                    submit_one_job(self.analysis_path,
+                                                   self.type_session,
+                                                   sub, ses)
+                                
+                                # update fields:
+                                df_job_updated.at[i_job, "job_id"] = job_id_updated
+                                df_job_updated.at[i_job, "has_error"] = np.nan
+                                # reset of `job_state_*` have been done - see above
+                            else:  # rerun 'error' was not requested:
+                                # TODO: update fields: error code
+
+                                print("")
 
                         print("")
 
                 print(df_job_updated)
+
+                # save updated df:
+                df_job_updated.to_csv(self.job_status_path_abs, index=False)
 
                 # Report the job status:
                 report_job_status(df_job_updated)

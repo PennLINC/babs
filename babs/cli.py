@@ -90,6 +90,31 @@ def babs_init_cli():
               args.type_session, args.type_system)
 
 
+def babs_submit_cli():
+    """
+    Submit jobs.
+
+    Example command:
+    # TODO: to add an example command here!
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Submit jobs that will be run on cluster compute nodes.")
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        "--count",
+        type=int,
+        help="Number of jobs to submit. It should be a positive integer.")
+
+    args = parser.parse_args()
+
+    babs_submit(args.project_root,
+                args.count)
+
 def babs_status_cli():
     """
     Check job status.
@@ -103,7 +128,7 @@ def babs_status_cli():
     parser.add_argument(
         "--project_root", "--project-root",
         help="Absolute path to the root of BABS project."
-        " For example, '/path/to/myBABSproject/'.",
+        " For example, '/path/to/my_BABS_project/'.",
         required=True)
     parser.add_argument(
         '--rerun',
@@ -123,9 +148,9 @@ def babs_status_cli():
     # TODO: to add `--rerun-job <specific sub and ses>`
 
     args = parser.parse_args()
-    print(args.rerun)
-    # babs_status(args.project_root,
-    #             args.rerun)
+
+    babs_status(args.project_root,
+                args.rerun)
 
 # if __name__ == "__main__":
 #     babs_init_cli()

@@ -101,7 +101,7 @@ def babs_init(where_project, project_name,
                              container_ds, container_name, container_config_yaml_file,
                              system)
 
-def babs_submit(project_root, count=-1):
+def babs_submit(project_root, count=None):
     """
     This is the core function of `babs-submit`.
 
@@ -109,18 +109,28 @@ def babs_submit(project_root, count=-1):
     --------------
     project_root: str
         absolute path to the directory of BABS project
-    count: int
+    count: int or None
         number of jobs to be submitted
-        default: -1 (no upper limit number of job submission)
+        default: None (did not specify in cli; no upper limit number of job submission)
+            but will be changed to `-1` before going into `babs_submit()`
+        anything negative will be treated as submitting all jobs.
     """
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj = get_existing_babs_proj(project_root)
 
     # Call method `babs_submit()`:
+    if count is None:
+        count = -1
+
+    # Sanity check:
+    if count == 0:
+        raise Exception("`--count 0` is not valid! Please specify a positive integer. "
+                        + "To submit all jobs, please do not specify `--count`.")
+
     babs_proj.babs_submit(count)
 
-def babs_status(project_root, rerun):
+def babs_status(project_root, rerun=None):
     """
     This is the core function of `babs-status`.
 
@@ -128,7 +138,7 @@ def babs_status(project_root, rerun):
     --------------
     project_root: str
         absolute path to the directory of BABS project
-    rerun: nested list
+    rerun: nested list or None
         each sub-list: one of 'failed', 'pending', 'stalled'
     """
 
@@ -137,14 +147,22 @@ def babs_status(project_root, rerun):
 
     # Get the list of rerun conditions:
     if rerun is not None:   # user specified --rerun
+        # e.g., [['pending'], ['failed']]
         # change nested list to a simple list:
+        flags_rerun = []
+        for i in range(0, len(rerun)):
+            flags_rerun.append(rerun[i][0])
 
         # remove dupliated elements:
-        print("")
+        flags_rerun = list(set(flags_rerun))   # `list(set())`: acts like "unique"
 
+        # print(flags_rerun)
+    else:   # `rerun` is None:
+        print("did not request any flags of rerun.")
+        flags_rerun = []   # empty list
 
     # Call method `babs_status()`:
-    babs_proj.babs_status()
+    babs_proj.babs_status(flags_rerun)
 
 def get_existing_babs_proj(project_root):
     """
@@ -157,7 +175,7 @@ def get_existing_babs_proj(project_root):
     project_root: str
         absolute path to the directory of BABS project
         TODO: accept relative path too, like datalad's `-d`
-    
+
     Returns:
     --------------
     babs_proj: class `BABS`
