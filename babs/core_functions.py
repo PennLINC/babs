@@ -101,7 +101,7 @@ def babs_init(where_project, project_name,
                              container_ds, container_name, container_config_yaml_file,
                              system)
 
-def babs_submit(project_root, count=None):
+def babs_submit(project_root, count=None, job=None):
     """
     This is the core function of `babs-submit`.
 
@@ -111,24 +111,58 @@ def babs_submit(project_root, count=None):
         absolute path to the directory of BABS project
     count: int or None
         number of jobs to be submitted
-        default: None (did not specify in cli; no upper limit number of job submission)
-            but will be changed to `-1` before going into `babs_submit()`
-        anything negative will be treated as submitting all jobs.
+        default: None (did not specify in cli)
+            if `--job` is not requested, it will be changed to `1` before going into `babs_submit()`
+        any negative int will be treated as submitting all jobs.
+    job: nested list
+        For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
     """
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj = get_existing_babs_proj(project_root)
 
-    # Call method `babs_submit()`:
+    # Actions on `count`:
     if count is None:
-        count = -1
-
-    # Sanity check:
+        count = 1   # if not to specify `--count`, change to 1
+    # sanity check:
     if count == 0:
         raise Exception("`--count 0` is not valid! Please specify a positive integer. "
                         + "To submit all jobs, please do not specify `--count`.")
 
-    babs_proj.babs_submit(count)
+    # Actions on `job`:
+    if job is not None:
+        count = -1    # just in case; make sure all specified jobs will be submitted
+
+        # sanity check:
+        if babs_proj.type_session == "single-ses":
+            expected_len = 1
+        elif babs_proj.type_session == "multi-ses":
+            expected_len = 2
+        for i_job in range(0, len(job)):
+            # expected length in each sub-list:
+            assert len(job[i_job]) == expected_len, \
+                "There should be " + str(expected_len) + " arguments in `--job`," \
+                    + " as input dataset(s) is " + babs_proj.type_session + "!"
+            # 1st argument:
+            assert job[i_job][0][0:4] == "sub-", \
+                "The 1st argument of `--job`" + " should be 'sub-*'!"
+            if babs_proj.type_session == "multi-ses":
+                # 2nd argument:
+                assert job[i_job][1][0:4] == "ses-", \
+                    "The 2nd argument of `--job`" + " should be 'ses-*'!"
+
+        # turn into a pandas DataFrame:
+        df_job_specified = pd.DataFrame(None,
+                                        index=list(range(0, len(job))),
+                                        columns=['sub_id', 'ses_id'])
+        for i_job in range(0, len(job)):
+            df_job_specified.at[i_job, "sub_id"] = job[i_job][0]
+            df_job_specified.at[i_job, "ses_id"] = job[i_job][1]
+    else:  # `job` is None:
+        df_job_specified = None
+
+    # Call method `babs_submit()`:
+    babs_proj.babs_submit(count, df_job_specified)
 
 def babs_status(project_root, rerun=None):
     """
@@ -158,7 +192,7 @@ def babs_status(project_root, rerun=None):
 
         # print(flags_rerun)
     else:   # `rerun` is None:
-        print("did not request any flags of rerun.")
+        print("Did not request any flags of rerun.")
         flags_rerun = []   # empty list
 
     # Call method `babs_status()`:

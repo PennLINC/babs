@@ -94,6 +94,9 @@ def babs_submit_cli():
     """
     Submit jobs.
 
+    --count <number of jobs to submit>  # should be larger than # of `--job`
+    --job sub-id ses-id   # can repeat
+
     Example command:
     # TODO: to add an example command here!
     """
@@ -105,15 +108,25 @@ def babs_submit_cli():
         help="Absolute path to the root of BABS project."
         " For example, '/path/to/my_BABS_project/'.",
         required=True)
-    parser.add_argument(
+
+    # --count, --job: can only request one of them
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
         "--count",
         type=int,
         help="Number of jobs to submit. It should be a positive integer.")
+    group.add_argument(
+        "--job",
+        action='append',   # append each `--job` as a list;
+        nargs='+',
+        help="The subject ID (and session ID) whose job to be submitted."
+        " Can repeat to submit more than one job.")
 
     args = parser.parse_args()
 
     babs_submit(args.project_root,
-                args.count)
+                args.count,  # if not provided, will be `None`
+                args.job)
 
 def babs_status_cli():
     """

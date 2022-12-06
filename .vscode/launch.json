@@ -13,28 +13,9 @@
             "justMyCode": true,
             "env": {
                 "PYDEVD_WARN_EVALUATION_TIMEOUT": "500"
-            }
-            // "args": [
-            //     "--where-project",
-            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data",
-            //     "--project_name",
-            //     "test_babs_cli",
-            //     "--input",
-            //     [
-            //         "BIDS",
-            //         "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/w2nu3"
-            //     ],
-            //     "--container_ds",
-            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker",
-            //     "--container_name",
-            //     "toybidsapp-0-0-3",
-            //     "--container_config_yaml_file",
-            //     "../notebooks/example_container.yaml",
-            //     "--type_session",
-            //     "multi-ses",
-            //     "--system",
-            //     "sge"
-        ]
-    }
-]
+            },
+            "args": ["--project-root", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
+                    "--job", "sub-02", "ses-A"],
+        }
+    ]
 }

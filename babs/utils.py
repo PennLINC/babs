@@ -1173,7 +1173,8 @@ def get_list_sub_ses(input_ds, config, babs):
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
 
-def submit_one_job(analysis_path, type_session, sub, ses=None):
+def submit_one_job(analysis_path, type_session, sub, ses=None,
+                   flag_print_message=True):
     """
     This is to submit one job.
 
@@ -1187,6 +1188,8 @@ def submit_one_job(analysis_path, type_session, sub, ses=None):
         subject id
     ses: str or None
         session id. For type-session == "single-ses", this is None
+    flag_print_message: bool
+        to print a message (True) or not (False)
 
     Returns:
     ------------------
@@ -1217,11 +1220,13 @@ def submit_one_job(analysis_path, type_session, sub, ses=None):
         cmd = lines_template[0] + sub \
             + lines_template[1] + sub \
             + lines_template[2]
+        to_print = "Job for " + sub
     else:   # multi-ses
         cmd = lines_template[0] + sub + "_" + ses \
             + lines_template[1] + sub + " " + ses \
             + lines_template[2]
-    print(cmd)
+        to_print = "Job for " + sub + ", " + ses
+    # print(cmd)
 
     # run the command, get the job id:
     proc_cmd = subprocess.run(cmd.split(),   # separate by space
@@ -1232,6 +1237,10 @@ def submit_one_job(analysis_path, type_session, sub, ses=None):
     # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
     job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
     job_id = int(job_id_str)
+
+    to_print += " has been submitted (job ID: " + job_id_str + ")."
+    if flag_print_message:
+        print(to_print)
 
     return job_id, job_id_str
 
@@ -1279,7 +1288,6 @@ def create_job_status_csv(babs):
             #   there will be a timeout error
             print("Another instance of this application currently holds the lock.")
 
-        print("")
 
 def read_job_status_csv(csv_path):
     """
@@ -1389,6 +1397,3 @@ def request_job_status(job_id):
     proc_qstat.check_returncode()
     msg = proc_qstat.stdout.decode('utf-8')
     print(msg)
-
-    print("")
-    
