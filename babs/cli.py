@@ -151,8 +151,8 @@ def babs_status_cli():
         choices=['failed', 'pending', 'stalled'],
         metavar=('condition to rerun'),
         help="Under what condition to perform job rerun. "
-             "'failed': the previous submitted job has some error "
-             "('has_error' = True in 'job_status.csv'); "
+             "'failed': the previous submitted job failed "
+             "('is_failed' = True in 'job_status.csv'); "
              "'pending': the previous submitted job is pending (without error) in the queue "
              "(example qstat code: 'qw'); "
              "'stalled': the previous submitted job is pending with error in the queue "

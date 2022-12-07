@@ -15,6 +15,7 @@ import numpy as np
 from filelock import Timeout, FileLock
 import subprocess
 from qstat import qstat  # https://github.com/relleums/qstat
+from datetime import datetime
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -1266,10 +1267,11 @@ def create_job_status_csv(babs):
         df_job["job_id"] = -1    # int
         df_job["job_state_category"] = np.nan
         df_job["job_state_code"] = np.nan
+        df_job["duration"] = np.nan
         df_job["is_done"] = False   # = has branch in output_ria
         # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
-        df_job["has_error"] = np.nan
+        df_job["is_failed"] = np.nan
 
         # TODO: add different kinds of error
 
@@ -1337,8 +1339,8 @@ def report_job_status(df):
     if total_is_done == total_jobs:
         print("All jobs are completed!")
     else:
-        total_has_error = int(df["has_error"].sum())
-        print(str(total_has_error) + ' job(s) have errors.')
+        total_is_failed = int(df["is_failed"].sum())
+        print(str(total_is_failed) + ' job(s) have errors.')
 
 def request_all_job_status():
     """
@@ -1375,6 +1377,8 @@ def request_all_job_status():
         # index `JB_job_number`: job ID (data type: str)
         # column `@state`: 'running' or 'pending'
         # column `state`: 'r', 'qw', etc
+        # column `JAT_start_time`: start time of running
+        #   e.g., '2022-12-06T14:28:43'
 
     return df
 
@@ -1382,11 +1386,12 @@ def request_job_status(job_id):
     """
     This is to determine the job status
     using e.g., `qstat` (for SGE clusters)
+    THIS IS DEPRECATED.
 
     Parameters:
     --------------
     job_id: int
-        The job ID. 
+        The job ID.
         The data type is fixed when reading in the pd.dataframe of job status.
     TODO: add type_system!
     """
@@ -1397,3 +1402,34 @@ def request_job_status(job_id):
     proc_qstat.check_returncode()
     msg = proc_qstat.stdout.decode('utf-8')
     print(msg)
+
+def calcu_runtime(start_time):
+    """
+    This is to calculate the duration time of running.
+
+    Parameters:
+    -----------------
+    start_time: str
+        The value in column 'JAT_start_time' for a specific job.
+        Can be got via `df.at['2820901', 'JAT_start_time']`
+        Example on CUBIC: ''
+
+    TODO: add type_system
+
+    Returns:
+    -----------------
+    duration_time_str: str
+        Duration time of running.
+        Format: '0h0m0s'
+    """
+    # format of time in the job status requested:
+    format_job_status = '%Y-%m-%dT%H:%M:%S'  # format in `qstat`
+    # format of returned duration time:
+    format_duration_time = "%Hh%Mm%Ss"  # '0h0m0s'
+
+    d_now = datetime.now()
+    duration_time = d_now - datetime.strptime(start_time, format_job_status)
+    # ^^ str(duration_time): format: '0:08:40.158985'  # first is hour
+    duration_time_str = duration_time.strftime(format_duration_time)
+
+    return duration_time_str

@@ -33,7 +33,8 @@ from babs.utils import (get_immediate_subdirectories,
                         read_job_status_csv,
                         report_job_status,
                         request_job_status,
-                        request_all_job_status)
+                        request_all_job_status,
+                        calcu_runtime)
 
 # import pandas as pd
 
@@ -612,10 +613,11 @@ class BABS():
                             # update the status:
                             df_job_updated.at[i_job, "has_submitted"] = True
                             # reset fields:
-                            df_job_updated.at[i_job, "has_error"] = np.nan
+                            df_job_updated.at[i_job, "is_failed"] = np.nan
                             # probably not necessary to reset:
                             df_job_updated.at[i_job, "job_state_category"] = np.nan
                             df_job_updated.at[i_job, "job_state_code"] = np.nan
+                            df_job_updated.at[i_job, "duration"] = np.nan
                         else:
                             to_print = "The job for " + sub
                             if self.type_session == "multi-ses":
@@ -657,10 +659,11 @@ class BABS():
                                 # update the status:
                                 df_job_updated.at[i_job, "has_submitted"] = True
                                 # reset fields:
-                                df_job_updated.at[i_job, "has_error"] = np.nan
+                                df_job_updated.at[i_job, "is_failed"] = np.nan
                                 # probably not necessary to reset:
                                 df_job_updated.at[i_job, "job_state_category"] = np.nan
                                 df_job_updated.at[i_job, "job_state_code"] = np.nan
+                                df_job_updated.at[i_job, "duration"] = np.nan
 
                                 # print(df_job_updated)
 
@@ -744,7 +747,9 @@ class BABS():
                         # reset/update:
                         df_job_updated.at[i_job, "job_state_category"] = np.nan
                         df_job_updated.at[i_job, "job_state_code"] = np.nan
-                        df_job_updated.at[i_job, "has_error"] = False
+                        df_job_updated.at[i_job, "duration"] = np.nan
+                        #   ROADMAP: ^^ get duration via `qaact`
+                        df_job_updated.at[i_job, "is_failed"] = False
 
                         # check if echoed "SUCCESS":
                         # TODO ^^
@@ -760,6 +765,11 @@ class BABS():
                             if state_code == "r":
                                 df_job_updated.at[i_job, "job_state_category"] = state_category
                                 df_job_updated.at[i_job, "job_state_code"] = state_code
+                                # get the duration:
+                                duration = calcu_runtime(
+                                    df_job_updated.at[i_job, "JAT_start_time"])
+                                df_job_updated.at[i_job, "duration"] = duration
+
                                 # do nothing else, just wait
 
                             elif state_code == "qw":
@@ -787,7 +797,8 @@ class BABS():
                                     df_job_updated.at[i_job, "job_id"] = job_id_updated
                                     df_job_updated.at[i_job, "job_state_category"] = np.nan
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "has_error"] = np.nan
+                                    df_job_updated.at[i_job, "duration"] = np.nan
+                                    df_job_updated.at[i_job, "is_failed"] = np.nan
 
                                 else:   # not to rerun:
                                     # update fields:
@@ -796,10 +807,12 @@ class BABS():
 
                         else:   # did not find in `df_all_job_status`
                             # probably error
-                            df_job.at[i_job, "has_error"] = "True"
+                            df_job.at[i_job, "is_failed"] = "True"
                             # reset:
                             df_job_updated.at[i_job, "job_state_category"] = np.nan
                             df_job_updated.at[i_job, "job_state_code"] = np.nan
+                            df_job_updated.at[i_job, "duration"] = np.nan
+                            # ROADMAP: ^^ get duration via `qacct`
 
                             # check the log file:
                             # TODO ^^
@@ -826,10 +839,10 @@ class BABS():
                                     submit_one_job(self.analysis_path,
                                                    self.type_session,
                                                    sub, ses)
-                                
+
                                 # update fields:
                                 df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                df_job_updated.at[i_job, "has_error"] = np.nan
+                                df_job_updated.at[i_job, "is_failed"] = np.nan
                                 # reset of `job_state_*` have been done - see above
                             else:  # rerun 'error' was not requested:
                                 # TODO: update fields: error code

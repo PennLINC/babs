@@ -45,6 +45,8 @@ cluster_resources:
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
 
+compute_job_working_dir:
+    $CBICA_TMPDIR # or, "/cbica/comp_space/${source xxx}"
 
 required_files:
     $INPUT_DATASET_#1:
