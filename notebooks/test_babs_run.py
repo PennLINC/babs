@@ -10,8 +10,8 @@ from babs.core_functions import babs_submit, babs_status
 from babs.cli import babs_submit_cli, babs_status_cli
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
-flag_instance = "qsiprep"
-type_session = "multi-ses"
+flag_instance = "toybidsapp"
+type_session = "single-ses"
 count = 1
 
 flag_where = "cubic"   # "cubic" or "local"
@@ -38,8 +38,8 @@ else:
 
 babs_project = op.join(where_project, project_name)
 
-# babs_submit(babs_project, count)
+babs_submit(babs_project, count)
 # babs_status(babs_project)
-babs_submit_cli()
+# babs_submit_cli()
 
 print()

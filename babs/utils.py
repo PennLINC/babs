@@ -1198,35 +1198,34 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
         the int version of ID of the submitted job.
     job_id_str: str
         the string version of ID of the submitted job.
+    log_filename: str
+        log filename of this job.
+        Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
 
     Notes:
     -----------------
-    see `generate_job_submit_template()` for how to concat and generate
-    a command for job submission.
-
-    TODO: change the `submit_job_template.txt` to one row with placeholders
-        so that we don't need to check if it's multi-ses or single-ses again 
-        (i.e., if there is no placeholder of `ses`, then no need to replace)
+    see `Container.generate_job_submit_template()`
+    for details about template yaml file.
     """
 
     # Load the job submission template:
-    template_text_path = op.join(analysis_path, "code", "submit_job_template.txt")
-    with open(template_text_path, "r") as template_text_file:
-        lines_template = template_text_file.readlines()
-    # remove '\n':
-    for i, l in enumerate(lines_template):
-        lines_template[i] = l.replace("\n", "")
+    #   details of this template yaml file: see `Container.generate_job_submit_template()`
+    template_yaml_path = op.join(analysis_path, "code", "submit_job_template.yaml")
+    with open(template_yaml_path, "r") as f:
+        templates = yaml.load(f, Loader=yaml.FullLoader)
+    f.close()
+    # sections in this template yaml file:
+    cmd_template = templates["cmd_template"]
+    job_name_template = templates["job_name_template"]
 
     if type_session == "single-ses":
-        cmd = lines_template[0] + sub \
-            + lines_template[1] + sub \
-            + lines_template[2]
+        cmd = cmd_template.replace("${sub_id}", sub)
         to_print = "Job for " + sub
+        job_name = job_name_template.replace("${sub_id}", sub)
     else:   # multi-ses
-        cmd = lines_template[0] + sub + "_" + ses \
-            + lines_template[1] + sub + " " + ses \
-            + lines_template[2]
+        cmd = cmd_template.replace("${sub_id}", sub).replace("${ses_id}", ses)
         to_print = "Job for " + sub + ", " + ses
+        job_name = job_name_template.replace("${sub_id}", sub).replace("${ses_id}", ses)
     # print(cmd)
 
     # run the command, get the job id:
@@ -1239,11 +1238,14 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
     job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
     job_id = int(job_id_str)
 
+    # log filename:
+    log_filename = job_name + ".*" + job_id_str
+
     to_print += " has been submitted (job ID: " + job_id_str + ")."
     if flag_print_message:
         print(to_print)
 
-    return job_id, job_id_str
+    return job_id, job_id_str, log_filename
 
 def create_job_status_csv(babs):
     """
@@ -1272,6 +1274,7 @@ def create_job_status_csv(babs):
         # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job["is_failed"] = np.nan
+        df_job["log_filename"] = np.nan
 
         # TODO: add different kinds of error
 
@@ -1299,7 +1302,7 @@ def read_job_status_csv(csv_path):
     ------------
     csv_path: str
         path to the `job_status.csv`
-    
+
     Returns:
     -----------
     df: pandas dataframe
@@ -1312,7 +1315,7 @@ def read_job_status_csv(csv_path):
                             })
     return df
 
-def report_job_status(df):
+def report_job_status(df, analysis_path):
     """
     This is to report the job status
     based on the dataframe loaded from `job_status.csv`.
@@ -1321,6 +1324,9 @@ def report_job_status(df):
     -------------
     df: pandas dataframe
         loaded dataframe from `job_status.csv`
+    analysis_path: str
+        Path to the analysis folder.
+        This is used to generate the folder of log files
     """
 
     print('\nJob status:')
@@ -1332,15 +1338,27 @@ def report_job_status(df):
     print(str(total_has_submitted) + " job(s) have been submitted; "
           + str(total_jobs - total_has_submitted) + " job(s) haven't been submitted.")
 
-    total_is_done = int(df["is_done"].sum())
-    print("Among submitted jobs,")
-    print(str(total_is_done) + ' job(s) are successfully finished;')
+    if total_has_submitted > 0:    # there is at least one job submitted
+        total_is_done = int(df["is_done"].sum())
+        print("Among submitted jobs,")
+        print(str(total_is_done) + ' job(s) are successfully finished;')
 
-    if total_is_done == total_jobs:
-        print("All jobs are completed!")
-    else:
-        total_is_failed = int(df["is_failed"].sum())
-        print(str(total_is_failed) + ' job(s) have errors.')
+        if total_is_done == total_jobs:
+            print("All jobs are completed!")
+        else:
+            total_pending = int((df['job_state_category'] == 'pending').sum())
+            print(str(total_pending) + ' job(s) are pending;')
+
+            total_pending = int((df['job_state_category'] == 'running').sum())
+            print(str(total_pending) + ' job(s) are running;')
+
+            # TODO: add stalled one
+
+            total_is_failed = int(df["is_failed"].sum())
+            print(str(total_is_failed) + ' job(s) have errors.')
+
+        print("All log files are located in folder: "
+              + op.join(analysis_path, "logs"))
 
 def request_all_job_status():
     """
@@ -1403,13 +1421,13 @@ def request_job_status(job_id):
     msg = proc_qstat.stdout.decode('utf-8')
     print(msg)
 
-def calcu_runtime(start_time):
+def calcu_runtime(start_time_str):
     """
     This is to calculate the duration time of running.
 
     Parameters:
     -----------------
-    start_time: str
+    start_time_str: str
         The value in column 'JAT_start_time' for a specific job.
         Can be got via `df.at['2820901', 'JAT_start_time']`
         Example on CUBIC: ''
@@ -1420,16 +1438,18 @@ def calcu_runtime(start_time):
     -----------------
     duration_time_str: str
         Duration time of running.
-        Format: '0h0m0s'
+        Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
     """
     # format of time in the job status requested:
     format_job_status = '%Y-%m-%dT%H:%M:%S'  # format in `qstat`
-    # format of returned duration time:
-    format_duration_time = "%Hh%Mm%Ss"  # '0h0m0s'
+    # # format of returned duration time:
+    # format_duration_time = "%Hh%Mm%Ss"  # '0h0m0s'
 
     d_now = datetime.now()
-    duration_time = d_now - datetime.strptime(start_time, format_job_status)
+    duration_time = d_now - datetime.strptime(start_time_str, format_job_status)
     # ^^ str(duration_time): format: '0:08:40.158985'  # first is hour
-    duration_time_str = duration_time.strftime(format_duration_time)
+    duration_time_str = str(duration_time)
+    # ^^ 'datetime.timedelta' object (`duration_time`) has no attribute 'strftime'
+    #   so cannot be directly printed into desired format...
 
     return duration_time_str

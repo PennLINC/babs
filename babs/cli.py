@@ -94,8 +94,12 @@ def babs_submit_cli():
     """
     Submit jobs.
 
+    Can choose one of these flags:
     --count <number of jobs to submit>  # should be larger than # of `--job`
+    --all   # if specified, will submit all remaining jobs that haven't been submitted.
     --job sub-id ses-id   # can repeat
+
+    If none of these flags are specified, will only submit one job.
 
     Example command:
     # TODO: to add an example command here!
@@ -110,11 +114,17 @@ def babs_submit_cli():
         required=True)
 
     # --count, --job: can only request one of them
-    group = parser.add_mutually_exclusive_group(required=True)
+    # and none of them are required.
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
         "--count",
         type=int,
         help="Number of jobs to submit. It should be a positive integer.")
+    group.add_argument(
+        "--all",
+        action='store_true',
+        # ^^ if `--all` is specified, args.all = True; otherwise, False
+        help="Request to run all jobs that haven't been submitted.")
     group.add_argument(
         "--job",
         action='append',   # append each `--job` as a list;
@@ -123,6 +133,9 @@ def babs_submit_cli():
         " Can repeat to submit more than one job.")
 
     args = parser.parse_args()
+
+    if args.all:   # if True:
+        args.count = -1  # so that to submit all remaining jobs
 
     babs_submit(args.project_root,
                 args.count,  # if not provided, will be `None`
@@ -144,13 +157,13 @@ def babs_status_cli():
         " For example, '/path/to/my_BABS_project/'.",
         required=True)
     parser.add_argument(
-        '--rerun',
-        action='append',   # append each `--rerun` as a list;
+        '--resubmit',
+        action='append',   # append each `--resubmit` as a list;
         # ref: https://docs.python.org/3/library/argparse.html
-        nargs=1,   # expect 1 argument per `--rerun` from the command line;
+        nargs=1,   # expect 1 argument per `--resubmit` from the command line;
         choices=['failed', 'pending', 'stalled'],
-        metavar=('condition to rerun'),
-        help="Under what condition to perform job rerun. "
+        metavar=('condition to resubmit'),
+        help="Under what condition to perform job resubmit. "
              "'failed': the previous submitted job failed "
              "('is_failed' = True in 'job_status.csv'); "
              "'pending': the previous submitted job is pending (without error) in the queue "
@@ -158,12 +171,12 @@ def babs_status_cli():
              "'stalled': the previous submitted job is pending with error in the queue "
              "(example qstat code: 'eqw')."
         )
-    # TODO: to add `--rerun-job <specific sub and ses>`
+    # TODO: to add `--resubmit-job <specific sub and ses>`
 
     args = parser.parse_args()
 
     babs_status(args.project_root,
-                args.rerun)
+                args.resubmit)
 
 # if __name__ == "__main__":
 #     babs_init_cli()

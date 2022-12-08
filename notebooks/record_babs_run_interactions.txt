@@ -1,0 +1,183 @@
+# toybidsapp, multi-ses toy BIDS data
+# iteratively run `babs-submit` and `babs-status` until finished
+# done on 12/7/2022
+
+(mydatalad) babs@cubic-sattertt1:code$ pwd
+/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                 NaN             NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+
+Job status:
+There are in total of 6 jobs to complete.
+1 job(s) have been submitted; 5 job(s) haven't been submitted.
+Among submitted jobs,
+1 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-submit --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --job sub-02 ses-B
+Will only submit specified jobs...
+Job for sub-02, ses-B has been submitted (job ID: 2857485).
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                 NaN             NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+4  sub-02  ses-B           True  2857485                 NaN             NaN       NaN    False       NaN  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False       NaN                        NaN
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+2  sub-01  ses-C          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+3  sub-02  ses-A          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+4  sub-02  ses-B           True  2857485            pending             qw       NaN    False       NaN  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+
+Job status:
+There are in total of 6 jobs to complete.
+2 job(s) have been submitted; 4 job(s) haven't been submitted.
+Among submitted jobs,
+1 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-submit --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --count 2
+Job for sub-01, ses-B has been submitted (job ID: 2857486).
+Job for sub-01, ses-C has been submitted (job ID: 2857487).
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486                NaN            NaN       NaN    False       NaN  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487                NaN            NaN       NaN    False       NaN  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+4  sub-02  ses-B           True  2857485            pending             qw       NaN    False       NaN  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486            pending             qw       NaN    False       NaN  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487            pending             qw       NaN    False       NaN  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+4  sub-02  ses-B           True  2857485            pending             qw       NaN    False       NaN  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D          False       -1                NaN            NaN       NaN    False       NaN                        NaN
+
+Job status:
+There are in total of 6 jobs to complete.
+4 job(s) have been submitted; 2 job(s) haven't been submitted.
+Among submitted jobs,
+1 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-submit --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --all
+Job for sub-02, ses-A has been submitted (job ID: 2857488).
+Job for sub-02, ses-D has been submitted (job ID: 2857489).
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486            pending             qw       NaN    False       NaN  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487            pending             qw       NaN    False       NaN  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A           True  2857488                NaN            NaN       NaN    False       NaN  toy_sub-02_ses-A.*2857488
+4  sub-02  ses-B           True  2857485            pending             qw       NaN    False       NaN  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D           True  2857489                NaN            NaN       NaN    False       NaN  toy_sub-02_ses-D.*2857489
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code        duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN             NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486            running              r  0:00:38.502596    False       NaN  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487            running              r  0:00:38.525145    False       NaN  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A           True  2857488            pending             qw             NaN    False       NaN  toy_sub-02_ses-A.*2857488
+4  sub-02  ses-B           True  2857485            running              r  0:00:38.568529    False       NaN  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D           True  2857489            pending             qw             NaN    False       NaN  toy_sub-02_ses-D.*2857489
+
+Job status:
+There are in total of 6 jobs to complete.
+6 job(s) have been submitted; 0 job(s) haven't been submitted.
+Among submitted jobs,
+1 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --resubmit pending
+Resubmit job for sub-02, ses-A, as it was pending and resubmit was requested.
+Job for sub-02, ses-A has been submitted (job ID: 2857490).
+Resubmit job for sub-02, ses-D, as it was pending and resubmit was requested.
+Job for sub-02, ses-D has been submitted (job ID: 2857491).
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN      NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486                NaN            NaN      NaN     True     False  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487                NaN            NaN      NaN     True     False  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A           True  2857490                NaN            NaN      NaN    False       NaN  toy_sub-02_ses-A.*2857490
+4  sub-02  ses-B           True  2857485                NaN            NaN      NaN     True     False  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D           True  2857491                NaN            NaN      NaN    False       NaN  toy_sub-02_ses-D.*2857491
+
+Job status:
+There are in total of 6 jobs to complete.
+6 job(s) have been submitted; 0 job(s) haven't been submitted.
+Among submitted jobs,
+4 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN       NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486                NaN            NaN       NaN     True     False  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487                NaN            NaN       NaN     True     False  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A           True  2857490            pending             qw       NaN    False       NaN  toy_sub-02_ses-A.*2857490
+4  sub-02  ses-B           True  2857485                NaN            NaN       NaN     True     False  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D           True  2857491            pending             qw       NaN    False       NaN  toy_sub-02_ses-D.*2857491
+
+Job status:
+There are in total of 6 jobs to complete.
+6 job(s) have been submitted; 0 job(s) haven't been submitted.
+Among submitted jobs,
+4 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code        duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN             NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486                NaN            NaN             NaN     True     False  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487                NaN            NaN             NaN     True     False  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A           True  2857490            running              r  0:00:25.899728    False       NaN  toy_sub-02_ses-A.*2857490
+4  sub-02  ses-B           True  2857485                NaN            NaN             NaN     True     False  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D           True  2857491            running              r  0:00:25.925881    False       NaN  toy_sub-02_ses-D.*2857491
+
+Job status:
+There are in total of 6 jobs to complete.
+6 job(s) have been submitted; 0 job(s) haven't been submitted.
+Among submitted jobs,
+4 job(s) are successfully finished;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code duration  is_done is_failed               log_filename
+0  sub-01  ses-A           True  2855356                NaN            NaN      NaN     True     False  toy_sub-01_ses-A.*2855356
+1  sub-01  ses-B           True  2857486                NaN            NaN      NaN     True     False  toy_sub-01_ses-B.*2857486
+2  sub-01  ses-C           True  2857487                NaN            NaN      NaN     True     False  toy_sub-01_ses-C.*2857487
+3  sub-02  ses-A           True  2857490                NaN            NaN      NaN     True     False  toy_sub-02_ses-A.*2857490
+4  sub-02  ses-B           True  2857485                NaN            NaN      NaN     True     False  toy_sub-02_ses-B.*2857485
+5  sub-02  ses-D           True  2857491                NaN            NaN      NaN     True     False  toy_sub-02_ses-D.*2857491
+
+Job status:
+There are in total of 6 jobs to complete.
+6 job(s) have been submitted; 0 job(s) haven't been submitted.
+Among submitted jobs,
+6 job(s) are successfully finished;
+All jobs are completed!
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs

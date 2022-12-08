@@ -113,7 +113,7 @@ def babs_submit(project_root, count=None, job=None):
         number of jobs to be submitted
         default: None (did not specify in cli)
             if `--job` is not requested, it will be changed to `1` before going into `babs_submit()`
-        any negative int will be treated as submitting all jobs.
+        any negative int will be treated as submitting all jobs that haven't been submitted.
     job: nested list
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
     """
@@ -164,7 +164,7 @@ def babs_submit(project_root, count=None, job=None):
     # Call method `babs_submit()`:
     babs_proj.babs_submit(count, df_job_specified)
 
-def babs_status(project_root, rerun=None):
+def babs_status(project_root, resubmit=None):
     """
     This is the core function of `babs-status`.
 
@@ -172,31 +172,31 @@ def babs_status(project_root, rerun=None):
     --------------
     project_root: str
         absolute path to the directory of BABS project
-    rerun: nested list or None
+    resubmit: nested list or None
         each sub-list: one of 'failed', 'pending', 'stalled'
     """
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj = get_existing_babs_proj(project_root)
 
-    # Get the list of rerun conditions:
-    if rerun is not None:   # user specified --rerun
+    # Get the list of resubmit conditions:
+    if resubmit is not None:   # user specified --resubmit
         # e.g., [['pending'], ['failed']]
         # change nested list to a simple list:
-        flags_rerun = []
-        for i in range(0, len(rerun)):
-            flags_rerun.append(rerun[i][0])
+        flags_resubmit = []
+        for i in range(0, len(resubmit)):
+            flags_resubmit.append(resubmit[i][0])
 
         # remove dupliated elements:
-        flags_rerun = list(set(flags_rerun))   # `list(set())`: acts like "unique"
+        flags_resubmit = list(set(flags_resubmit))   # `list(set())`: acts like "unique"
 
-        # print(flags_rerun)
-    else:   # `rerun` is None:
-        print("Did not request any flags of rerun.")
-        flags_rerun = []   # empty list
+        # print(flags_resubmit)
+    else:   # `resubmit` is None:
+        print("Did not request any flags of resubmit.")
+        flags_resubmit = []   # empty list
 
     # Call method `babs_status()`:
-    babs_proj.babs_status(flags_rerun)
+    babs_proj.babs_status(flags_resubmit)
 
 def get_existing_babs_proj(project_root):
     """
