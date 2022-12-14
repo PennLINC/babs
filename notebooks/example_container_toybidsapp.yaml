@@ -33,3 +33,9 @@ script_preamble: |
 #     $INPUT_DATASET_#1:
 #         - ""
 
+# Keywords for alerting messages in log files:
+keywords_alert:
+    o_file:
+        - "xxxx"
+    e_file:
+        - "xxxxx"

@@ -1,7 +1,6 @@
 # toybidsapp, multi-ses toy BIDS data
-# iteratively run `babs-submit` and `babs-status` until finished
-# done on 12/7/2022
-
+## 12/7/22: iteratively run `babs-submit` and `babs-status` until finished
+```
 (mydatalad) babs@cubic-sattertt1:code$ pwd
 /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code
 (mydatalad) babs@cubic-sattertt1:code$ babs-status --project-root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
@@ -181,3 +180,217 @@ Among submitted jobs,
 6 job(s) are successfully finished;
 All jobs are completed!
 All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+```
+
+## 12/13/22, to show new columns `last_line_o_file` and `alert_message`:
+```
+(mydatalad) babs@cubic-sattertt1:logs$ babs-submit  \
+> --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp \
+> --count 1
+Job for sub-01, ses-C has been submitted (job ID: 2944712).
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  \
+0  sub-01  ses-A           True  2937181                 NaN             NaN   
+1  sub-01  ses-B           True  2944708                 NaN             NaN   
+2  sub-01  ses-C           True  2944712                 NaN             NaN   
+3  sub-02  ses-A          False       -1                 NaN             NaN   
+4  sub-02  ses-B          False       -1                 NaN             NaN   
+5  sub-02  ses-D          False       -1                 NaN             NaN   
+
+   duration  is_done is_failed               log_filename last_line_o_file  \
+0       NaN     True     False  toy_sub-01_ses-A.*2937181          SUCCESS   
+1       NaN     True     False  toy_sub-01_ses-B.*2944708          SUCCESS   
+2       NaN    False       NaN  toy_sub-01_ses-C.*2944712              NaN   
+3       NaN    False       NaN                        NaN              NaN   
+4       NaN    False       NaN                        NaN              NaN   
+5       NaN    False       NaN                        NaN              NaN   
+
+                                       alert_message  
+0  BABS: Did not find alerting keywords in log fi...  
+1  BABS: Did not find alerting keywords in log fi...  
+2                                                NaN  
+3                                                NaN  
+4                                                NaN  
+5                                                NaN  
+(mydatalad) babs@cubic-sattertt1:logs$ babs-status  \
+> --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp \
+> --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  \
+0  sub-01  ses-A           True  2937181                NaN            NaN   
+1  sub-01  ses-B           True  2944708                NaN            NaN   
+2  sub-01  ses-C           True  2944712            pending             qw   
+3  sub-02  ses-A          False       -1                NaN            NaN   
+4  sub-02  ses-B          False       -1                NaN            NaN   
+5  sub-02  ses-D          False       -1                NaN            NaN   
+
+   duration  is_done is_failed               log_filename last_line_o_file  \
+0       NaN     True     False  toy_sub-01_ses-A.*2937181          SUCCESS   
+1       NaN     True     False  toy_sub-01_ses-B.*2944708          SUCCESS   
+2       NaN    False       NaN  toy_sub-01_ses-C.*2944712              NaN   
+3       NaN    False       NaN                        NaN              NaN   
+4       NaN    False       NaN                        NaN              NaN   
+5       NaN    False       NaN                        NaN              NaN   
+
+                                       alert_message  
+0  BABS: Did not find alerting keywords in log fi...  
+1  BABS: Did not find alerting keywords in log fi...  
+2                                                NaN  
+3                                                NaN  
+4                                                NaN  
+5                                                NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+3 job(s) have been submitted; 3 job(s) haven't been submitted.
+Among submitted jobs,
+2 job(s) are successfully finished;
+1 job(s) are pending;
+0 job(s) are running;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:logs$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  \
+0  sub-01  ses-A           True  2937181                NaN            NaN   
+1  sub-01  ses-B           True  2944708                NaN            NaN   
+2  sub-01  ses-C           True  2944712            running              r   
+3  sub-02  ses-A          False       -1                NaN            NaN   
+4  sub-02  ses-B          False       -1                NaN            NaN   
+5  sub-02  ses-D          False       -1                NaN            NaN   
+
+         duration  is_done is_failed               log_filename  \
+0             NaN     True     False  toy_sub-01_ses-A.*2937181   
+1             NaN     True     False  toy_sub-01_ses-B.*2944708   
+2  0:00:01.481231    False       NaN  toy_sub-01_ses-C.*2944712   
+3             NaN    False       NaN                        NaN   
+4             NaN    False       NaN                        NaN   
+5             NaN    False       NaN                        NaN   
+
+  last_line_o_file                                      alert_message  
+0          SUCCESS  BABS: Did not find alerting keywords in log fi...  
+1          SUCCESS  BABS: Did not find alerting keywords in log fi...  
+2              NaN      BABS: No alerting keyword found in log files.  
+3              NaN                                                NaN  
+4              NaN                                                NaN  
+5              NaN                                                NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+3 job(s) have been submitted; 3 job(s) haven't been submitted.
+Among submitted jobs,
+2 job(s) are successfully finished;
+0 job(s) are pending;
+1 job(s) are running;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:logs$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  \
+0  sub-01  ses-A           True  2937181                NaN            NaN   
+1  sub-01  ses-B           True  2944708                NaN            NaN   
+2  sub-01  ses-C           True  2944712            running              r   
+3  sub-02  ses-A          False       -1                NaN            NaN   
+4  sub-02  ses-B          False       -1                NaN            NaN   
+5  sub-02  ses-D          False       -1                NaN            NaN   
+
+         duration  is_done is_failed               log_filename  \
+0             NaN     True     False  toy_sub-01_ses-A.*2937181   
+1             NaN     True     False  toy_sub-01_ses-B.*2944708   
+2  0:00:25.366269    False       NaN  toy_sub-01_ses-C.*2944712   
+3             NaN    False       NaN                        NaN   
+4             NaN    False       NaN                        NaN   
+5             NaN    False       NaN                        NaN   
+
+  last_line_o_file                                      alert_message  
+0          SUCCESS  BABS: Did not find alerting keywords in log fi...  
+1          SUCCESS  BABS: Did not find alerting keywords in log fi...  
+2  install (ok: 1)      BABS: No alerting keyword found in log files.  
+3              NaN                                                NaN  
+4              NaN                                                NaN  
+5              NaN                                                NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+3 job(s) have been submitted; 3 job(s) haven't been submitted.
+Among submitted jobs,
+2 job(s) are successfully finished;
+0 job(s) are pending;
+1 job(s) are running;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:logs$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id job_state_category job_state_code  \
+0  sub-01  ses-A           True  2937181                NaN            NaN   
+1  sub-01  ses-B           True  2944708                NaN            NaN   
+2  sub-01  ses-C           True  2944712                NaN            NaN   
+3  sub-02  ses-A          False       -1                NaN            NaN   
+4  sub-02  ses-B          False       -1                NaN            NaN   
+5  sub-02  ses-D          False       -1                NaN            NaN   
+
+  duration  is_done is_failed               log_filename  \
+0      NaN     True     False  toy_sub-01_ses-A.*2937181   
+1      NaN     True     False  toy_sub-01_ses-B.*2944708   
+2      NaN     True     False  toy_sub-01_ses-C.*2944712   
+3      NaN    False       NaN                        NaN   
+4      NaN    False       NaN                        NaN   
+5      NaN    False       NaN                        NaN   
+
+           last_line_o_file                                      alert_message  
+0                   SUCCESS  BABS: Did not find alerting keywords in log fi...  
+1                   SUCCESS  BABS: Did not find alerting keywords in log fi...  
+2  job-2944712-sub-01-ses-C      BABS: No alerting keyword found in log files.  
+3                       NaN                                                NaN  
+4                       NaN                                                NaN  
+5                       NaN                                                NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+3 job(s) have been submitted; 3 job(s) haven't been submitted.
+Among submitted jobs,
+3 job(s) are successfully finished;
+0 job(s) are pending;
+0 job(s) are running;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+(mydatalad) babs@cubic-sattertt1:logs$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  \
+0  sub-01  ses-A           True  2937181                 NaN             NaN   
+1  sub-01  ses-B           True  2944708                 NaN             NaN   
+2  sub-01  ses-C           True  2944712                 NaN             NaN   
+3  sub-02  ses-A          False       -1                 NaN             NaN   
+4  sub-02  ses-B          False       -1                 NaN             NaN   
+5  sub-02  ses-D          False       -1                 NaN             NaN   
+
+   duration  is_done is_failed               log_filename  \
+0       NaN     True     False  toy_sub-01_ses-A.*2937181   
+1       NaN     True     False  toy_sub-01_ses-B.*2944708   
+2       NaN     True     False  toy_sub-01_ses-C.*2944712   
+3       NaN    False       NaN                        NaN   
+4       NaN    False       NaN                        NaN   
+5       NaN    False       NaN                        NaN   
+
+           last_line_o_file                                      alert_message  
+0                   SUCCESS  BABS: Did not find alerting keywords in log fi...  
+1                   SUCCESS  BABS: Did not find alerting keywords in log fi...  
+2  job-2944712-sub-01-ses-C      BABS: No alerting keyword found in log files.  
+3                       NaN                                                NaN  
+4                       NaN                                                NaN  
+5                       NaN                                                NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+3 job(s) have been submitted; 3 job(s) haven't been submitted.
+Among submitted jobs,
+3 job(s) are successfully finished;
+0 job(s) are pending;
+0 job(s) are running;
+0 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+```

@@ -1275,6 +1275,8 @@ def create_job_status_csv(babs):
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job["is_failed"] = np.nan
         df_job["log_filename"] = np.nan
+        df_job["last_line_o_file"] = np.nan
+        df_job["alert_message"] = np.nan
 
         # TODO: add different kinds of error
 
@@ -1453,3 +1455,139 @@ def calcu_runtime(start_time_str):
     #   so cannot be directly printed into desired format...
 
     return duration_time_str
+
+def get_last_line(fn):
+    """
+    This is to get the last line of a text file, e.g., `*.o*` file
+
+    Parameters:
+    --------------------
+    fn: str
+        path to the text file.
+
+    Returns:
+    --------------------
+    last_line: str or np.nan (if the log file haven't existed yet, or no valid line yet)
+        last line of the text file.
+    """
+
+    if op.exists(fn):
+        with open(fn, 'r') as f:
+            all_lines = f.readlines()
+            if len(all_lines) > 0:    # at least one line in the file:
+                last_line = all_lines[-1]
+                # remove spaces at the beginning or the end; remove '\n':
+                last_line = last_line.strip().replace("\n", "")
+            else:
+                last_line = np.nan
+    else:   # e.g., `qw` pending
+        last_line = np.nan
+
+    return last_line
+
+def get_config_keywords_alert(container_config_yaml_file):
+    """
+    To extract the configs of keywords alert in log files.
+
+    Parameters:
+    --------------
+    container_config_yaml_file: str or None
+        path to the config yaml file of containers, which might includes
+        a section of `keywords_alert`
+
+    Returns:
+    ---------------
+    config_keywords_alert: dict or None
+    """
+    # If there is section 'keywords_alert':
+    if container_config_yaml_file is not None:
+        with open(container_config_yaml_file) as f:
+            container_config = yaml.load(f, Loader=yaml.FullLoader)
+        if "keywords_alert" in container_config:
+            config_keywords_alert = container_config["keywords_alert"]
+        else:
+            print("There is no section called 'keywords_alert' in the provided"
+                  " `container_config_yaml_file`. So BABS won't check if there is"
+                  " alerting message in log files.")
+    else:
+        config_keywords_alert = None
+
+    # If 'keywords_alert' section is valid:
+    if ("o_file" not in config_keywords_alert) & ("e_file" not in config_keywords_alert):
+        # neither is included:
+        print("Neither 'o_file' nor 'e_file' is included in section 'keywords_alert'"
+              " in the provided `container_config_yaml_file`. So BABS won't check if there is"
+              " alerting message in log files.")
+        config_keywords_alert = None   # not useful anymore, set to None then.
+
+    return config_keywords_alert
+
+def get_alert_message_in_log_files(config_keywords_alert, log_fn):
+    """
+    This is to get any alert message in log files of a job.
+
+    Parameters:
+    -----------------
+    config_keywords_alert: dict or None
+        section 'keywords_alert' in container config yaml file
+        that includes what alerting keywords to look for in log files.
+    log_fn: str
+        Absolute path to a job's log files. It should have `*` to be replaced with `o` or `e`
+        Example: /path/to/analysis/logs/toy_sub-0000.*11111
+
+    Returns:
+    ----------------
+    alert_message: str or np.nan
+        If config_keywords_alert is None, or log file does not exist yet,
+            `alert_message` will be `np.nan`;
+        if not None, `alert_message` will be a str.
+            Examples:
+            - if did not find: "BABS: No alerting keyword found in log files."
+            - if found: ".o file: <keyword>"
+    """
+    if config_keywords_alert is None:
+        alert_message = np.nan
+    else:
+        o_fn = log_fn.replace("*", 'o')
+        e_fn = log_fn.replace("*", 'e')
+
+        if op.exists(o_fn) or op.exists(e_fn):   # either exists:
+            found_keyword = False
+            alert_message = "BABS: No alerting keyword found in log files."
+
+            for key in config_keywords_alert:  # as it's dict, keys cannot be duplicated
+                if key == "o_file" or "e_file":
+                    one_char = key[0]   # 'o' or 'e'
+                    # the log file to look into:
+                    fn = log_fn.replace("*", one_char)
+
+                    if op.exists(fn):
+                        with open(fn) as f:
+                            # Loop across lines, from the beginning of the file:
+                            for line in f:
+                                # Loop across the keywords for this kind of log file:
+                                for keyword in config_keywords_alert[key]:
+                                    if keyword in line:   # found:
+                                        found_keyword = True
+                                        alert_message = "." + one_char + " file: " + keyword
+                                        # e.g., '.o file: <keyword>'
+                                        break  # no need to search next keyword
+
+                                if found_keyword:
+                                    break    # no need to go to next line
+                    # if the log file does not exist, probably due to pending
+                    #   not to do anything
+
+                if found_keyword:
+                    break   # no need to go to next log file
+
+        else:    # neither o_fn nor e_fn exists yet:
+            alert_message = np.nan
+
+    return alert_message
+
+def alert_message_in_job_account():
+    """
+    """
+
+    print("TODO")

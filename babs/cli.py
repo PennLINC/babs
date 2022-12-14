@@ -171,12 +171,25 @@ def babs_status_cli():
              "'stalled': the previous submitted job is pending with error in the queue "
              "(example qstat code: 'eqw')."
         )
+    parser.add_argument(
+        '--container_config_yaml_file', '--container-config-yaml-file',
+        help="Path to a YAML file that contains the configurations"
+        " of how to run the BIDS App container. It may include 'keywords_alert' section"
+        " to be used by babs-status.")
+    parser.add_argument(
+        '--job_account', '--job-account',
+        action='store_true',
+        # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
+        help="Whether to account failed jobs, which may take some time.")
+
     # TODO: to add `--resubmit-job <specific sub and ses>`
 
     args = parser.parse_args()
 
     babs_status(args.project_root,
-                args.resubmit)
+                args.resubmit,
+                args.container_config_yaml_file,
+                args.job_account)
 
 # if __name__ == "__main__":
 #     babs_init_cli()

@@ -164,7 +164,9 @@ def babs_submit(project_root, count=None, job=None):
     # Call method `babs_submit()`:
     babs_proj.babs_submit(count, df_job_specified)
 
-def babs_status(project_root, resubmit=None):
+def babs_status(project_root, resubmit=None,
+                container_config_yaml_file=None,
+                job_account=None):
     """
     This is the core function of `babs-status`.
 
@@ -174,6 +176,14 @@ def babs_status(project_root, resubmit=None):
         absolute path to the directory of BABS project
     resubmit: nested list or None
         each sub-list: one of 'failed', 'pending', 'stalled'
+    container_config_yaml_file: str or None
+        Path to a YAML file that contains the configurations
+        of how to run the BIDS App container.
+        It may include 'keywords_alert' section
+        to be used by babs-status.
+    job_account: bool
+        Whether to account failed jobs (e.g., using `qacct` for SGE),
+        which may take some time.
     """
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
@@ -196,7 +206,7 @@ def babs_status(project_root, resubmit=None):
         flags_resubmit = []   # empty list
 
     # Call method `babs_status()`:
-    babs_proj.babs_status(flags_resubmit)
+    babs_proj.babs_status(flags_resubmit, container_config_yaml_file, job_account)
 
 def get_existing_babs_proj(project_root):
     """

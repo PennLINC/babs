@@ -34,7 +34,10 @@ from babs.utils import (get_immediate_subdirectories,
                         report_job_status,
                         request_job_status,
                         request_all_job_status,
-                        calcu_runtime)
+                        calcu_runtime,
+                        get_last_line,
+                        get_config_keywords_alert,
+                        get_alert_message_in_log_files)
 
 # import pandas as pd
 
@@ -681,7 +684,9 @@ class BABS():
 
                         # babs-submit is only responsible for submitting jobs that haven't run yet
 
-                print(df_job_updated)
+                with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                    # ^^ print all the columns and rows (with returns)
+                    print(df_job_updated.head(6))   # only first several rows
 
                 # save updated df:
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
@@ -696,7 +701,9 @@ class BABS():
             #   there will be a timeout error
             print("Another instance of this application currently holds the lock.")
 
-    def babs_status(self, flags_resubmit):
+    def babs_status(self, flags_resubmit,
+                    container_config_yaml_file=None,
+                    job_account=None):
         """
         This function checks job status and resubmit jobs if requested.
 
@@ -705,6 +712,14 @@ class BABS():
         flags_resubmit: list
             Under what condition to perform job resubmit.
             Element choices are: 'failed', 'pending', 'stalled'.
+        container_config_yaml_file: str or None
+            Path to a YAML file that contains the configurations
+            of how to run the BIDS App container.
+            It may include 'keywords_alert' section
+            to be used by babs-status.
+        job_account: bool
+            Whether to account failed jobs (e.g., using `qacct` for SGE),
+            which may take some time.
         """
 
         # Check if this csv file has been created, if not, create it:
@@ -713,6 +728,10 @@ class BABS():
         # Load the csv file
         lock_path = self.job_status_path_abs + ".lock"
         lock = FileLock(lock_path)
+
+        # Prepare for checking alert messages in log files:
+        #   get the keywords of alert messages:
+        config_keywords_alert = get_config_keywords_alert(container_config_yaml_file)
 
         try:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
@@ -730,6 +749,10 @@ class BABS():
                     # Get basic information for this job:
                     job_id = df_job.at[i_job, "job_id"]
                     job_id_str = str(job_id)
+                    log_filename = df_job.at[i_job, "log_filename"]  # with "*"
+                    log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
+                    o_fn = log_fn.replace(".*", ".o")
+
                     if self.type_session == "single-ses":
                         sub = df_job.at[i_job, "sub_id"]
                         ses = None
@@ -738,6 +761,21 @@ class BABS():
                         sub = df_job.at[i_job, "sub_id"]
                         ses = df_job.at[i_job, "ses_id"]
                         pattern_branchname = sub + "-" + ses
+
+                    # Update the "last_line_o_file":
+                    df_job_updated.at[i_job, "last_line_o_file"] = \
+                        get_last_line(o_fn)
+
+                    # Alert message in log files:
+                    # for jobs that already marked as failed
+                    #   (or `is_done` which already been filtered out)
+                    #   in previous round, can skip checking this keywords alert:
+                    if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False:
+                        # check if there is keyword in log files of a job:
+                        if config_keywords_alert is not None:   # to check:
+                            alert_message_in_log_files = \
+                                get_alert_message_in_log_files(config_keywords_alert, log_fn)
+                            df_job_updated.at[i_job, "alert_message"] = alert_message_in_log_files
 
                     # Check if there is a branch in output RIA:
                     proc_git_branch_all = subprocess.run(
@@ -755,7 +793,8 @@ class BABS():
                         df_job_updated.at[i_job, "job_state_category"] = np.nan
                         df_job_updated.at[i_job, "job_state_code"] = np.nan
                         df_job_updated.at[i_job, "duration"] = np.nan
-                        #   ROADMAP: ^^ get duration via `qaact`
+                        #   ROADMAP: ^^ get duration via `qacct`
+                        #       (though qacct may not be accurate)
                         df_job_updated.at[i_job, "is_failed"] = False
 
                         # check if echoed "SUCCESS":
@@ -860,7 +899,9 @@ class BABS():
                                 print("")
 
                 print("")
-                print(df_job_updated)
+                with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                    # ^^ print all columns and rows (with returns)
+                    print(df_job_updated.head(6))
 
                 # save updated df:
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)

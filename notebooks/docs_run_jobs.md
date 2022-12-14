@@ -1,3 +1,8 @@
+# Providing keywords of alerting messages in log files:
+- Detecting is performed in the order provided by the user, i.e., if `o_file` is former, then that's performed earlier; if keyword1 is former, then that's performed earlier.
+- "Detected and break": If any keyword is detected, that will be thrown into the `job_status.csv`, and won't detect any further keyword.
+- Detecting the keywords in the log files (by `keyword in line`) is case-sensitve! 
+
 # Check the job's log file
 - The column 'log_filename' indicates the job's log filename. For SGE cluster, simply replace "*" with "o" or "e" etc.
     - "<jobname>.o<jobid>": standard output stream of the job

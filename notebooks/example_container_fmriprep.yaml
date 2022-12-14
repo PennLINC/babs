@@ -40,7 +40,8 @@ babs_singularity_run:
     #--cifti-output: 91k   # ADD THIS WHEN FULL RUN!
     -v: '-v'   # TODO: explain in docs: this is for double "-v". # as it's dict, cannot have identical keys... otherwise the latter key + value will overwrite the former one..# if tripple `-v`: `-v: '-v -v'`
     --sloppy: ''      # ADD THIS WHEN TEST RUN!
-    --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
+    --anat-only: ''   # ADD THIS WHEN ONLY RUNNING FREESURFER!
+    # --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
@@ -59,6 +60,7 @@ cluster_resources:
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
     customized_text: |
         #$ -R y
+    # TODO: add `h_rt` of 2 days for --anat-only
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`
@@ -79,6 +81,13 @@ required_files:
         - "anat/*_T1w.nii*"
 
 # - "dwi/*_dwi.nii*"   # QSIPrep
+
+# Keywords for alerting messages in log files:
+keywords_alert:
+    o_file:
+        - "xxxx"
+    e_file:
+        - "xxxxx"
 
 
 # Below generic full list of options of fMRIPrep is based on fMRIPrep version xxxx.
