@@ -16,6 +16,7 @@ from filelock import Timeout, FileLock
 import subprocess
 from qstat import qstat  # https://github.com/relleums/qstat
 from datetime import datetime
+import re
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -1530,7 +1531,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     -----------------
     config_keywords_alert: dict or None
         section 'keywords_alert' in container config yaml file
-        that includes what alerting keywords to look for in log files.
+        that includes what alert keywords to look for in log files.
     log_fn: str
         Absolute path to a job's log files. It should have `*` to be replaced with `o` or `e`
         Example: /path/to/analysis/logs/toy_sub-0000.*11111
@@ -1542,9 +1543,21 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
             `alert_message` will be `np.nan`;
         if not None, `alert_message` will be a str.
             Examples:
-            - if did not find: "BABS: No alerting keyword found in log files."
+            - if did not find: "BABS: No alert keyword found in log files."
             - if found: ".o file: <keyword>"
+    if_no_alert_in_log: bool
+        There is no alert message in the log files.
+        When `alert_message` is `msg_no_alert`, or is `np.nan`, this is True;
+        Otherwise, any other message, this is False
+
+    Notes:
+    -----------------
+    An edge case (not a bug): On cubic cluster, some info will be printed to '.e'
+    before '.o' have any printed messages. So 'alert_message' column may say 'BABS: No alert'
+    but 'last_line_o_file' is still 'NaN'
     """
+
+    msg_no_alert = "BABS: No alert keyword found in log files."
     if config_keywords_alert is None:
         alert_message = np.nan
     else:
@@ -1553,7 +1566,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
 
         if op.exists(o_fn) or op.exists(e_fn):   # either exists:
             found_keyword = False
-            alert_message = "BABS: No alerting keyword found in log files."
+            alert_message = msg_no_alert
 
             for key in config_keywords_alert:  # as it's dict, keys cannot be duplicated
                 if key == "o_file" or "e_file":
@@ -1584,10 +1597,119 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
         else:    # neither o_fn nor e_fn exists yet:
             alert_message = np.nan
 
-    return alert_message
+    if (alert_message == msg_no_alert) or (np.isnan(alert_message)):  # TODO: fix this bug! cannot `np.isnan(str)`
+        # either no alert, or `np.nan`
+        if_no_alert_in_log = True
+    else:   # `alert_message`: np.nan or any other message:
+        if_no_alert_in_log = False
 
-def alert_message_in_job_account():
+    return alert_message, if_no_alert_in_log
+
+def get_username():
     """
+    This is to get the current username.
+    This will be used for job accounting, e.g., `qacct`.
+
+    Returns:
+    -----------
+    username_lowercase: str
+
+    NOTE: only support SGE now.
+    """
+    proc_username = subprocess.run(
+        ["whoami"],
+        stdout=subprocess.PIPE
+    )
+    proc_username.check_returncode()
+    username_lowercase = proc_username.stdout.decode('utf-8')
+    username_lowercase = username_lowercase.replace("\n", "")  # remove \n
+
+    return username_lowercase
+
+def check_job_account(job_id_str, job_name, username_lowercase):
+    """
+    This is to get information for a finished job
+    by calling job account command, e.g., `qacct` for SGE
+
+    Parameters:
+    ------------
+    job_id_str: str
+        string version of ID of the job
+    job_name: str
+        Name of the job
+    username_lowercase: str
+        username that this job was requested to run
+
+    Returns:
+    ------------
+    msg_toreturn: str
+        The message got from `qacct` field `failed`, if that's not 0
+    if_no_alert: bool
+        True when: There is no alert message in `qacct`, or `qacct` for this job was not successful
+        False when: found some alert message in `qacct`
+
+    Notes:
+    ----------
+    This can only apply to jobs that are out of the queue; but not
+    jobs under qw, r, etc, or does not exist (not submitted);
+    Also, the current username should be the same one as that used for job submission.
     """
 
-    print("TODO")
+    # TODO: Sanity check: `qacct` is fine without error
+    #   if this job is still in queue (qw or r), `qacct` will say:
+    #   'error: job id xxxxx not found'
+
+    msg_no_alert_qacct_failed = "qacct: failed: no alert message"
+
+    proc_qacct = subprocess.run(
+        ["qacct", "-o", username_lowercase,
+         "-j", job_id_str],
+        stdout=subprocess.PIPE
+    )
+    try:
+        proc_qacct.check_returncode()
+        msg = proc_qacct.stdout.decode('utf-8')
+        list_qacct_failed = re.findall(r'(?:failed)(.*?)(?:\n)', msg)  # find all, return a list
+        # ^^ between `failed` and `\n`
+        # example output: ['      xcpsub-00000   ', '      fpsub-0000  ']
+        if len(list_qacct_failed) > 1:   # more than one job were found:
+            # determine which is the job we want:
+            list_jobnames = re.findall(r'(?:jobname)(.*?)(?:\n)', msg)
+            for i_temp, temp_jobname in enumerate(list_jobnames):
+                if job_name == temp_jobname.replace(" ", ""):  # remove spaces:
+                    # ^^ the job name we want to find:
+                    qacct_failed = list_qacct_failed[i_temp]
+                    break
+        elif len(list_qacct_failed) == 1:
+            qacct_failed = list_qacct_failed[0]
+        else:
+            warnings.warn("Error when `qacct` for job " + job_id_str
+                          + ", " + job_name)
+            qacct_failed = np.nan
+            msg_toreturn = np.nan
+
+        if not np.isnan(qacct_failed):  # TODO: fix this bug!
+            # example: '       0    '
+            qacct_failed = qacct_failed.strip()    # remove the spaces at the beginning and the end
+
+            if qacct_failed != "0":   # field `failed` is not '0', i.e., was not success:
+                msg_toreturn = "qacct: failed: " + qacct_failed
+            else:
+                msg_toreturn = msg_no_alert_qacct_failed
+
+    except:   # some error:
+        # if the job is still in queue (qw or r etc), this will throw out an error:
+        #   '.... returned non-zero exit status 1.'
+        warnings.warn("Error when `qacct` for job " + job_id_str
+                      + ", " + job_name)
+        print("Hint: check if the job is still in the queue, e.g., in state of qw, r, etc")
+        print("Hint: check if the username used for submitting this job"
+              + " was not current username '" + username_lowercase + "'")
+        msg_toreturn = np.nan
+
+    if (msg_toreturn == msg_no_alert_qacct_failed) or np.isnan(msg_toreturn):
+        if_no_alert = True
+    else:
+        if_no_alert = False
+
+    return msg_toreturn, if_no_alert

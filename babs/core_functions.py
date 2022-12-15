@@ -166,7 +166,7 @@ def babs_submit(project_root, count=None, job=None):
 
 def babs_status(project_root, resubmit=None,
                 container_config_yaml_file=None,
-                job_account=None):
+                job_account=False):
     """
     This is the core function of `babs-status`.
 
@@ -204,6 +204,10 @@ def babs_status(project_root, resubmit=None,
     else:   # `resubmit` is None:
         print("Did not request any flags of resubmit.")
         flags_resubmit = []   # empty list
+
+    # If `--job-account` is requested:
+    if job_account:
+        print("--job-account was requested, babs-status may take longer time...")
 
     # Call method `babs_status()`:
     babs_proj.babs_status(flags_resubmit, container_config_yaml_file, job_account)

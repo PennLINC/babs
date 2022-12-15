@@ -37,7 +37,9 @@ from babs.utils import (get_immediate_subdirectories,
                         calcu_runtime,
                         get_last_line,
                         get_config_keywords_alert,
-                        get_alert_message_in_log_files)
+                        get_alert_message_in_log_files,
+                        get_username,
+                        check_job_account)
 
 # import pandas as pd
 
@@ -703,7 +705,7 @@ class BABS():
 
     def babs_status(self, flags_resubmit,
                     container_config_yaml_file=None,
-                    job_account=None):
+                    job_account=False):
         """
         This function checks job status and resubmit jobs if requested.
 
@@ -733,6 +735,19 @@ class BABS():
         #   get the keywords of alert messages:
         config_keywords_alert = get_config_keywords_alert(container_config_yaml_file)
 
+        # Get username, if `--job-account` is requested:
+        username_lowercase = get_username()
+
+        # Get the list of branches in output RIA:
+        proc_git_branch_all = subprocess.run(
+            ["git", "branch", "-a"],
+            cwd=self.output_ria_data_dir,
+            stdout=subprocess.PIPE
+        )
+        proc_git_branch_all.check_returncode()
+        msg = proc_git_branch_all.stdout.decode('utf-8')
+        list_branches = msg.split()
+
         try:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
                 df_job = read_job_status_csv(self.job_status_path_abs)
@@ -741,6 +756,7 @@ class BABS():
                 # Get all jobs' status:
                 df_all_job_status = request_all_job_status()
 
+                # For jobs that have been submitted but not successful yet:
                 # Update job status, and resubmit if requested:
                 # get the list of jobs submitted, but `is_done` is not True:
                 temp = (df_job['has_submitted']) & (~df_job['is_done'])
@@ -752,6 +768,8 @@ class BABS():
                     log_filename = df_job.at[i_job, "log_filename"]  # with "*"
                     log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
                     o_fn = log_fn.replace(".*", ".o")
+
+                    # did_resubmit = False   # reset: did not resubmit this job
 
                     if self.type_session == "single-ses":
                         sub = df_job.at[i_job, "sub_id"]
@@ -773,20 +791,14 @@ class BABS():
                     if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False:
                         # check if there is keyword in log files of a job:
                         if config_keywords_alert is not None:   # to check:
-                            alert_message_in_log_files = \
+                            alert_message_in_log_files, if_no_alert_in_log = \
                                 get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                            df_job_updated.at[i_job, "alert_message"] = alert_message_in_log_files
+                            df_job_updated.at[i_job, "alert_message"] = \
+                                alert_message_in_log_files
 
                     # Check if there is a branch in output RIA:
-                    proc_git_branch_all = subprocess.run(
-                        ["git", "branch", "-a"],
-                        cwd=self.output_ria_data_dir,
-                        stdout=subprocess.PIPE
-                    )
-                    proc_git_branch_all.check_returncode()
-                    msg = proc_git_branch_all.stdout.decode('utf-8')
                     # if any branch name contains the pattern of current job:
-                    if any(pattern_branchname in branchname for branchname in msg.split()):
+                    if any(pattern_branchname in branchname for branchname in list_branches):
                         # found the branch:
                         df_job_updated.at[i_job, "is_done"] = True
                         # reset/update:
@@ -821,6 +833,7 @@ class BABS():
                             elif state_code == "qw":
                                 if 'pending' in flags_resubmit:
                                     # Resubmit:
+                                    # did_resubmit = True
                                     # print a message:
                                     to_print = "Resubmit job for " + sub
                                     if self.type_session == "multi-ses":
@@ -846,6 +859,8 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "alert_message"] = np.nan
 
                                 else:   # not to resubmit:
                                     # update fields:
@@ -854,12 +869,11 @@ class BABS():
 
                         else:   # did not find in `df_all_job_status`
                             # probably error
-                            df_job.at[i_job, "is_failed"] = "True"
+                            df_job_updated.at[i_job, "is_failed"] = True
                             # reset:
                             df_job_updated.at[i_job, "job_state_category"] = np.nan
                             df_job_updated.at[i_job, "job_state_code"] = np.nan
                             df_job_updated.at[i_job, "duration"] = np.nan
-                            df_job_updated.at[i_job, "is_done"] = np.nan  # may not be necessary
                             # ROADMAP: ^^ get duration via `qacct`
 
                             # check the log file:
@@ -869,6 +883,7 @@ class BABS():
                             # resubmit if requested:
                             if "error" in flags_resubmit:
                                 # Resubmit:
+                                # did_resubmit = True
                                 # print a message:
                                 to_print = "Resubmit job for sub_id '" + sub + "'"
                                 if self.type_session == "multi-ses":
@@ -892,12 +907,40 @@ class BABS():
                                 df_job_updated.at[i_job, "job_id"] = job_id_updated
                                 df_job_updated.at[i_job, "log_filename"] = log_filename
                                 df_job_updated.at[i_job, "is_failed"] = np.nan
+                                df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                df_job_updated.at[i_job, "alert_message"] = np.nan
                                 # reset of `job_state_*` have been done - see above
+
                             else:  # resubmit 'error' was not requested:
-                                # TODO: update fields: error code
+                                # If `--job-account` is requested:
+                                if job_account & if_no_alert_in_log:
+                                    # if `--job-account` is requested, and there is no alert
+                                    #   message found in log files:
+                                    job_name = log_filename.split(".*")[0]
+                                    msg_job_account, if_no_alert_job_account = \
+                                        check_job_account(job_id_str, job_name, username_lowercase)
+                                    if if_no_alert_job_account:  # no alert in job accout either:
+                                        df_job_updated.at[i_job, "alert_message"] = \
+                                            "BABS: No alert message found in logs or job account."
+                                    else:
+                                        df_job_updated.at[i_job, "alert_message"] = msg_job_account
 
-                                print("")
+                # For 'is_done' jobs in previous round:
+                temp = (df_job['has_submitted']) & (df_job['is_done'])
+                list_index_job_is_done = df_job.index[temp].tolist()
+                for i_job in list_index_job_is_done:
+                    # Get basic information for this job:
+                    job_id = df_job.at[i_job, "job_id"]
+                    job_id_str = str(job_id)
+                    log_filename = df_job.at[i_job, "log_filename"]  # with "*"
+                    log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
+                    o_fn = log_fn.replace(".*", ".o")
 
+                    # Update the "last_line_o_file":
+                    df_job_updated.at[i_job, "last_line_o_file"] = \
+                        get_last_line(o_fn)
+
+                # Finish up:
                 print("")
                 with pd.option_context('display.max_rows', None, 'display.max_columns', None):
                     # ^^ print all columns and rows (with returns)

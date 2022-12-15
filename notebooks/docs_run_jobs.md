@@ -11,3 +11,7 @@
 - The path to the log files are indicated in the sentences of 'Job status' summary when `babs-status`.
 - The log files can be printed in the terminal via `cat` (print the entire file), `head` (print first several lines), `tail` (print last several lines), etc
     - `head -10 /path/to/log/file` will print the first 10 lines
+
+# `babs-status`
+- For jobs labeled as 'is_done = True': 
+    - if 'last_line_o_file' is not 'SUCCESS', run `babs-status` again, and it might be updated with 'SUCCESS'. This should be an edge case.
