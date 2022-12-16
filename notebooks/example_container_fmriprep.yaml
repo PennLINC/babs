@@ -45,9 +45,9 @@ babs_singularity_run:
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
-    fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
-    # freesurfer: "20-2-3"   # use the same as fmriprep
-    # ^^ # ADD THIS WHEN FULL RUN!
+    # fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+    freesurfer: "20-2-3"   # use the same as fmriprep
+    # ^^ # ADD THIS WHEN FULL RUN or --anat-only!
 
 # environment_variable:
 #     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs

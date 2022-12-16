@@ -180,7 +180,8 @@ def babs_status_cli():
         '--job_account', '--job-account',
         action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
-        help="Whether to account failed jobs, which may take some time.")
+        help="Whether to account failed jobs, which may take some time."
+             " If '--resubmit failed' is also requested, this will be skipped.")
 
     # TODO: to add `--resubmit-job <specific sub and ses>`
 

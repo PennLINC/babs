@@ -722,6 +722,7 @@ class BABS():
         job_account: bool
             Whether to account failed jobs (e.g., using `qacct` for SGE),
             which may take some time.
+            This step will be skipped if `--resubmit failed` was requested.
         """
 
         # Check if this csv file has been created, if not, create it:
@@ -776,12 +777,12 @@ class BABS():
                         ses = None
                         branchname = "job-" + job_id_str + "-" + sub
                         # e.g., job-00000-sub-01
+                        print(branchname)   # TODO: remove this printing if branchname looks good
                     elif self.type_session == "multi-ses":
                         sub = df_job.at[i_job, "sub_id"]
                         ses = df_job.at[i_job, "ses_id"]
                         branchname = "job-" + job_id_str + "-" + sub + "-" + ses
                         # e.g., job-00000-sub-01-ses-B
-                    print(branchname)
 
                     # Update the "last_line_o_file":
                     df_job_updated.at[i_job, "last_line_o_file"] = \
@@ -868,7 +869,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
 
-                        else:   # did not find in `df_all_job_status`
+                        else:   # did not find in `df_all_job_status`, i.e., job queue
                             # probably error
                             df_job_updated.at[i_job, "is_failed"] = True
                             # reset:
@@ -882,22 +883,19 @@ class BABS():
                             # TODO: assign error category in df; also print it out
 
                             # resubmit if requested:
-                            if "error" in flags_resubmit:
+                            if "failed" in flags_resubmit:
                                 # Resubmit:
                                 # did_resubmit = True
                                 # print a message:
-                                to_print = "Resubmit job for sub_id '" + sub + "'"
+                                to_print = "Resubmit job for " + sub
                                 if self.type_session == "multi-ses":
-                                    to_print += ", ses_id '" + ses + "'"
-                                to_print += ", as it has error and resubmit was requested."
+                                    to_print += ", " + ses
+                                to_print += ", as it is failed and resubmit was requested."
                                 print(to_print)
 
-                                # kill original one
-                                proc_kill = subprocess.run(
-                                    ["qdel", job_id_str],
-                                    stdout=subprocess.PIPE
-                                )
-                                proc_kill.check_returncode()
+                                # no need to kill original one!
+                                #   As it already failed and out of job queue...
+
                                 # submit new one:
                                 job_id_updated, _, log_filename = \
                                     submit_one_job(self.analysis_path,
@@ -951,7 +949,9 @@ class BABS():
 
                 # Finish up:
                 print("")
-                with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                with pd.option_context('display.max_rows', None,
+                                       'display.max_columns', None,
+                                       'display.width', 120):   # default is 80 characters...
                     # ^^ print all columns and rows (with returns)
                     print(df_job_updated.head(6))
 

@@ -200,14 +200,26 @@ def babs_status(project_root, resubmit=None,
         # remove dupliated elements:
         flags_resubmit = list(set(flags_resubmit))   # `list(set())`: acts like "unique"
 
-        # print(flags_resubmit)
+        # print message:
+        print(
+            "Will resubmit jobs if "
+            + " or ".join(flags_resubmit) + ".")   # e.g., `failed`; `failed or pending`
+
     else:   # `resubmit` is None:
         print("Did not request any flags of resubmit.")
         flags_resubmit = []   # empty list
 
     # If `--job-account` is requested:
     if job_account:
-        print("'--job-account' was requested; babs-status may take longer time...")
+        if "failed" not in flags_resubmit:
+            print("'--job-account' was requested; babs-status may take longer time...")
+        else:
+            # this is meaningless to ren `job-account` if resubmitting anyway:
+            print(
+                "Although '--job-account' was requested,"
+                + " as '--resubmit failed' was also requested,"
+                + " it's meaningless to run job account on previous failed jobs,"
+                + " so will skip '--job-account'")
 
     # Call method `babs_status()`:
     babs_proj.babs_status(flags_resubmit, container_config_yaml_file, job_account)
