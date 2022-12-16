@@ -1278,6 +1278,7 @@ def create_job_status_csv(babs):
         df_job["log_filename"] = np.nan
         df_job["last_line_o_file"] = np.nan
         df_job["alert_message"] = np.nan
+        df_job["job_account"] = np.nan
 
         # TODO: add different kinds of error
 
@@ -1332,6 +1333,8 @@ def report_job_status(df, analysis_path):
         This is used to generate the folder of log files
     """
 
+    from .constants import MSG_NO_ALERT_IN_LOGS
+
     print('\nJob status:')
 
     total_jobs = df.shape[0]
@@ -1358,9 +1361,59 @@ def report_job_status(df, analysis_path):
             # TODO: add stalled one
 
             total_is_failed = int(df["is_failed"].sum())
-            print(str(total_is_failed) + ' job(s) have errors.')
+            print(str(total_is_failed) + ' job(s) are failed.')
 
-        print("All log files are located in folder: "
+            # if there is job failed: print more info by categorizing msg:
+            if total_is_failed > 0:
+                print("\nAmong all failed job(s):")
+                # get the list of jobs that 'is_failed=True':
+                list_index_job_failed = df.index[df["is_failed"] == True].tolist()
+                # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
+
+                # summarize based on `alert_message` column:
+                all_alert_message = df["alert_message"][list_index_job_failed].tolist()
+                unique_list_alert_message = list(set(all_alert_message))
+                unique_list_alert_message.sort()   # sort and update the list itself
+
+                for unique_alert_msg in unique_list_alert_message:
+                    # count:
+                    temp_count = all_alert_message.count(unique_alert_msg)
+                    print(str(temp_count) + " job(s) have alert message: '" + unique_alert_msg
+                          + "';")
+
+                # if there is 'no_alert' in 'alert_message', check 'job_account' column:
+                if MSG_NO_ALERT_IN_LOGS in unique_list_alert_message:
+                    list_index_job_failed_no_alert = \
+                        (df["is_failed"] == True) & (df["alert_message"] == MSG_NO_ALERT_IN_LOGS)
+
+                    # because there could be 'np.nan' in the df, and pd.series -> tolist()
+                    #   becomes [nan] which is not str(np.nan) or np.nan..., i.e., not detectable,
+                    #   so we need to check that first...
+                    pdseries = df["job_account"][list_index_job_failed_no_alert]
+                    # check if all selected are np.nan:
+                    if all(pd.isna(pdseries)):
+                        # if so, 'job_account' was not applied yet:
+                        print("\nFor the failed job(s) that don't have alert keyword in log files,"
+                              + " you may use `--job-account` to get more information"
+                              + " about why they are failed."
+                              + " Note that with `--job-account`, `babs-status` may take longer time.")
+                    else:
+                        all_job_account = pdseries.tolist()
+                        # ^^ only limit to jobs failed & no alert keywords in log files
+                        unique_list_job_account = list(set(all_job_account))
+                        unique_list_job_account.sort()   # sort and update the list itself
+
+                        print("\nAmong job(s) that are failed"
+                              + " and don't have alert keyword in log files:")
+                        for unique_job_account in unique_list_job_account:
+                            # count:
+                            temp_count = all_job_account.count(unique_job_account)
+                            print(str(temp_count) + " job(s) have job account of: '"
+                                  + str(unique_job_account) + "';")
+                            # ^^ str(unique_job_account) is in case it is `np.nan`,
+                            #   though should not be possible to be `np.nan`
+
+        print("\nAll log files are located in folder: "
               + op.join(analysis_path, "logs"))
 
 def request_all_job_status():
@@ -1376,7 +1429,7 @@ def request_all_job_status():
     --------------
     df: pd.DataFrame
         All jobs' status, including running and pending (waiting) jobs'.
-        If there is no job in the queue, df will be an empty DataFrame 
+        If there is no job in the queue, df will be an empty DataFrame
         (i.e., Columns: [], Index: [])
 
     Notes:
@@ -1559,7 +1612,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
             `alert_message` will be `np.nan`;
         if not None, `alert_message` will be a str.
             Examples:
-            - if did not find: "BABS: No alert keyword found in log files."
+            - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
             - if found: ".o file: <keyword>"
     if_no_alert_in_log: bool
         There is no alert message in the log files.
@@ -1574,7 +1627,8 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     but 'last_line_o_file' is still 'NaN'
     """
 
-    msg_no_alert = "BABS: No alert keyword found in log files."
+    from .constants import MSG_NO_ALERT_IN_LOGS
+    msg_no_alert = MSG_NO_ALERT_IN_LOGS
     if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
 
@@ -1666,9 +1720,11 @@ def check_job_account(job_id_str, job_name, username_lowercase):
     ------------
     msg_toreturn: str
         The message got from `qacct` field `failed`, if that's not 0
-    if_no_alert: bool
-        True when: There is no alert message in `qacct`, or `qacct` for this job was not successful
-        False when: found some alert message in `qacct`
+        - If `qacct` was successful:
+            - If field 'failed' in `qacct` was not 0: use string from that field
+            - If it's 0 (no error): use `msg_no_alert_qacct_failed`
+        - If `qacct` was NOT successful:
+            - use `msg_failed_to_call_qacct`
 
     Notes:
     ----------
@@ -1676,10 +1732,10 @@ def check_job_account(job_id_str, job_name, username_lowercase):
     jobs under qw, r, etc, or does not exist (not submitted);
     Also, the current username should be the same one as that used for job submission.
     """
-    msg_no_alert_qacct_failed = "qacct: failed: no alert message"
-    # by default, they are valid (i.e., not np.nan):
-    if_valid_msg_toreturn = True
-    if_valid_qacct_failed = True
+    msg_no_alert_qacct_failed = "qacct: no alert message in field 'failed'"
+    msg_failed_to_call_qacct = "BABS: failed to call 'qacct'"
+
+    if_valid_qacct_failed = True   # by default, it is valid, i.e., not np.nan
     # this is to avoid check `np.isnan(<variable_name>)`, as `np.isnan(str)` causes error.
 
     proc_qacct = subprocess.run(
@@ -1707,9 +1763,8 @@ def check_job_account(job_id_str, job_name, username_lowercase):
             warnings.warn("Error when `qacct` for job " + job_id_str
                           + ", " + job_name)
             qacct_failed = np.nan
-            msg_toreturn = np.nan
             if_valid_qacct_failed = False
-            if_valid_msg_toreturn = False
+            msg_toreturn = msg_failed_to_call_qacct
 
         if if_valid_qacct_failed:
             # example: '       0    '
@@ -1728,12 +1783,6 @@ def check_job_account(job_id_str, job_name, username_lowercase):
         print("Hint: check if the job is still in the queue, e.g., in state of qw, r, etc")
         print("Hint: check if the username used for submitting this job"
               + " was not current username '" + username_lowercase + "'")
-        msg_toreturn = np.nan
-        if_valid_msg_toreturn = False
+        msg_toreturn = msg_failed_to_call_qacct
 
-    if (msg_toreturn == msg_no_alert_qacct_failed) or (not if_valid_msg_toreturn):
-        if_no_alert = True
-    else:
-        if_no_alert = False
-
-    return msg_toreturn, if_no_alert
+    return msg_toreturn

@@ -212,7 +212,7 @@ def babs_status(project_root, resubmit=None,
     # If `--job-account` is requested:
     if job_account:
         if "failed" not in flags_resubmit:
-            print("'--job-account' was requested; babs-status may take longer time...")
+            print("'--job-account' was requested; `babs-status` may take longer time...")
         else:
             # this is meaningless to ren `job-account` if resubmitting anyway:
             print(

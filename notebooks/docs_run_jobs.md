@@ -17,3 +17,19 @@
 # `babs-status`
 - For jobs labeled as 'is_done = True': 
     - if 'last_line_o_file' is not 'SUCCESS', run `babs-status` again, and it might be updated with 'SUCCESS'. This should be an edge case.
+
+# How to interpret in `job_status.csv`?
+Below are explanation by columns:
+
+- `alert_message`: any alert keywords detected in the log files (`.o` or `.e`), where the alert keywords are defined in `babs-status --container-config-yaml-file`
+    - All submitted jobs' `alert_message` column will be updated every time `babs-status` is called, based on current `container-config-yaml-file` (if provided)
+        - if `--container-config-yaml-file` is not provided, column `alert_message` will be reset to `numpy.nan`
+- `job_account`:
+    - only updated when `--job-account`, and `--resubmit failed` was not requested
+    - `qacct` is only called for failed jobs, but not other jobs (where `numpy.nan` will display)
+    - if `babs-status` was called again, but without `--job-account`, the previous round's 'job_account' column will be kept, unless the job was resubmitted.
+        - This is because the job ID did not change, so `qacct` should not change for a finished job.
+
+- why `alert_message` is updated every time `babs-status` is called, whereas `job_account` is only updated when `--job-account` is called? This is because:
+    1. `alert_message` is got from log files, which are dynamic as the jobs progress; also, `keywords_alert` in the yaml file can also be changed in each `babs-status` call. On the other hand, only failed jobs have `job_account` with actual contents, and job account won't change after a job is finished (though failed).
+    1. Updating `alert_message` is quick, whereas calling `qacct` (SGE clusters) is slow

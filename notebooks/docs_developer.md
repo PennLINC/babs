@@ -25,7 +25,7 @@
                 * resubmit if 'error' in `flags_resubmit`: resubmit and update `df_job_updated`
                 * if did not resubmit:
                     * if `--job-account` and no alert keywords in logs:
-                        * do `qacct`
+                        * do `qacct`, and update 'job_account' column.
             
     * for each job that marked as "is_done" in previous round:
         * get last line of `.o` file. Purpose: when marked as 'is_done' (got branch in output RIA), the job hasn't been finished yet, and needs to do `datalad drop` etc before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_o_file' for 'is_done' jobs.
@@ -40,15 +40,15 @@ Summary:
 # Example `job_status.csv`
 ## When just initialized:
 ```
-sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_o_file,alert_message
-sub-01,ses-A,False,-1,,,,False,,,,
+sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_o_file,alert_message,job_account
+sub-01,ses-A,False,-1,,,,False,,,,,
 ```
 when `print(df)` by python:
 ```
    sub_id ses_id  has_submitted  job_id  job_state_category  job_state_code  \
 0  sub-01  ses-A          False      -1                 NaN             NaN 
 
-   duration  is_done  is_failed  log_filename  last_line_o_file  alert_message  
-0       NaN    False        NaN           NaN               NaN            NaN 
+   duration  is_done  is_failed  log_filename  last_line_o_file  alert_message  job_account
+0       NaN    False        NaN           NaN               NaN            NaN          NaN 
 ```
 (`0` at the beginning: index of pd.DataFrame)

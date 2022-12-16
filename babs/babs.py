@@ -686,7 +686,9 @@ class BABS():
 
                         # babs-submit is only responsible for submitting jobs that haven't run yet
 
-                with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                with pd.option_context('display.max_rows', None,
+                                       'display.max_columns', None,
+                                       'display.width', 120):   # default is 80 characters...
                     # ^^ print all the columns and rows (with returns)
                     print(df_job_updated.head(6))   # only first several rows
 
@@ -863,6 +865,7 @@ class BABS():
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
                                     df_job_updated.at[i_job, "last_line_o_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
+                                    df_job_updated.at[i_job, "job_account"] = np.nan
 
                                 else:   # not to resubmit:
                                     # update fields:
@@ -908,6 +911,7 @@ class BABS():
                                 df_job_updated.at[i_job, "is_failed"] = np.nan
                                 df_job_updated.at[i_job, "last_line_o_file"] = np.nan
                                 df_job_updated.at[i_job, "alert_message"] = np.nan
+                                df_job_updated.at[i_job, "job_account"] = np.nan
                                 # reset of `job_state_*` have been done - see above
 
                             else:  # resubmit 'error' was not requested:
@@ -916,13 +920,9 @@ class BABS():
                                     # if `--job-account` is requested, and there is no alert
                                     #   message found in log files:
                                     job_name = log_filename.split(".*")[0]
-                                    msg_job_account, if_no_alert_job_account = \
+                                    msg_job_account = \
                                         check_job_account(job_id_str, job_name, username_lowercase)
-                                    if if_no_alert_job_account:  # no alert in job accout either:
-                                        df_job_updated.at[i_job, "alert_message"] = \
-                                            "BABS: No alert message found in logs or job account."
-                                    else:
-                                        df_job_updated.at[i_job, "alert_message"] = msg_job_account
+                                    df_job_updated.at[i_job, "job_account"] = msg_job_account
 
                 # For 'is_done' jobs in previous round:
                 temp = (df_job['has_submitted']) & (df_job['is_done'])

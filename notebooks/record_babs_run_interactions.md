@@ -445,3 +445,100 @@ Among submitted jobs,
 1 job(s) have errors.
 All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
 ```
+
+## 12/16/22, add summary for failed jobs + separated 'job_account' as a new column
+### if `--job-account` hasn't been called:
+```
+$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed  \
+0  sub-01  ses-A           True  2968691                 NaN             NaN       NaN     True     False   
+1  sub-01  ses-B           True  2976927                 NaN             NaN       NaN     True     False   
+2  sub-01  ses-C           True  2976928                 NaN             NaN       NaN     True     False   
+3  sub-02  ses-A           True  2976929                 NaN             NaN       NaN     True     False   
+4  sub-02  ses-B           True  2983590                 NaN             NaN       NaN    False      True   
+5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False       NaN   
+
+                log_filename                                   last_line_o_file  \
+0  toy_sub-01_ses-A.*2968691                                            SUCCESS   
+1  toy_sub-01_ses-B.*2976927                                            SUCCESS   
+2  toy_sub-01_ses-C.*2976928                                            SUCCESS   
+3  toy_sub-02_ses-A.*2976929                                            SUCCESS   
+4  toy_sub-02_ses-B.*2983590  install(ok): /scratch/babs/SGE_2983590/job-298...   
+5                        NaN                                                NaN   
+
+                                alert_message  job_account  
+0  BABS: No alert keyword found in log files.          NaN  
+1  BABS: No alert keyword found in log files.          NaN  
+2  BABS: No alert keyword found in log files.          NaN  
+3  BABS: No alert keyword found in log files.          NaN  
+4  BABS: No alert keyword found in log files.          NaN  
+5                                         NaN          NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+5 job(s) have been submitted; 1 job(s) haven't been submitted.
+Among submitted jobs,
+4 job(s) are successfully finished;
+0 job(s) are pending;
+0 job(s) are running;
+1 job(s) are failed.
+
+Among all failed job(s):
+1 job(s) have alert message: 'BABS: No alert keyword found in log files.';
+
+For the failed job(s) that don't have alert keyword in log files, you may use '--job-account' to get more information about why they are failed. Note that '--job-account' may take longer time.
+
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+```
+^^ Notice the summary report and how it is different from that when `--job-account` has been called (below)
+
+
+### if `--job-account` has been called:
+```
+$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml
+Did not request any flags of resubmit.
+
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed  \
+0  sub-01  ses-A           True  2968691                 NaN             NaN       NaN     True     False   
+1  sub-01  ses-B           True  2976927                 NaN             NaN       NaN     True     False   
+2  sub-01  ses-C           True  2976928                 NaN             NaN       NaN     True     False   
+3  sub-02  ses-A           True  2976929                 NaN             NaN       NaN     True     False   
+4  sub-02  ses-B           True  2982993                 NaN             NaN       NaN    False      True   
+5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False       NaN   
+
+                log_filename                                   last_line_o_file  \
+0  toy_sub-01_ses-A.*2968691                                            SUCCESS   
+1  toy_sub-01_ses-B.*2976927                                            SUCCESS   
+2  toy_sub-01_ses-C.*2976928                                            SUCCESS   
+3  toy_sub-02_ses-A.*2976929                                            SUCCESS   
+4  toy_sub-02_ses-B.*2982993  install(ok): /scratch/babs/SGE_2982993/job-298...   
+5                        NaN                                                NaN   
+
+                                alert_message                                        job_account  
+0  BABS: No alert keyword found in log files.                                                NaN  
+1  BABS: No alert keyword found in log files.                                                NaN  
+2  BABS: No alert keyword found in log files.                                                NaN  
+3  BABS: No alert keyword found in log files.                                                NaN  
+4  BABS: No alert keyword found in log files.  qacct: failed: 37  : qmaster enforced h_rt, h_...  
+5                                         NaN                                                NaN  
+
+Job status:
+There are in total of 6 jobs to complete.
+5 job(s) have been submitted; 1 job(s) haven't been submitted.
+Among submitted jobs,
+4 job(s) are successfully finished;
+0 job(s) are pending;
+0 job(s) are running;
+1 job(s) are failed.
+
+Among all failed jobs:
+1 job(s) have alert message: 'BABS: No alert keyword found in log files.';
+
+Among jobs that are failed and don't have alert keyword in log files:
+1 job(s) have job account of: 'qacct: failed: 37  : qmaster enforced h_rt, h_cpu, or h_vmem limit';
+
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+```
+
