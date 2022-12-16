@@ -394,3 +394,54 @@ Among submitted jobs,
 0 job(s) have errors.
 All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
 ```
+
+## 12/15/22, test if error in running: got by `qacct`:
+I've set `-l h_rt=0:0:20`, i.e., the job can only be run for 20sec, which leads to definite failure.
+
+```
+$ babs-status  --project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp --container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml --job-account
+Did not request any flags of resubmit.
+'--job-account' was requested; babs-status may take longer time...
+
+   sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  \
+0  sub-01  ses-A           True  2937181                 NaN             NaN   
+1  sub-01  ses-B           True  2944708                 NaN             NaN   
+2  sub-01  ses-C           True  2944712                 NaN             NaN   
+3  sub-02  ses-A           True  2956370                 NaN             NaN   
+4  sub-02  ses-B           True  2959899                 NaN             NaN   
+5  sub-02  ses-D           True  2960898                 NaN             NaN   
+
+   duration  is_done  is_failed               log_filename  \
+0       NaN     True      False  toy_sub-01_ses-A.*2937181   
+1       NaN     True      False  toy_sub-01_ses-B.*2944708   
+2       NaN     True      False  toy_sub-01_ses-C.*2944712   
+3       NaN     True      False  toy_sub-02_ses-A.*2956370   
+4       NaN     True      False  toy_sub-02_ses-B.*2959899   
+5       NaN    False       True  toy_sub-02_ses-D.*2960898   
+
+                                    last_line_o_file  \
+0                                            SUCCESS   
+1                                            SUCCESS   
+2                                            SUCCESS   
+3                                            SUCCESS   
+4                                            SUCCESS   
+5  I'm in /cbica/projects/BABS/data/test_babs_mul...   
+
+                                       alert_message  
+0         BABS: No alert keyword found in log files.  
+1         BABS: No alert keyword found in log files.  
+2         BABS: No alert keyword found in log files.  
+3         BABS: No alert keyword found in log files.  
+4         BABS: No alert keyword found in log files.  
+5  qacct: failed: 37  : qmaster enforced h_rt, h_...  
+
+Job status:
+There are in total of 6 jobs to complete.
+6 job(s) have been submitted; 0 job(s) haven't been submitted.
+Among submitted jobs,
+5 job(s) are successfully finished;
+0 job(s) are pending;
+0 job(s) are running;
+1 job(s) have errors.
+All log files are located in folder: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs
+```

@@ -35,7 +35,11 @@ script_preamble: |
 
 # Keywords for alerting messages in log files:
 keywords_alert:
+    # some_other:  # Only used for testing purpose!
     o_file:
         - "xxxx"
+        # - "did not provide --session_label"
     e_file:
-        - "xxxxx"
+        - "xxx"
+        # - "[INFO] Cloning dataset"
+        # - "git remote add outputstore"

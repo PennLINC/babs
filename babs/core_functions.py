@@ -207,7 +207,7 @@ def babs_status(project_root, resubmit=None,
 
     # If `--job-account` is requested:
     if job_account:
-        print("--job-account was requested, babs-status may take longer time...")
+        print("'--job-account' was requested; babs-status may take longer time...")
 
     # Call method `babs_status()`:
     babs_proj.babs_status(flags_resubmit, container_config_yaml_file, job_account)

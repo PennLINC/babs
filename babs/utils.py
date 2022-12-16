@@ -1500,26 +1500,42 @@ def get_config_keywords_alert(container_config_yaml_file):
     ---------------
     config_keywords_alert: dict or None
     """
-    # If there is section 'keywords_alert':
-    if container_config_yaml_file is not None:
+
+    if container_config_yaml_file is not None:  # yaml file is provided
         with open(container_config_yaml_file) as f:
             container_config = yaml.load(f, Loader=yaml.FullLoader)
+
+        # Check if there is section 'keywords_alert':
         if "keywords_alert" in container_config:
             config_keywords_alert = container_config["keywords_alert"]
+            # ^^ if it's empty under `keywords_alert`: config_keywords_alert=None
+
+            # Check if there is either 'o_file' or 'e_file' in "keywords_alert":
+            if config_keywords_alert is not None:  # there is sth under "keywords_alert":
+                if ("o_file" not in config_keywords_alert) & \
+                   ("e_file" not in config_keywords_alert):
+                    # neither is included:
+                    warnings.warn(
+                        "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
+                        " neither 'o_file' nor 'e_file' is included in this section."
+                        " So BABS won't check if there is"
+                        " any alerting message in log files.")
+                    config_keywords_alert = None   # not useful anymore, set to None then.
+            else:  # nothing under "keywords_alert":
+                warnings.warn(
+                    "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
+                    " neither 'o_file' nor 'e_file' is included in this section."
+                    " So BABS won't check if there is"
+                    " any alerting message in log files.")
+                # `config_keywords_alert` is already `None`, no need to set to None
         else:
-            print("There is no section called 'keywords_alert' in the provided"
-                  " `container_config_yaml_file`. So BABS won't check if there is"
-                  " alerting message in log files.")
+            config_keywords_alert = None
+            warnings.warn(
+                "There is no section called 'keywords_alert' in the provided"
+                " `container_config_yaml_file`. So BABS won't check if there is"
+                " any alerting message in log files.")
     else:
         config_keywords_alert = None
-
-    # If 'keywords_alert' section is valid:
-    if ("o_file" not in config_keywords_alert) & ("e_file" not in config_keywords_alert):
-        # neither is included:
-        print("Neither 'o_file' nor 'e_file' is included in section 'keywords_alert'"
-              " in the provided `container_config_yaml_file`. So BABS won't check if there is"
-              " alerting message in log files.")
-        config_keywords_alert = None   # not useful anymore, set to None then.
 
     return config_keywords_alert
 
@@ -1547,7 +1563,8 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
             - if found: ".o file: <keyword>"
     if_no_alert_in_log: bool
         There is no alert message in the log files.
-        When `alert_message` is `msg_no_alert`, or is `np.nan`, this is True;
+        When `alert_message` is `msg_no_alert`,
+        or is `np.nan` (`if_valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
 
     Notes:
@@ -1558,8 +1575,12 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     """
 
     msg_no_alert = "BABS: No alert keyword found in log files."
+    if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
+    # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
+
     if config_keywords_alert is None:
         alert_message = np.nan
+        if_valid_alert_msg = False
     else:
         o_fn = log_fn.replace("*", 'o')
         e_fn = log_fn.replace("*", 'e')
@@ -1596,8 +1617,9 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
 
         else:    # neither o_fn nor e_fn exists yet:
             alert_message = np.nan
+            if_valid_alert_msg = False
 
-    if (alert_message == msg_no_alert) or (np.isnan(alert_message)):  # TODO: fix this bug! cannot `np.isnan(str)`
+    if (alert_message == msg_no_alert) or (not if_valid_alert_msg):
         # either no alert, or `np.nan`
         if_no_alert_in_log = True
     else:   # `alert_message`: np.nan or any other message:
@@ -1654,12 +1676,11 @@ def check_job_account(job_id_str, job_name, username_lowercase):
     jobs under qw, r, etc, or does not exist (not submitted);
     Also, the current username should be the same one as that used for job submission.
     """
-
-    # TODO: Sanity check: `qacct` is fine without error
-    #   if this job is still in queue (qw or r), `qacct` will say:
-    #   'error: job id xxxxx not found'
-
     msg_no_alert_qacct_failed = "qacct: failed: no alert message"
+    # by default, they are valid (i.e., not np.nan):
+    if_valid_msg_toreturn = True
+    if_valid_qacct_failed = True
+    # this is to avoid check `np.isnan(<variable_name>)`, as `np.isnan(str)` causes error.
 
     proc_qacct = subprocess.run(
         ["qacct", "-o", username_lowercase,
@@ -1687,8 +1708,10 @@ def check_job_account(job_id_str, job_name, username_lowercase):
                           + ", " + job_name)
             qacct_failed = np.nan
             msg_toreturn = np.nan
+            if_valid_qacct_failed = False
+            if_valid_msg_toreturn = False
 
-        if not np.isnan(qacct_failed):  # TODO: fix this bug!
+        if if_valid_qacct_failed:
             # example: '       0    '
             qacct_failed = qacct_failed.strip()    # remove the spaces at the beginning and the end
 
@@ -1697,7 +1720,7 @@ def check_job_account(job_id_str, job_name, username_lowercase):
             else:
                 msg_toreturn = msg_no_alert_qacct_failed
 
-    except:   # some error:
+    except subprocess.CalledProcessError:   # if `proc_qacct.check_returncode()` failed:
         # if the job is still in queue (qw or r etc), this will throw out an error:
         #   '.... returned non-zero exit status 1.'
         warnings.warn("Error when `qacct` for job " + job_id_str
@@ -1706,8 +1729,9 @@ def check_job_account(job_id_str, job_name, username_lowercase):
         print("Hint: check if the username used for submitting this job"
               + " was not current username '" + username_lowercase + "'")
         msg_toreturn = np.nan
+        if_valid_msg_toreturn = False
 
-    if (msg_toreturn == msg_no_alert_qacct_failed) or np.isnan(msg_toreturn):
+    if (msg_toreturn == msg_no_alert_qacct_failed) or (not if_valid_msg_toreturn):
         if_no_alert = True
     else:
         if_no_alert = False

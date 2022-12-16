@@ -774,31 +774,32 @@ class BABS():
                     if self.type_session == "single-ses":
                         sub = df_job.at[i_job, "sub_id"]
                         ses = None
-                        pattern_branchname = sub
-                    if self.type_session == "multi-ses":
+                        branchname = "job-" + job_id_str + "-" + sub
+                        # e.g., job-00000-sub-01
+                    elif self.type_session == "multi-ses":
                         sub = df_job.at[i_job, "sub_id"]
                         ses = df_job.at[i_job, "ses_id"]
-                        pattern_branchname = sub + "-" + ses
+                        branchname = "job-" + job_id_str + "-" + sub + "-" + ses
+                        # e.g., job-00000-sub-01-ses-B
+                    print(branchname)
 
                     # Update the "last_line_o_file":
                     df_job_updated.at[i_job, "last_line_o_file"] = \
                         get_last_line(o_fn)
 
-                    # Alert message in log files:
-                    # for jobs that already marked as failed
-                    #   (or `is_done` which already been filtered out)
-                    #   in previous round, can skip checking this keywords alert:
-                    if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False:
-                        # check if there is keyword in log files of a job:
-                        if config_keywords_alert is not None:   # to check:
-                            alert_message_in_log_files, if_no_alert_in_log = \
-                                get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                            df_job_updated.at[i_job, "alert_message"] = \
-                                alert_message_in_log_files
+                    # Check if any alert keywords in log files for this job:
+                    # NOTE: in theory can skip failed jobs in previous round,
+                    #       but making assinging variables hard; so not to skip
+                    #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
+                    alert_message_in_log_files, if_no_alert_in_log = \
+                        get_alert_message_in_log_files(config_keywords_alert, log_fn)
+                    # ^^ the function will handle even if `config_keywords_alert=None`
+                    df_job_updated.at[i_job, "alert_message"] = \
+                        alert_message_in_log_files
 
                     # Check if there is a branch in output RIA:
-                    # if any branch name contains the pattern of current job:
-                    if any(pattern_branchname in branchname for branchname in list_branches):
+                    #   check if branch name of current job is in the list of all branches:
+                    if branchname in list_branches:
                         # found the branch:
                         df_job_updated.at[i_job, "is_done"] = True
                         # reset/update:
@@ -939,6 +940,14 @@ class BABS():
                     # Update the "last_line_o_file":
                     df_job_updated.at[i_job, "last_line_o_file"] = \
                         get_last_line(o_fn)
+
+                    # Check if any alert keywords in log files for this job:
+                    #   this is to update `alert_message` in case user changes yaml file configs.
+                    alert_message_in_log_files, if_no_alert_in_log = \
+                        get_alert_message_in_log_files(config_keywords_alert, log_fn)
+                    # ^^ the function will handle even if `config_keywords_alert=None`
+                    df_job_updated.at[i_job, "alert_message"] = \
+                        alert_message_in_log_files
 
                 # Finish up:
                 print("")
