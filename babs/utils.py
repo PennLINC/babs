@@ -1319,7 +1319,7 @@ def read_job_status_csv(csv_path):
                             })
     return df
 
-def report_job_status(df, analysis_path):
+def report_job_status(df, analysis_path, config_keywords_alert):
     """
     This is to report the job status
     based on the dataframe loaded from `job_status.csv`.
@@ -1331,6 +1331,9 @@ def report_job_status(df, analysis_path):
     analysis_path: str
         Path to the analysis folder.
         This is used to generate the folder of log files
+    config_keywords_alert: dict or None
+        From `get_config_keywords_alert()`
+        This is used to determine if to report `alert_message` column
     """
 
     from .constants import MSG_NO_ALERT_IN_LOGS
@@ -1365,21 +1368,24 @@ def report_job_status(df, analysis_path):
 
             # if there is job failed: print more info by categorizing msg:
             if total_is_failed > 0:
-                print("\nAmong all failed job(s):")
+                if config_keywords_alert is not None:
+                    print("\nAmong all failed job(s):")
                 # get the list of jobs that 'is_failed=True':
                 list_index_job_failed = df.index[df["is_failed"] == True].tolist()
                 # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
 
                 # summarize based on `alert_message` column:
+                
                 all_alert_message = df["alert_message"][list_index_job_failed].tolist()
                 unique_list_alert_message = list(set(all_alert_message))
                 unique_list_alert_message.sort()   # sort and update the list itself
 
-                for unique_alert_msg in unique_list_alert_message:
-                    # count:
-                    temp_count = all_alert_message.count(unique_alert_msg)
-                    print(str(temp_count) + " job(s) have alert message: '" + unique_alert_msg
-                          + "';")
+                if config_keywords_alert is not None:
+                    for unique_alert_msg in unique_list_alert_message:
+                        # count:
+                        temp_count = all_alert_message.count(unique_alert_msg)
+                        print(str(temp_count) + " job(s) have alert message: '"
+                              + str(unique_alert_msg) + "';")
 
                 # if there is 'no_alert' in 'alert_message', check 'job_account' column:
                 if MSG_NO_ALERT_IN_LOGS in unique_list_alert_message:

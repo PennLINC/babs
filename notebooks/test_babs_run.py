@@ -38,8 +38,9 @@ else:
 
 babs_project = op.join(where_project, project_name)
 
-babs_submit(babs_project, count)
+# babs_submit(babs_project, count)
 # babs_status(babs_project)
 # babs_submit_cli()
+babs_status_cli()
 
 print()

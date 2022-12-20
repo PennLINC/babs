@@ -553,11 +553,11 @@ class BABS():
         -------------------
         count: int
             number of jobs to be submitted
-            default: 1 (no upper limit number of job submission)
+            default: 1
             negative value: to submit all jobs
         df_job_specified: pd.DataFrame or None
             list of specified job(s) to submit.
-            columnes: 'sub_id' (and 'ses_id', if multi-ses)
+            columns: 'sub_id' (and 'ses_id', if multi-ses)
             If `--job` was not specified in `babs-submit`, it will be None.
         """
 
@@ -568,8 +568,8 @@ class BABS():
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
 
-        # Check if this csv file has been created, if not, create it:
-        create_job_status_csv(self)
+        # `create_job_status_csv(self)` has been called in `babs_status()`
+        #   in `core_functions.py`
 
         # Load the csv file
         lock_path = self.job_status_path_abs + ".lock"
@@ -596,14 +596,15 @@ class BABS():
                             ses = df_job_specified.at[j_job, 'ses_id']
                             temp = (df_job['sub_id'] == sub) & \
                                 (df_job['ses_id'] == ses)
-                        
+
                         i_job = df_job.index[temp].to_list()
-                        # sanity check: there should only be one `i_job`:
-                        assert_msg = "There are duplications in `job_status.csv`" \
-                            + " for " + sub
-                        if self.type_session == "multi-ses":
-                            assert_msg += ", " + ses
-                        assert len(i_job) == 1, assert_msg + "!"
+                        # # sanity check: there should only be one `i_job`:
+                        # #   ^^ can be removed as done in `core_functions.py`
+                        # assert_msg = "There are duplications in `job_status.csv`" \
+                        #     + " for " + sub
+                        # if self.type_session == "multi-ses":
+                        #     assert_msg += ", " + ses
+                        # assert len(i_job) == 1, assert_msg + "!"
                         i_job = i_job[0]   # take the element out of the list
 
                         # check if the job has already been submitted:
@@ -631,7 +632,8 @@ class BABS():
                                 to_print += ", " + ses
                             to_print += " has already been submitted," \
                                 + " so it won't be submitted again." \
-                                + " If you want to resubmit it, please use `babs-status --resubmit`"
+                                + " If you want to resubmit it," \
+                                + " please use `babs-status --resubmit`"
                             print(to_print)
 
                 else:    # did not specify jobs to submit,
@@ -706,6 +708,7 @@ class BABS():
             print("Another instance of this application currently holds the lock.")
 
     def babs_status(self, flags_resubmit,
+                    df_resubmit_job_specific=None, reckless=False,
                     container_config_yaml_file=None,
                     job_account=False):
         """
@@ -716,6 +719,14 @@ class BABS():
         flags_resubmit: list
             Under what condition to perform job resubmit.
             Element choices are: 'failed', 'pending', 'stalled'.
+        df_resubmit_job_specific: pd.DataFrame or None
+            list of specified job(s) to resubmit, requested by `--resubmit-job`
+            columns: 'sub_id' (and 'ses_id', if multi-ses)
+            if `--resubmit-job` was not specified in `babs-status`, it will be None.
+        reckless: bool
+            Whether to resubmit jobs listed in `df_resubmit_job_specific`,
+            even they're done or running.
+            This is used when `--resubmit-job`
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
@@ -727,8 +738,8 @@ class BABS():
             This step will be skipped if `--resubmit failed` was requested.
         """
 
-        # Check if this csv file has been created, if not, create it:
-        create_job_status_csv(self)
+        # `create_job_status_csv(self)` has been called in `babs_status()`
+        #   in `core_functions.py`
 
         # Load the csv file
         lock_path = self.job_status_path_abs + ".lock"
@@ -786,6 +797,19 @@ class BABS():
                         branchname = "job-" + job_id_str + "-" + sub + "-" + ses
                         # e.g., job-00000-sub-01-ses-B
 
+                    # Check if resubmission of this job is requested:
+                    if_request_resubmit_this_job = False
+                    if df_resubmit_job_specific is not None:
+                        if self.type_session == "single-ses":
+                            temp = df_resubmit_job_specific['sub_id'] == sub
+                        elif self.type_session == "multi-ses":
+                            temp = (df_resubmit_job_specific['sub_id'] == sub) & \
+                                (df_resubmit_job_specific['ses_id'] == ses)
+
+                        if any(temp):   # any matched; `temp` is pd.Series of True or False
+                            if_request_resubmit_this_job = True
+                            print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
+
                     # Update the "last_line_o_file":
                     df_job_updated.at[i_job, "last_line_o_file"] = \
                         get_last_line(o_fn)
@@ -825,17 +849,63 @@ class BABS():
                             # ^^ column `@state`: 'running' or 'pending'
 
                             if state_code == "r":
-                                df_job_updated.at[i_job, "job_state_category"] = state_category
-                                df_job_updated.at[i_job, "job_state_code"] = state_code
-                                # get the duration:
-                                duration = calcu_runtime(
-                                    df_all_job_status.at[job_id_str, "JAT_start_time"])
-                                df_job_updated.at[i_job, "duration"] = duration
+                                # Check if resubmit is requested:
+                                if if_request_resubmit_this_job & (not reckless):
+                                    # requested resubmit, but without `reckless`: print msg
+                                    to_print = "Although resubmit for job: " + sub
+                                    if self.type_session == "multi-ses":
+                                        to_print += ", " + ses
+                                    to_print += " was requested, as this job is running," \
+                                        + " and `--reckless` was not specified, BABS won't" \
+                                        + " resubmit this job."
+                                    warnings.warn(to_print)
 
-                                # do nothing else, just wait
+                                if if_request_resubmit_this_job & reckless:  # force to resubmit:
+                                    # Resubmit:
+                                    # did_resubmit = True
+                                    # print a message:
+                                    to_print = "Resubmit job for " + sub
+                                    if self.type_session == "multi-ses":
+                                        to_print += ", " + ses
+                                    to_print += ", although it was running," \
+                                        + " resubmit for this job was requested" \
+                                        + " and `--reckless` was specified."
+                                    print(to_print)
+
+                                    # kill original one
+                                    proc_kill = subprocess.run(
+                                        ["qdel", job_id_str],
+                                        stdout=subprocess.PIPE
+                                    )
+                                    proc_kill.check_returncode()
+                                    # submit new one:
+                                    job_id_updated, _, log_filename = \
+                                        submit_one_job(self.analysis_path,
+                                                       self.type_session,
+                                                       sub, ses)
+                                    # update fields:
+                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
+                                    df_job_updated.at[i_job, "log_filename"] = log_filename
+                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
+                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
+                                    df_job_updated.at[i_job, "duration"] = np.nan
+                                    df_job_updated.at[i_job, "is_failed"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "alert_message"] = np.nan
+                                    df_job_updated.at[i_job, "job_account"] = np.nan
+
+                                else:   # just let it run:
+                                    df_job_updated.at[i_job, "job_state_category"] = state_category
+                                    df_job_updated.at[i_job, "job_state_code"] = state_code
+                                    # get the duration:
+                                    duration = calcu_runtime(
+                                        df_all_job_status.at[job_id_str, "JAT_start_time"])
+                                    df_job_updated.at[i_job, "duration"] = duration
+
+                                    # do nothing else, just wait
 
                             elif state_code == "qw":
-                                if 'pending' in flags_resubmit:
+                                if ('pending' in flags_resubmit) or (if_request_resubmit_this_job):
                                     # Resubmit:
                                     # did_resubmit = True
                                     # print a message:
@@ -886,7 +956,7 @@ class BABS():
                             # TODO: assign error category in df; also print it out
 
                             # resubmit if requested:
-                            if "failed" in flags_resubmit:
+                            if ("failed" in flags_resubmit) or (if_request_resubmit_this_job):
                                 # Resubmit:
                                 # did_resubmit = True
                                 # print a message:
@@ -923,6 +993,7 @@ class BABS():
                                     msg_job_account = \
                                         check_job_account(job_id_str, job_name, username_lowercase)
                                     df_job_updated.at[i_job, "job_account"] = msg_job_account
+                # Done: submitted jobs that not 'is_done'
 
                 # For 'is_done' jobs in previous round:
                 temp = (df_job['has_submitted']) & (df_job['is_done'])
@@ -935,19 +1006,101 @@ class BABS():
                     log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
                     o_fn = log_fn.replace(".*", ".o")
 
-                    # Update the "last_line_o_file":
-                    df_job_updated.at[i_job, "last_line_o_file"] = \
-                        get_last_line(o_fn)
+                    # Check if resubmission of this job is requested:
+                    if_request_resubmit_this_job = False
+                    if df_resubmit_job_specific is not None:
+                        if self.type_session == "single-ses":
+                            temp = df_resubmit_job_specific['sub_id'] == sub
+                        elif self.type_session == "multi-ses":
+                            temp = (df_resubmit_job_specific['sub_id'] == sub) & \
+                                (df_resubmit_job_specific['ses_id'] == ses)
 
-                    # Check if any alert keywords in log files for this job:
-                    #   this is to update `alert_message` in case user changes yaml file configs.
-                    alert_message_in_log_files, if_no_alert_in_log = \
-                        get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                    # ^^ the function will handle even if `config_keywords_alert=None`
-                    df_job_updated.at[i_job, "alert_message"] = \
-                        alert_message_in_log_files
+                        if any(temp):   # any matched; `temp` is pd.Series of True or False
+                            if_request_resubmit_this_job = True
+                            print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
 
-                # Finish up:
+                    # if want to resubmit, but `--reckless` is NOT specified: print msg:
+                    if if_request_resubmit_this_job & (not reckless):
+                        to_print = "Although resubmit for job: " + sub
+                        if self.type_session == "multi-ses":
+                            to_print += ", " + ses
+                        to_print += " was requested, as this job is done," \
+                            + " and `--reckless` was not specified, BABS won't" \
+                            + " resubmit this job."
+                        warnings.warn(to_print)
+
+                    # if resubmit is requested, and `--reckless` is specified:
+                    if if_request_resubmit_this_job & reckless:
+                        # Resubmit:
+                        # did_resubmit = True
+                        # print a message:
+                        to_print = "Resubmit job for " + sub
+                        if self.type_session == "multi-ses":
+                            to_print += ", " + ses
+                        to_print += ", although it is done," \
+                            + " resubmit for this job was requested" \
+                            + " and `--reckless` was specified."
+                        print(to_print)
+
+                        # TODO: delete the original branch?
+
+                        # kill original one
+                        proc_kill = subprocess.run(
+                            ["qdel", job_id_str],
+                            stdout=subprocess.PIPE
+                        )
+                        proc_kill.check_returncode()
+                        # submit new one:
+                        job_id_updated, _, log_filename = \
+                            submit_one_job(self.analysis_path,
+                                           self.type_session,
+                                           sub, ses)
+                        # update fields:
+                        df_job_updated.at[i_job, "job_id"] = job_id_updated
+                        df_job_updated.at[i_job, "log_filename"] = log_filename
+                        df_job_updated.at[i_job, "job_state_category"] = np.nan
+                        df_job_updated.at[i_job, "job_state_code"] = np.nan
+                        df_job_updated.at[i_job, "duration"] = np.nan
+                        df_job_updated.at[i_job, "is_done"] = False
+                        df_job_updated.at[i_job, "is_failed"] = np.nan
+                        df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                        df_job_updated.at[i_job, "alert_message"] = np.nan
+                        df_job_updated.at[i_job, "job_account"] = np.nan
+
+                    else:    # did not request resubmit, or `--reckless` is None:
+                        # just perform normal stuff for a successful job:
+                        # Update the "last_line_o_file":
+                        df_job_updated.at[i_job, "last_line_o_file"] = \
+                            get_last_line(o_fn)
+                        # Check if any alert keywords in log files for this job:
+                        #   this is to update `alert_message` in case user changes configs in yaml
+                        alert_message_in_log_files, if_no_alert_in_log = \
+                            get_alert_message_in_log_files(config_keywords_alert, log_fn)
+                        # ^^ the function will handle even if `config_keywords_alert=None`
+                        df_job_updated.at[i_job, "alert_message"] = \
+                            alert_message_in_log_files
+                # Done: 'is_done' jobs.
+
+                # For jobs that haven't been submitted yet:
+                #   just to throw out warnings if `--resubmit-job` was requested...
+                if df_resubmit_job_specific is not None:
+                    # only keep those not submitted:
+                    df_job_not_submitted = df_job[~df_job["has_submitted"]]
+                    # only keep columns of `sub_id` and `ses_id`:
+                    if self.type_session == "single-ses":
+                        df_job_not_submitted_slim = df_job_not_submitted[["sub_id"]]
+                    elif self.type_session == "multi-ses":
+                        df_job_not_submitted_slim = df_job_not_submitted[["sub_id", "ses_id"]]
+
+                    # check if `--resubmit-job` was requested for any these jobs:
+                    df_intersection = df_resubmit_job_specific.merge(df_job_not_submitted_slim)
+                    if len(df_intersection) > 0:
+                        warnings.warn("Jobs for some of the subjects (and sessions) requested in"
+                                      + " `--resubmit-job` haven't been submitted yet."
+                                      + " Please use `babs-submit` first.")
+                # Done: jobs that haven't submitted yet
+
+                # Finish up `babs-status`:
                 print("")
                 with pd.option_context('display.max_rows', None,
                                        'display.max_columns', None,
@@ -959,7 +1112,7 @@ class BABS():
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
 
                 # Report the job status:
-                report_job_status(df_job_updated, self.analysis_path)
+                report_job_status(df_job_updated, self.analysis_path, config_keywords_alert)
 
         except Timeout:   # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,

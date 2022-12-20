@@ -172,6 +172,17 @@ def babs_status_cli():
              "(example qstat code: 'eqw')."
         )
     parser.add_argument(
+        '--resubmit-job',
+        action="append",   # append each `--resubmit-job` as a list;
+        nargs="+",
+        help="The subject ID (and session ID) whose job to be resubmitted."
+        " Can repeat to submit more than one job.")
+    parser.add_argument(
+        '--reckless',
+        action='store_true',
+        # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
+        help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running")
+    parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
         " of how to run the BIDS App container. It may include 'keywords_alert' section"
@@ -181,14 +192,14 @@ def babs_status_cli():
         action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
         help="Whether to account failed jobs, which may take some time."
-             " If '--resubmit failed' is also requested, this will be skipped.")
-
-    # TODO: to add `--resubmit-job <specific sub and ses>`
+             " If `--resubmit failed` or `--resubmit-job` for this failed job is also requested,"
+             " this `--job-account` will be skipped.")
 
     args = parser.parse_args()
 
     babs_status(args.project_root,
                 args.resubmit,
+                args.resubmit_job, args.reckless,
                 args.container_config_yaml_file,
                 args.job_account)
 

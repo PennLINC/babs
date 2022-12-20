@@ -15,7 +15,9 @@
                 "PYDEVD_WARN_EVALUATION_TIMEOUT": "500"
             },
             // "args": ["--project-root", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
-            //         "--job", "sub-01", "ses-A"],
+            //         "--resubmit-job", "sub-01", "ses-A",
+            //         "--resubmit-job", "sub-01", "ses-B",
+            //         "--resubmit-job", "sub-01", "ses-A"],
         }
     ]
 }

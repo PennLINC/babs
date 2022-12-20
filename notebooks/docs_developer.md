@@ -14,27 +14,45 @@
         * get last line of `.o` file
         * check if any alert message in the log files (based on 'keywords_alert')
         * if there is a branch of current job in output RIA, the job is done, and update `df_job_updated`
-        * if not, the job is pending/running/error/eqw:
+        * if not, the job is pending/running/failed/eqw:
             * if the job is in the queue `df_all_job_status`, i.e., is pending/running/eqw:
-                * if `r`: update `df_job_updated`
+                * if `r`: 
+                    * if `--resubmit-job` for this job & `--reckless`: resubmit
+                    * else: update `df_job_updated`
                 * if `qw`: 
-                    * resubmit if 'pending' in `flags_resubmit`: resubmit and update `df_job_updated`
+                    * resubmit if 'pending' in `flags_resubmit`, or request specifically: resubmit and update `df_job_updated`
                 * if `eqw`: **TODO**
-            * else, i.e., not in the queue, so error:
+            * else, i.e., not in the queue, so failed:
                 * update `df_job_updated`
-                * resubmit if 'error' in `flags_resubmit`: resubmit and update `df_job_updated`
+                * resubmit if 'failed' in `flags_resubmit`, or request specifically: resubmit and update `df_job_updated`
                 * if did not resubmit:
                     * if `--job-account` and no alert keywords in logs:
                         * do `qacct`, and update 'job_account' column.
             
     * for each job that marked as "is_done" in previous round:
-        * get last line of `.o` file. Purpose: when marked as 'is_done' (got branch in output RIA), the job hasn't been finished yet, and needs to do `datalad drop` etc before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_o_file' for 'is_done' jobs.
-        * check if any alert message in the log files (based on 'keywords_alert'); Purpose: update it for successful jobs too in case user updates the configs in yaml file
+        * if `--resubmit-job` for this job & `--reckless`: resubmit
+        * else:
+            * get last line of `.o` file. Purpose: when marked as 'is_done' (got branch in output RIA), the job hasn't been finished yet, and needs to do `datalad drop` etc before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_o_file' for 'is_done' jobs.
+            * check if any alert message in the log files (based on 'keywords_alert'); Purpose: update it for successful jobs too in case user updates the configs in yaml file
+
+    * for jobs that haven't been submitted yet:
+        * if `--resubmit-job` is requested, check if any requested jobs are not submitted yet; if so, throw out a warning
+
     * save `df_jobs_updated`
     * summarize the job status and report                    
 
 Summary:
 - 'keywords_alert' is detected in all submitted jobs, no matter 'is_done' in previous round or not
+
+## Resubmit based on job's status:
+| job status | what to do if resubmit is requested | progress | tested? |
+| :-- | :--|:-- | :-- |
+| not submitted | warning: `babs-submit` first | added | not tested yet |
+| submitted, qw | resubmit | added | not tested yet |
+| submitted, running | with `--reckless`, resubmit; else, warning, not to resubmit | added | not tested yet |
+| submitted, eqw | resubmit |
+| submitted, failed | resubmit | added | not tested yet |
+| submitted, is_done | with `--reckless`, resubmit; else, warning, not to resubmit | added, one TODO | not tested yet |
 
 
 # Example `job_status.csv`
