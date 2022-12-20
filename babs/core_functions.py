@@ -6,10 +6,14 @@ import pandas as pd
 import yaml
 # from tqdm import tqdm
 import datalad.api as dlapi
+import warnings
+from filelock import Timeout, FileLock
 
 from babs.babs import BABS, Input_ds, System
 from babs.utils import (get_datalad_version,
-                        validate_type_session)
+                        validate_type_session,
+                        read_job_status_csv,
+                        create_job_status_csv)
 
 
 def babs_init(where_project, project_name,
@@ -114,12 +118,16 @@ def babs_submit(project_root, count=None, job=None):
         default: None (did not specify in cli)
             if `--job` is not requested, it will be changed to `1` before going into `babs_submit()`
         any negative int will be treated as submitting all jobs that haven't been submitted.
-    job: nested list
+    job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
     """
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj = get_existing_babs_proj(project_root)
+
+    # Check if this csv file has been created, if not, create it:
+    create_job_status_csv(babs_proj)
+    # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
     if count is None:
@@ -142,7 +150,7 @@ def babs_submit(project_root, count=None, job=None):
             # expected length in each sub-list:
             assert len(job[i_job]) == expected_len, \
                 "There should be " + str(expected_len) + " arguments in `--job`," \
-                    + " as input dataset(s) is " + babs_proj.type_session + "!"
+                + " as input dataset(s) is " + babs_proj.type_session + "!"
             # 1st argument:
             assert job[i_job][0][0:4] == "sub-", \
                 "The 1st argument of `--job`" + " should be 'sub-*'!"
@@ -152,12 +160,23 @@ def babs_submit(project_root, count=None, job=None):
                     "The 2nd argument of `--job`" + " should be 'ses-*'!"
 
         # turn into a pandas DataFrame:
-        df_job_specified = pd.DataFrame(None,
-                                        index=list(range(0, len(job))),
-                                        columns=['sub_id', 'ses_id'])
+        if babs_proj.type_session == "single-ses":
+            df_job_specified = pd.DataFrame(None,
+                                            index=list(range(0, len(job))),
+                                            columns=['sub_id'])
+        elif babs_proj.type_session == "multi-ses":
+            df_job_specified = pd.DataFrame(None,
+                                            index=list(range(0, len(job))),
+                                            columns=['sub_id', 'ses_id'])
         for i_job in range(0, len(job)):
             df_job_specified.at[i_job, "sub_id"] = job[i_job][0]
-            df_job_specified.at[i_job, "ses_id"] = job[i_job][1]
+            if babs_proj.type_session == "multi-ses":
+                df_job_specified.at[i_job, "ses_id"] = job[i_job][1]
+
+        # sanity check:
+        df_job_specified = \
+            check_df_job_specific(df_job_specified, babs_proj.job_status_path_abs,
+                                  babs_proj.type_session, "babs-submit")
     else:  # `job` is None:
         df_job_specified = None
 
@@ -165,6 +184,7 @@ def babs_submit(project_root, count=None, job=None):
     babs_proj.babs_submit(count, df_job_specified)
 
 def babs_status(project_root, resubmit=None,
+                resubmit_job=None, reckless=False,
                 container_config_yaml_file=None,
                 job_account=False):
     """
@@ -176,6 +196,11 @@ def babs_status(project_root, resubmit=None,
         absolute path to the directory of BABS project
     resubmit: nested list or None
         each sub-list: one of 'failed', 'pending', 'stalled'
+    resubmit_job: nested list or None
+        For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
+    reckless: bool
+        Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
+        This is used when `--resubmit-job`
     container_config_yaml_file: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
@@ -188,6 +213,10 @@ def babs_status(project_root, resubmit=None,
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj = get_existing_babs_proj(project_root)
+
+    # Check if this csv file has been created, if not, create it:
+    create_job_status_csv(babs_proj)
+    # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Get the list of resubmit conditions:
     if resubmit is not None:   # user specified --resubmit
@@ -214,15 +243,72 @@ def babs_status(project_root, resubmit=None,
         if "failed" not in flags_resubmit:
             print("'--job-account' was requested; `babs-status` may take longer time...")
         else:
-            # this is meaningless to ren `job-account` if resubmitting anyway:
+            # this is meaningless to run `job-account` if resubmitting anyway:
             print(
                 "Although '--job-account' was requested,"
                 + " as '--resubmit failed' was also requested,"
                 + " it's meaningless to run job account on previous failed jobs,"
                 + " so will skip '--job-account'")
 
+    # If `resubmit-job` is requested:
+    if resubmit_job is not None:
+        # sanity check:
+        if babs_proj.type_session == "single-ses":
+            expected_len = 1
+        elif babs_proj.type_session == "multi-ses":
+            expected_len = 2
+
+        for i_job in range(0, len(resubmit_job)):
+            # expected length in each sub-list:
+            assert len(resubmit_job[i_job]) == expected_len, \
+                "There should be " + str(expected_len) + " arguments in `--resubmit-job`," \
+                + " as input dataset(s) is " + babs_proj.type_session + "!"
+            # 1st argument:
+            assert resubmit_job[i_job][0][0:4] == "sub-", \
+                "The 1st argument of `--resubmit-job`" + " should be 'sub-*'!"
+            if babs_proj.type_session == "multi-ses":
+                # 2nd argument:
+                assert resubmit_job[i_job][1][0:4] == "ses-", \
+                    "The 2nd argument of `--resubmit-job`" + " should be 'ses-*'!"
+
+        # turn into a pandas DataFrame:
+        if babs_proj.type_session == "single-ses":
+            df_resubmit_job_specific = \
+                pd.DataFrame(None,
+                             index=list(range(0, len(resubmit_job))),
+                             columns=['sub_id'])
+        elif babs_proj.type_session == "multi-ses":
+            df_resubmit_job_specific = \
+                pd.DataFrame(None,
+                             index=list(range(0, len(resubmit_job))),
+                             columns=['sub_id', 'ses_id'])
+
+        for i_job in range(0, len(resubmit_job)):
+            df_resubmit_job_specific.at[i_job, "sub_id"] = resubmit_job[i_job][0]
+            if babs_proj.type_session == "multi-ses":
+                df_resubmit_job_specific.at[i_job, "ses_id"] = resubmit_job[i_job][1]
+
+        # sanity check:
+        df_resubmit_job_specific = \
+            check_df_job_specific(df_resubmit_job_specific, babs_proj.job_status_path_abs,
+                                  babs_proj.type_session, "babs-status")
+
+        if len(df_resubmit_job_specific) > 0:
+            if reckless:    # if `--reckless`:
+                print("Will resubmit all the job(s) listed in `--resubmit-job`,"
+                      + " even if they're done or running.")
+            else:
+                print("Will resubmit the job(s) listed in `--resubmit-job`,"
+                      + " if they're pending, failed or stalled.")
+        else:    # in theory should not happen, but just in case:
+            raise Exception("There is no valid job in --resubmit-job!")
+
+    else:   # `--resubmit-job` is None:
+        df_resubmit_job_specific = None
+
     # Call method `babs_status()`:
-    babs_proj.babs_status(flags_resubmit, container_config_yaml_file, job_account)
+    babs_proj.babs_status(flags_resubmit, df_resubmit_job_specific, reckless,
+                          container_config_yaml_file, job_account)
 
 def get_existing_babs_proj(project_root):
     """
@@ -264,3 +350,90 @@ def get_existing_babs_proj(project_root):
     babs_proj.wtf_key_info(flag_output_ria_only=True)
 
     return babs_proj
+
+
+def check_df_job_specific(df, job_status_path_abs,
+                          type_session, which_function):
+    """
+    This is to perform sanity check on the pd.DataFrame `df`
+    which is used by `babs-submit --job` and `babs-status --resubmit-job`.
+    Sanity checks include:
+    1. Remove any duplicated jobs in requests
+    2. Check if requested jobs are part of the inclusion jobs to run
+
+    Parameters:
+    ------------------
+    df: pd.DataFrame
+        i.e., `df_job_specific`
+        list of sub_id (and ses_id, if multi-ses) that the user requests to submit or resubmit
+    job_status_path_abs: str
+        absolute path to the `job_status.csv`
+    type_session: str
+        'single-ses' or 'multi-ses'
+    which_function: str
+        'babs-status' or 'babs-submit'
+        The warning message will be tailored based on this.
+
+    Returns:
+    ----------------
+    df: pd.DataFrame
+        after removing duplications, if there is
+
+    Notes:
+    --------------
+    The `job_status.csv` file must present before running this function!
+    Please use `create_job_status_csv()` from `utils.py` to create
+
+    TODO:
+    -------------
+    if `--job-csv` is added in `babs-submit`, update the `which_function`
+    so that warnings/error messages are up-to-date (using `--job or --job-csv`)
+    """
+
+    # 1. Sanity check: there should not be duplications in `df`:
+    df_unique = df.drop_duplicates(keep='first')   # default: keep='first'
+    if df_unique.shape[0] != df.shape[0]:
+        to_print = "There are duplications in requested "
+        if which_function == "babs-submit":
+            to_print += "`--job`"
+        elif which_function == "babs-status":
+            to_print += "`--resubmit-job`"
+        else:
+            raise Exception("Invalid `which_function`: " + which_function)
+        to_print += " . Only the first occuration(s) will be kept..."
+        warnings.warn(to_print)
+
+        df = df_unique   # update with the unique one
+
+    # 2. Sanity check: `df` should be a sub-set of all jobs:
+    # read the `job_status.csv`:
+    lock_path = job_status_path_abs + ".lock"
+    lock = FileLock(lock_path)
+    try:
+        with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
+            df_job = read_job_status_csv(job_status_path_abs)
+
+            # check if `df` is sub-set of `df_job`:
+            df_intersection = df.merge(df_job).drop_duplicates()
+            # `df_job` should not contain duplications, but just in case..
+            # ^^ ref: https://stackoverflow.com/questions/49530918/
+            #           check-if-pandas-dataframe-is-subset-of-other-dataframe
+            if len(df_intersection) != len(df):
+                to_print = "Some of the subjects (and sessions) requested in "
+                if which_function == "babs-submit":
+                    to_print += "`--job`"
+                elif which_function == "babs-status":
+                    to_print += "`--resubmit-job`"
+                else:
+                    raise Exception("Invalid `which_function`: " + which_function)
+                to_print += " are not in the final list of included subjects (and sessions)." \
+                    + " Path to this final inclusion list is at: " \
+                    + job_status_path_abs
+                raise Exception(to_print)
+
+    except Timeout:   # after waiting for time defined in `timeout`:
+        # if another instance also uses locks, and is currently running,
+        #   there will be a timeout error
+        print("Another instance of this application currently holds the lock.")
+
+    return df
