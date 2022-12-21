@@ -71,6 +71,10 @@ script_preamble: |
 # ^^ based on what you need on your cluster; some people even don't use `conda`...
 # for MSI, might need to add command e.g., "module_load"
 
+# TODO: incorporate below:
+compute_job_working_dir:
+    $CBICA_TMPDIR # or, "/cbica/comp_space/${source xxx}"
+
 # Below is to filter out subjects (or sessions)
 #   right now we only filter based on unzipped dataset
 required_files:
