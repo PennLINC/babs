@@ -790,7 +790,6 @@ class BABS():
                         ses = None
                         branchname = "job-" + job_id_str + "-" + sub
                         # e.g., job-00000-sub-01
-                        print(branchname)   # TODO: remove this printing if branchname looks good
                     elif self.type_session == "multi-ses":
                         sub = df_job.at[i_job, "sub_id"]
                         ses = df_job.at[i_job, "ses_id"]
@@ -808,7 +807,8 @@ class BABS():
 
                         if any(temp):   # any matched; `temp` is pd.Series of True or False
                             if_request_resubmit_this_job = True
-                            print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
+                            # print("debugging purpose: request to resubmit job: " + sub + ", " + ses)
+                            # ^^ only for multi-ses!
 
                     # Update the "last_line_o_file":
                     df_job_updated.at[i_job, "last_line_o_file"] = \
@@ -942,6 +942,43 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
 
+                            elif state_code == "eqw":
+                                if ('stalled' in flags_resubmit) or (if_request_resubmit_this_job):
+                                    # Resubmit:
+                                    # did_resubmit = True
+                                    # print a message:
+                                    to_print = "Resubmit job for " + sub
+                                    if self.type_session == "multi-ses":
+                                        to_print += ", " + ses
+                                    to_print += ", as it was stalled and resubmit was requested."
+                                    print(to_print)
+
+                                    # kill original one
+                                    proc_kill = subprocess.run(
+                                        ["qdel", job_id_str],
+                                        stdout=subprocess.PIPE
+                                    )
+                                    proc_kill.check_returncode()
+                                    # submit new one:
+                                    job_id_updated, _, log_filename = \
+                                        submit_one_job(self.analysis_path,
+                                                       self.type_session,
+                                                       sub, ses)
+                                    # update fields:
+                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
+                                    df_job_updated.at[i_job, "log_filename"] = log_filename
+                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
+                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
+                                    df_job_updated.at[i_job, "duration"] = np.nan
+                                    df_job_updated.at[i_job, "is_failed"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "alert_message"] = np.nan
+                                    df_job_updated.at[i_job, "job_account"] = np.nan
+                                else:   # not to resubmit:
+                                    # update fields:
+                                    df_job_updated.at[i_job, "job_state_category"] = state_category
+                                    df_job_updated.at[i_job, "job_state_code"] = state_code
+
                         else:   # did not find in `df_all_job_status`, i.e., job queue
                             # probably error
                             df_job_updated.at[i_job, "is_failed"] = True
@@ -1006,6 +1043,17 @@ class BABS():
                     log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
                     o_fn = log_fn.replace(".*", ".o")
 
+                    if self.type_session == "single-ses":
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = None
+                        branchname = "job-" + job_id_str + "-" + sub
+                        # e.g., job-00000-sub-01
+                    elif self.type_session == "multi-ses":
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = df_job.at[i_job, "ses_id"]
+                        branchname = "job-" + job_id_str + "-" + sub + "-" + ses
+                        # e.g., job-00000-sub-01-ses-B
+
                     # Check if resubmission of this job is requested:
                     if_request_resubmit_this_job = False
                     if df_resubmit_job_specific is not None:
@@ -1017,7 +1065,8 @@ class BABS():
 
                         if any(temp):   # any matched; `temp` is pd.Series of True or False
                             if_request_resubmit_this_job = True
-                            print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
+                            # print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
+                            # ^^ only for multi-ses
 
                     # if want to resubmit, but `--reckless` is NOT specified: print msg:
                     if if_request_resubmit_this_job & (not reckless):
@@ -1101,12 +1150,13 @@ class BABS():
                 # Done: jobs that haven't submitted yet
 
                 # Finish up `babs-status`:
-                print("")
-                with pd.option_context('display.max_rows', None,
-                                       'display.max_columns', None,
-                                       'display.width', 120):   # default is 80 characters...
-                    # ^^ print all columns and rows (with returns)
-                    print(df_job_updated.head(6))
+                # # print udpated df:
+                # print("")
+                # with pd.option_context('display.max_rows', None,
+                #                        'display.max_columns', None,
+                #                        'display.width', 120):   # default is 80 characters...
+                #     # ^^ print all columns and rows (with returns)
+                #     print(df_job_updated.head(6))
 
                 # save updated df:
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)

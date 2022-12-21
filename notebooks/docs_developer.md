@@ -47,11 +47,11 @@ Summary:
 ## Resubmit based on job's status:
 | job status | what to do if resubmit is requested | progress | tested? |
 | :-- | :--|:-- | :-- |
-| not submitted | warning: `babs-submit` first | added | not tested yet |
-| submitted, qw | resubmit | added | not tested yet |
-| submitted, running | with `--reckless`, resubmit; else, warning, not to resubmit | added | not tested yet |
-| submitted, eqw | resubmit |
-| submitted, failed | resubmit | added | not tested yet |
+| not submitted | warning: `babs-submit` first | added | edge case, not tested yet |
+| submitted, qw | resubmit | added | tested with multi-ses data |
+| submitted, running | with `--reckless`, resubmit; else, warning, not to resubmit | added | edge case, not tested yet |
+| submitted, eqw | resubmit | added | not tested yet, as cannot enter eqw... |
+| submitted, failed | resubmit | added | tested with multi-ses data |
 | submitted, is_done | with `--reckless`, resubmit; else, warning, not to resubmit | added, one TODO | not tested yet |
 
 
@@ -70,3 +70,12 @@ when `print(df)` by python:
 0       NaN    False        NaN           NaN               NaN            NaN          NaN 
 ```
 (`0` at the beginning: index of pd.DataFrame)
+
+# Testing
+## Create pending, failed, or stalled jobs
+Change/Add these in `participant_job.sh`:
+- failed: add `-l h_rt=0:0:20` (hard runtime limit is 20 sec)
+- pending: increase `-l h_vmem` and `-l s_vmem`; increase `-pe threaded N`
+- stalled (`eqw`): see Bergman email 12/20/22
+
+After these changes, `datalad save -m "message"` and `datalad push --to input`

@@ -176,12 +176,16 @@ def babs_status_cli():
         action="append",   # append each `--resubmit-job` as a list;
         nargs="+",
         help="The subject ID (and session ID) whose job to be resubmitted."
-        " Can repeat to submit more than one job.")
+        " Can repeat to submit more than one job."
+        " Currently, this can only resubmit pending, failed, or stalled jobs.")
+    # ^^ NOTE: ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
+    #                   but fix the issue - Bergman 12/20/22 email
     parser.add_argument(
         '--reckless',
         action='store_true',
         # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
-        help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running")
+        help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
+        " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"

@@ -1378,7 +1378,8 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                 
                 all_alert_message = df["alert_message"][list_index_job_failed].tolist()
                 unique_list_alert_message = list(set(all_alert_message))
-                unique_list_alert_message.sort()   # sort and update the list itself
+                # unique_list_alert_message.sort()   # sort and update the list itself
+                # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
 
                 if config_keywords_alert is not None:
                     for unique_alert_msg in unique_list_alert_message:
@@ -1407,7 +1408,8 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                         all_job_account = pdseries.tolist()
                         # ^^ only limit to jobs failed & no alert keywords in log files
                         unique_list_job_account = list(set(all_job_account))
-                        unique_list_job_account.sort()   # sort and update the list itself
+                        # unique_list_job_account.sort()   # sort and update the list itself
+                        # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
 
                         print("\nAmong job(s) that are failed"
                               + " and don't have alert keyword in log files:")

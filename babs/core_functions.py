@@ -235,20 +235,20 @@ def babs_status(project_root, resubmit=None,
             + " or ".join(flags_resubmit) + ".")   # e.g., `failed`; `failed or pending`
 
     else:   # `resubmit` is None:
-        print("Did not request any flags of resubmit.")
+        print("Did not request resubmit based on job states (no `--resubmit`).")
         flags_resubmit = []   # empty list
 
     # If `--job-account` is requested:
     if job_account:
         if "failed" not in flags_resubmit:
-            print("'--job-account' was requested; `babs-status` may take longer time...")
+            print("`--job-account` was requested; `babs-status` may take longer time...")
         else:
             # this is meaningless to run `job-account` if resubmitting anyway:
             print(
-                "Although '--job-account' was requested,"
-                + " as '--resubmit failed' was also requested,"
+                "Although `--job-account` was requested,"
+                + " as `--resubmit failed` was also requested,"
                 + " it's meaningless to run job account on previous failed jobs,"
-                + " so will skip '--job-account'")
+                + " so will skip `--job-account`")
 
     # If `resubmit-job` is requested:
     if resubmit_job is not None:
@@ -327,6 +327,11 @@ def get_existing_babs_proj(project_root):
     babs_proj: class `BABS`
         information about a BABS project
     """
+
+    # Sanity check: the path `project_root` exists:
+    if op.exists(project_root) is False:
+        raise Exception("`--project-root` does not exist! Requested `--project-root` was: "
+                        + project_root)
 
     # Read configurations of BABS project from saved yaml file:
     babs_proj_config_yaml = op.join(project_root,
