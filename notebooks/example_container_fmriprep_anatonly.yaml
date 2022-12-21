@@ -40,7 +40,8 @@ babs_singularity_run:
     #--cifti-output: 91k   # ADD THIS WHEN FULL RUN!
     -v: '-v'   # TODO: explain in docs: this is for double "-v". # as it's dict, cannot have identical keys... otherwise the latter key + value will overwrite the former one..# if tripple `-v`: `-v: '-v -v'`
     --sloppy: ''      # ADD THIS WHEN TEST RUN!
-    --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
+    --anat-only: ''   # ADD THIS WHEN ONLY RUNNING FREESURFER!
+    # --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
@@ -57,6 +58,7 @@ cluster_resources:
     hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
     soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
+    hard_runtime_limit: "48:00:00"    # 2 days # ADD THIS WHEN ONLY RUNNING FREESURFER!
     customized_text: |
         #$ -R y
 
@@ -71,15 +73,11 @@ script_preamble: |
 # ^^ based on what you need on your cluster; some people even don't use `conda`...
 # for MSI, might need to add command e.g., "module_load"
 
-# TODO: incorporate below:
-compute_job_working_dir:
-    $CBICA_TMPDIR # or, "/cbica/comp_space/${source xxx}"
-
 # Below is to filter out subjects (or sessions)
 #   right now we only filter based on unzipped dataset
 required_files:
     $INPUT_DATASET_#1:
-        - "func/*_bold.nii*"
+        # - "func/*_bold.nii*"    # ADD THIS WHEN RUNNING FMRIPREP!
         - "anat/*_T1w.nii*"
 
 # - "dwi/*_dwi.nii*"   # QSIPrep
@@ -87,6 +85,7 @@ required_files:
 # Keywords for alerting messages in log files:
 keywords_alert:
     o_file:
+        - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
         - "Cannot allocate memory"
         - "mris_curvature_stats: Could not open file"
         - "Numerical result out of range"

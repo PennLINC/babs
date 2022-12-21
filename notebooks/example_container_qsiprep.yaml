@@ -45,7 +45,6 @@ cluster_resources:
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
 
-
 required_files:
     $INPUT_DATASET_#1:
         - "dwi/*_dwi.nii*"   # QSIPrep

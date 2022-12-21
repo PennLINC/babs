@@ -14,9 +14,9 @@ babs_zip_foldername:   # the foldername(s) to get zipped and the version string(
 # TODO: add to docs: best to quote the values if numbers only
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
-    hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
-    soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic
-    temporary_disk_space: 50G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
+    hard_memory_limit: 2G   # "-l h_vmem=25G" on cubic
+    # soft_memory_limit: 1.75G   # "-l s_vmem=23.5G" on cubic
+    temporary_disk_space: 20G   # "-l tmpfree=50G" on cubic  # this is highly-recommended on cubic
     customized_text: |
         #$ -R y
 
@@ -33,3 +33,13 @@ script_preamble: |
 #     $INPUT_DATASET_#1:
 #         - ""
 
+# Keywords for alerting messages in log files:
+keywords_alert:
+    # some_other:  # Only used for testing purpose!
+    o_file:
+        - "xxxx"
+        # - "did not provide --session_label"
+    e_file:
+        - "xxx"
+        # - "[INFO] Cloning dataset"
+        # - "git remote add outputstore"

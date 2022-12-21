@@ -5,7 +5,7 @@ import argparse
 # import os.path as op
 # import sys
 
-from babs.core_functions import babs_init
+from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import validate_type_session
 
 
@@ -88,6 +88,124 @@ def babs_init_cli():
               args.container_ds,
               args.container_name, args.container_config_yaml_file,
               args.type_session, args.type_system)
+
+
+def babs_submit_cli():
+    """
+    Submit jobs.
+
+    Can choose one of these flags:
+    --count <number of jobs to submit>  # should be larger than # of `--job`
+    --all   # if specified, will submit all remaining jobs that haven't been submitted.
+    --job sub-id ses-id   # can repeat
+
+    If none of these flags are specified, will only submit one job.
+
+    Example command:
+    # TODO: to add an example command here!
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Submit jobs that will be run on cluster compute nodes.")
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+
+    # --count, --job: can only request one of them
+    # and none of them are required.
+    group = parser.add_mutually_exclusive_group(required=False)
+    group.add_argument(
+        "--count",
+        type=int,
+        help="Number of jobs to submit. It should be a positive integer.")
+    group.add_argument(
+        "--all",
+        action='store_true',
+        # ^^ if `--all` is specified, args.all = True; otherwise, False
+        help="Request to run all jobs that haven't been submitted.")
+    group.add_argument(
+        "--job",
+        action='append',   # append each `--job` as a list;
+        nargs='+',
+        help="The subject ID (and session ID) whose job to be submitted."
+        " Can repeat to submit more than one job.")
+
+    args = parser.parse_args()
+
+    if args.all:   # if True:
+        args.count = -1  # so that to submit all remaining jobs
+
+    babs_submit(args.project_root,
+                args.count,  # if not provided, will be `None`
+                args.job)
+
+def babs_status_cli():
+    """
+    Check job status.
+
+    Example command:
+    # TODO: to add an example command here!
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Check job status in a BABS project.")
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        '--resubmit',
+        action='append',   # append each `--resubmit` as a list;
+        # ref: https://docs.python.org/3/library/argparse.html
+        nargs=1,   # expect 1 argument per `--resubmit` from the command line;
+        choices=['failed', 'pending', 'stalled'],
+        metavar=('condition to resubmit'),
+        help="Under what condition to perform job resubmit. "
+             "'failed': the previous submitted job failed "
+             "('is_failed' = True in 'job_status.csv'); "
+             "'pending': the previous submitted job is pending (without error) in the queue "
+             "(example qstat code: 'qw'); "
+             "'stalled': the previous submitted job is pending with error in the queue "
+             "(example qstat code: 'eqw')."
+        )
+    parser.add_argument(
+        '--resubmit-job',
+        action="append",   # append each `--resubmit-job` as a list;
+        nargs="+",
+        help="The subject ID (and session ID) whose job to be resubmitted."
+        " Can repeat to submit more than one job."
+        " Currently, this can only resubmit pending, failed, or stalled jobs.")
+    # ^^ NOTE: ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
+    #                   but fix the issue - Bergman 12/20/22 email
+    parser.add_argument(
+        '--reckless',
+        action='store_true',
+        # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
+        help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
+        " WARNING: This hasn't been tested yet!!!")
+    parser.add_argument(
+        '--container_config_yaml_file', '--container-config-yaml-file',
+        help="Path to a YAML file that contains the configurations"
+        " of how to run the BIDS App container. It may include 'keywords_alert' section"
+        " to be used by babs-status.")
+    parser.add_argument(
+        '--job_account', '--job-account',
+        action='store_true',
+        # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
+        help="Whether to account failed jobs, which may take some time."
+             " If `--resubmit failed` or `--resubmit-job` for this failed job is also requested,"
+             " this `--job-account` will be skipped.")
+
+    args = parser.parse_args()
+
+    babs_status(args.project_root,
+                args.resubmit,
+                args.resubmit_job, args.reckless,
+                args.container_config_yaml_file,
+                args.job_account)
 
 # if __name__ == "__main__":
 #     babs_init_cli()

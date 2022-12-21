@@ -11,6 +11,12 @@ import glob
 import regex
 import copy
 import pandas as pd
+import numpy as np
+from filelock import Timeout, FileLock
+import subprocess
+from qstat import qstat  # https://github.com/relleums/qstat
+from datetime import datetime
+import re
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -119,6 +125,21 @@ def validate_type_session(type_session):
         raise Exception("`type_session = " + type_session + "` is not allowed!")
 
     return type_session
+
+def validate_type_system(type_system):
+    """
+    To validate if the type of the cluster system is valid.
+    For valid ones, the type string will be changed to lower case.
+    If not valid, raise error message.
+    """
+    list_supported = ['sge']  # TODO: add 'slurm'
+    if type_system.lower() in list_supported:
+        type_system = type_system.lower()   # change to lower case, if needed
+    else:
+        raise Exception("Invalid cluster system type: '" + type_system + "'!"
+                        + " Currently BABS only support one of these: "
+                        + ', '.join(list_supported))   # names separated by ', '
+    return type_system
 
 
 def replace_placeholder_from_config(value):
@@ -872,7 +893,7 @@ def get_list_sub_ses(input_ds, config, babs):
             subs = [temp.split('_', 3)[0] for temp in zipfilenames]
             # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
             # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
-            subs = sorted(list(set(subs)))   # list(set()): acts like "unique"
+            subs = sorted(list(set(subs)))   # `list(set())`: acts like "unique"
 
         # if it's multi-ses, get list of sessions for each subject:
         if babs.type_session == "multi-ses":
@@ -1124,7 +1145,7 @@ def get_list_sub_ses(input_ds, config, babs):
     # Save the final list of sub/ses in a CSV file:
     if babs.type_session == "single-ses":
         fn_csv_final = op.join(
-            babs.analysis_path, "code/sub_final_inclu.csv")
+            babs.analysis_path, babs.list_sub_path_rel)  # "code/sub_final_inclu.csv"
         df_final = pd.DataFrame(
             list(zip(subs)),
             columns=['sub_id'])
@@ -1133,7 +1154,7 @@ def get_list_sub_ses(input_ds, config, babs):
               + fn_csv_final)
     elif babs.type_session == "multi-ses":
         fn_csv_final = op.join(
-            babs.analysis_path, "code/sub_ses_final_inclu.csv")
+            babs.analysis_path, babs.list_sub_path_rel)  # "code/sub_ses_final_inclu.csv"
         subs_final = []
         sess_final = []
         for sub in list(dict_sub_ses.keys()):
@@ -1153,3 +1174,623 @@ def get_list_sub_ses(input_ds, config, babs):
         return subs
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
+
+def submit_one_job(analysis_path, type_session, sub, ses=None,
+                   flag_print_message=True):
+    """
+    This is to submit one job.
+
+    Parameters:
+    ----------------
+    analysis_path: str
+        path to the `analysis` folder. One attribute in class `BABS`
+    type_session: str
+        multi-ses or single-ses
+    sub: str
+        subject id
+    ses: str or None
+        session id. For type-session == "single-ses", this is None
+    flag_print_message: bool
+        to print a message (True) or not (False)
+
+    Returns:
+    ------------------
+    job_id: int
+        the int version of ID of the submitted job.
+    job_id_str: str
+        the string version of ID of the submitted job.
+    log_filename: str
+        log filename of this job.
+        Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
+
+    Notes:
+    -----------------
+    see `Container.generate_job_submit_template()`
+    for details about template yaml file.
+    """
+
+    # Load the job submission template:
+    #   details of this template yaml file: see `Container.generate_job_submit_template()`
+    template_yaml_path = op.join(analysis_path, "code", "submit_job_template.yaml")
+    with open(template_yaml_path, "r") as f:
+        templates = yaml.load(f, Loader=yaml.FullLoader)
+    f.close()
+    # sections in this template yaml file:
+    cmd_template = templates["cmd_template"]
+    job_name_template = templates["job_name_template"]
+
+    if type_session == "single-ses":
+        cmd = cmd_template.replace("${sub_id}", sub)
+        to_print = "Job for " + sub
+        job_name = job_name_template.replace("${sub_id}", sub)
+    else:   # multi-ses
+        cmd = cmd_template.replace("${sub_id}", sub).replace("${ses_id}", ses)
+        to_print = "Job for " + sub + ", " + ses
+        job_name = job_name_template.replace("${sub_id}", sub).replace("${ses_id}", ses)
+    # print(cmd)
+
+    # run the command, get the job id:
+    proc_cmd = subprocess.run(cmd.split(),   # separate by space
+                              cwd=analysis_path,
+                              stdout=subprocess.PIPE)
+    proc_cmd.check_returncode()
+    msg = proc_cmd.stdout.decode('utf-8')
+    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+    job_id = int(job_id_str)
+
+    # log filename:
+    log_filename = job_name + ".*" + job_id_str
+
+    to_print += " has been submitted (job ID: " + job_id_str + ")."
+    if flag_print_message:
+        print(to_print)
+
+    return job_id, job_id_str, log_filename
+
+def create_job_status_csv(babs):
+    """
+    This is to create a CSV file of `job_status`.
+    This should be used by `babs-submit` and `babs-status`.
+
+    Parameters:
+    ------------
+    babs: class `BABS`
+        information about a BABS project.
+    """
+
+    if op.exists(babs.job_status_path_abs) is False:
+        # Generate the table:
+        # read the subject list as a panda df:
+        df_sub = pd.read_csv(babs.list_sub_path_abs)
+        df_job = df_sub.copy()    # deep copy of pandas df
+
+        # add columns:
+        df_job["has_submitted"] = False
+        df_job["job_id"] = -1    # int
+        df_job["job_state_category"] = np.nan
+        df_job["job_state_code"] = np.nan
+        df_job["duration"] = np.nan
+        df_job["is_done"] = False   # = has branch in output_ria
+        # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
+        # # if ^^ is False, but `is_done` is True, did not successfully clean the space
+        df_job["is_failed"] = np.nan
+        df_job["log_filename"] = np.nan
+        df_job["last_line_o_file"] = np.nan
+        df_job["alert_message"] = np.nan
+        df_job["job_account"] = np.nan
+
+        # TODO: add different kinds of error
+
+        # These `NaN` will be saved as empty strings (i.e., nothing between two ",")
+        #   but when pandas read this csv, the NaN will show up in the df
+
+        # Save the df as csv file, using lock:
+        lock_path = babs.job_status_path_abs + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):
+                df_job.to_csv(babs.job_status_path_abs, index=False)
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+
+
+def read_job_status_csv(csv_path):
+    """
+    This is to read the CSV file of `job_status`.
+
+    Parameters:
+    ------------
+    csv_path: str
+        path to the `job_status.csv`
+
+    Returns:
+    -----------
+    df: pandas dataframe
+        loaded dataframe
+    """
+    df = pd.read_csv(csv_path,
+                     dtype={"job_id": 'int',
+                            'has_submitted': 'bool',
+                            'is_done': 'bool'
+                            })
+    return df
+
+def report_job_status(df, analysis_path, config_keywords_alert):
+    """
+    This is to report the job status
+    based on the dataframe loaded from `job_status.csv`.
+
+    Parameters:
+    -------------
+    df: pandas dataframe
+        loaded dataframe from `job_status.csv`
+    analysis_path: str
+        Path to the analysis folder.
+        This is used to generate the folder of log files
+    config_keywords_alert: dict or None
+        From `get_config_keywords_alert()`
+        This is used to determine if to report `alert_message` column
+    """
+
+    from .constants import MSG_NO_ALERT_IN_LOGS
+
+    print('\nJob status:')
+
+    total_jobs = df.shape[0]
+    print('There are in total of ' + str(total_jobs) + ' jobs to complete.')
+
+    total_has_submitted = int(df["has_submitted"].sum())
+    print(str(total_has_submitted) + " job(s) have been submitted; "
+          + str(total_jobs - total_has_submitted) + " job(s) haven't been submitted.")
+
+    if total_has_submitted > 0:    # there is at least one job submitted
+        total_is_done = int(df["is_done"].sum())
+        print("Among submitted jobs,")
+        print(str(total_is_done) + ' job(s) are successfully finished;')
+
+        if total_is_done == total_jobs:
+            print("All jobs are completed!")
+        else:
+            total_pending = int((df['job_state_category'] == 'pending').sum())
+            print(str(total_pending) + ' job(s) are pending;')
+
+            total_pending = int((df['job_state_category'] == 'running').sum())
+            print(str(total_pending) + ' job(s) are running;')
+
+            # TODO: add stalled one
+
+            total_is_failed = int(df["is_failed"].sum())
+            print(str(total_is_failed) + ' job(s) are failed.')
+
+            # if there is job failed: print more info by categorizing msg:
+            if total_is_failed > 0:
+                if config_keywords_alert is not None:
+                    print("\nAmong all failed job(s):")
+                # get the list of jobs that 'is_failed=True':
+                list_index_job_failed = df.index[df["is_failed"] == True].tolist()
+                # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
+
+                # summarize based on `alert_message` column:
+                
+                all_alert_message = df["alert_message"][list_index_job_failed].tolist()
+                unique_list_alert_message = list(set(all_alert_message))
+                # unique_list_alert_message.sort()   # sort and update the list itself
+                # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
+
+                if config_keywords_alert is not None:
+                    for unique_alert_msg in unique_list_alert_message:
+                        # count:
+                        temp_count = all_alert_message.count(unique_alert_msg)
+                        print(str(temp_count) + " job(s) have alert message: '"
+                              + str(unique_alert_msg) + "';")
+
+                # if there is 'no_alert' in 'alert_message', check 'job_account' column:
+                if MSG_NO_ALERT_IN_LOGS in unique_list_alert_message:
+                    list_index_job_failed_no_alert = \
+                        (df["is_failed"] == True) & (df["alert_message"] == MSG_NO_ALERT_IN_LOGS)
+
+                    # because there could be 'np.nan' in the df, and pd.series -> tolist()
+                    #   becomes [nan] which is not str(np.nan) or np.nan..., i.e., not detectable,
+                    #   so we need to check that first...
+                    pdseries = df["job_account"][list_index_job_failed_no_alert]
+                    # check if all selected are np.nan:
+                    if all(pd.isna(pdseries)):
+                        # if so, 'job_account' was not applied yet:
+                        print("\nFor the failed job(s) that don't have alert keyword in log files,"
+                              + " you may use `--job-account` to get more information"
+                              + " about why they are failed."
+                              + " Note that with `--job-account`, `babs-status` may take longer time.")
+                    else:
+                        all_job_account = pdseries.tolist()
+                        # ^^ only limit to jobs failed & no alert keywords in log files
+                        unique_list_job_account = list(set(all_job_account))
+                        # unique_list_job_account.sort()   # sort and update the list itself
+                        # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
+
+                        print("\nAmong job(s) that are failed"
+                              + " and don't have alert keyword in log files:")
+                        for unique_job_account in unique_list_job_account:
+                            # count:
+                            temp_count = all_job_account.count(unique_job_account)
+                            print(str(temp_count) + " job(s) have job account of: '"
+                                  + str(unique_job_account) + "';")
+                            # ^^ str(unique_job_account) is in case it is `np.nan`,
+                            #   though should not be possible to be `np.nan`
+
+        print("\nAll log files are located in folder: "
+              + op.join(analysis_path, "logs"))
+
+def request_all_job_status():
+    """
+    This is to get all jobs' status
+    using e.g., `qstat` (for SGE clusters)
+
+    Parameters:
+    --------------
+    TODO: add type_system!
+
+    Returns:
+    --------------
+    df: pd.DataFrame
+        All jobs' status, including running and pending (waiting) jobs'.
+        If there is no job in the queue, df will be an empty DataFrame
+        (i.e., Columns: [], Index: [])
+
+    Notes:
+    ----------------
+    SGE: using package [`qstat`](https://github.com/relleums/qstat)
+    """
+    queue_info, job_info = qstat()
+    # ^^ queue_info: dict of jobs that are running
+    # ^^ job_info: dict of jobs that are pending
+
+    # turn all jobs into a dataframe:
+    df = pd.DataFrame(queue_info + job_info)
+
+    # check if there is no job in the queue:
+    if (not queue_info) & (not job_info):   # both are `[]`
+        pass  # don't set the index
+    else:
+        df = df.set_index('JB_job_number')   # set a column as index
+        # index `JB_job_number`: job ID (data type: str)
+        # column `@state`: 'running' or 'pending'
+        # column `state`: 'r', 'qw', etc
+        # column `JAT_start_time`: start time of running
+        #   e.g., '2022-12-06T14:28:43'
+
+    return df
+
+def request_job_status(job_id):
+    """
+    This is to determine the job status
+    using e.g., `qstat` (for SGE clusters)
+    THIS IS DEPRECATED.
+
+    Parameters:
+    --------------
+    job_id: int
+        The job ID.
+        The data type is fixed when reading in the pd.dataframe of job status.
+    TODO: add type_system!
+    """
+    proc_qstat = subprocess.run(
+        ["qstat", "-xml"],
+        stdout=subprocess.PIPE
+    )
+    proc_qstat.check_returncode()
+    msg = proc_qstat.stdout.decode('utf-8')
+    print(msg)
+
+def calcu_runtime(start_time_str):
+    """
+    This is to calculate the duration time of running.
+
+    Parameters:
+    -----------------
+    start_time_str: str
+        The value in column 'JAT_start_time' for a specific job.
+        Can be got via `df.at['2820901', 'JAT_start_time']`
+        Example on CUBIC: ''
+
+    TODO: add type_system
+
+    Returns:
+    -----------------
+    duration_time_str: str
+        Duration time of running.
+        Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
+    """
+    # format of time in the job status requested:
+    format_job_status = '%Y-%m-%dT%H:%M:%S'  # format in `qstat`
+    # # format of returned duration time:
+    # format_duration_time = "%Hh%Mm%Ss"  # '0h0m0s'
+
+    d_now = datetime.now()
+    duration_time = d_now - datetime.strptime(start_time_str, format_job_status)
+    # ^^ str(duration_time): format: '0:08:40.158985'  # first is hour
+    duration_time_str = str(duration_time)
+    # ^^ 'datetime.timedelta' object (`duration_time`) has no attribute 'strftime'
+    #   so cannot be directly printed into desired format...
+
+    return duration_time_str
+
+def get_last_line(fn):
+    """
+    This is to get the last line of a text file, e.g., `*.o*` file
+
+    Parameters:
+    --------------------
+    fn: str
+        path to the text file.
+
+    Returns:
+    --------------------
+    last_line: str or np.nan (if the log file haven't existed yet, or no valid line yet)
+        last line of the text file.
+    """
+
+    if op.exists(fn):
+        with open(fn, 'r') as f:
+            all_lines = f.readlines()
+            if len(all_lines) > 0:    # at least one line in the file:
+                last_line = all_lines[-1]
+                # remove spaces at the beginning or the end; remove '\n':
+                last_line = last_line.strip().replace("\n", "")
+            else:
+                last_line = np.nan
+    else:   # e.g., `qw` pending
+        last_line = np.nan
+
+    return last_line
+
+def get_config_keywords_alert(container_config_yaml_file):
+    """
+    To extract the configs of keywords alert in log files.
+
+    Parameters:
+    --------------
+    container_config_yaml_file: str or None
+        path to the config yaml file of containers, which might includes
+        a section of `keywords_alert`
+
+    Returns:
+    ---------------
+    config_keywords_alert: dict or None
+    """
+
+    if container_config_yaml_file is not None:  # yaml file is provided
+        with open(container_config_yaml_file) as f:
+            container_config = yaml.load(f, Loader=yaml.FullLoader)
+
+        # Check if there is section 'keywords_alert':
+        if "keywords_alert" in container_config:
+            config_keywords_alert = container_config["keywords_alert"]
+            # ^^ if it's empty under `keywords_alert`: config_keywords_alert=None
+
+            # Check if there is either 'o_file' or 'e_file' in "keywords_alert":
+            if config_keywords_alert is not None:  # there is sth under "keywords_alert":
+                if ("o_file" not in config_keywords_alert) & \
+                   ("e_file" not in config_keywords_alert):
+                    # neither is included:
+                    warnings.warn(
+                        "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
+                        " neither 'o_file' nor 'e_file' is included in this section."
+                        " So BABS won't check if there is"
+                        " any alerting message in log files.")
+                    config_keywords_alert = None   # not useful anymore, set to None then.
+            else:  # nothing under "keywords_alert":
+                warnings.warn(
+                    "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
+                    " neither 'o_file' nor 'e_file' is included in this section."
+                    " So BABS won't check if there is"
+                    " any alerting message in log files.")
+                # `config_keywords_alert` is already `None`, no need to set to None
+        else:
+            config_keywords_alert = None
+            warnings.warn(
+                "There is no section called 'keywords_alert' in the provided"
+                " `container_config_yaml_file`. So BABS won't check if there is"
+                " any alerting message in log files.")
+    else:
+        config_keywords_alert = None
+
+    return config_keywords_alert
+
+def get_alert_message_in_log_files(config_keywords_alert, log_fn):
+    """
+    This is to get any alert message in log files of a job.
+
+    Parameters:
+    -----------------
+    config_keywords_alert: dict or None
+        section 'keywords_alert' in container config yaml file
+        that includes what alert keywords to look for in log files.
+    log_fn: str
+        Absolute path to a job's log files. It should have `*` to be replaced with `o` or `e`
+        Example: /path/to/analysis/logs/toy_sub-0000.*11111
+
+    Returns:
+    ----------------
+    alert_message: str or np.nan
+        If config_keywords_alert is None, or log file does not exist yet,
+            `alert_message` will be `np.nan`;
+        if not None, `alert_message` will be a str.
+            Examples:
+            - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
+            - if found: ".o file: <keyword>"
+    if_no_alert_in_log: bool
+        There is no alert message in the log files.
+        When `alert_message` is `msg_no_alert`,
+        or is `np.nan` (`if_valid_alert_msg=False`), this is True;
+        Otherwise, any other message, this is False
+
+    Notes:
+    -----------------
+    An edge case (not a bug): On cubic cluster, some info will be printed to '.e'
+    before '.o' have any printed messages. So 'alert_message' column may say 'BABS: No alert'
+    but 'last_line_o_file' is still 'NaN'
+    """
+
+    from .constants import MSG_NO_ALERT_IN_LOGS
+    msg_no_alert = MSG_NO_ALERT_IN_LOGS
+    if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
+    # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
+
+    if config_keywords_alert is None:
+        alert_message = np.nan
+        if_valid_alert_msg = False
+    else:
+        o_fn = log_fn.replace("*", 'o')
+        e_fn = log_fn.replace("*", 'e')
+
+        if op.exists(o_fn) or op.exists(e_fn):   # either exists:
+            found_keyword = False
+            alert_message = msg_no_alert
+
+            for key in config_keywords_alert:  # as it's dict, keys cannot be duplicated
+                if key == "o_file" or "e_file":
+                    one_char = key[0]   # 'o' or 'e'
+                    # the log file to look into:
+                    fn = log_fn.replace("*", one_char)
+
+                    if op.exists(fn):
+                        with open(fn) as f:
+                            # Loop across lines, from the beginning of the file:
+                            for line in f:
+                                # Loop across the keywords for this kind of log file:
+                                for keyword in config_keywords_alert[key]:
+                                    if keyword in line:   # found:
+                                        found_keyword = True
+                                        alert_message = "." + one_char + " file: " + keyword
+                                        # e.g., '.o file: <keyword>'
+                                        break  # no need to search next keyword
+
+                                if found_keyword:
+                                    break    # no need to go to next line
+                    # if the log file does not exist, probably due to pending
+                    #   not to do anything
+
+                if found_keyword:
+                    break   # no need to go to next log file
+
+        else:    # neither o_fn nor e_fn exists yet:
+            alert_message = np.nan
+            if_valid_alert_msg = False
+
+    if (alert_message == msg_no_alert) or (not if_valid_alert_msg):
+        # either no alert, or `np.nan`
+        if_no_alert_in_log = True
+    else:   # `alert_message`: np.nan or any other message:
+        if_no_alert_in_log = False
+
+    return alert_message, if_no_alert_in_log
+
+def get_username():
+    """
+    This is to get the current username.
+    This will be used for job accounting, e.g., `qacct`.
+
+    Returns:
+    -----------
+    username_lowercase: str
+
+    NOTE: only support SGE now.
+    """
+    proc_username = subprocess.run(
+        ["whoami"],
+        stdout=subprocess.PIPE
+    )
+    proc_username.check_returncode()
+    username_lowercase = proc_username.stdout.decode('utf-8')
+    username_lowercase = username_lowercase.replace("\n", "")  # remove \n
+
+    return username_lowercase
+
+def check_job_account(job_id_str, job_name, username_lowercase):
+    """
+    This is to get information for a finished job
+    by calling job account command, e.g., `qacct` for SGE
+
+    Parameters:
+    ------------
+    job_id_str: str
+        string version of ID of the job
+    job_name: str
+        Name of the job
+    username_lowercase: str
+        username that this job was requested to run
+
+    Returns:
+    ------------
+    msg_toreturn: str
+        The message got from `qacct` field `failed`, if that's not 0
+        - If `qacct` was successful:
+            - If field 'failed' in `qacct` was not 0: use string from that field
+            - If it's 0 (no error): use `msg_no_alert_qacct_failed`
+        - If `qacct` was NOT successful:
+            - use `msg_failed_to_call_qacct`
+
+    Notes:
+    ----------
+    This can only apply to jobs that are out of the queue; but not
+    jobs under qw, r, etc, or does not exist (not submitted);
+    Also, the current username should be the same one as that used for job submission.
+    """
+    msg_no_alert_qacct_failed = "qacct: no alert message in field 'failed'"
+    msg_failed_to_call_qacct = "BABS: failed to call 'qacct'"
+
+    if_valid_qacct_failed = True   # by default, it is valid, i.e., not np.nan
+    # this is to avoid check `np.isnan(<variable_name>)`, as `np.isnan(str)` causes error.
+
+    proc_qacct = subprocess.run(
+        ["qacct", "-o", username_lowercase,
+         "-j", job_id_str],
+        stdout=subprocess.PIPE
+    )
+    try:
+        proc_qacct.check_returncode()
+        msg = proc_qacct.stdout.decode('utf-8')
+        list_qacct_failed = re.findall(r'(?:failed)(.*?)(?:\n)', msg)  # find all, return a list
+        # ^^ between `failed` and `\n`
+        # example output: ['      xcpsub-00000   ', '      fpsub-0000  ']
+        if len(list_qacct_failed) > 1:   # more than one job were found:
+            # determine which is the job we want:
+            list_jobnames = re.findall(r'(?:jobname)(.*?)(?:\n)', msg)
+            for i_temp, temp_jobname in enumerate(list_jobnames):
+                if job_name == temp_jobname.replace(" ", ""):  # remove spaces:
+                    # ^^ the job name we want to find:
+                    qacct_failed = list_qacct_failed[i_temp]
+                    break
+        elif len(list_qacct_failed) == 1:
+            qacct_failed = list_qacct_failed[0]
+        else:
+            warnings.warn("Error when `qacct` for job " + job_id_str
+                          + ", " + job_name)
+            qacct_failed = np.nan
+            if_valid_qacct_failed = False
+            msg_toreturn = msg_failed_to_call_qacct
+
+        if if_valid_qacct_failed:
+            # example: '       0    '
+            qacct_failed = qacct_failed.strip()    # remove the spaces at the beginning and the end
+
+            if qacct_failed != "0":   # field `failed` is not '0', i.e., was not success:
+                msg_toreturn = "qacct: failed: " + qacct_failed
+            else:
+                msg_toreturn = msg_no_alert_qacct_failed
+
+    except subprocess.CalledProcessError:   # if `proc_qacct.check_returncode()` failed:
+        # if the job is still in queue (qw or r etc), this will throw out an error:
+        #   '.... returned non-zero exit status 1.'
+        warnings.warn("Error when `qacct` for job " + job_id_str
+                      + ", " + job_name)
+        print("Hint: check if the job is still in the queue, e.g., in state of qw, r, etc")
+        print("Hint: check if the username used for submitting this job"
+              + " was not current username '" + username_lowercase + "'")
+        msg_toreturn = msg_failed_to_call_qacct
+
+    return msg_toreturn
