@@ -4,11 +4,13 @@ import argparse
 # import os
 # import os.path as op
 # import sys
+# from datalad.interface.base import build_doc
 
 from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import validate_type_session
 
 
+# @build_doc
 def babs_init_cli():
     """
     Initialize a babs project and bootstrap scripts that will be used later.
@@ -19,7 +21,8 @@ def babs_init_cli():
     """
 
     parser = argparse.ArgumentParser(
-        description="Initialize a babs project and bootstrap scripts that will be used later")
+        description="Initialize a babs project and bootstrap scripts that will be used later",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--where_project", "--where-project",
         help="Absolute path to the directory where the babs project will locate",

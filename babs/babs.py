@@ -15,6 +15,7 @@ from filelock import Timeout, FileLock
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
+# from datalad.interface.base import build_doc
 
 from babs.utils import (get_immediate_subdirectories,
                         check_validity_unzipped_input_dataset, generate_cmd_envvar,
@@ -43,7 +44,7 @@ from babs.utils import (get_immediate_subdirectories,
 
 # import pandas as pd
 
-
+# @build_doc
 class BABS():
     """The BABS class is for babs projects of BIDS Apps"""
 
@@ -179,7 +180,7 @@ class BABS():
         ------------
         flag_output_ria_only: bool
             if only to get information on output RIA.
-            This may expedite the process as other information requires 
+            This may expedite the process as other information requires
             calling `datalad` in terminal, which would takes several seconds.
         """
 

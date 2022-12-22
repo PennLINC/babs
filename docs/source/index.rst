@@ -2,33 +2,30 @@ BABS: BIDS App Bootstrap
 **************************
 
 BABS (BIDS App Bootstrap) is a reproducible, generalizable, and
-scalable python package for BIDS App analysis of large datasets
+scalable python package for BIDS App analysis of large datasets.
+It uses DataLad and adopts FAIRly big framework.
 
 
 API
 ===
 
-High-level API commands
------------------------
-
-.. currentmodule:: datalad.api
-.. autosummary::
-   :toctree: generated
-
-   hello_cmd
-
-
-Command line reference
-----------------------
+Contents
+--------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 3
 
-   generated/man/datalad-hello-cmd
+   installation
 
+Command-line interfaces
+=========================
+.. toctree::
+   :maxdepth: 3
+
+   cli
 
 Indices and tables
-==================
+====================
 
 * :ref:`genindex`
 * :ref:`modindex`

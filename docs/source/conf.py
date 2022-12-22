@@ -31,25 +31,25 @@ import babs
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 
-# generate missing pieces
-for setup_py_path in (opj(pardir, 'setup.py'),  # travis
-                      opj(pardir, pardir, 'setup.py')):  # RTD
-    if exists(setup_py_path):
-        sys.path.insert(0, abspath(dirname(setup_py_path)))
-        # Build manpage
-        try:
-            subprocess.run(
-                args=[setup_py_path, 'build_manpage',
-                      '--cmdsuite', 'datalad_helloworld:command_suite',
-                      '--manpath', abspath(opj(
-                          dirname(setup_py_path), 'build', 'man')),
-                      '--rstpath', opj(dirname(__file__), 'generated', 'man'),
-                      ],
-                check=True,
-            )
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            # shut up and do your best
-            pass
+# # generate missing pieces
+# for setup_py_path in (opj(pardir, 'setup.py'),  # travis
+#                       opj(pardir, pardir, 'setup.py')):  # RTD
+#     if exists(setup_py_path):
+#         sys.path.insert(0, abspath(dirname(setup_py_path)))
+#         # Build manpage
+#         try:
+#             subprocess.run(
+#                 args=[setup_py_path, 'build_manpage',
+#                       '--cmdsuite', 'datalad_helloworld:command_suite',
+#                       '--manpath', abspath(opj(
+#                           dirname(setup_py_path), 'build', 'man')),
+#                       '--rstpath', opj(dirname(__file__), 'generated', 'man'),
+#                       ],
+#                 check=True,
+#             )
+#         except (FileNotFoundError, subprocess.CalledProcessError):
+#             # shut up and do your best
+#             pass
 
 # -- General configuration ------------------------------------------------
 
@@ -71,6 +71,7 @@ extensions = [
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinxarg.ext',  # argparse extension
 ]
 
 # for the module reference
@@ -88,9 +89,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Datalad Extension Template'
-copyright = u'2018-{}, DataLad team'.format(datetime.datetime.now().year)
-author = u'DataLad team'
+project = u'BABS'
+author = u'The BABS developers'
+copyright = u'2022-%s, %s' % (datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -126,7 +127,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = '_static/datalad_logo.png'
+# html_logo = '_static/datalad_logo.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
