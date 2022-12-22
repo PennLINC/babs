@@ -1,3 +1,7 @@
+.. If changed this file, please also copy to `README.rst` in the root dir
+    notice that, any paths need to be changed accordingly!
+
+
 BABS: BIDS App Bootstrap
 ===============================
 
@@ -12,3 +16,4 @@ scalable python package for BIDS App analysis of large datasets.
 It uses DataLad and adopts FAIRly big framework.
 
 .. image:: _static/babs_workflow.png
+.. ^^ add `docs/source/` if in the README.rst in root dir!
