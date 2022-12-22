@@ -1,6 +1,6 @@
 
-.. include:: README.rst
-
+.. include:: ../../README.rst
+.. include:: links.rst
 
 Documentations
 ==================
