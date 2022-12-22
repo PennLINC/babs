@@ -12,8 +12,16 @@ BABS features several command-line interface programs:
 Set up a BABS project
 ========================
 
-.. argparse::
-   :ref: babs.cli.babs_submit_cli
-   :prog: babs
-   :nodefault:
-   :nodefaultconst:
+.. toctree::
+   :maxdepth: 1
+
+   babs-init
+
+Submit jobs and check job status
+==================================
+
+.. toctree::
+   :maxdepth: 1
+
+   babs-submit
+   babs-status
