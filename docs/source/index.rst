@@ -6,23 +6,18 @@ scalable python package for BIDS App analysis of large datasets.
 It uses DataLad and adopts FAIRly big framework.
 
 
-API
-===
-
-Contents
---------
+Documentations
+==================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
+   overview
    installation
-
-Command-line interfaces
-=========================
-.. toctree::
-   :maxdepth: 3
-
+   preparation
+   walkthrough
    cli
+   developer
 
 Indices and tables
 ====================

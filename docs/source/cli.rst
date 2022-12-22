@@ -12,12 +12,8 @@ BABS features several command-line interface programs:
 Set up a BABS project
 ========================
 
-A minimal set of commands that cover essential functionality. Core commands
-receive special scrutiny with regard API composition and (breaking) changes.
-
-Local operation
----------------
-
 .. argparse::
-   :ref: babs.cli.babs_init_cli
+   :ref: babs.cli.babs_submit_cli
    :prog: babs
+   :nodefault:
+   :nodefaultconst:
