@@ -55,7 +55,7 @@ babs_zip_foldername:   # the foldername(s) to get zipped and the version string(
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
     hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
-    soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic
+    # soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic   # no need to set s_vmem
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
     customized_text: |
         #$ -R y
@@ -87,6 +87,8 @@ required_files:
 # Keywords for alerting messages in log files:
 keywords_alert:
     o_file:
+        - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
+        - "Excessive topologic defect encountered"
         - "Cannot allocate memory"
         - "mris_curvature_stats: Could not open file"
         - "Numerical result out of range"
