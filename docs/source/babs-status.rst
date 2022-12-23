@@ -1,5 +1,5 @@
 *************************************
-babs-status: Check job status
+``babs-status``: Check job status
 *************************************
 
 .. argparse::

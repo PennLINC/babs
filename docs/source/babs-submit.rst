@@ -1,5 +1,5 @@
 *************************************
-babs-submit: Submit jobs
+``babs-submit``: Submit jobs
 *************************************
 
 .. argparse::

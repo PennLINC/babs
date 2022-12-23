@@ -11,6 +11,7 @@ Documentations
    overview
    installation
    preparation
+   jobs
    walkthrough
    cli
    developer
