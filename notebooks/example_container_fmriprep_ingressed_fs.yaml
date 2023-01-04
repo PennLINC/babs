@@ -2,7 +2,7 @@
 
 
 babs_singularity_run:
-    $INPUT_PATH: inputs/data/BIDS   # the key is a placeholder  # TODO: add this to doc
+    $INPUT_PATH: inputs/data/BIDS   # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""
