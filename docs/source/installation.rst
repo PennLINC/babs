@@ -24,7 +24,7 @@ Below is an example way of installing dependent software on Linux system::
     # Install datalad-container:
     pip install datalad_container
 
-If steps above does not work out, please refer to `Installation reference`_ for alternative and updated ways.
+If commands above do not work out, please refer to `Installation reference`_ for alternative and updated ways.
 
 
 Optional dependencies

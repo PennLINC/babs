@@ -117,6 +117,80 @@ although the version of ``FreeSurfer`` included in this ``fMRIPrep`` may not be 
 
 cluster_resources
 =====================
+This section defines how much cluster resources each participant's job will use.
+
+Example section **cluster_resources** for fMRIPrep::
+
+    cluster_resources:
+        interpreting_shell: /bin/bash
+        hard_memory_limit: 25G
+        temporary_disk_space: 200G
+
+These will be turned into these commands in the preambles of ``participant_job.sh``
+(this script could be found at: ``/path/to/my_BABS_project/analysis/code``)::
+
+    TODO: add an example of ^^
+
+For example, a job requires no more than 25 GB of memory,
+i.e., on SGE clusters, ``-l h_vmem=25G``.
+You may simply specify: ``hard_memory_limit: 25G``.
+
+The table below lists all the named cluster resources requests that BABS supports.
+You may not need all of them.
+BABS will replace ``$VALUE`` with the value you provide.
+The second row in each cell, which is also in (), is an example.
+
+.. .. list-table:: Cluster resources requrests that BABS supports
+..     :widths: 10 10 10 10
+..     :header-rows: 1
+
+..     * - key in ``cluster_resources``
+..       - format in generated preamble
+..       - example key-value in ``cluster_resources``
+..       - example outcome in the preamble (SGE cluster)
+..     * - interpreting_shell
+..       - ``-S $VALUE``
+..       - ``interpreting_shell: /bin/bash``
+..       - ``-S /bin/bash``
+
++------------------------------------------+---------------------------------------+
+| | Section ``cluster_resources`` in YAML  | | Generated preamble for SGE clusters |
+| |         (example key-value)            | |           (example outcome)         |
++==========================================+=======================================+
+| | ``interpreting_shell: $VALUE``         | | ``-S $VALUE``                       |
+| | (``interpreting_shell: /bin/bash``)    | | (``-S /bin/bash``)                  |
++------------------------------------------+---------------------------------------+
+| | ``hard_memory_limit: $VALUE``          | | ``-l h_vmem=$VALUE``                |
+| | (``hard_memory_limit: 25G``)           | | (``-l h_vmem=25G``)                 |
++------------------------------------------+---------------------------------------+
+| | ``soft_memory_limit: $VALUE``          | | ``-l s_vmem=$VALUE``                |
+| | (``soft_memory_limit: 23.5G``)         | | (``-l s_vmem=23.5G``)               |
++------------------------------------------+---------------------------------------+
+| | ``temporary_disk_space: $VALUE``       | | ``-l tmpfree=$VALUE``               |
+| | (``temporary_disk_space: 200G``)       | | (``-l tmpfree=200G``)               |
++------------------------------------------+---------------------------------------+
+| | ``number_of_cpus: "$VALUE"``           | | ``-pe threaded $VALUE``             |
+| | (``number_of_cpus: "6"``)              | | (``-pe threaded 6``)                |
++------------------------------------------+---------------------------------------+
+| | ``hard_runtime_limit: "$VALUE"``       | | ``-l h_rt=$VALUE``                  |
+| | (``hard_runtime_limit: "24:00:00"``)   | | (``-l h_rt=24:00:00``)              |
++------------------------------------------+---------------------------------------+
+
+If you cannot find the one you want in the above table, you can still add it by ``customized_text``.
+Below is an example for SGE cluster::
+
+    cluster_resources:
+        <here goes keys defined in above table>: <$VALUE>
+        customized_text: |
+            #$ -abc this_is_an_example_customized_command_to_appear_in_preamble
+            #$ -zzz there_can_be_multiple_lines_of_customized_commands
+
+Note that:
+
+* Remember to add ``|`` after ``customized_text:``
+* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the command, e.g., ``#$`` for SGE clusters.
+
+TODO: check all example YAML file i have, also check their `participant_job.sh`
 
 script_preamble
 ====================
