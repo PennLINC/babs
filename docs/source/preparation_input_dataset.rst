@@ -4,6 +4,17 @@ You can provide one or more BIDS dataset(s) as input. It can be raw BIDS dataset
 
 Regardless, each BIDS dataset should be presented as a DataLad dataset, which is tracked by DataLad and can be cloned to another directory. A DataLad dataset can be created with DataLad command ``datalad create``. For more details, please refer to `its documentation <http://docs.datalad.org/en/stable/generated/man/datalad-create.html>`_, and `DataLad Handbook <https://handbook.datalad.org/en/latest/basics/101-101-create.html>`__.
 
+If you hope to use zipped results from another BABS' project ("BABS project A") as input dataset for your current BABS project ("BABS project B"), you may:
+
+#. Clone the results out from the output RIA of BABS project A, by
+
+    * If BABS project A is on the local file system that current directory has access to, you may clone its output RIA by ``datalad clone ria+file:///absolute/path/to/my_BABS_project_A/output_ria#~data``;
+    * For more details and/or other RIA scenarios, please refer to `datalad clone's documentation <https://docs.datalad.org/en/stable/generated/man/datalad-clone.html>`_ and `DataLad Handbook about cloning from RIA stores <https://handbook.datalad.org/en/latest/beyond_basics/101-147-riastores.html#cloning-and-updating-from-ria-stores>`_
+#. Then use the path to the cloned dataset as the input dataset directory.
+
+.. Developer's Notes: In theory the user could directly provide ``ria+file://xxx/output_ria#~data`` as the path to the input dataset in ``babs-init``,
+..      but we hope they could test if this string is correct by letting them clone once.
+
 
 Examples input datasets for BABS
 ----------------------------------

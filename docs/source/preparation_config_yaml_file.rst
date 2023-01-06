@@ -119,15 +119,15 @@ cluster_resources
 =====================
 This section defines how much cluster resources each participant's job will use.
 
-Example section **cluster_resources** for fMRIPrep::
+Example section **cluster_resources** for ``fMRIPrep``::
 
     cluster_resources:
         interpreting_shell: /bin/bash
         hard_memory_limit: 25G
         temporary_disk_space: 200G
 
-These will be turned into these commands in the preambles of ``participant_job.sh``
-(this script could be found at: ``/path/to/my_BABS_project/analysis/code``)::
+These will be turned into options in the preambles of ``participant_job.sh``
+(this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown below::
 
     TODO: add an example of ^^
 
@@ -182,21 +182,75 @@ Below is an example for SGE cluster::
     cluster_resources:
         <here goes keys defined in above table>: <$VALUE>
         customized_text: |
-            #$ -abc this_is_an_example_customized_command_to_appear_in_preamble
-            #$ -zzz there_can_be_multiple_lines_of_customized_commands
+            #$ -abc this_is_an_example_customized_option_to_appear_in_preamble
+            #$ -zzz there_can_be_multiple_lines_of_customized_option
 
 Note that:
 
-* Remember to add ``|`` after ``customized_text:``
-* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the command, e.g., ``#$`` for SGE clusters.
+* Remember to add ``|`` after ``customized_text:``;
+* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the option, e.g., ``#$`` for SGE clusters.
 
 TODO: check all example YAML file i have, also check their `participant_job.sh`
 
 script_preamble
 ====================
+This part also goes to the preamble of the script ``participant_job.sh``
+(located at: ``/path/to/my_BABS_project/analysis/code``). Different from **cluster_resources**
+that provides options for cluster resources requests, this section **script_preamble** is for necessary
+bash commands that are required by job running. An example would be to activate the conda environment;
+however, different clusters may require different commands to do so. Therefore, BABS asks the user to
+provide it.
+
+Example section **cluster_resources** for a specific cluster::
+
+    script_preamble: |
+        source ${CONDA_PREFIX}/bin/activate babs    # replace `babs` with your conda environment name for running jobs
+
+This will appear as below in the ``participant_job.sh``::
+
+    # Script preambles:
+    source ${CONDA_PREFIX}/bin/activate babs
+
+.. warning::
+    Above command may not apply to your cluster; check how to activate conda environment on your cluster and replace above command.
+
+Notes:
+
+* Remember to add ``|`` after ``script_preamble:``;
+* You can also add more necessary commands by adding new lines;
+* Please do NOT quote the commands in this section!
 
 required_files
 ==================
+You may have a dataset where not all the subjects (and sessions) have the required files for
+running the BIDS App. You can simply provide this list of required files, and BABS will exclude those
+subjects and sessions who don't have any of listed required files.
+
+Example section **required_files** for ``fMRIPrep``::
+
+    required_files:
+        $INPUT_DATASET_#1:
+            - "func/*_bold.nii*"
+            - "anat/*_T1w.nii*"
+
+In this example case, we specify that for the input raw BIDS dataset, which is also input dataset #1, each subject (and session) must have:
+
+#. At least one BOLD file (``*_bold.nii*``) in folder ``func``;
+#. At least one T1-weighted file (``*_T1w.nii*``) in folder ``anat``.
+
+
+Notes:
+
+* If needed, you can change ``$INPUT_DATASET_#1`` to other index of input dataset (e.g., ``$INPUT_DATASET_#2``);
+* To determine the index of the input dataset to specify, please check the order of the datasets when you call ``babs-init --input``. This index starts from 1, and is a positive integer.
+
+    * For example, to use ``fMRIPrep`` with FreeSurfer results ingressed, by calling ``babs-init --input BIDS /path/to/BIDS --input freesurfer /path/to/freesurfer_outputs``, and you hope to filter subjects based on files in raw BIDS data (here named ``BIDS``), then you should specify ``$INPUT_DATASET_#1``.
+* We recommend adding ``*`` after ``.nii`` as there might only be unzipped NIfTI file (e.g., ``.nii`` instead of ``.nii.gz``) in the input dataset;
+* Currently we only support checking required files in unzipped input dataset (e.g., raw BIDS dataset).
+
+
+.. _keywords_alert:
 
 keywords_alert
 ================
+

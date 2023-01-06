@@ -26,7 +26,7 @@ The next step is to run the jobs for subjects (and sessions, if input is a multi
 You can iteratively call ``babs-submit`` and ``babs-status`` to submit jobs, check existing
 jobs' status, and resubmit the jobs if failed or pending. To make it easy to handle large number
 of jobs, ``babs-status`` also checks the job status, audits outcomes of existing runs, and returns a summary
-descriptions (see examples at ___________). The result for each subject (and session)
+descriptions. Details about job submission and status checking are on this page: :doc:`jobs`. The result for each subject (and session)
 will be zipped and pushed to a remote indexed archive (RIA) store as a separate branch.
 Most importantly, all provenance is tracked by DataLad, including code, containerized BIDS Apps,
 origin of input data, related metadata, and the exact command run.

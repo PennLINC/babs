@@ -246,7 +246,9 @@ def babs_submit_cli():
         action='append',   # append each `--job` as a list;
         nargs='+',
         help="The subject ID (and session ID) whose job to be submitted."
-        " Can repeat to submit more than one job.")
+        " Can repeat to submit more than one job."
+        " Format would be `--job sub-xx` for single-session dataset,"
+        " and `--job sub-xx ses-yy` for multiple-session dataset.")
 
     return parser
 
