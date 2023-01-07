@@ -1,4 +1,11 @@
-# Below is example config yaml file for fMRIPrep:
+# This is an example config yaml file for fMRIPrep version __________.
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the fMRIPrep version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
 # currently we only support the option of "babs_singularity_run"
 # In the future, we might:
     # Priority: cli_call > babs_singularity_run > cli_options

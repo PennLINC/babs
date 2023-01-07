@@ -126,10 +126,12 @@ Example section **cluster_resources** for ``fMRIPrep``::
         hard_memory_limit: 25G
         temporary_disk_space: 200G
 
-These will be turned into options in the preambles of ``participant_job.sh``
-(this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown below::
+These will be turned into options in the preambles of ``participant_job.sh`` on an SGE cluster
+(this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown as below::
 
-    TODO: add an example of ^^
+    #$ -S /bin/bash
+    #$ -l h_vmem=25G
+    #$ -l tmpfree=200G
 
 For example, a job requires no more than 25 GB of memory,
 i.e., on SGE clusters, ``-l h_vmem=25G``.
@@ -220,6 +222,8 @@ Notes:
 * You can also add more necessary commands by adding new lines;
 * Please do NOT quote the commands in this section!
 
+.. _required_files:
+
 required_files
 ==================
 You may have a dataset where not all the subjects (and sessions) have the required files for
@@ -253,4 +257,31 @@ Notes:
 
 keywords_alert
 ================
+This section is optional.
 
+This section is to define a list of alerting keywords to be searched in log files,
+and these keywords may indicates failure of a job.
+
+Example section **keywords_alert** for fMRIPrep::
+
+    keywords_alert:
+        o_file:
+            - "Exception: No T1w images found for"  # not needed if setting T1w in `required_files`
+            - "Excessive topologic defect encountered"
+            - "Cannot allocate memory"
+            - "mris_curvature_stats: Could not open file"
+            - "Numerical result out of range"
+            - "fMRIPrep failed"
+        e_file:
+            - "xxxxx"    # change this to any keywords to be found in `*.e*` file; if there is no keywords for `*.e*` file, delete `e_file` and this line
+
+
+Usually there are two log files that are useful for debugging purpose, ``*.o*`` and ``*.e*``, for example, ``<jobname>.o<jobid>`` and ``<jobname>.o<jobid>``. You can define alerting keywords in either or both files, i.e., by filling out ``o_file`` (for ``*.o*`` file) and/or ``e_file`` (for ``*.e*`` file).
+
+Detection of the keyword is performed in the order provided by the user. If ``o_file`` is former (e.g., in above case), then detection of it will be performed earlier; if a keyword is former, then that will be checked earlier. BABS also follows "detect and break" rule, i.e., for each job,
+
+* If any keyword is detected, the detected keyword will be thrown into the ``job_status.csv``, and BABS won't detect any further keyword down in the list.
+* If a keyword has been detected in the first file (``o_file`` for above example), then won't detect any keyword in the other log file (``e_file`` for above example).
+
+.. warning::
+    Detecting the keywords in the log files by BABS is case-sensitve! So please make sure the cases of keywords are in the way you hope.
