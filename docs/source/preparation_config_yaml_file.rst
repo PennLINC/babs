@@ -22,9 +22,13 @@ The YAML file required by BABS includes these sections:
 
 Example/prepopulated YAML files:
 
-* One, unzipped input dataset: `YAML file for fMRIPrep <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep.yaml>`_
-* One, zipped input dataset: `YAML file for XCP-D <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_xcpd.yaml>`_
-* Two input datasets (one unzipped, one zipped): `YAML file for fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_
+* One, unzipped input dataset: ___TO ADD ____
+* One, zipped input dataset: ___TO ADD ____
+* Two input datasets (one unzipped, one zipped): ___TO ADD ____
+
+.. `YAML file for fMRIPrep <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep.yaml>`_
+.. `YAML file for XCP-D <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_xcpd.yaml>`_
+.. `YAML file for fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_
 
 TODO: add if each section is optional ___________
 
