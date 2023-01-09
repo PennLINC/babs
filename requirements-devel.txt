@@ -1,0 +1,10 @@
+# requirements for a development environment
+pytest
+pytest-cov
+coverage
+sphinx
+sphinx_rtd_theme
+sphinx-argparse==0.4.0    # for sphinxarg.ext; ref: XCP-D
+# sphinx-toolbox
+# CommonMark==0.7.5   # for sphinxarg.ext
+recommonmark   # for sphinxarg.ext; ref: XCP-D

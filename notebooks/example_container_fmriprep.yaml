@@ -1,4 +1,11 @@
-# Below is example config yaml file for fMRIPrep:
+# This is an example config yaml file for fMRIPrep version __________.
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the fMRIPrep version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
 # currently we only support the option of "babs_singularity_run"
 # In the future, we might:
     # Priority: cli_call > babs_singularity_run > cli_options
@@ -55,7 +62,7 @@ babs_zip_foldername:   # the foldername(s) to get zipped and the version string(
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
     hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
-    soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic
+    # soft_memory_limit: 23.5G   # "-l s_vmem=23.5G" on cubic   # no need to set s_vmem
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
     customized_text: |
         #$ -R y
@@ -87,6 +94,8 @@ required_files:
 # Keywords for alerting messages in log files:
 keywords_alert:
     o_file:
+        - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
+        - "Excessive topologic defect encountered"
         - "Cannot allocate memory"
         - "mris_curvature_stats: Could not open file"
         - "Numerical result out of range"

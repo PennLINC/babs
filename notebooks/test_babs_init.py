@@ -15,6 +15,7 @@
 #       $ export FREESURFER_HOME=/cbica/software/external/freesurfer/centos7/7.2.0
 #   then start the debugging again
 
+from babs.cli import babs_init_main
 import sys
 import os
 import os.path as op
@@ -22,8 +23,7 @@ import os.path as op
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 sys.path.append(op.dirname(__location__))   # print(sys.path)
-from babs.core_functions import babs_init
-
+# from babs.cli import babs_init_main
 # sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -130,13 +130,14 @@ container_config_yaml_file = "notebooks/example_container_" + flag_instance + ".
 if os.getenv("TEMPLATEFLOW_HOME") is None:
     os.environ['TEMPLATEFLOW_HOME'] = '/templateflow_home_test'
 
-babs_init(where_project, project_name,
-          input=input_cli,
-          list_sub_file=list_sub_file,
-          container_ds=container_ds,
-          container_name=container_name,
-          container_config_yaml_file=container_config_yaml_file,
-          type_session=type_session,
-          type_system="sge")
+# babs_init(where_project, project_name,
+#           input=input_cli,
+#           list_sub_file=list_sub_file,
+#           container_ds=container_ds,
+#           container_name=container_name,
+#           container_config_yaml_file=container_config_yaml_file,
+#           type_session=type_session,
+#           type_system="sge")
+babs_init_main()
 
 print("")

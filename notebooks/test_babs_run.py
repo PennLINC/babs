@@ -1,13 +1,13 @@
 # This is a temporary file to test out `babs-submit` and `babs-status`
 
+from babs.cli import babs_submit_main, babs_status_main
 import sys
 import os
 import os.path as op
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 sys.path.append(op.dirname(__location__))   # print(sys.path)
-from babs.core_functions import babs_submit, babs_status
-from babs.cli import babs_submit_cli, babs_status_cli
+# from babs.cli import babs_submit_main, babs_status_main
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 flag_instance = "toybidsapp"
@@ -38,9 +38,7 @@ else:
 
 babs_project = op.join(where_project, project_name)
 
-# babs_submit(babs_project, count)
-# babs_status(babs_project)
-# babs_submit_cli()
-babs_status_cli()
+# babs_submit_main()
+babs_status_main()
 
 print()
