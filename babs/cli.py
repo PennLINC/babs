@@ -174,7 +174,8 @@ def babs_init_main():
     # validate `type_session`:
     type_session = validate_type_session(type_session)
 
-    input_ds = Input_ds(input, list_sub_file, type_session)
+    input_ds = Input_ds(input)
+    input_ds.get_initial_inclu_df(list_sub_file, type_session)
 
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
     for the_input_ds in input_ds.df["path_in"]:
@@ -205,6 +206,45 @@ def babs_init_main():
                              container_ds, container_name, container_config_yaml_file,
                              system)
 
+
+def babs_check_setup_cli():
+    """
+    This is the CLI for `babs-check-setup`.
+    """
+    parser = argparse.ArgumentParser(
+        description="Validates setups by `babs-init`",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+
+    return parser
+
+
+def babs_check_setup_main():
+    """
+    This is the core function of babs-check-setup,
+    which validates the setups by `babs-init`.
+
+    project_root: str
+        Absolute path to the root of BABS project.
+        For example, '/path/to/my_BABS_project/'.
+    """
+
+    # Get arguments:
+    args = babs_check_setup_cli().parse_args()
+
+    project_root = args.project_root
+
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj = get_existing_babs_proj(project_root)
+
+    # Call method `babs_check_setup()`:
+    babs_proj.babs_check_setup()
+
+    print()
 
 def babs_submit_cli():
     """
@@ -687,3 +727,7 @@ def check_df_job_specific(df, job_status_path_abs,
         print("Another instance of this application currently holds the lock.")
 
     return df
+
+
+# if __name__ == "__main__":
+#     babs_check_setup_main()

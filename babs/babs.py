@@ -546,6 +546,20 @@ class BABS():
         # SUCCESS!
         print("\n`babs-init` was successful!")
 
+    def babs_check_setup(self):
+        """
+        This function validates the setups by babs-init.
+        """
+        # Check input dataset(s):
+        # check if there is at least one folder in the `input/data` dir:
+        # check if there is dir of input dataset (in BABS class):
+        # check if each dir of input dataset is a datalad dataset:
+        # check if each dir of input dataset is up-to-date?
+
+        # Check container datalad dataset:
+
+        print()
+
     def babs_submit(self, count=1, df_job_specified=None):
         """
         This function submits jobs and prints out job status.
@@ -1174,7 +1188,7 @@ class BABS():
 class Input_ds():
     """This class is for input dataset(s)"""
 
-    def __init__(self, input_cli, list_sub_file, type_session):
+    def __init__(self, input_cli):
         """
         This is to initalize `Input_ds` class.
 
@@ -1182,14 +1196,6 @@ class Input_ds():
         --------------
         input_cli: nested list of strings
             see CLI `babs-init --input` for more
-        list_sub_file: str or None
-            Path to the CSV file that lists the subject (and sessions) to analyze;
-            or `None` if that CLI flag was not specified.
-            single-ses data: column of 'sub_id';
-            multi-ses data: columns of 'sub_id' and 'ses_id'
-        type_session: str
-            "multi-ses" or "single-ses"
-
 
         Attributes:
         --------------
@@ -1208,12 +1214,12 @@ class Input_ds():
         num_ds: int
             number of input dataset(s)
         initial_inclu_df: pandas DataFrame or None
-            got from `list_sub_file`
-            single-session data: column of 'sub_id';
-            multi-session data: columns of 'sub_id' and 'ses_id'
+            got by method `get_initial_inclu_df()`, based on `list_sub_file`
+            Assign `None` for now, before calling that method
+            See that method for more.
         """
 
-        # About input dataset(s):
+        # About input dataset(s): ------------------------
         # create an empty pandas DataFrame:
         self.df = pd.DataFrame(None,
                                index=list(range(0, len(input_cli))),
@@ -1234,6 +1240,26 @@ class Input_ds():
         if len(set(self.df["name"].tolist())) != self.num_ds:  # length of the set = number of ds
             raise Exception("There are identical names in input datasets' names!")
 
+        # Initialize other attributes: ------------------------------
+        self.initial_inclu_df = None
+
+    def get_initial_inclu_df(self, list_sub_file, type_session):
+        """
+        Define attribute `initial_inclu_df`, a pandas DataFrame or None
+            based on `list_sub_file`
+            single-session data: column of 'sub_id';
+            multi-session data: columns of 'sub_id' and 'ses_id'
+
+        Parameters:
+        ----------------
+        list_sub_file: str or None
+            Path to the CSV file that lists the subject (and sessions) to analyze;
+            or `None` if that CLI flag was not specified.
+            single-ses data: column of 'sub_id';
+            multi-ses data: columns of 'sub_id' and 'ses_id'
+        type_session: str
+            "multi-ses" or "single-ses"
+        """
         # Get the initial included sub/ses list from `list_sub_file` CSV:
         if list_sub_file is None:  # if not to specify that flag in CLI, it'll be `None`
             self.initial_inclu_df = None
