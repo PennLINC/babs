@@ -17,6 +17,7 @@ SETUP_REQUIRES += ['wheel'] if 'bdist_wheel' in sys.argv else []
 setup(name='babs',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
-      setup_requires=SETUP_REQUIRES
+      setup_requires=SETUP_REQUIRES,
+      packages=['babs']
 
       )
