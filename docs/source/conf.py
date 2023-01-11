@@ -71,7 +71,7 @@ extensions = [
     'sphinx.ext.inheritance_diagram',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinxarg.ext',  # argparse extension
+    'sphinxarg.ext'  # argparse extension
     # 'sphinx_tabs.tabs',   # for sphinx-toolbox
     # 'sphinx-prompt',   # for sphinx-toolbox
     # 'sphinx_toolbox',   # for sphinx-toolbox
