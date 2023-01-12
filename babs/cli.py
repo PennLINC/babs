@@ -12,7 +12,9 @@ from filelock import Timeout, FileLock
 # from datalad.interface.base import build_doc
 
 # from babs.core_functions import babs_init, babs_submit, babs_status
-from babs.utils import (get_datalad_version,
+from babs.utils import (read_yaml,
+                        write_yaml,
+                        get_datalad_version,
                         validate_type_session,
                         read_job_status_csv,
                         create_job_status_csv)
@@ -627,10 +629,7 @@ def get_existing_babs_proj(project_root):
         raise Exception("`babs-init` was not successful:"
                         + " there is no 'analysis/code/babs_proj_config.yaml' file!")
 
-    with open(babs_proj_config_yaml) as f:
-        babs_proj_config = yaml.load(f, Loader=yaml.FullLoader)
-        # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
-    f.close()
+    babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
 
     type_session = babs_proj_config["type_session"]
     type_system = babs_proj_config["type_system"]
@@ -651,17 +650,24 @@ def get_existing_babs_proj(project_root):
 
     input_cli = []   # to be a nested list
     for i_ds in range(0, len(input_ds_yaml)):
-        temp_key = "$INPUT_DATASET_#" + str(i_ds+1)
-        temp_value = input_ds_yaml[temp_key]
-        input_cli.append([temp_value[0],
-                          temp_value[1]])
+        ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
+        input_cli.append([input_ds_yaml[ds_index_str]["name"],
+                          input_ds_yaml[ds_index_str]["path_in"]])
 
     # Get the class `Input_ds`:
     input_ds = Input_ds(input_cli)
     # update information based on current babs project:
+    # 1. `path_now_abs`:
     input_ds.assign_path_now_abs(babs_proj.analysis_path)
-    # TODO: update `path_data_rel` and `is_zipped`
-    #   ^^ should be saved into yaml file when `babs-init` -> Input_ds -> `check_if_zipped`
+    # 2. `path_data_rel` and `is_zipped`:
+    for i_ds in range(0, input_ds.num_ds):
+        ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
+        # `path_data_rel`:
+        input_ds.df["path_data_rel"][i_ds] = \
+            babs_proj_config["input_ds"][ds_index_str]["path_data_rel"]
+        # `is_zipped`:
+        input_ds.df["is_zipped"][i_ds] = \
+            babs_proj_config["input_ds"][ds_index_str]["is_zipped"]
 
     return babs_proj, input_ds
 

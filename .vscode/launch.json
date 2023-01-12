@@ -16,7 +16,7 @@
             },
             "args": [
                 "--project-root",
-                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_fpfsin",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp",
             ],
             // "args": [
             //     "--where_project",
