@@ -18,6 +18,4 @@ setup(name='babs',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       setup_requires=SETUP_REQUIRES
-      # packages=['babs']
-
       )
