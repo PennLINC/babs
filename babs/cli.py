@@ -239,7 +239,7 @@ def babs_check_setup_main():
     project_root = args.project_root
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj = get_existing_babs_proj(project_root)
+    babs_proj, input_ds = get_existing_babs_proj(project_root)
 
     # Call method `babs_check_setup()`:
     babs_proj.babs_check_setup()
@@ -327,7 +327,7 @@ def babs_submit_main():
     job = args.job
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj = get_existing_babs_proj(project_root)
+    babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
@@ -497,7 +497,7 @@ def babs_status_main():
     job_account = args.job_account
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj = get_existing_babs_proj(project_root)
+    babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
@@ -597,7 +597,7 @@ def babs_status_main():
 
 def get_existing_babs_proj(project_root):
     """
-    This is to get `babs_proj` (class `BABS`)
+    This is to get `babs_proj` (class `BABS`) and `input_ds` (class `Input_ds`)
     based on existing yaml file `babs_proj_config.yaml`.
     This should be used by `babs_submit()` and `babs_status`.
 
@@ -611,6 +611,8 @@ def get_existing_babs_proj(project_root):
     --------------
     babs_proj: class `BABS`
         information about a BABS project
+    input_ds: class `Input_ds`
+        information about input dataset(s)
     """
 
     # Sanity check: the path `project_root` exists:
@@ -639,8 +641,29 @@ def get_existing_babs_proj(project_root):
     # update key informations including `output_ria_data_dir`:
     babs_proj.wtf_key_info(flag_output_ria_only=True)
 
-    return babs_proj
+    # Get information for input dataset:
+    input_ds_yaml = babs_proj_config["input_ds"]
+    # sanity check:
+    if len(input_ds_yaml) == 0:   # there was no input ds:
+        raise Exception("Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
+                        + "does not include any input dataset!"
+                        + " Something was wrong during `babs-init`...")
 
+    input_cli = []   # to be a nested list
+    for i_ds in range(0, len(input_ds_yaml)):
+        temp_key = "$INPUT_DATASET_#" + str(i_ds+1)
+        temp_value = input_ds_yaml[temp_key]
+        input_cli.append([temp_value[0],
+                          temp_value[1]])
+
+    # Get the class `Input_ds`:
+    input_ds = Input_ds(input_cli)
+    # update information based on current babs project:
+    input_ds.assign_path_now_abs(babs_proj.analysis_path)
+    # TODO: update `path_data_rel` and `is_zipped`
+    #   ^^ should be saved into yaml file when `babs-init` -> Input_ds -> `check_if_zipped`
+
+    return babs_proj, input_ds
 
 def check_df_job_specific(df, job_status_path_abs,
                           type_session, which_function):

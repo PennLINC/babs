@@ -20,8 +20,8 @@ jupyter nbconvert --execute --to html notebooks/<your_ipynb_filename>.ipynb
     - then: `datalad save`, `datalad push --to input`, `datalad push --to output`
 
 ## After all jobs are successfully run:
-- first, go to `output_ria/xxx/xxx-xx-xxx`, `git branch -a`. 
-    - Make sure all branches are there, 
+- first, go to `output_ria/xxx/xxx-xx-xxx`, `git branch -a`.
+    - Make sure all branches are there,
     - and there is no extra/repeated branches of the same sub/session
 If the list of branches looks good to you:
 - merge: `[analysis] $ bash code/merge_outputs.sh`
@@ -30,7 +30,7 @@ If the list of branches looks good to you:
 ## How to interactively test out the bootstrapped scripts:
 - open `participant_job.sh` and `submit_jobs.sh`
 - enter the arguments value into terminal based on `submit_job.sh`
-- `$ where_to_run="/cbica/comp_space/$(basename $HOME)"   # using comp_space `   
+- `$ where_to_run="/cbica/comp_space/$(basename $HOME)"   # using comp_space `
 
 ## After the job is gone from the list, check:
 - output_ria/xxx/xxx-xxx-xxx-xxx: $ git branch -a  # to see if the job is success
@@ -45,9 +45,10 @@ datalad remove -d inputs/data/<input_ds_name>
 git annex dead here
 datalad push --to input
 datalad push --to output
+pwd
 cd ../..   # outside of <project_root>
 rm -rf <project_root>
-``` 
+```
 
 ## How to remove temporary workspace (from `comp_space`):
 ```

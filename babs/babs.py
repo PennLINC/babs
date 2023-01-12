@@ -294,7 +294,9 @@ class BABS():
                                     + self.type_system + "'\n")
         babs_proj_config_file.write("input_ds:\n")   # input dataset's name(s)
         for i_ds in range(0, input_ds.num_ds):
-            babs_proj_config_file.write("  - " + input_ds.df["name"][i_ds] + "\n")
+            babs_proj_config_file.write("  $INPUT_DATASET_#" + str(i_ds+1) + ":\n")
+            babs_proj_config_file.write("    - " + input_ds.df["name"][i_ds] + "\n")
+            babs_proj_config_file.write("    - " + input_ds.df["path_in"][i_ds] + "\n")
 
         babs_proj_config_file.close()
         self.datalad_save(path="code/babs_proj_config.yaml",
