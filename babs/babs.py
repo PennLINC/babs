@@ -24,6 +24,8 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_zipping_from_config,
                         validate_type_session,
                         validate_type_system,
+                        read_yaml,
+                        write_yaml,
                         generate_bashhead_resources,
                         generate_cmd_script_preamble,
                         generate_cmd_datalad_run,
@@ -295,8 +297,10 @@ class BABS():
         babs_proj_config_file.write("input_ds:\n")   # input dataset's name(s)
         for i_ds in range(0, input_ds.num_ds):
             babs_proj_config_file.write("  $INPUT_DATASET_#" + str(i_ds+1) + ":\n")
-            babs_proj_config_file.write("    - " + input_ds.df["name"][i_ds] + "\n")
-            babs_proj_config_file.write("    - " + input_ds.df["path_in"][i_ds] + "\n")
+            babs_proj_config_file.write("    name: '" + input_ds.df["name"][i_ds] + "'\n")
+            babs_proj_config_file.write("    path_in: '" + input_ds.df["path_in"][i_ds] + "'\n")
+            babs_proj_config_file.write("    path_data_rel: 'TO_BE_FILLED'\n")
+            babs_proj_config_file.write("    is_zipped: 'TO_BE_FILLED'\n")
 
         babs_proj_config_file.close()
         self.datalad_save(path="code/babs_proj_config.yaml",
@@ -373,6 +377,7 @@ class BABS():
         input_ds.assign_path_now_abs(self.analysis_path)
 
         # Check the type of each input dataset: (zipped? unzipped?)
+        #   this also gets `is_zipped`
         print("\nChecking whether each input dataset is a zipped or unzipped dataset...")
         input_ds.check_if_zipped()
         # sanity checks:
@@ -381,6 +386,22 @@ class BABS():
         # Check validity of unzipped ds:
         #   if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
         check_validity_unzipped_input_dataset(input_ds, self.type_session)
+
+        # Update input ds information in `babs_proj_config.yaml`:
+        babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+        for i_ds in range(0, input_ds.num_ds):
+            ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
+            # update `path_data_rel`:
+            babs_proj_config["input_ds"][ds_index_str]["path_data_rel"] = \
+                input_ds.df["path_data_rel"][i_ds]
+            # upate `is_zipped`:
+            babs_proj_config["input_ds"][ds_index_str]["is_zipped"] = \
+                input_ds.df["is_zipped"][i_ds]
+        # dump:
+        write_yaml(babs_proj_config, self.config_path, if_filelock=True)
+        # datalad save: update:
+        self.datalad_save(path="code/babs_proj_config.yaml",
+                          message="Update configurations of input dataset of this BABS project")
 
         # Add container as sub-dataset of `analysis`:
         # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???

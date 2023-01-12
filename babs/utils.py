@@ -142,6 +142,81 @@ def validate_type_system(type_system):
     return type_system
 
 
+def read_yaml(fn, if_filelock=False):
+    """
+    This is to read yaml file.
+
+    Parameters:
+    ---------------
+    fn: str
+        path to the yaml file
+    if_filelock: bool
+        whether to use filelock
+
+    Returns:
+    ------------
+    config: dict
+        content of the yaml file
+    """
+
+    if if_filelock:
+        lock_path = fn + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
+                with open(fn) as f:
+                    config = yaml.load(f, Loader=yaml.FullLoader)
+                    # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
+                f.close()
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+    else:
+        with open(fn) as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+            # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
+        f.close()
+
+    return config
+
+def write_yaml(config, fn, if_filelock=False):
+    """
+    This is to write contents into yaml file.
+
+    Parameters:
+    ---------------
+    config: dict
+        the content to write into yaml file
+    fn: str
+        path to the yaml file
+    if_filelock: bool
+        whether to use filelock
+    """
+    if if_filelock:
+        lock_path = fn + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
+                with open(fn, "w") as f:
+                    _ = yaml.dump(config, f,
+                                  sort_keys=False,   # not to sort by keys
+                                  default_flow_style=False)  # keep the format of nested contents
+                f.close()
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+    else:
+        with open(fn, "w") as f:
+            _ = yaml.dump(config, f,
+                          sort_keys=False,   # not to sort by keys
+                          default_flow_style=False)  # keep the format of nested contents
+        f.close()
+
+
 def replace_placeholder_from_config(value):
     """
     Replace the placeholder in values in container config yaml file
@@ -1375,7 +1450,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                 # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
 
                 # summarize based on `alert_message` column:
-                
+
                 all_alert_message = df["alert_message"][list_index_job_failed].tolist()
                 unique_list_alert_message = list(set(all_alert_message))
                 # unique_list_alert_message.sort()   # sort and update the list itself
