@@ -244,9 +244,7 @@ def babs_check_setup_main():
     babs_proj, input_ds = get_existing_babs_proj(project_root)
 
     # Call method `babs_check_setup()`:
-    babs_proj.babs_check_setup()
-
-    print()
+    babs_proj.babs_check_setup(input_ds)
 
 def babs_submit_cli():
     """

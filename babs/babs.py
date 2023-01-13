@@ -569,15 +569,54 @@ class BABS():
         # SUCCESS!
         print("\n`babs-init` was successful!")
 
-    def babs_check_setup(self):
+    def babs_check_setup(self, input_ds):
         """
         This function validates the setups by babs-init.
+
+        Parameters:
+        --------------
+        input_ds: class `Input_ds`
+            information of input dataset(s)
         """
+        # Check the project itself:
+        # check if `analysis_path` exists
+        #   (^^ though should be checked in `get_existing_babs_proj()` in cli.py)
+        assert op.exists(self.analysis_path), \
+            "Folder 'analysis' does not exist in this BABS project!" \
+            + " Current path to analysis folder: " + self.analysis_path
+
         # Check input dataset(s):
-        # check if there is at least one folder in the `input/data` dir:
-        # check if there is dir of input dataset (in BABS class):
-        # check if each dir of input dataset is a datalad dataset:
-        # check if each dir of input dataset is up-to-date?
+        # check if there is at least one folder in the `inputs/data` dir:
+        temp_list = get_immediate_subdirectories(op.join(self.analysis_path, "inputs/data"))
+        assert len(temp_list) > 0, \
+            "There is no sub-directory (i.e., no input dataset) in 'inputs/data'!" \
+            + " Full path to folder 'inputs/data': " + op.join(self.analysis_path, "inputs/data")
+
+        # check each input ds:
+        for i_ds in range(0, input_ds.num_ds):
+            path_now_abs = input_ds.df["path_now_abs"][i_ds]
+
+            # check if the dir of this input ds exists:
+            assert op.exists(path_now_abs), \
+                "The path to the cloned input dataset #" + str(i_ds + 1) \
+                + " '" + input_ds.df["name"][i_ds] + "' does not exist: " \
+                + path_now_abs
+
+            # check if dir of input ds is a datalad dataset:
+            assert op.exists(op.join(path_now_abs, ".datalad/config")), \
+                "The input dataset #" + str(i_ds + 1) \
+                + " '" + input_ds.df["name"][i_ds] + "' is not a valid DataLad dataset:" \
+                + " There is no file '.datalad/config' in its directory: " + path_now_abs
+
+            # get info of the datalad ds of input ds:
+            datalad_ds_input_ds = dlapi.Dataset(path_now_abs)
+            config_manager_input_ds = dlapi.datalad.config.ConfigManager(
+                dataset=datalad_ds_input_ds)
+            # pprint(config_manager_input_ds.__dict__)   # from pprint import pprint
+            # config_manager_input_ds._merged_store["remote.origin.url"]
+
+            # check if input ds is up-to-date?
+            print("TODO")
 
         # Check container datalad dataset:
 
@@ -647,10 +686,9 @@ class BABS():
 
                         # check if the job has already been submitted:
                         if not df_job["has_submitted"][i_job]:  # to run
-                            job_id, _, log_filename = \
-                                submit_one_job(self.analysis_path,
-                                               self.type_session,
-                                               sub, ses)
+                            job_id, _, log_filename = submit_one_job(self.analysis_path,
+                                                                     self.type_session,
+                                                                     sub, ses)
 
                             # assign into `df_job_updated`:
                             df_job_updated.at[i_job, "job_id"] = job_id
