@@ -294,6 +294,7 @@ class BABS():
                                     + self.type_session + "'\n")
         babs_proj_config_file.write("type_system: '"
                                     + self.type_system + "'\n")
+        # input_ds:
         babs_proj_config_file.write("input_ds:\n")   # input dataset's name(s)
         for i_ds in range(0, input_ds.num_ds):
             babs_proj_config_file.write("  $INPUT_DATASET_#" + str(i_ds+1) + ":\n")
@@ -301,6 +302,10 @@ class BABS():
             babs_proj_config_file.write("    path_in: '" + input_ds.df["path_in"][i_ds] + "'\n")
             babs_proj_config_file.write("    path_data_rel: 'TO_BE_FILLED'\n")
             babs_proj_config_file.write("    is_zipped: 'TO_BE_FILLED'\n")
+        # container ds:
+        babs_proj_config_file.write("container:\n")
+        babs_proj_config_file.write("  name: '" + container_name + "'\n")
+        babs_proj_config_file.write("  path_in: '" + container_ds + "'\n")
 
         babs_proj_config_file.close()
         self.datalad_save(path="code/babs_proj_config.yaml",
@@ -428,11 +433,14 @@ class BABS():
         # cd ${PROJECTROOT}/analysis
         # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
+        container = Container(container_ds, container_name, container_config_yaml_file)
+
+        # sanity check of container ds:
+        container.sanity_check(self.analysis_path)
+
         # ==============================================================
         # Bootstrap scripts:
         # ==============================================================
-
-        container = Container(container_ds, container_name, container_config_yaml_file)
 
         # Generate `<containerName>_zip.sh`: ----------------------------------
         # which is a bash script of singularity run + zip
@@ -578,14 +586,16 @@ class BABS():
         input_ds: class `Input_ds`
             information of input dataset(s)
         """
-        # Check the project itself:
+        babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+
+        # Check the project itself: ---------------------------
         # check if `analysis_path` exists
         #   (^^ though should be checked in `get_existing_babs_proj()` in cli.py)
         assert op.exists(self.analysis_path), \
             "Folder 'analysis' does not exist in this BABS project!" \
             + " Current path to analysis folder: " + self.analysis_path
 
-        # Check input dataset(s):
+        # Check input dataset(s): ---------------------------
         # check if there is at least one folder in the `inputs/data` dir:
         temp_list = get_immediate_subdirectories(op.join(self.analysis_path, "inputs/data"))
         assert len(temp_list) > 0, \
@@ -613,12 +623,62 @@ class BABS():
             config_manager_input_ds = dlapi.datalad.config.ConfigManager(
                 dataset=datalad_ds_input_ds)
             # pprint(config_manager_input_ds.__dict__)   # from pprint import pprint
-            # config_manager_input_ds._merged_store["remote.origin.url"]
+
+            # confirm the remote.origin.url saved in datalad config is the same as BABS config:
+            assert config_manager_input_ds._merged_store["remote.origin.url"] == \
+                input_ds.df["path_in"][i_ds], \
+                "The remote origin url saved in DataLad config file" \
+                + " is not the same as 'path_in' saved in 'babs_proj_config.yaml'!" \
+                + " The former: '" \
+                + config_manager_input_ds._merged_store["remote.origin.url"] + "'; " \
+                + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
 
             # check if input ds is up-to-date?
-            print("TODO")
+            # TODO?
 
-        # Check container datalad dataset:
+        # Check container datalad dataset: ---------------------------
+        folder_container = op.join(self.analysis_path, "containers")
+        container_name = babs_proj_config["container"]["name"]
+        # assert it's a datalad ds in `containers` folder:
+        assert op.exists(op.join(folder_container, ".datalad/config")), \
+            "There is no containers DataLad dataset in folder: " + folder_container
+
+        # TODO: check if container ds remote.origin.url = user's input
+
+        # no action now; when `babs-init`, has done `Container.sanity_check()`
+        #               to make sure the container named `container_name` exists.
+
+        # Check `analysis/code`: ---------------------------------
+        # folder `analysis/code` should exist:
+        assert op.exists(op.join(self.analysis_path, "code")), \
+            "Folder 'code' does not exist in 'analysis' folder!"
+
+        # assert the list of files in the `code` folder,
+        #   and bash files should be executable:
+        list_files_code = [
+            "babs_proj_config.yaml",
+            container_name + "_zip.sh",
+            "participant_job.sh",
+            "submit_job_template.yaml"
+            ]
+        if self.type_session == "single-ses":
+            list_files_code.append("sub_final_inclu.csv")
+        else:
+            list_files_code.append("sub_ses_final_inclu.csv")
+
+        for temp_filename in list_files_code:
+            temp_fn = op.join(self.analysis_path, "code", temp_filename)
+            # the file should exist:
+            assert op.isfile(temp_fn), \
+                "Required file '" + temp_filename + "' does not exist" \
+                + " in 'analysis/code' folder in this BABS project!"
+            # check if bash files are executable:
+            if op.splitext(temp_fn)[1] == ".sh":   # extension is '.sh':
+                assert os.access(temp_fn, os.X_OK), \
+                    "This code file should be executable: " + temp_fn
+
+        # Check input and output RIA: ---------------
+        # TODO
 
         print()
 
@@ -1580,7 +1640,7 @@ class Container():
         --------------
         container_ds: str
             The path to the container datalad dataset as the input of `babs-init`.
-            This container datalad ds is prepared by the user.
+            This container datalad ds is prepared by the user, not the cloned one.
         container_name: str
             The name of the container when adding to datalad dataset(e.g., `NAME` in
             `datalad containers-add NAME`),
@@ -1612,7 +1672,21 @@ class Container():
         self.container_path_relToAnalysis = op.join("containers", ".datalad", "environments",
                                                     self.container_name, "image")
 
-        # TODO: validate that this `container_name` really exists in `container_ds`...
+    def sanity_check(self, analysis_path):
+        """
+        This is a sanity check to validate the cloned container ds.
+
+        Parameters:
+        ------------
+        analysis_path: str
+            Absolute path to the `analysis` folder in a BABS project.
+        """
+        # Sanity check: this `container_name` exists in the `container_ds`:
+        container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
+        # ^^ path to the folder `image`
+        assert op.exists(container_path_abs), \
+            "There is no valid image named '" + self.container_name \
+            + "' in the provided container DataLad dataset!"
 
     def read_container_config_yaml(self):
         """
