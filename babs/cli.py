@@ -471,7 +471,7 @@ def babs_status_main():
         for i in range(0, len(resubmit)):
             flags_resubmit.append(resubmit[i][0])
 
-        # remove dupliated elements:
+        # remove duplicated elements:
         flags_resubmit = list(set(flags_resubmit))   # `list(set())`: acts like "unique"
 
         # print message:
@@ -596,7 +596,7 @@ def get_existing_babs_proj(project_root):
     # Get the class `BABS`:
     babs_proj = BABS(project_root, type_session, type_system)
 
-    # update key informations including `output_ria_data_dir`:
+    # update key information including `output_ria_data_dir`:
     babs_proj.wtf_key_info(flag_output_ria_only=True)
 
     return babs_proj

@@ -817,7 +817,7 @@ class BABS():
 
                     # Check if any alert keywords in log files for this job:
                     # NOTE: in theory can skip failed jobs in previous round,
-                    #       but making assinging variables hard; so not to skip
+                    #       but making assigning variables hard; so not to skip
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
                     alert_message_in_log_files, if_no_alert_in_log = \
                         get_alert_message_in_log_files(config_keywords_alert, log_fn)
@@ -1151,7 +1151,7 @@ class BABS():
                 # Done: jobs that haven't submitted yet
 
                 # Finish up `babs-status`:
-                # # print udpated df:
+                # # print updated df:
                 # print("")
                 # with pd.option_context('display.max_rows', None,
                 #                        'display.max_columns', None,
@@ -1176,7 +1176,7 @@ class Input_ds():
 
     def __init__(self, input_cli, list_sub_file, type_session):
         """
-        This is to initalize `Input_ds` class.
+        This is to initialize `Input_ds` class.
 
         Parameters:
         --------------
@@ -1502,7 +1502,7 @@ class Container():
             The YAML file that contains the configurations of how to run the container
             This is optional argument (of the CLI `babs-init`)
         config: dict
-            The configurations regaring running the BIDS App on a cluster
+            The configurations regarding running the BIDS App on a cluster
             read from `config_yaml_file`.
         container_path_relToAnalysis: str
             The path to the container image saved in BABS project;
