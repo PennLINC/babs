@@ -77,7 +77,7 @@ Notes:
     * ``my_key: ""``    (empty value string)
     * ``my_key: Null``    (``Null`` is a placeholder)
     * ``my_key: NULL``    (``NULL`` is a placeholder)
-* Repeated arguments: As this YAML section will be read as a dictionary by BABS, each key before ``:`` can not be repeated. If you need to specify repeated arguments, e.g., ``-v -v``, please specify it as ``-v : '-v'`` as in the example above; for tripple ``-v``, specify as ``-v: '-v -v'``
+* Repeated arguments: As this YAML section will be read as a dictionary by BABS, each key before ``:`` can not be repeated. If you need to specify repeated arguments, e.g., ``-v -v``, please specify it as ``-v : '-v'`` as in the example above; for triple ``-v``, specify as ``-v: '-v -v'``
 * Value placeholders: There are several placeholders for values available in BABS:
 
     * ``"$BABS_TMPDIR"`` is a value placeholder for temporary working directory. You might use this for arguments e.g., working directory.
@@ -87,7 +87,7 @@ Notes:
     * ``$INPUT_PATH`` is a placeholder for positional argument input dataset (or BIDS directory). This must be included if there are more than one input dataset, to tell BABS which input dataset to use for this positional argument. Also, this must be used as the first key/value in this section **babs_singularity_run**, i.e., before other arguments.
 
         * For example, if you hope to specify an input dataset called ``BIDS`` for this positional argument, simply write ``$INPUT_PATH: inputs/data/BIDS``. Replace ``BIDS`` with your input dataset's name, but make sure you keep ``inputs/data/`` which is needed by BABS. For more, please see the example YAML file for more than one dataset: `fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_.
-        * ERROR! TOOD: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
+        * ERROR! TODO: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
 * path to the dataset, zipped or unzipped
     * e.g., ``$INPUT_PATH`` in fMRIPrep with FreeSurfer results ingressed
     * e.g., ``--fs-subjects-dir`` in fMRIPrep with FreeSurfer results ingressed
@@ -146,7 +146,7 @@ You may not need all of them.
 BABS will replace ``$VALUE`` with the value you provide.
 The second row in each cell, which is also in (), is an example.
 
-.. .. list-table:: Cluster resources requrests that BABS supports
+.. .. list-table:: Cluster resources requests that BABS supports
 ..     :widths: 10 10 10 10
 ..     :header-rows: 1
 
@@ -288,4 +288,4 @@ Detection of the keyword is performed in the order provided by the user. If ``o_
 * If a keyword has been detected in the first file (``o_file`` for above example), then won't detect any keyword in the other log file (``e_file`` for above example).
 
 .. warning::
-    Detecting the keywords in the log files by BABS is case-sensitve! So please make sure the cases of keywords are in the way you hope.
+    Detecting the keywords in the log files by BABS is case-sensitive! So please make sure the cases of keywords are in the way you hope.
