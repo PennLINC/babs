@@ -16,10 +16,8 @@ babs_singularity_run:
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
     --output-spaces: MNI152NLin6Asym:res-2
     --force-bbr: ""
-    #--cifti-output: 91k   # ADD THIS WHEN FULL RUN!
+    --cifti-output: 91k   # WHEN FULL RUN!
     -v: '-v'   # this is for double "-v"
-    --sloppy: ''      # ADD THIS WHEN TEST RUN!
-    --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)

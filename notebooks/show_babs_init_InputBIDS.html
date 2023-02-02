@@ -36,6 +36,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 .highlight .m { color: var(--jp-mirror-editor-number-color) } /* Literal.Number */
 .highlight .s { color: var(--jp-mirror-editor-string-color) } /* Literal.String */
 .highlight .ow { color: var(--jp-mirror-editor-operator-color); font-weight: bold } /* Operator.Word */
+.highlight .pm { color: var(--jp-mirror-editor-punctuation-color) } /* Punctuation.Marker */
 .highlight .w { color: var(--jp-mirror-editor-variable-color) } /* Text.Whitespace */
 .highlight .mb { color: var(--jp-mirror-editor-number-color) } /* Literal.Number.Bin */
 .highlight .mf { color: var(--jp-mirror-editor-number-color) } /* Literal.Number.Float */
@@ -14454,7 +14455,7 @@ all of MD as it is not optimized for dense, information rich UIs.
 </style>
 
 <style type="text/css">
-/* Force rendering true colors when outputting to pdf */
+/* Force rendering true colors when outputing to pdf */
 * {
   -webkit-print-color-adjust: exact;
 }
@@ -14652,13 +14653,13 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-InputPrompt jp-InputArea-prompt">In&nbsp;[2]:</div>
 <div class="jp-CodeMirrorEditor jp-Editor jp-InputArea-editor" data-type="inline">
      <div class="CodeMirror cm-s-jupyter">
-<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># This notebook only accepts qsiprep or fmriprep (input ds: BIDS)</span>
+<div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># This notebook only accepts toybidsapp, qsiprep or fmriprep or fmriprep_anatonly (input ds: BIDS)</span>
 <span class="c1"># ++++++++++++++++++++++++++++++++++</span>
-<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">&quot;qsiprep&quot;</span>
+<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">&quot;toybidsapp&quot;</span>
 <span class="n">type_session</span> <span class="o">=</span> <span class="s2">&quot;multi-ses&quot;</span>
-<span class="n">is_real_data</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="n">which_dataset</span> <span class="o">=</span> <span class="s2">&quot;toy_fake&quot;</span>    <span class="c1"># &quot;toy_fake&quot;, &quot;toy_real&quot;, &quot;HBN&quot;</span>
 
-<span class="n">flag_where</span> <span class="o">=</span> <span class="s2">&quot;cubic&quot;</span>     <span class="c1"># &quot;cubic&quot; or &quot;local&quot;</span>
+<span class="n">flag_where</span> <span class="o">=</span> <span class="s2">&quot;local&quot;</span>     <span class="c1"># &quot;cubic&quot; or &quot;local&quot;</span>
 <span class="c1"># ++++++++++++++++++++++++++++++++++</span>
 
 <span class="c1"># where:</span>
@@ -14667,50 +14668,57 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
     <span class="n">where_project</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_root</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span>
     <span class="n">where_notebooks</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_root</span><span class="p">,</span> <span class="s2">&quot;babs/notebooks&quot;</span><span class="p">)</span>
 <span class="k">elif</span> <span class="n">flag_where</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
-    <span class="n">where_root</span> <span class="o">=</span> <span class="s2">&quot;/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper&quot;</span>
+    <span class="n">where_root</span> <span class="o">=</span> <span class="s2">&quot;/Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper&quot;</span>  <span class="c1"># change this back after laptop&#39;s back</span>
     <span class="n">where_project</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_root</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span>
     <span class="n">where_notebooks</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_root</span><span class="p">,</span> <span class="s2">&quot;babs/notebooks&quot;</span><span class="p">)</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not valid `flag_where`!&quot;</span><span class="p">)</span>
 
 <span class="c1"># Input dataset:</span>
-<span class="k">if</span> <span class="n">is_real_data</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+<span class="k">if</span> <span class="n">which_dataset</span> <span class="o">==</span> <span class="s2">&quot;toy_fake&quot;</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">&quot;multi-ses&quot;</span><span class="p">:</span>
         <span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">&quot;w2nu3&quot;</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">&quot;single-ses&quot;</span><span class="p">:</span>
         <span class="n">input_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">&quot;t8urc&quot;</span><span class="p">)</span>
-<span class="k">else</span><span class="p">:</span>           <span class="c1"># real data:</span>
+<span class="k">elif</span> <span class="n">which_dataset</span> <span class="o">==</span> <span class="s2">&quot;toy_real&quot;</span><span class="p">:</span>  <span class="c1"># real data:</span>
     <span class="k">if</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">&quot;multi-ses&quot;</span><span class="p">:</span>
         <span class="c1"># input_ds = &quot;/cbica/projects/RBC/chenying_practice/data_for_babs/NKI/data_hashedID_bids&quot;</span>
         <span class="n">input_ds</span> <span class="o">=</span> <span class="s2">&quot;/cbica/projects/BABS/data/testdata_NKI/data_hashedID_bids&quot;</span>
     <span class="k">elif</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">&quot;single-ses&quot;</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;not supported yet!&quot;</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">which_dataset</span> <span class="o">==</span> <span class="s2">&quot;HBN&quot;</span><span class="p">:</span>  <span class="c1"># HBN data:</span>
+    <span class="k">if</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">&quot;single-ses&quot;</span><span class="p">:</span>
+        <span class="n">input_ds</span> <span class="o">=</span> <span class="s2">&quot;/cbica/projects/BABS/data/rawdata_HBN&quot;</span>   <span class="c1"># datalad sibling in BABS cubic project</span>
+    <span class="k">elif</span> <span class="n">type_session</span> <span class="o">==</span> <span class="s2">&quot;multi-ses&quot;</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;HBN is a single-ses data!&quot;</span><span class="p">)</span>
 
+
+<span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;test_babs_&quot;</span> <span class="o">+</span> <span class="n">type_session</span>
+<span class="c1"># Based on which dataset:</span>
+<span class="k">if</span> <span class="n">which_dataset</span> <span class="o">==</span> <span class="s2">&quot;HBN&quot;</span><span class="p">:</span>   <span class="c1"># HBN data:</span>
+    <span class="n">project_name</span> <span class="o">+=</span> <span class="s2">&quot;_HBN&quot;</span>
 <span class="c1"># Based on which BIDS App:</span>
 <span class="k">if</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">&quot;toybidsapp&quot;</span><span class="p">:</span>
     <span class="n">input_cli</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;BIDS&quot;</span><span class="p">,</span> <span class="n">input_ds</span><span class="p">]]</span>
-    <span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;test_babs_&quot;</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">flag_instance</span>
     <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">&quot;toybidsapp&quot;</span>
     <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-0-0-5&quot;</span>
-
-<span class="k">elif</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">&quot;fmriprep&quot;</span><span class="p">:</span>
-    <span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;test_babs_&quot;</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">&quot;_fmriprep&quot;</span>
+<span class="k">elif</span> <span class="n">flag_instance</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;fmriprep&quot;</span><span class="p">,</span> <span class="s2">&quot;fmriprep_anatonly&quot;</span><span class="p">]:</span>
     <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">&quot;fmriprep&quot;</span>
     <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-20-2-3&quot;</span>
-
 <span class="k">elif</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">&quot;qsiprep&quot;</span><span class="p">:</span>
-    <span class="n">project_name</span> <span class="o">=</span> <span class="s2">&quot;test_babs_&quot;</span> <span class="o">+</span> <span class="n">type_session</span> <span class="o">+</span> <span class="s2">&quot;_qsiprep&quot;</span>
     <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">&quot;qsiprep&quot;</span>
-    
     <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-0-16-0RC3&quot;</span>
-
 <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;`flag_instance` is not QSIPrep or fMRIPrep!&quot;</span><span class="p">)</span>
 
+<span class="n">project_name</span> <span class="o">+=</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">flag_instance</span>
+
+
 <span class="c1"># Container:</span>
-<span class="n">container_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-container&quot;</span><span class="p">)</span>  
-<span class="k">if</span> <span class="n">flag_where</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
-    <span class="n">container_ds</span> <span class="o">+=</span> <span class="s2">&quot;-docker&quot;</span>   <span class="c1"># add &quot;docker&quot; at the end</span>
+<span class="k">if</span> <span class="n">flag_where</span> <span class="o">==</span> <span class="s2">&quot;cubic&quot;</span><span class="p">:</span>
+    <span class="n">container_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-container&quot;</span><span class="p">)</span>  
+<span class="k">elif</span> <span class="n">flag_where</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
+    <span class="n">container_ds</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_project</span><span class="p">,</span> <span class="s2">&quot;toybidsapp-container-docker&quot;</span><span class="p">)</span>  <span class="c1"># just use toybidsapp to test out</span>
 <span class="n">container_config_yaml_file</span> <span class="o">=</span> <span class="n">op</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">where_notebooks</span><span class="p">,</span> <span class="s2">&quot;example_container_&quot;</span> <span class="o">+</span> <span class="n">flag_instance</span> <span class="o">+</span> <span class="s2">&quot;.yaml&quot;</span><span class="p">)</span>
 
 <span class="c1"># list_sub_file = op.join(where_notebooks, &quot;initial_sub_list_&quot; + type_session + &quot;.csv&quot;)</span>
@@ -14777,12 +14785,12 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>The command to execute:
 babs-init \
-	--where_project /cbica/projects/BABS/data \
-	--project_name test_babs_multi-ses_qsiprep \
-	--input BIDS /cbica/projects/BABS/data/testdata_NKI/data_hashedID_bids \
-	--container_ds /cbica/projects/BABS/data/qsiprep-container \
-	--container_name qsiprep-0-16-0RC3 \
-	--container_config_yaml_file /cbica/projects/BABS/babs/notebooks/example_container_qsiprep.yaml \
+	--where_project /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data \
+	--project_name test_babs_multi-ses_toybidsapp \
+	--input BIDS /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/w2nu3 \
+	--container_ds /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker \
+	--container_name toybidsapp-0-0-5 \
+	--container_config_yaml_file /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container_toybidsapp.yaml \
 	--type_session multi-ses \
 	--type_system sge
 </pre>
@@ -14821,10 +14829,12 @@ babs-init \
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>DataLad version: 0.17.9
-nothing to save, working tree clean
+<pre>DataLad version: 0.18.1
+ <span class="ansi-red-intense-fg ansi-bold">modified</span>: .datalad/.gitattributes (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+ <span class="ansi-red-intense-fg ansi-bold">modified</span>: .datalad/config (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+ <span class="ansi-red-intense-fg ansi-bold">modified</span>: .gitattributes (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 
-project_root of this BABS project: /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep
+project_root of this BABS project: /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp
 type of data of this BABS project: multi-ses
 job scheduling system of this BABS project: sge
 
@@ -14835,30 +14845,39 @@ Creating `analysis` folder (also a datalad dataset)...
 Total: 0.00 datasets [00:00, ? datasets/s]
 Total:   0%|                                     | 0.00/510 [00:00&lt;?, ? Bytes/s]
 [INFO   ] == Command exit (modification check follows) ===== 
-<span class="ansi-bold">run</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [/cbica/projects/BABS/miniconda3/envs/myd...]
-<span class="ansi-bold">create</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+<span class="ansi-bold">run</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [/Users/cztemp/miniconda3/envs/mydatalad/...]
+<span class="ansi-bold">create</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   create (ok: 1)
   run (ok: 1)
+Save configurations of BABS project in a yaml file ...
+Path to this yaml file will be: &#39;analysis/code/babs_proj_config.yaml&#39;
+Total: 0.00 datasets [00:00, ? datasets/s]
+Total:   0%|                                    | 0.00/64.0 [00:00&lt;?, ? Bytes/s]
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/babs_proj_config.yaml (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+<span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+action summary:
+  add (ok: 1)
+  save (ok: 1)
 
 Creating output and input RIA...
 [INFO   ] create siblings &#39;output&#39; and &#39;output-storage&#39; ... 
-[INFO   ] Fetching updates for Dataset(/cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis) 
+[INFO   ] Fetching updates for Dataset(/Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis) 
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 [INFO   ] Configure additional publication dependency on &#34;output-storage&#34; 
 <span class="ansi-bold">configure-sibling</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">sibling</span>)
-<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   configure-sibling (ok: 1)
   create-sibling-ria (ok: 1)
   update (ok: 1)
 [INFO   ] create sibling &#39;input&#39; ... 
-[INFO   ] Fetching updates for Dataset(/cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis) 
+[INFO   ] Fetching updates for Dataset(/Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis) 
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">update</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">configure-sibling</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">sibling</span>)
-<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
+<span class="ansi-bold">create-sibling-ria</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   configure-sibling (ok: 1)
   create-sibling-ria (ok: 1)
@@ -14867,12 +14886,12 @@ action summary:
 Registering the input dataset(s)...
 Cloning input dataset #1: &#39;BIDS&#39;
 <span class="ansi-bold">install</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): inputs/data/BIDS (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): inputs/data/BIDS (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): inputs/data/BIDS (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets/s]
 
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets/s]
-Total:   0%|                                     | 0.00/172 [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                     | 0.00/181 [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
@@ -14887,12 +14906,12 @@ Performing sanity check for any unzipped input dataset...
 
 Adding the container as a sub-dataset of `analysis` dataset...
 <span class="ansi-bold">install</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): containers (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): containers (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): containers (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets/s]
 
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 Total:   0%|                                 | 0.00/1.00 [00:00&lt;?, ? datasets/s]
-Total:   0%|                                     | 0.00/391 [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                     | 0.00/454 [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitmodules (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
@@ -14902,31 +14921,22 @@ action summary:
   save (ok: 2)
 
 Generating a bash script for running container and zipping the outputs...
-This bash script will be named as `qsiprep-0-16-0RC3_zip.sh`
+This bash script will be named as `toybidsapp-0-0-5_zip.sh`
 
+/Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/babs/babs/utils.py:341: UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up. Therefore, BABS will not export it or bind its directory when running the container. This may cause errors.
+  warnings.warn(&#34;Usually BIDS App depends on TemplateFlow,&#34;
 Below is the generated `singularity run` command:
-singularity run --cleanenv -B ${PWD},/cbica/projects/BABS/data/templateflow_home_4test:/TEMPLATEFLOW_HOME \
-	containers/.datalad/environments/qsiprep-0-16-0RC3/image \
+singularity run --cleanenv -B ${PWD} \
+	containers/.datalad/environments/toybidsapp-0-0-5/image \
 	inputs/data/BIDS \
 	outputs \
 	participant \
-	-v -v \
-	-w ${PWD}/.git/tmp/wkdir \
-	--n_cpus $NSLOTS \
-	--omp-nthreads 3 \
-	--stop-on-first-crash \
-	--fs-license-file code/license.txt \
-	--skip-bids-validation \
-	--unringing-method mrdegibbs \
-	--output-resolution 2.0 \
-	--sloppy \
-	--hmc-model none \
-	--dwi-only \
-	--bids-filter-file &#34;${filterfile}&#34; \
+	--no-zipped \
+	-v \
 	--participant-label &#34;${subid}&#34;
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/1.67k [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/qsiprep-0-16-0RC3_zip.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+Total:   0%|                                     | 0.00/386 [00:00&lt;?, ? Bytes/s]
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/toybidsapp-0-0-5_zip.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   add (ok: 1)
@@ -14935,55 +14945,51 @@ action summary:
 Generating a bash script for running jobs at participant (or session) level...
 This bash script will be named as `participant_job.sh`
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/2.12k [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                   | 0.00/2.09k [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/participant_job.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   add (ok: 1)
   save (ok: 1)
 
-Generating a bash script for submitting jobs at participant (or session) level...
-This bash script will be named as `submit_jobs.sh`
-This will be deprecated and replaced by `babs-submit`
+Determining the list of subjects (and sessions) to analyze...
 Did not provide `list_sub_file`. Will look into the first input dataset to get the initial inclusion list.
-Filtering out subjects (and sessions) based on `required files` designated in `container_config_yaml_file`...
-There are 1 session(s) which don&#39;t have required files. Please refer to this CSV file for full list and information: /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis/code/sub_ses_missing_required_file.csv
-BABS will not run the BIDS App on these sessions&#39; data.
-Note for this file: For each reported session, only one missing required file in one input dataset is recorded, even if there are multiple.
-The final list of included subjects and sessions has been saved to this CSV file: /cbica/projects/BABS/data/test_babs_multi-ses_qsiprep/analysis/code/sub_ses_final_inclu.csv
+Did not provide `required files` in `container_config_yaml_file`. Not to filter subjects (or sessions)...
+The final list of included subjects and sessions has been saved to this CSV file: /Users/cztemp/Desktop/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp/analysis/code/sub_ses_final_inclu.csv
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/2.99k [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/submit_jobs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+Total:   0%|                                    | 0.00/92.0 [00:00&lt;?, ? Bytes/s]
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/sub_ses_final_inclu.csv (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   add (ok: 1)
   save (ok: 1)
+
+Generating a template for job submission calls...
+The template text file will be named as `submit_job_template.yaml`.
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                     | 0.00/167 [00:00&lt;?, ? Bytes/s]
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/sub_ses_final_inclu.csv (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/sub_ses_missing_required_file.csv (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
+Total:   0%|                                     | 0.00/946 [00:00&lt;?, ? Bytes/s]
+<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/submit_job_template.yaml (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
-  add (ok: 2)
+  add (ok: 1)
   save (ok: 1)
 
 Generating a bash script for merging the result branches...
 This bash script will be named as `merge_outputs.sh`
 This will be deprecated and replaced by `babs-merge`
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                   | 0.00/2.36k [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                   | 0.00/2.44k [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/merge_outputs.sh (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
   add (ok: 1)
   save (ok: 1)
 Total: 0.00 datasets [00:00, ? datasets/s]
-Total:   0%|                                    | 0.00/88.0 [00:00&lt;?, ? Bytes/s]
+Total:   0%|                                    | 0.00/24.0 [00:00&lt;?, ? Bytes/s]
 <span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): .gitignore (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
-<span class="ansi-bold">add</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): code/license.txt (<span class="ansi-magenta-intense-fg ansi-bold">file</span>)
 <span class="ansi-bold">save</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>)
 action summary:
-  add (ok: 2)
+  add (ok: 1)
   save (ok: 1)
 
 Cleaning up...
@@ -14991,30 +14997,30 @@ DataLad dropping input dataset&#39;s contents...
 action summary:
   drop (notneeded: 2)
 Updating input and output RIA...
-Update availability for &#39;input&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 8.68k Steps/s]
+Update availability for &#39;input&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 19.9k Steps/s]
 Enumerating: 0.00 Objects [00:00, ? Objects/s]
                                               
-Counting:   0%|                               | 0.00/57.0 [00:00&lt;?, ? Objects/s]
+Counting:   0%|                               | 0.00/58.0 [00:00&lt;?, ? Objects/s]
                                                                                 
 Compressing:   0%|                            | 0.00/50.0 [00:00&lt;?, ? Objects/s]
                                                                                 
-Writing:   0%|                                | 0.00/57.0 [00:00&lt;?, ? Objects/s]
-<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/master-&gt;input:refs/heads/master [new branch]]
+Writing:   0%|                                | 0.00/58.0 [00:00&lt;?, ? Objects/s]
+<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/main-&gt;input:refs/heads/main [new branch]]
 <span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/git-annex-&gt;input:refs/heads/git-annex [new branch]]
 action summary:
   publish (ok: 2)
-Push to &#39;output&#39;:  25%|████▎            | 1.00/4.00 [00:00&lt;00:00, 2.79k Steps/s]
+Push to &#39;output&#39;:  25%|████▎            | 1.00/4.00 [00:00&lt;00:00, 7.26k Steps/s]
 Push:   0%|                                     | 0.00/4.00 [00:00&lt;?, ? Steps/s]
 Push to &#39;output-storage&#39;:   0%|                 | 0.00/4.00 [00:00&lt;?, ? Steps/s]
-Push to &#39;output-storage&#39;:  25%|██▎      | 1.00/4.00 [00:00&lt;00:00, 2.16k Steps/s]
+Push to &#39;output-storage&#39;:  25%|██▎      | 1.00/4.00 [00:00&lt;00:00, 5.85k Steps/s]
 Transfer data to &#39;output-storage&#39;:   0%|        | 0.00/4.00 [00:00&lt;?, ? Steps/s]
-Update availability for &#39;output&#39;:  75%|▊| 3.00/4.00 [00:00&lt;00:00, 8.70k Steps/s]
+Update availability for &#39;output&#39;:  75%|▊| 3.00/4.00 [00:00&lt;00:00, 18.4k Steps/s]
 
 Enumerating: 0.00 Objects [00:00, ? Objects/s]
 
                                               
 
-Counting:   0%|                               | 0.00/57.0 [00:00&lt;?, ? Objects/s]
+Counting:   0%|                               | 0.00/58.0 [00:00&lt;?, ? Objects/s]
 
                                                                                 
 
@@ -15022,14 +15028,14 @@ Compressing:   0%|                            | 0.00/50.0 [00:00&lt;?, ? Objects
 
                                                                                 
 
-Writing:   0%|                                | 0.00/57.0 [00:00&lt;?, ? Objects/s]
+Writing:   0%|                                | 0.00/58.0 [00:00&lt;?, ? Objects/s]
 
 
-<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/master-&gt;output:refs/heads/master [new branch]]
-Update availability for &#39;output&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 8.84 Steps/s]
+<span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/main-&gt;output:refs/heads/main [new branch]]
+Update availability for &#39;output&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 11.5 Steps/s]
 
 <span class="ansi-bold">publish</span>(<span class="ansi-green-intense-fg ansi-bold">ok</span>): . (<span class="ansi-magenta-intense-fg ansi-bold">dataset</span>) [refs/heads/git-annex-&gt;output:refs/heads/git-annex [new branch]]
-Update availability for &#39;output&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 8.80 Steps/s]
+Update availability for &#39;output&#39;:  75%|█▌| 3.00/4.00 [00:00&lt;00:00, 11.5 Steps/s]
 
                                                                                 action summary:
   publish (ok: 2)
