@@ -1,4 +1,13 @@
-# Below is example config yaml file for toy BIDS App:
+# This is an example config yaml file for toy BIDS App version 0.0.5.
+# Toy BIDS App can be pulled from: https://hub.docker.com/repository/docker/chenyingzhao/toy_bids_app/general
+# More description of this BIDS App can be found at ___________________ (babs_tests)
+# ^^ TODO: move this docker image to PennLINC!
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the toy BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
 
 babs_singularity_run:
     --no-zipped: ""  # for raw BIDS dataset
