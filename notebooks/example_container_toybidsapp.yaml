@@ -1,7 +1,9 @@
-# This is an example config yaml file for toy BIDS App version 0.0.5.
+# This is an example config yaml file for toy BIDS App "toybidsapp" version 0.0.5.
 # Toy BIDS App can be pulled from: https://hub.docker.com/repository/docker/chenyingzhao/toy_bids_app/general
-# More description of this BIDS App can be found at ___________________ (babs_tests)
 # ^^ TODO: move this docker image to PennLINC!
+  # This BIDS App counts number of non-hidden files in a subject's folder;
+  # As it does not support `--bids-filter-file`, for multi-session data,
+  # it will still count files in a subject's, but not a session's folder.
 
 # Warning!!!
 #   This is only an example, which may not necessarily fit your purpose,
@@ -17,14 +19,9 @@ babs_singularity_run:
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
     toybidsapp: "0-0-5"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
 
-# environment_variable:
-#     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs
-
-# TODO: add to docs: best to quote the values if numbers only
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
     hard_memory_limit: 2G   # "-l h_vmem=25G" on cubic
-    # soft_memory_limit: 1.75G   # "-l s_vmem=23.5G" on cubic
     temporary_disk_space: 20G   # "-l tmpfree=50G" on cubic  # this is highly-recommended on cubic
     customized_text: |
         #$ -R y
@@ -34,21 +31,3 @@ cluster_resources:
 #   the commands should not be quoted!
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
-
-
-# Below is to filter out subjects (or sessions)
-#   right now we only filter based on unzipped dataset
-# required_files:
-#     $INPUT_DATASET_#1:
-#         - ""
-
-# Keywords for alerting messages in log files:
-keywords_alert:
-    # some_other:  # Only used for testing purpose!
-    o_file:
-        - "xxxx"
-        # - "did not provide --session_label"
-    e_file:
-        - "xxx"
-        # - "[INFO] Cloning dataset"
-        # - "git remote add outputstore"
