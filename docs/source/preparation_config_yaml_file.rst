@@ -89,8 +89,13 @@ Notes:
         * For example, if you hope to specify an input dataset called ``BIDS`` for this positional argument, simply write ``$INPUT_PATH: inputs/data/BIDS``. Replace ``BIDS`` with your input dataset's name, but make sure you keep ``inputs/data/`` which is needed by BABS. For more, please see the example YAML file for more than one dataset: `fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_.
         * ERROR! TODO: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
 * path to the dataset, zipped or unzipped
+
     * e.g., ``$INPUT_PATH`` in fMRIPrep with FreeSurfer results ingressed
     * e.g., ``--fs-subjects-dir`` in fMRIPrep with FreeSurfer results ingressed
+* Make sure you did not include these arguments, as they've already been handled by BABS:
+
+    * ``--participant-label``
+    * ``--bids-filter-file``
 * TODO: go thru all yaml file for any missing notes!!
 
 
