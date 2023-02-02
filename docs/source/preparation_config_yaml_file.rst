@@ -98,6 +98,8 @@ Notes:
     * ``--bids-filter-file``
 * TODO: go thru all yaml file for any missing notes!!
 
+... including `notebooks/inDev_*.yaml` in `babs_tests` repo!
+
 
 babs_zip_foldername
 =======================
