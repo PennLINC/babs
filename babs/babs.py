@@ -32,6 +32,7 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
                         submit_one_job,
+                        submit_one_test_job,
                         create_job_status_csv,
                         read_job_status_csv,
                         report_job_status,
@@ -468,6 +469,9 @@ class BABS():
         self.datalad_save(path="code/" + container_name + "_zip.sh",
                           message="Generate script of running container")
 
+        # make another folder within `code` for test jobs:
+        os.makedirs(op.join(self.analysis_path, "code/check_setup"), exist_ok=True)
+
         # Generate `participant_job.sh`: --------------------------------------
         print("\nGenerating a bash script for running jobs at participant (or session) level...")
         print("This bash script will be named as `participant_job.sh`")
@@ -475,8 +479,12 @@ class BABS():
         container.generate_bash_participant_job(bash_path, input_ds, self.type_session,
                                                 system)
 
-        # datalad save `<containerName>_zip.sh` and `participant_job.sh`:
-        self.datalad_save(path="code/participant_job.sh",
+        # also, generate a bash script of a test job used by `babs-check-setup`:
+        bash_test_path = op.join(self.analysis_path, "code/check_setup", "test_job.sh")
+        container.generate_bash_test_job(bash_test_path, system)
+
+        self.datalad_save(path=["code/participant_job.sh",
+                                "code/check_setup/test_job.sh"],
                           message="Participant compute job implementation")
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
@@ -506,7 +514,14 @@ class BABS():
         print("The template text file will be named as `submit_job_template.yaml`.")
         yaml_path = op.join(self.analysis_path, "code", "submit_job_template.yaml")
         container.generate_job_submit_template(yaml_path, input_ds, self, system)
-        self.datalad_save(path="code/submit_job_template.yaml",
+
+        # also, generate template for testing job used by `babs-check-setup`:
+        yaml_test_path = op.join(self.analysis_path, "code/check_setup", "submit_test_job_template.yaml")
+        container.generate_test_job_submit_template(yaml_test_path, self, system)
+
+        # datalad save:
+        self.datalad_save(path=["code/submit_job_template.yaml",
+                                "code/check_setup/submit_test_job_template.yaml"],
                           message="Template for job submission")
 
         # Generate `merge_outputs.sh`: ----------------------------------------
@@ -603,7 +618,19 @@ class BABS():
         input_ds: class `Input_ds`
             information of input dataset(s)
         """
+        from .constants import CHECK_MARK
+
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+
+        print("Will check setups of BABS project located at: " + self.project_root)
+
+        # Print out the saved configuration info: ----------------
+        print("Below is the configuration information saved during `babs-init`"
+              + " in file 'analysis/code/babs_proj_config.yaml':\n")
+        f = open(op.join(self.analysis_path, "code/babs_proj_config.yaml"), 'r')
+        file_contents = f.read()
+        print(file_contents)
+        f.close()
 
         # Check the project itself: ---------------------------
         print("Checking the BABS project itself...")
@@ -616,10 +643,10 @@ class BABS():
         # update `analysis_datalad_handle`:
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
-
+        print(CHECK_MARK + " All good!")
 
         # Check input dataset(s): ---------------------------
-        print("Checking input dataset(s)...")
+        print("\nChecking input dataset(s)...")
         # check if there is at least one folder in the `inputs/data` dir:
         temp_list = get_immediate_subdirectories(op.join(self.analysis_path, "inputs/data"))
         assert len(temp_list) > 0, \
@@ -659,9 +686,10 @@ class BABS():
 
             # check if input ds is up-to-date?
             # TODO?
+        print(CHECK_MARK + " All good!")
 
         # Check container datalad dataset: ---------------------------
-        print("Checking container datalad dataset...")
+        print("\nChecking container datalad dataset...")
         folder_container = op.join(self.analysis_path, "containers")
         container_name = babs_proj_config["container"]["name"]
         # assert it's a datalad ds in `containers` folder:
@@ -672,9 +700,10 @@ class BABS():
 
         # no action now; when `babs-init`, has done `Container.sanity_check()`
         #               to make sure the container named `container_name` exists.
+        print(CHECK_MARK + " All good!")
 
         # Check `analysis/code`: ---------------------------------
-        print("Checking `analysis/code/` folder...")
+        print("\nChecking `analysis/code/` folder...")
         # folder `analysis/code` should exist:
         assert op.exists(op.join(self.analysis_path, "code")), \
             "Folder 'code' does not exist in 'analysis' folder!"
@@ -702,14 +731,15 @@ class BABS():
             if op.splitext(temp_fn)[1] == ".sh":   # extension is '.sh':
                 assert os.access(temp_fn, os.X_OK), \
                     "This code file should be executable: " + temp_fn
+        print(CHECK_MARK + " All good!")
 
         # Check input and output RIA: ----------------------
-        print("Checking input and output RIA...")
+        print("\nChecking input and output RIA...")
 
         # check if they are siblings of `analysis`:
         print("\tDatalad dataset `analysis`'s siblings:")
         analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
-        # get the actual `output_ria_data_dir`; 
+        # get the actual `output_ria_data_dir`;
         #   the one in `self` attr is directly got from `analysis` remote,
         #   so should not use that here.
         actual_output_ria_data_dir = os.readlink( \
@@ -717,7 +747,7 @@ class BABS():
         assert op.exists(actual_output_ria_data_dir)    # make sure this exists
         # get '000/0000-0000-0000-0000':
         data_foldername = op.join( \
-            op.basename(op.dirname(actual_output_ria_data_dir)), 
+            op.basename(op.dirname(actual_output_ria_data_dir)),
             op.basename(actual_output_ria_data_dir))
         # input_ria:
         actual_input_ria_data_dir = op.join(self.input_ria_path, data_foldername)
@@ -748,15 +778,15 @@ class BABS():
             cwd=self.analysis_path,
             stdout=subprocess.PIPE)
         proc_hash_analysis.check_returncode()
-        hash_analysis = proc_hash_analysis.stdout.decode('utf-8').replace("\n","")
+        hash_analysis = proc_hash_analysis.stdout.decode('utf-8').replace("\n", "")
 
         # input ria's commit hash:
         proc_hash_input_ria = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=actual_input_ria_data_dir,   # using the actual one we just got
-                stdout=subprocess.PIPE)
+            ["git", "rev-parse", "HEAD"],
+            cwd=actual_input_ria_data_dir,   # using the actual one we just got
+            stdout=subprocess.PIPE)
         proc_hash_input_ria.check_returncode()
-        hash_input_ria = proc_hash_input_ria.stdout.decode('utf-8').replace("\n","")
+        hash_input_ria = proc_hash_input_ria.stdout.decode('utf-8').replace("\n", "")
         assert hash_analysis == hash_input_ria, \
             "The hash of current commit of `analysis` datalad dataset does not match" \
             + " with that of input RIA." \
@@ -769,29 +799,82 @@ class BABS():
 
         # output ria's commit hash:
         proc_hash_output_ria = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=actual_output_ria_data_dir,   # using the actual one we just got
-                stdout=subprocess.PIPE)
+            ["git", "rev-parse", "HEAD"],
+            cwd=actual_output_ria_data_dir,   # using the actual one we just got
+            stdout=subprocess.PIPE)
         proc_hash_output_ria.check_returncode()
-        hash_output_ria = proc_hash_output_ria.stdout.decode('utf-8').replace("\n","")
-        # only throw out a warning if not matched, as after there is branch in output RIA, 
+        hash_output_ria = proc_hash_output_ria.stdout.decode('utf-8').replace("\n", "")
+        # only throw out a warning if not matched, as after there is branch in output RIA,
         #   not recommend to push updates from analysis to output RIA:
         if hash_analysis != hash_output_ria:
-            warnings.warn( \
-                "The hash of current commit of `analysis` datalad dataset does not match" \
-                + " with that of output RIA." \
-                + " Former = " + hash_analysis + ";" \
-                + " Latter = " + hash_output_ria + ".\n" \
-                + "It might be because that latest commits in" \
-                + " `analysis` were not pushed to output RIA.\n" \
-                + "If there are already successful job(s) finished, please do NOT push updates" \
-                + " from `analysis` to output RIA.\n" \
-                + "If you're sure there is no successful job finished, you may try running" \
-                + " this command at directory '" + self.analysis_path + "': \n" \
+            flag_warning_output_ria = True
+            warnings.warn(
+                "The hash of current commit of `analysis` datalad dataset does not match"
+                + " with that of output RIA."
+                + " Former = " + hash_analysis + ";"
+                + " Latter = " + hash_output_ria + ".\n"
+                + "It might be because that latest commits in"
+                + " `analysis` were not pushed to output RIA.\n"
+                + "If there are already successful job(s) finished, please do NOT push updates"
+                + " from `analysis` to output RIA.\n"
+                + "If you're sure there is no successful job finished, you may try running"
+                + " this command at directory '" + self.analysis_path + "': \n"
                 + "$ datalad push --to output"
                 )
+        else:
+            flag_warning_output_ria = False
+
+        if flag_warning_output_ria:
+            print("There is warning for output RIA - Please check it out!"
+                  " Else in input and output RIA is good.")
+        else:
+            print(CHECK_MARK + " All good!")
+
+        # Submit a test job --------------------------------
+        print("\nSubmitting a test job...")
+        print("Although the script will be submitted to the cluster to run,"
+              " This job will not run the BIDS App;"
+              " instead, this test job will only check the set ups in the environment"
+              " and to make sure jobs can finish successfully on current cluster.")
+
+        _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
+        # write this information in a YAML file:
+        fn_test_job_info = op.join(self.analysis_path, "code/check_setup", "test_job_info.yaml")
+        if op.exists(fn_test_job_info):
+            os.remove(fn_test_job_info)  # remove it
+
+        test_job_info_file = open(fn_test_job_info, "w")
+        test_job_info_file.write("# Information of submitted test job:\n")
+        test_job_info_file.write("job_id: '" + job_id_str + "'\n")
+        test_job_info_file.write("log_filename: '" + log_filename + "'\n")
+
+        test_job_info_file.close()
+
+        print(CHECK_MARK + " All good!")
+
+        print("`babs-check-setup` Part I was successful! ")
+        if flag_warning_output_ria:
+            print("Please check out the warning for output RIA!")
+        print("Part II: Please use `babs-check-setup --job-status`"
+              " to check if the test job finishes successfully.")
+
+        # TODO: test ^^ on cubic cluster!!!
 
         print()
+
+    def babs_check_test_job(self):
+        """
+        This function check the status of the test job.
+        """
+        # Pull out information about latest test job:
+        fn_test_job_info = op.join(self.analysis_path, "code/check_setup", "test_job_info.yaml")
+
+        # TODO: finish this function!!
+
+        # TODO: print out the messages that describe the output from `test_job.sh`
+        # e.g., datalad version, etc
+
+        print("`babs-check-setup` Part II was successful!")
 
     def babs_submit(self, count=1, df_job_specified=None):
         """
@@ -2219,9 +2302,83 @@ class Container():
             )
         proc_chmod_bashfile.check_returncode()
 
+    def generate_bash_test_job(self, bash_path,
+                               system):
+        """
+        This is to generate a bash script taht runs a *test* job, 
+        which will be used by `babs-check-setup`.
+
+        Parameters:
+        -------------
+        bash_path: str
+            The path to the bash file to be generated. It should be in the `analysis/code` folder.
+        system: class `System`
+            information on cluster management system
+        """
+
+        # Check if the bash file already exist:
+        if op.exists(bash_path):
+            os.remove(bash_path)  # remove it
+
+        # Write into the bash file:
+        bash_file = open(bash_path, "a")   # open in append mode
+
+        bash_file.write("#!/bin/bash\n")
+
+        # Cluster resources requesting:
+        cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
+        bash_file.write(cmd_bashhead_resources)
+
+        # Script preambles:
+        cmd_script_preamble = generate_cmd_script_preamble(self.config)
+        bash_file.write(cmd_script_preamble)
+
+        # Change how this bash file is run:
+        bash_file.write("\n# Fail whenever something is fishy,"
+                        + " use -x to get verbose logfiles:\n")
+        bash_file.write("set -e -u -x\n")
+
+        # Inputs of the bash script:
+        bash_file.write("\n")
+        bash_file.write('where_to_run="$1"\n')
+
+        bash_file.write("\n# Change to a temporary directory or compute space:\n")
+        bash_file.write('if [[ "${where_to_run}" == "cbica_tmpdir"  ]]; then\n')
+        bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
+        bash_file.write('elif [[ "${where_to_run}" == "comp_space"   ]]; then\n')
+        bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
+        bash_file.write("fi\n")
+        # TODO: update ^^ after adding this choice as a section in `--container-config-yaml-file`
+
+        # Sanity checks:
+        bash_file.write("\n# Sanity checks:\n")
+        bash_file.write("# If current directory is writable:\n")
+        bash_file.write('if [ ! -w "$PWD" ]; then' + "\n")
+        bash_file.write("\t" + "echo 'The directory $1 is not writable" + "\n")
+        bash_file.write("fi" + "\n")
+
+        # check if datalad is installed in the current env:
+        bash_file.write("\n# Check if necessary packages have been installed:\n")
+        bash_file.write("datalad --version\n")
+        bash_file.write("git --version\n")
+        bash_file.write("git-annex version\n")
+        bash_file.write("datalad containers-add --version\n")
+
+        # if everything is fine:
+        bash_file.write("\n")
+        bash_file.write("echo SUCCESS\n")
+        bash_file.close()
+
+        # change the permission of this bash file:
+        proc_chmod_bashfile = subprocess.run(
+            ["chmod", "+x", bash_path],  # e.g., chmod +x code/participant_job.sh
+            stdout=subprocess.PIPE
+            )
+        proc_chmod_bashfile.check_returncode()
+
     def generate_job_submit_template(self, yaml_path, input_ds, babs, system):
         """
-        This is to generate a text file that serves as a template
+        This is to generate a YAML file that serves as a template
         of job submission of one participant (or session).
 
         Parameters:
@@ -2293,6 +2450,60 @@ class Container():
         job_name = self.container_name[0:3] + "_" + "${sub_id}"
         if babs.type_session == "multi-ses":
             job_name += "_${ses_id}"
+
+        yaml_file.write("job_name_template: '" + job_name + "'\n")
+
+        yaml_file.close()
+
+    def generate_test_job_submit_template(self, yaml_path, babs, system):
+        """
+        This is to generate a YAML file that serves as a template
+        of *test* job submission, which will be used in `babs-check-setup`.
+
+        Parameters:
+        ------------
+        yaml_path: str
+            The path to the yaml file to be generated. 
+            It should be in the `analysis/code/check_setup` folder.
+            It has several fields: 1) cmd_template; 2) job_name_template
+        babs: class `BABS`
+            information about the BABS project
+        system: class `System`
+            information on cluster management system
+        """
+
+        # Section 1: Command for submitting the job: ---------------------------
+        # Flags when submitting the job:
+        if system.type == "sge":
+            submit_head = "qsub -cwd"
+            env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
+            eo_args = "-e " + babs.analysis_path + "/logs " \
+                + "-o " + babs.analysis_path + "/logs"
+        else:
+            warnings.warn("not supporting systems other than sge...")
+        
+        # Check if the bash file already exist:
+        if op.exists(yaml_path):
+            os.remove(yaml_path)  # remove it
+
+        # Write into the bash file:
+        yaml_file = open(yaml_path, "a")   # open in append mode
+
+        # Generate the command:
+        cmd = submit_head + " " + env_flags \
+            + " -N " + self.container_name[0:3] + "_" + "test_job"
+        cmd += " " \
+            + eo_args + " " \
+            + babs.analysis_path + "/code/check_setup/test_job.sh"
+        cmd += " " \
+            + "cbica_tmpdir"
+        
+        yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
+
+        # TODO: currently only support SGE.
+
+        # Section 2: Job name: ---------------------------
+        job_name = self.container_name[0:3] + "_" + "test_job"
 
         yaml_file.write("job_name_template: '" + job_name + "'\n")
 

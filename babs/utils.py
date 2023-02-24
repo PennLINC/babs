@@ -1323,6 +1323,68 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
 
     return job_id, job_id_str, log_filename
 
+
+def submit_one_test_job(analysis_path, flag_print_message=True):
+    """
+    This is to submit one *test* job.
+    This is used by `babs-check-setup`.
+
+    Parameters:
+    ----------------
+    analysis_path: str
+        path to the `analysis` folder. One attribute in class `BABS`
+    flag_print_message: bool
+        to print a message (True) or not (False)
+
+    Returns:
+    -----------
+    job_id: int
+        the int version of ID of the submitted job.
+    job_id_str: str
+        the string version of ID of the submitted job.
+    log_filename: str
+        log filename of this job.
+        Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
+
+    Notes:
+    -----------------
+    see `Container.generate_test_job_submit_template()`
+    for details about template yaml file.
+    """
+    # Load the job submission template:
+    #   details of this template yaml file: see `Container.generate_test_job_submit_template()`
+    template_yaml_path = op.join(analysis_path, "code/check_setup", "submit_test_job_template.yaml")
+    with open(template_yaml_path, "r") as f:
+        templates = yaml.load(f, Loader=yaml.FullLoader)
+    f.close()
+    # sections in this template yaml file:
+    cmd = templates["cmd_template"]
+    job_name = templates["job_name_template"]
+
+    to_print = "Test job"
+
+    # run the command, get the job id:
+    print(cmd.split())
+    proc_cmd = subprocess.run(cmd.split(),   # separate by space
+                              cwd=analysis_path,
+                              stdout=subprocess.PIPE)
+
+    proc_cmd.check_returncode()
+    msg = proc_cmd.stdout.decode('utf-8')
+    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+    job_id = int(job_id_str)
+
+    # log filename:
+    log_filename = job_name + ".*" + job_id_str
+
+    to_print += " has been submitted (job ID: " + job_id_str + ")."
+    if flag_print_message:
+        print(to_print)
+
+    return job_id, job_id_str, log_filename
+
+
 def create_job_status_csv(babs):
     """
     This is to create a CSV file of `job_status`.

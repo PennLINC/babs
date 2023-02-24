@@ -41,7 +41,8 @@ If the list of branches looks good to you:
 ## How to remove a BABS project:
 ```
 cd <project_root>/analysis
-datalad remove -d inputs/data/<input_ds_name>
+datalad remove -d inputs/data/<input_ds_name>   
+# if above command leads to "drop impossible" due to modified content, add `--reckless modification` at the end
 git annex dead here
 datalad push --to input
 datalad push --to output
