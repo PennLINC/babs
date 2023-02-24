@@ -2,7 +2,9 @@
     "python.analysis.extraPaths": [
         "./babs"
     ],
-    "python.linting.enabled": false,
+    "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
+    "python.linting.lintOnSave": true,
+    "python.analysis.autoImportCompletions": false,
     "esbonio.sphinx.confDir": ""
 }

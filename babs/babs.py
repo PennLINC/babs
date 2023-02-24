@@ -313,24 +313,37 @@ class BABS():
 
         # Create output RIA sibling:
         print("\nCreating output and input RIA...")
+        flag_to_create_sibling_output_ria = True
         if op.exists(self.output_ria_path):
-            pass
-            # TODO: add sanity check: if the input_ria and output_ria have been created,
-            # check if they are analysis's siblings + they are ria siblings;
-            # then, update them with datalad push from anlaysis folder
-        else:
+            # check if `analysis` has this sibling; if not, still needs to `create_sibling_ria()`
+            # get the sibling of `analysis`:
+            analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
+            if len(analysis_siblings) > 0:   # there is sibling:
+                for i_sibling in range(0, len(analysis_siblings)):
+                    the_sibling = analysis_siblings[i_sibling]
+                    if the_sibling["name"] == "output":   # registered a sibling called 'output':
+                        # get the url:
+                        output_ria_data_dir = the_sibling["url"]
+                        if op.exists(output_ria_data_dir):
+                            # exists, probably sibling of output ria has been created:
+                            flag_to_create_sibling_output_ria = False
+                            # the final stage of `babs-init` will `datalad push --to output`
+
+        if flag_to_create_sibling_output_ria is True:
             self.analysis_datalad_handle.create_sibling_ria(name="output",
                                                             url=self.output_ria_url,
                                                             new_store_ok=True)
-        # ^ ref: in python environment:
-            # import datalad; help(datalad.distributed.create_sibling_ria)
-            # sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`,
-            # then `help(temp.create_sibling_ria)`, you can stop here,
-            # or now you can help(datalad.distributed.create_sibling_ria)
-            # seems there is no docs online?
-        # source code:
-            # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
-
+            # ^ ref: in python environment:
+                # import datalad; help(datalad.distributed.create_sibling_ria)
+                # sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`,
+                # then `help(temp.create_sibling_ria)`, you can stop here,
+                # or now you can help(datalad.distributed.create_sibling_ria)
+                # seems there is no docs online?
+            # source code:
+                # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
+        else:
+            print("DataLad sibling output RIA has been created; will not create again.")
+        
         # Get some key information re: DataLad dataset `analysis`,
         # after creating output RIA:
         self.wtf_key_info()
@@ -342,10 +355,11 @@ class BABS():
             # check if they are analysis's siblings + they are ria siblings;
             # then, update them with datalad push from anlaysis folder
         else:
-            self.analysis_datalad_handle.create_sibling_ria(name="input",
-                                                            url=self.input_ria_url,
-                                                            storage_sibling=False,   # False is `off` in CLI of datalad
-                                                            new_store_ok=True)
+            self.analysis_datalad_handle.create_sibling_ria( \
+                name="input",
+                url=self.input_ria_url,
+                storage_sibling=False,   # False is `off` in CLI of datalad
+                new_store_ok=True)
 
         # Register the input dataset(s):
         print("\nRegistering the input dataset(s)...")
@@ -394,6 +408,8 @@ class BABS():
 
         # Update input ds information in `babs_proj_config.yaml`:
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+        # TODO: if `babs_proj_config["input_ds"]` exists, need to delete it and re-write,
+        #   to reflect any updated info
         for i_ds in range(0, input_ds.num_ds):
             ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
             # update `path_data_rel`:
@@ -550,6 +566,7 @@ class BABS():
         #   datalad push --to input
         #   datalad push --to output
         self.analysis_datalad_handle.push(to="input")
+        # TODO: check if there is branch in output RIA; if so, should not push!
         self.analysis_datalad_handle.push(to="output")
 
         # Add an alias to the data in output RIA store:
@@ -589,13 +606,20 @@ class BABS():
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)
 
         # Check the project itself: ---------------------------
+        print("Checking the BABS project itself...")
         # check if `analysis_path` exists
         #   (^^ though should be checked in `get_existing_babs_proj()` in cli.py)
         assert op.exists(self.analysis_path), \
             "Folder 'analysis' does not exist in this BABS project!" \
             + " Current path to analysis folder: " + self.analysis_path
+        # if there is `analysis`:
+        # update `analysis_datalad_handle`:
+        if self.analysis_datalad_handle is None:
+            self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+
 
         # Check input dataset(s): ---------------------------
+        print("Checking input dataset(s)...")
         # check if there is at least one folder in the `inputs/data` dir:
         temp_list = get_immediate_subdirectories(op.join(self.analysis_path, "inputs/data"))
         assert len(temp_list) > 0, \
@@ -637,6 +661,7 @@ class BABS():
             # TODO?
 
         # Check container datalad dataset: ---------------------------
+        print("Checking container datalad dataset...")
         folder_container = op.join(self.analysis_path, "containers")
         container_name = babs_proj_config["container"]["name"]
         # assert it's a datalad ds in `containers` folder:
@@ -649,6 +674,7 @@ class BABS():
         #               to make sure the container named `container_name` exists.
 
         # Check `analysis/code`: ---------------------------------
+        print("Checking `analysis/code/` folder...")
         # folder `analysis/code` should exist:
         assert op.exists(op.join(self.analysis_path, "code")), \
             "Folder 'code' does not exist in 'analysis' folder!"
@@ -677,8 +703,93 @@ class BABS():
                 assert os.access(temp_fn, os.X_OK), \
                     "This code file should be executable: " + temp_fn
 
-        # Check input and output RIA: ---------------
-        # TODO
+        # Check input and output RIA: ----------------------
+        print("Checking input and output RIA...")
+
+        # check if they are siblings of `analysis`:
+        print("\tDatalad dataset `analysis`'s siblings:")
+        analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
+        # get the actual `output_ria_data_dir`; 
+        #   the one in `self` attr is directly got from `analysis` remote,
+        #   so should not use that here.
+        actual_output_ria_data_dir = os.readlink( \
+            op.join(self.output_ria_path, "alias/data"))   # get the symlink of `alias/data`
+        assert op.exists(actual_output_ria_data_dir)    # make sure this exists
+        # get '000/0000-0000-0000-0000':
+        data_foldername = op.join( \
+            op.basename(op.dirname(actual_output_ria_data_dir)), 
+            op.basename(actual_output_ria_data_dir))
+        # input_ria:
+        actual_input_ria_data_dir = op.join(self.input_ria_path, data_foldername)
+        assert op.exists(actual_input_ria_data_dir)    # make sure this exists
+
+        for i_sibling in range(0, len(analysis_siblings)):
+            the_sibling = analysis_siblings[i_sibling]
+            if the_sibling["name"] == "output":   # output ria:
+                assert the_sibling["url"] == actual_output_ria_data_dir, \
+                    "The `analysis` datalad dataset's sibling 'output' url does not match" \
+                    + " the path to the output RIA." \
+                    + " Former = " + the_sibling["url"] + ";" \
+                    + " Latter = " + actual_output_ria_data_dir
+            if the_sibling["name"] == "input":   # input ria:
+                assert the_sibling["url"] == actual_input_ria_data_dir, \
+                    "The `analysis` datalad dataset's sibling 'input' url does not match" \
+                    + " the path to the input RIA." \
+                    + " Former = " + the_sibling["url"] + ";" \
+                    + " Latter = " + actual_input_ria_data_dir
+
+        # output_ria_datalad_handle = dlapi.Dataset(self.output_ria_data_dir)
+
+        # check if the current commit in `analysis` has been pushed to RIA:
+        #   i.e., if commit hash are matched:
+        # analysis' commit hash:
+        proc_hash_analysis = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.analysis_path,
+            stdout=subprocess.PIPE)
+        proc_hash_analysis.check_returncode()
+        hash_analysis = proc_hash_analysis.stdout.decode('utf-8').replace("\n","")
+
+        # input ria's commit hash:
+        proc_hash_input_ria = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=actual_input_ria_data_dir,   # using the actual one we just got
+                stdout=subprocess.PIPE)
+        proc_hash_input_ria.check_returncode()
+        hash_input_ria = proc_hash_input_ria.stdout.decode('utf-8').replace("\n","")
+        assert hash_analysis == hash_input_ria, \
+            "The hash of current commit of `analysis` datalad dataset does not match" \
+            + " with that of input RIA." \
+            + " Former = " + hash_analysis + ";" \
+            + " Latter = " + hash_input_ria + "." + "\n" \
+            + "It might be because that latest commits in" \
+            + " `analysis` were not pushed to input RIA." \
+            + " Try running this command at directory '" + self.analysis_path + "': \n" \
+            + "$ datalad push --to input"
+
+        # output ria's commit hash:
+        proc_hash_output_ria = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=actual_output_ria_data_dir,   # using the actual one we just got
+                stdout=subprocess.PIPE)
+        proc_hash_output_ria.check_returncode()
+        hash_output_ria = proc_hash_output_ria.stdout.decode('utf-8').replace("\n","")
+        # only throw out a warning if not matched, as after there is branch in output RIA, 
+        #   not recommend to push updates from analysis to output RIA:
+        if hash_analysis != hash_output_ria:
+            warnings.warn( \
+                "The hash of current commit of `analysis` datalad dataset does not match" \
+                + " with that of output RIA." \
+                + " Former = " + hash_analysis + ";" \
+                + " Latter = " + hash_output_ria + ".\n" \
+                + "It might be because that latest commits in" \
+                + " `analysis` were not pushed to output RIA.\n" \
+                + "If there are already successful job(s) finished, please do NOT push updates" \
+                + " from `analysis` to output RIA.\n" \
+                + "If you're sure there is no successful job finished, you may try running" \
+                + " this command at directory '" + self.analysis_path + "': \n" \
+                + "$ datalad push --to output"
+                )
 
         print()
 

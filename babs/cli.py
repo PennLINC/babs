@@ -624,10 +624,23 @@ def get_existing_babs_proj(project_root):
     babs_proj_config_yaml = op.join(project_root,
                                     "analysis/code/babs_proj_config.yaml")
     if op.exists(babs_proj_config_yaml) is False:
-        raise Exception("`babs-init` was not successful:"
-                        + " there is no 'analysis/code/babs_proj_config.yaml' file!")
+        raise Exception( \
+            "`babs-init` was not successful;"
+            + " there is no 'analysis/code/babs_proj_config.yaml' file!"
+            + " Please rerun `babs-init` to finish the setup.")
 
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
+
+    # make sure the YAML file has necessary sections:
+    list_sections = ["type_session", "type_system", "input_ds", "container"]
+    for i in range(0, len(list_sections)):
+        the_section = list_sections[i]
+        if the_section not in babs_proj_config:
+            raise Exception( \
+                "`babs-init` was not successful;"
+                + " there is no section '" + the_section + "'"
+                + " in 'babs_proj_config.yaml' file in 'analysis/code' folder!"
+                + " Please rerun `babs-init` to finish the setup.")
 
     type_session = babs_proj_config["type_session"]
     type_system = babs_proj_config["type_system"]
