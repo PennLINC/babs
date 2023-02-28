@@ -12,6 +12,8 @@ import shutil
 import tempfile
 import yaml
 from filelock import Timeout, FileLock
+from datetime import datetime
+import time
 
 import datalad.api as dlapi
 from datalad_container.find_container import find_container_
@@ -609,7 +611,7 @@ class BABS():
         # SUCCESS!
         print("\n`babs-init` was successful!")
 
-    def babs_check_setup(self, input_ds):
+    def babs_check_setup(self, input_ds, flag_job_test):
         """
         This function validates the setups by babs-init.
 
@@ -617,6 +619,8 @@ class BABS():
         --------------
         input_ds: class `Input_ds`
             information of input dataset(s)
+        flag_job_test: bool
+            Whether to submit and run a test job.
         """
         from .constants import CHECK_MARK
 
@@ -830,33 +834,88 @@ class BABS():
         else:
             print(CHECK_MARK + " All good!")
 
-        # Submit a test job --------------------------------
-        print("\nSubmitting a test job...")
-        print("Although the script will be submitted to the cluster to run,"
-              " This job will not run the BIDS App;"
-              " instead, this test job will only check the set ups in the environment"
-              " and to make sure jobs can finish successfully on current cluster.")
+        # Submit a test job (if requested) --------------------------------
+        if not flag_job_test:
+            print("\nNot to submit a test job as it's not requested.")
+        else:
+            print("\nSubmitting a test job, will take longer to finish...")
+            print("Although the script will be submitted to the cluster to run,"
+                  " This job will not run the BIDS App;"
+                  " instead, this test job will only check the set ups in the environment"
+                  " and to make sure jobs can finish successfully on current cluster.")
 
-        _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
-        # write this information in a YAML file:
-        fn_test_job_info = op.join(self.analysis_path, "code/check_setup", "test_job_info.yaml")
-        if op.exists(fn_test_job_info):
-            os.remove(fn_test_job_info)  # remove it
+            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
+            log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
+            o_fn = log_fn.replace(".*", ".o")
+            # write this information in a YAML file:
+            fn_test_job_info = op.join(self.analysis_path, "code/check_setup",
+                                       "test_job_info.yaml")
+            if op.exists(fn_test_job_info):
+                os.remove(fn_test_job_info)  # remove it
 
-        test_job_info_file = open(fn_test_job_info, "w")
-        test_job_info_file.write("# Information of submitted test job:\n")
-        test_job_info_file.write("job_id: '" + job_id_str + "'\n")
-        test_job_info_file.write("log_filename: '" + log_filename + "'\n")
+            test_job_info_file = open(fn_test_job_info, "w")
+            test_job_info_file.write("# Information of submitted test job:\n")
+            test_job_info_file.write("job_id: '" + job_id_str + "'\n")
+            test_job_info_file.write("log_filename: '" + log_filename + "'\n")
 
-        test_job_info_file.close()
+            test_job_info_file.close()
 
-        print(CHECK_MARK + " All good!")
+            # check job status every 1 min:
+            flag_done = False   # whether job is out of queue (True)
+            flag_success = False  # whether job was successfully finished (True)
+            while not flag_done:
+                # wait for 1 min:
+                time.sleep(60)   # Sleep for 60 seconds
 
+                # check the job status
+                df_all_job_status = request_all_job_status()
+                d_now_str = str(datetime.now())
+                to_print = d_now_str + ": "
+                if job_id_str in df_all_job_status.index.to_list():
+                    # ^^ if `df` is empty, `.index.to_list()` will return []
+                    # if the job is still in the queue:
+                    # state_category = df_all_job_status.at[job_id_str, '@state']
+                    state_code = df_all_job_status.at[job_id_str, 'state']
+                    # ^^ column `@state`: 'running' or 'pending'
+
+                    # print some information:
+                    if state_code == "r":
+                        to_print += "Test job is running (`r`)..."
+                    elif state_code == "qw":
+                        to_print += "Test job is pending (`qw`)..."
+                    elif state_code == "eqw":
+                        to_print += "Test job is stalled (`eqw`)..."
+
+                else:   # the job is not in queue:
+                    flag_done = True
+                    # get the last line of the log file:
+                    last_line = get_last_line(o_fn)
+                    # check if it's "SUCCESS":
+                    if last_line == "SUCCESS\n":
+                        flag_success = True
+                        to_print += "Test job is successfully finished!"
+                        print(CHECK_MARK + " All good in test job!")
+                    else:   # failed:
+                        flag_success = False
+                        to_print += "Test job was not successfully finished"
+                        to_print += " and is currently out of queue."
+                        to_print += " Last line of *.o* log file: '" + last_line + "'."
+                        to_print += " Path to the log file: " + log_fn
+
+                print(to_print)
+                if not flag_success:
+                    print("There is something wrong probably in the setups."
+                          + " Please check the log files and the `--container_config_yaml_file`"
+                          + " provided in `babs-init`!")
+
+            # TODO: finish checking the job status..
+
+        # TODO: update below:
         print("`babs-check-setup` Part I was successful! ")
         if flag_warning_output_ria:
             print("Please check out the warning for output RIA!")
         print("Part II: Please use `babs-check-setup --job-status`"
-              " to check if the test job finishes successfully.")
+            " to check if the test job finishes successfully.")
 
         # TODO: test ^^ on cubic cluster!!!
 

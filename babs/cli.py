@@ -221,6 +221,11 @@ def babs_check_setup_cli():
         help="Absolute path to the root of BABS project."
         " For example, '/path/to/my_BABS_project/'.",
         required=True)
+    parser.add_argument(
+        "--job_test", "--job-test",
+        action='store_true',
+        # ^^ if `--job-test` is specified, args.job_test = True; otherwise, False
+        help="Whether to submit and run a test job. Will take longer time if doing so.")
 
     return parser
 
@@ -233,6 +238,8 @@ def babs_check_setup_main():
     project_root: str
         Absolute path to the root of BABS project.
         For example, '/path/to/my_BABS_project/'.
+    job_test: bool
+        Whether to submit and run a test job.
     """
 
     # Get arguments:
@@ -244,7 +251,7 @@ def babs_check_setup_main():
     babs_proj, input_ds = get_existing_babs_proj(project_root)
 
     # Call method `babs_check_setup()`:
-    babs_proj.babs_check_setup(input_ds)
+    babs_proj.babs_check_setup(input_ds, args.job_test)
 
 def babs_submit_cli():
     """
