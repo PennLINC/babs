@@ -1936,10 +1936,19 @@ class Container():
         """
         # Sanity check: this `container_name` exists in the `container_ds`:
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
-        # ^^ path to the folder `image`
-        assert op.exists(container_path_abs), \
+        # ^^ path to the symlink/file `image`
+        # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
+
+        # the path to `container_name` should exist:
+        assert op.exists(op.dirname(container_path_abs)), \
             "There is no valid image named '" + self.container_name \
             + "' in the provided container DataLad dataset!"
+
+        # the image should be a symlink:
+        if not op.islink(container_path_abs):
+            warnings.warn("the 'image' of container is not a symlink;"
+                          + " Path to this file in cloned container DataLad dataset: '"
+                          + container_path_abs + "'.")
 
     def read_container_config_yaml(self):
         """
