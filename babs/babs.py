@@ -346,7 +346,7 @@ class BABS():
                 # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
         else:
             print("DataLad sibling output RIA has been created; will not create again.")
-        
+
         # Get some key information re: DataLad dataset `analysis`,
         # after creating output RIA:
         self.wtf_key_info()
@@ -746,11 +746,11 @@ class BABS():
         # get the actual `output_ria_data_dir`;
         #   the one in `self` attr is directly got from `analysis` remote,
         #   so should not use that here.
-        actual_output_ria_data_dir = os.readlink( \
+        actual_output_ria_data_dir = os.readlink(
             op.join(self.output_ria_path, "alias/data"))   # get the symlink of `alias/data`
         assert op.exists(actual_output_ria_data_dir)    # make sure this exists
         # get '000/0000-0000-0000-0000':
-        data_foldername = op.join( \
+        data_foldername = op.join(
             op.basename(op.dirname(actual_output_ria_data_dir)),
             op.basename(actual_output_ria_data_dir))
         # input_ria:
@@ -862,7 +862,8 @@ class BABS():
 
             # check job status every 1 min:
             flag_done = False   # whether job is out of queue (True)
-            flag_success = False  # whether job was successfully finished (True)
+            # flag_success = False  # whether job was successfully finished (True)
+            print("Will check the test job's status every 1 min...")
             while not flag_done:
                 # wait for 1 min:
                 time.sleep(60)   # Sleep for 60 seconds
@@ -892,23 +893,21 @@ class BABS():
                     last_line = get_last_line(o_fn)
                     # check if it's "SUCCESS":
                     if last_line == "SUCCESS\n":
-                        flag_success = True
+                        # flag_success = True
                         to_print += "Test job is successfully finished!"
                         print(CHECK_MARK + " All good in test job!")
                     else:   # failed:
-                        flag_success = False
+                        # flag_success = False
                         to_print += "Test job was not successfully finished"
                         to_print += " and is currently out of queue."
                         to_print += " Last line of *.o* log file: '" + last_line + "'."
                         to_print += " Path to the log file: " + log_fn
+                        to_print += "\nThere is something wrong probably in the setups." \
+                                 + " Please check the log files" \
+                                 + " and the `--container_config_yaml_file`" \
+                                 + " provided in `babs-init`!"
 
                 print(to_print)
-                if not flag_success:
-                    print("There is something wrong probably in the setups."
-                          + " Please check the log files and the `--container_config_yaml_file`"
-                          + " provided in `babs-init`!")
-
-            # TODO: finish checking the job status..
 
         # TODO: update below:
         print("`babs-check-setup` Part I was successful! ")
@@ -2422,7 +2421,7 @@ class Container():
         bash_file.write("\n# Sanity checks:\n")
         bash_file.write("# If current directory is writable:\n")
         bash_file.write('if [ ! -w "$PWD" ]; then' + "\n")
-        bash_file.write("\t" + "echo 'The directory $1 is not writable" + "\n")
+        bash_file.write("\t" + "echo 'The directory $1 is not writable'" + "\n")
         bash_file.write("fi" + "\n")
 
         # check if datalad is installed in the current env:
