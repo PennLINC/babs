@@ -1364,7 +1364,6 @@ def submit_one_test_job(analysis_path, flag_print_message=True):
     to_print = "Test job"
 
     # run the command, get the job id:
-    print(cmd.split())
     proc_cmd = subprocess.run(cmd.split(),   # separate by space
                               cwd=analysis_path,
                               stdout=subprocess.PIPE)
@@ -1931,3 +1930,24 @@ def check_job_account(job_id_str, job_name, username_lowercase):
         msg_toreturn = msg_failed_to_call_qacct
 
     return msg_toreturn
+
+def print_versions_from_log(log_fn):
+    """
+    This is to get version information (datalad, etc) from the log file.
+    This is used by `babs-check-setup`, where test job will get those versions
+    and save into log files (`*.o*).
+
+    Parameters:
+    ----------------
+    log_fn: str
+        path to the log file (usually is `*.o*`)
+    """
+    list_pattern = ["datalad ", "git version ", "git-annex version: ",
+                    "datalad_container "]
+    with open(log_fn, 'r') as f:
+        messages = f.readlines()
+    for line in messages:
+        temp = [x for x in list_pattern if x in line]
+        if len(temp):   # if any pattern found in this line:
+            line = line.replace("\n", "")
+            print(line)

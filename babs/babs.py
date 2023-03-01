@@ -45,7 +45,8 @@ from babs.utils import (get_immediate_subdirectories,
                         get_config_keywords_alert,
                         get_alert_message_in_log_files,
                         get_username,
-                        check_job_account)
+                        check_job_account,
+                        print_versions_from_log)
 
 # import pandas as pd
 
@@ -627,6 +628,10 @@ class BABS():
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)
 
         print("Will check setups of BABS project located at: " + self.project_root)
+        if flag_job_test:
+            print("Will submit a test job for testing; will take longer time.")
+        else:
+            print("Did not request `--job-test`; will not submit a test job.")
 
         # Print out the saved configuration info: ----------------
         print("Below is the configuration information saved during `babs-init`"
@@ -836,13 +841,18 @@ class BABS():
 
         # Submit a test job (if requested) --------------------------------
         if not flag_job_test:
-            print("\nNot to submit a test job as it's not requested.")
+            print("\nNot to submit a test job as it's not requested."
+                  + " We recommend running a test job with `--job-test` if you haven't done so;"
+                  + " It will gather dependent packages' versions in the designated environment"
+                  + " and will make sure jobs can finish successfully on current cluster.")
+            print("\n`babs-check-setup` was successful! ")
         else:
-            print("\nSubmitting a test job, will take longer to finish...")
+            print("\nSubmitting a test job, will take a while to finish...")
             print("Although the script will be submitted to the cluster to run,"
-                  " This job will not run the BIDS App;"
-                  " instead, this test job will only check the set ups in the environment"
-                  " and to make sure jobs can finish successfully on current cluster.")
+                  " this job will not run the BIDS App;"
+                  " instead, this test job will only gather dependent packages' versions"
+                  " in the designated environment"
+                  " and will make sure jobs can finish successfully on current cluster.")
 
             _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
             log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
@@ -862,7 +872,7 @@ class BABS():
 
             # check job status every 1 min:
             flag_done = False   # whether job is out of queue (True)
-            # flag_success = False  # whether job was successfully finished (True)
+            flag_success_test_job = False  # whether job was successfully finished (True)
             print("Will check the test job's status every 1 min...")
             while not flag_done:
                 # wait for 1 min:
@@ -890,49 +900,36 @@ class BABS():
                 else:   # the job is not in queue:
                     flag_done = True
                     # get the last line of the log file:
-                    last_line = get_last_line(o_fn)
+                    last_line = get_last_line(o_fn).replace("\n", "")
                     # check if it's "SUCCESS":
-                    if last_line == "SUCCESS\n":
-                        # flag_success = True
+                    if last_line == "SUCCESS":
+                        flag_success_test_job = True
                         to_print += "Test job is successfully finished!"
-                        print(CHECK_MARK + " All good in test job!")
                     else:   # failed:
-                        # flag_success = False
+                        flag_success_test_job = False
                         to_print += "Test job was not successfully finished"
                         to_print += " and is currently out of queue."
                         to_print += " Last line of *.o* log file: '" + last_line + "'."
                         to_print += " Path to the log file: " + log_fn
                         to_print += "\nThere is something wrong probably in the setups." \
-                                 + " Please check the log files" \
-                                 + " and the `--container_config_yaml_file`" \
-                                 + " provided in `babs-init`!"
-
+                            + " Please check the log files" \
+                            + " and the `--container_config_yaml_file`" \
+                            + " provided in `babs-init`!"
                 print(to_print)
 
-        # TODO: update below:
-        print("`babs-check-setup` Part I was successful! ")
+            if flag_success_test_job:
+                print(CHECK_MARK + " All good in test job!")
+                # print out messages from test job log: `datalad version` etc:
+                print("Versions installed in designated environment and to be used:")
+                print_versions_from_log(o_fn)
+                print("Please check if above versions are the ones you hope to use!"
+                      + " If not, please change the version in the designated environment,"
+                      + " or change the designated environment you hope to use"
+                      + " in `--container-config-yaml-file` and rerun `babs-init`.")
+                print("\n`babs-check-setup` was successful! ")
+
         if flag_warning_output_ria:
-            print("Please check out the warning for output RIA!")
-        print("Part II: Please use `babs-check-setup --job-status`"
-            " to check if the test job finishes successfully.")
-
-        # TODO: test ^^ on cubic cluster!!!
-
-        print()
-
-    def babs_check_test_job(self):
-        """
-        This function check the status of the test job.
-        """
-        # Pull out information about latest test job:
-        fn_test_job_info = op.join(self.analysis_path, "code/check_setup", "test_job_info.yaml")
-
-        # TODO: finish this function!!
-
-        # TODO: print out the messages that describe the output from `test_job.sh`
-        # e.g., datalad version, etc
-
-        print("`babs-check-setup` Part II was successful!")
+            print("\nPlease check out the warning for output RIA!")
 
     def babs_submit(self, count=1, df_job_specified=None):
         """
@@ -2428,7 +2425,8 @@ class Container():
         bash_file.write("\n# Check if necessary packages have been installed:\n")
         bash_file.write("datalad --version\n")
         bash_file.write("git --version\n")
-        bash_file.write("git-annex version\n")
+        bash_file.write("git-annex version\n\n")
+        # ^^ make a gap between printed message from `git-annex` and next one
         bash_file.write("datalad containers-add --version\n")
 
         # if everything is fine:
