@@ -911,21 +911,32 @@ class BABS():
                         to_print += " and is currently out of queue."
                         to_print += " Last line of *.o* log file: '" + last_line + "'."
                         to_print += " Path to the log file: " + log_fn
-                        to_print += "\nThere is something wrong probably in the setups." \
-                            + " Please check the log files" \
-                            + " and the `--container_config_yaml_file`" \
-                            + " provided in `babs-init`!"
                 print(to_print)
 
-            if flag_success_test_job:
-                print(CHECK_MARK + " All good in test job!")
+            if not flag_success_test_job:   # failed
+                raise Exception(
+                    "\nThere is something wrong probably in the setups."
+                    + " Please check the log files"
+                    + " and the `--container_config_yaml_file`"
+                    + " provided in `babs-init`!"
+                )
+            else:   # flag_success_test_job == True:
                 # print out messages from test job log: `datalad version` etc:
                 print("Versions installed in designated environment and to be used:")
-                print_versions_from_log(o_fn)
+                flag_all_installed = print_versions_from_log(o_fn)
+                if not flag_all_installed:
+                    raise Exception(
+                        "There is required package(s) not installed"
+                        + " in the designated environment!"
+                        + " Please install it (them) in the designated environment,"
+                        + " or change the designated environment you hope to use"
+                        + " in `--container-config-yaml-file` and rerun `babs-init`!")
+
                 print("Please check if above versions are the ones you hope to use!"
                       + " If not, please change the version in the designated environment,"
                       + " or change the designated environment you hope to use"
                       + " in `--container-config-yaml-file` and rerun `babs-init`.")
+                print(CHECK_MARK + " All good in test job!")
                 print("\n`babs-check-setup` was successful! ")
 
         if flag_warning_output_ria:

@@ -1934,6 +1934,7 @@ def check_job_account(job_id_str, job_name, username_lowercase):
 def print_versions_from_log(log_fn):
     """
     This is to get version information (datalad, etc) from the log file.
+    It will print out the version number, or, if not installed, raise warning.
     This is used by `babs-check-setup`, where test job will get those versions
     and save into log files (`*.o*).
 
@@ -1941,13 +1942,35 @@ def print_versions_from_log(log_fn):
     ----------------
     log_fn: str
         path to the log file (usually is `*.o*`)
+
+    Returns:
+    ------------
+    flag_all_installed: bool
+        if all necessary packages are installed
     """
     list_pattern = ["datalad ", "git version ", "git-annex version: ",
                     "datalad_container "]
+    list_fail_pattern = [
+        "datalad: command not found",
+        "git: command not found",  # based on here (see section for Linux):
+        # https://www.linode.com/docs/guides/how-to-install-git-on-linux-mac-and-windows
+        "git-annex: command not found",
+        "datalad_container: command not found"
+    ]
+
     with open(log_fn, 'r') as f:
         messages = f.readlines()
+
+    flag_all_installed = True
     for line in messages:
+        temp_fail = [x for x in list_fail_pattern if x in line]
+        if len(temp_fail) > 0:
+            flag_all_installed = False
+            warnings.warn("This required package is not installed: " + ", ".join(temp_fail))
+
         temp = [x for x in list_pattern if x in line]
-        if len(temp):   # if any pattern found in this line:
+        if len(temp) > 0:   # if any pattern found in this line:
             line = line.replace("\n", "")
             print(line)
+
+    return flag_all_installed
