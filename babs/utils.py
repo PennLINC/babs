@@ -1954,10 +1954,12 @@ def print_versions_from_yaml(fn_yaml):
     """
     # Read the yaml file and print the content:
     config = read_yaml(fn_yaml)
-    print("Below is the information of designated environment and temporary workspace:")
+    print("Below is the information of designated environment and temporary workspace:\n")
     # print the yaml file:
-    pprint.pprint(config, sort_dicts=False)
-    print("")
+    f = open(fn_yaml, 'r')
+    file_contents = f.read()
+    print(file_contents)
+    f.close()
 
     # Check if everything is as satisfied:
     if config["workspace_writable"]:   # bool; if writable:

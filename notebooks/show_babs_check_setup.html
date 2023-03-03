@@ -14637,7 +14637,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
      <div class="CodeMirror cm-s-jupyter">
 <div class=" highlight hl-ipython3"><pre><span></span><span class="c1"># This notebook in theory accepts all BIDS Apps (regardless of input dataset type)</span>
 <span class="c1"># ++++++++++++++++++++++++++++++++++</span>
-<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">&quot;fmriprep&quot;</span>  <span class="c1"># toybidsapp, qsiprep or fmriprep or fmriprep_anatonly | not supported yet: xcpd</span>
+<span class="n">flag_instance</span> <span class="o">=</span> <span class="s2">&quot;toybidsapp&quot;</span>  <span class="c1"># toybidsapp, qsiprep or fmriprep or fmriprep_anatonly | not supported yet: xcpd</span>
 <span class="n">type_session</span> <span class="o">=</span> <span class="s2">&quot;multi-ses&quot;</span>
 <span class="n">which_dataset</span> <span class="o">=</span> <span class="s2">&quot;toy_fake&quot;</span>    <span class="c1"># &quot;toy_fake&quot;, &quot;toy_real&quot;, &quot;HBN&quot;</span>
 <span class="n">flag_run_job_test</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># True or False of turning on `--job-test`</span>
@@ -14663,7 +14663,6 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
     <span class="n">project_name</span> <span class="o">+=</span> <span class="s2">&quot;_HBN&quot;</span>
 <span class="c1"># Based on which BIDS App:</span>
 <span class="k">if</span> <span class="n">flag_instance</span> <span class="o">==</span> <span class="s2">&quot;toybidsapp&quot;</span><span class="p">:</span>
-    <span class="n">input_cli</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;BIDS&quot;</span><span class="p">,</span> <span class="n">input_ds</span><span class="p">]]</span>
     <span class="n">bidsapp</span> <span class="o">=</span> <span class="s2">&quot;toybidsapp&quot;</span>
     <span class="n">container_name</span> <span class="o">=</span> <span class="n">bidsapp</span> <span class="o">+</span> <span class="s2">&quot;-0-0-5&quot;</span>
 <span class="k">elif</span> <span class="n">flag_instance</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;fmriprep&quot;</span><span class="p">,</span> <span class="s2">&quot;fmriprep_anatonly&quot;</span><span class="p">]:</span>
@@ -14733,7 +14732,7 @@ body[data-format='mobile'] .jp-OutputArea-child .jp-OutputArea-output {
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
 <pre>The command to execute:
 babs-check-setup \
-	--project_root /cbica/projects/BABS/data/test_babs_multi-ses_fmriprep \
+	--project_root /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp \
 	--job-test
 </pre>
 </div>
@@ -14771,7 +14770,7 @@ babs-check-setup \
 
 
 <div class="jp-RenderedText jp-OutputArea-output" data-mime-type="text/plain">
-<pre>Will check setups of BABS project located at: /cbica/projects/BABS/data/test_babs_multi-ses_fmriprep
+<pre>Will check setups of BABS project located at: /cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp
 Will submit a test job for testing; will take longer time.
 Below is the configuration information saved during `babs-init` in file &#39;analysis/code/babs_proj_config.yaml&#39;:
 
@@ -14784,8 +14783,8 @@ input_ds:
     path_data_rel: inputs/data/BIDS
     is_zipped: false
 container:
-  name: fmriprep-20-2-3
-  path_in: /cbica/projects/BABS/data/fmriprep-container
+  name: toybidsapp-0-0-5
+  path_in: /cbica/projects/BABS/data/toybidsapp-container
 
 Checking the BABS project itself...
 ✓ All good!
@@ -14803,25 +14802,38 @@ Checking input and output RIA...
 	Datalad dataset `analysis`&#39;s siblings:
 .: here(+) [git]
 .: output-storage(+) [ora]
-.: output(-) [/cbica/projects/BABS/data/test_babs_multi-ses_fmriprep/output_ria/538/12117-8da0-4ed5-8f6d-984999598ee9 (git)]
-.: input(-) [/cbica/projects/BABS/data/test_babs_multi-ses_fmriprep/input_ria/538/12117-8da0-4ed5-8f6d-984999598ee9 (git)]
-✓ All good!
+.: output(-) [/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/output_ria/ec5/a8143-30ff-4232-9d56-946c47d85776 (git)]
+.: input(-) [/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/input_ria/ec5/a8143-30ff-4232-9d56-946c47d85776 (git)]
+/gpfs/fs001/cbica/projects/BABS/babs/babs/babs.py:825: UserWarning: The hash of current commit of `analysis` datalad dataset does not match with that of output RIA. Former = 1f205c5c28b8274b0d0771888b67f73669101d26; Latter = d492dde07661112236e2ea1fd4a7056a8fd5be16.
+It might be because that latest commits in `analysis` were not pushed to output RIA.
+If there are already successful job(s) finished, please do NOT push updates from `analysis` to output RIA.
+If you&#39;re sure there is no successful job finished, you may try running this command at directory &#39;/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis&#39;: 
+$ datalad push --to output
+  warnings.warn(
+There is warning for output RIA - Please check it out! Else in input and output RIA is good.
 
 Submitting a test job, will take a while to finish...
-Although the script will be submitted to the cluster to run, this job will not run the BIDS App; instead, this test job will only gather dependent packages&#39; versions in the designated environment and will make sure jobs can finish successfully on current cluster.
-Test job has been submitted (job ID: 4000540).
+Although the script will be submitted to the cluster to run, this job will not run the BIDS App; instead, this test job will gather setup information in the designated environment and will make sure jobs can finish successfully on current cluster.
+Test job has been submitted (job ID: 4003437).
 Will check the test job&#39;s status every 1 min...
-2023-03-01 18:21:53.361043: Test job is running (`r`)...
-2023-03-01 18:23:25.749343: Test job is successfully finished!
-✓ All good in test job!
-Versions installed in designated environment and to be used:
-datalad 0.17.9
-git version 2.38.1
-git-annex version: 10.20220927-geb4a544
-datalad_container 1.1.8
+2023-03-02 22:02:45.089398: Test job is pending (`qw`)...
+2023-03-02 22:03:45.202383: Test job is successfully finished!
+Below is the information of designated environment and temporary workspace:
+
+workspace_writable: true
+which_python: &#39;/cbica/projects/BABS/miniconda3/envs/mydatalad/bin/python&#39;
+version:
+  datalad: &#39;datalad 0.17.9&#39;
+  git: &#39;git version 2.38.1&#39;
+  git-annex: &#39;git-annex version: 10.20220927-geb4a544&#39;
+  datalad_containers: &#39;datalad_container 1.1.8&#39;
+
 Please check if above versions are the ones you hope to use! If not, please change the version in the designated environment, or change the designated environment you hope to use in `--container-config-yaml-file` and rerun `babs-init`.
+✓ All good in test job!
 
 `babs-check-setup` was successful! 
+
+Please check out the warning for output RIA!
 </pre>
 </div>
 </div>

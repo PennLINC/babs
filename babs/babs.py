@@ -712,6 +712,10 @@ class BABS():
         #               to make sure the container named `container_name` exists.
         print(CHECK_MARK + " All good!")
 
+        # Check `analysis` datalad dataset: ----------------------
+        # TODO: is there anything unsaved? if so, warning;
+        # and warning at the end of `babs-check-setup`
+
         # Check `analysis/code`: ---------------------------------
         print("\nChecking `analysis/code/` folder...")
         # folder `analysis/code` should exist:
@@ -938,9 +942,9 @@ class BABS():
                     # this will make more sense after adding section of workspace path in YAML file
                 if not flag_all_installed:
                     raise Exception(
-                        "There is required package(s) not installed"
+                        "Some required package(s) were not installed"
                         + " in the designated environment!"
-                        + " Please install it (them) in the designated environment,"
+                        + " Please install them in the designated environment,"
                         + " or change the designated environment you hope to use"
                         + " in `--container-config-yaml-file` and rerun `babs-init`!")
 
@@ -2454,11 +2458,13 @@ class Container():
         bash_file.write("which_python=`which python`\n")
         bash_file.write("current_pwd=${PWD}" + "\n")
         # call `test_job.py`:
-        bash_file.write("echo 'Calling `test_job.py`. Make sure these python packages'"
-                        + " are installed in designated environment: `pandas`, `pyyaml >= 6.0`.'")
+        bash_file.write("echo 'Calling `test_job.py`...'\n")
         bash_file.write("${which_python} " + fn_test_job
                         + " --path-workspace ${current_pwd}"
                         + " --path-check-setup " + folder_check_setup + "\n")
+
+        # Echo success:
+        bash_file.write("\necho SUCCESS\n")
 
         proc_chmod_bashfile = subprocess.run(
             ["chmod", "+x", fn_call_test_job],  # e.g., chmod +x code/participant_job.sh

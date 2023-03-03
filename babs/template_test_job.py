@@ -1,16 +1,11 @@
 # This python script will be copied to `analysis/code/check_setup` folder
 # and will be used during `babs-check-setup`
-# This requires `pandas` and `pyyaml >= 6.0` python packages to complete.
-
-# NOTE: update this script so that it does not rely on `pandas` and `yaml`
 
 import argparse
 import os
 import os.path as op
 import sys
 import subprocess
-import pandas as pd
-import yaml
 
 def cli():
     parser = argparse.ArgumentParser()
@@ -25,29 +20,6 @@ def cli():
 
     return parser
 
-def write_yaml(config, fn, if_filelock=False):
-    """
-    This is to write contents into yaml file.
-    Ref: `write_yaml()` from `babs/utils.py` in BABS.
-    Here we won't use FileLock
-
-    Parameters:
-    ---------------
-    config: dict
-        the content to write into yaml file
-    fn: str
-        path to the yaml file
-    if_filelock: bool
-        whether to use filelock
-    """
-
-    with open(fn, "w") as f:
-        _ = yaml.dump(config, f,
-                      sort_keys=False,   # not to sort by keys
-                      default_flow_style=False)  # keep the format of nested contents
-    f.close()
-
-
 def main():
     # Get arguments:
     args = cli().parse_args()
@@ -56,6 +28,7 @@ def main():
     fn_yaml = op.join(args.path_check_setup, "check_env.yaml")
     if op.exists(fn_yaml):
         os.remove(fn_yaml)   # remove it
+    yaml_file = open(fn_yaml, "w")
 
     # Initialize the dict:
     config = {}
@@ -63,38 +36,46 @@ def main():
     # If the path of ephemeral compute workspace is writable:
     flag_writable = os.access(args.path_workspace, os.W_OK)
     config["workspace_writable"] = flag_writable
+    # change to the version that `read_yaml()` from babs/utils.py can read:
+    if flag_writable:   # True
+        str_writable = "true"
+    else:
+        str_writable = "false"
+    yaml_file.write(
+        "workspace_writable: " + str_writable + "\n")
 
     # Which python in current env:
     # assume the python is installed; otherwise this script cannot be run:
     config["which_python"] = sys.executable
+    yaml_file.write(
+        "which_python: '" + sys.executable + "'\n")
 
     # Check each dependent packages' versions:
     config["version"] = {}
+    yaml_file.write("version:\n")
     # What packages' versions to check:
-    what_versions = [['datalad', 'datalad --version'],
-                     ['git', 'git --version'],
-                     ['git-annex', 'git-annex version'],
-                     ['datalad_containers', 'datalad containers-add --version']]
-    df = pd.DataFrame(what_versions, columns=['package', 'command'])
-    for i in range(0, df.shape[0]):
+    what_versions = {'datalad': 'datalad --version',
+                     'git': 'git --version',
+                     'git-annex': 'git-annex version',
+                     'datalad_containers': 'datalad containers-add --version'}
+    for key in what_versions:
+        the_command = what_versions[key]
         try:
-            proc = subprocess.run(df.at[i, "command"].split(" "),
+            proc = subprocess.run(the_command.split(" "),
                                   stdout=subprocess.PIPE)
             proc.check_returncode()
-            if df.at[i, "package"] == "git-annex":
+            if key == "git-annex":
                 temp = proc.stdout.decode('utf-8').split("\n")[0]
-                config["version"][df.at[i, "package"]] = temp
+                config["version"][key] = temp
             else:
-                config["version"][df.at[i, "package"]] = \
+                config["version"][key] = \
                     proc.stdout.decode('utf-8').replace("\n", "")
         except:
-            config["version"][df.at[i, "package"]] = "not_installed"
+            config["version"][key] = "not_installed"
 
-    # Save to yaml file:
-    write_yaml(config, fn_yaml)
+        yaml_file.write("  " + key + ": '" + config["version"][key] + "'\n")
 
-    # Print success:
-    print("SUCCESS")
+    yaml_file.close()
 
 
 if __name__ == "__main__":

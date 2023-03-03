@@ -24,8 +24,7 @@ cluster_resources:
 #   they will be used as preambles in `participant_job.sh`
 #   the commands should not be quoted!
 script_preamble: |
-    source ${CONDA_PREFIX}/bin/activate test   # mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
-# FOR TESTING PURPOSE ^^^; TODO: CHANGE IT BACK!
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
 
 # Below is to filter out subjects (or sessions)
 #   right now we only filter based on unzipped dataset
