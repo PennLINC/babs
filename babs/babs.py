@@ -46,7 +46,7 @@ from babs.utils import (get_immediate_subdirectories,
                         get_alert_message_in_log_files,
                         get_username,
                         check_job_account,
-                        print_versions_from_log)
+                        print_versions_from_yaml)
 
 # import pandas as pd
 
@@ -483,11 +483,12 @@ class BABS():
                                                 system)
 
         # also, generate a bash script of a test job used by `babs-check-setup`:
-        bash_test_path = op.join(self.analysis_path, "code/check_setup", "test_job.sh")
-        container.generate_bash_test_job(bash_test_path, system)
+        path_check_setup = op.join(self.analysis_path, "code/check_setup")
+        container.generate_bash_test_job(path_check_setup, system)
 
         self.datalad_save(path=["code/participant_job.sh",
-                                "code/check_setup/test_job.sh"],
+                                "code/check_setup/call_test_job.sh",
+                                "code/check_setup/test_job.py"],
                           message="Participant compute job implementation")
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
@@ -843,14 +844,14 @@ class BABS():
         if not flag_job_test:
             print("\nNot to submit a test job as it's not requested."
                   + " We recommend running a test job with `--job-test` if you haven't done so;"
-                  + " It will gather dependent packages' versions in the designated environment"
+                  + " It will gather setup information in the designated environment"
                   + " and will make sure jobs can finish successfully on current cluster.")
             print("\n`babs-check-setup` was successful! ")
         else:
             print("\nSubmitting a test job, will take a while to finish...")
             print("Although the script will be submitted to the cluster to run,"
                   " this job will not run the BIDS App;"
-                  " instead, this test job will only gather dependent packages' versions"
+                  " instead, this test job will gather setup information"
                   " in the designated environment"
                   " and will make sure jobs can finish successfully on current cluster.")
 
@@ -913,6 +914,8 @@ class BABS():
                         to_print += " Path to the log file: " + log_fn
                 print(to_print)
 
+            # TODO: datalad save folder `check_setup`
+
             if not flag_success_test_job:   # failed
                 raise Exception(
                     "\nThere is something wrong probably in the setups."
@@ -921,9 +924,18 @@ class BABS():
                     + " provided in `babs-init`!"
                 )
             else:   # flag_success_test_job == True:
-                # print out messages from test job log: `datalad version` etc:
-                print("Versions installed in designated environment and to be used:")
-                flag_all_installed = print_versions_from_log(o_fn)
+                # go thru `code/check_setup/check_env.yaml`: check if anything wrong:
+                fn_check_env_yaml = op.join(self.analysis_path, "code/check_setup",
+                                            "check_env.yaml")
+                flag_writable, flag_all_installed = print_versions_from_yaml(fn_check_env_yaml)
+                if not flag_writable:
+                    raise Exception(
+                        "The designated workspace is not writable!"
+                        + " Please change it in the YAML file"
+                        + " used in `babs-init --container-config-yaml-file`,"
+                        + " then rerun `babs-init` with updated YAML file.")
+                    # NOTE: ^^ currently this is not aligned with YAML file sections;
+                    # this will make more sense after adding section of workspace path in YAML file
                 if not flag_all_installed:
                     raise Exception(
                         "There is required package(s) not installed"
@@ -2377,26 +2389,34 @@ class Container():
             )
         proc_chmod_bashfile.check_returncode()
 
-    def generate_bash_test_job(self, bash_path,
+    def generate_bash_test_job(self, folder_check_setup,
                                system):
         """
-        This is to generate a bash script taht runs a *test* job, 
+        This is to generate two scripts that run a *test* job,
         which will be used by `babs-check-setup`.
+        Scripts to generate:
+        * `call_test_job.sh`    # just like `participant_job.sh`
+        * `test_job.py`    # just like `container_zip.sh`
 
         Parameters:
         -------------
-        bash_path: str
-            The path to the bash file to be generated. It should be in the `analysis/code` folder.
+        folder_check_setup: str
+            The path to folder `check_setup`; generated scripts will locate in this folder
         system: class `System`
             information on cluster management system
         """
 
+        fn_call_test_job = op.join(folder_check_setup, "call_test_job.sh")
+        fn_test_job = op.join(folder_check_setup, "test_job.py")
+        # ==============================================================
+        # Generate `call_test_job.sh`, similar to `participant_job.sh`
+        # ==============================================================
         # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
+        if op.exists(fn_call_test_job):
+            os.remove(fn_call_test_job)  # remove it
 
         # Write into the bash file:
-        bash_file = open(bash_path, "a")   # open in append mode
+        bash_file = open(fn_call_test_job, "a")   # open in append mode
 
         bash_file.write("#!/bin/bash\n")
 
@@ -2407,6 +2427,9 @@ class Container():
         # Script preambles:
         cmd_script_preamble = generate_cmd_script_preamble(self.config)
         bash_file.write(cmd_script_preamble)
+
+        # Where the analysis folder is:
+        bash_file.write("path_check_setup=" + folder_check_setup + "\n")
 
         # Change how this bash file is run:
         bash_file.write("\n# Fail whenever something is fishy,"
@@ -2425,32 +2448,45 @@ class Container():
         bash_file.write("fi\n")
         # TODO: update ^^ after adding this choice as a section in `--container-config-yaml-file`
 
-        # Sanity checks:
-        bash_file.write("\n# Sanity checks:\n")
-        bash_file.write("# If current directory is writable:\n")
-        bash_file.write('if [ ! -w "$PWD" ]; then' + "\n")
-        bash_file.write("\t" + "echo 'The directory $1 is not writable'" + "\n")
-        bash_file.write("fi" + "\n")
+        # Call `test_job.py`:
+        # get which python:
+        bash_file.write("\n# Call `test_job.py`:\n")
+        bash_file.write("which_python=`which python`\n")
+        bash_file.write("current_pwd=${PWD}" + "\n")
+        # call `test_job.py`:
+        bash_file.write("echo 'Calling `test_job.py`. Make sure these python packages'"
+                        + " are installed in designated environment: `pandas`, `pyyaml >= 6.0`.'")
+        bash_file.write("${which_python} " + fn_test_job
+                        + " --path-workspace ${current_pwd}"
+                        + " --path-check-setup " + folder_check_setup + "\n")
 
-        # check if datalad is installed in the current env:
-        bash_file.write("\n# Check if necessary packages have been installed:\n")
-        bash_file.write("datalad --version\n")
-        bash_file.write("git --version\n")
-        bash_file.write("git-annex version\n\n")
-        # ^^ make a gap between printed message from `git-annex` and next one
-        bash_file.write("datalad containers-add --version\n")
-
-        # if everything is fine:
-        bash_file.write("\n")
-        bash_file.write("echo SUCCESS\n")
-        bash_file.close()
-
-        # change the permission of this bash file:
         proc_chmod_bashfile = subprocess.run(
-            ["chmod", "+x", bash_path],  # e.g., chmod +x code/participant_job.sh
+            ["chmod", "+x", fn_call_test_job],  # e.g., chmod +x code/participant_job.sh
             stdout=subprocess.PIPE
             )
         proc_chmod_bashfile.check_returncode()
+
+        # ==============================================================
+        # Generate `test_job.py`, similar to `container_zip.sh`
+        # ==============================================================
+        # Check if the bash file already exist:
+        if op.exists(fn_test_job):
+            os.remove(fn_test_job)  # remove it
+
+        # Copy the existing python script to this BABS project:
+        # location of current python script:
+        __location__ = os.path.realpath(
+            os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        fn_from = op.join(__location__, "template_test_job.py")
+        # copy:
+        shutil.copy(fn_from, fn_test_job)
+
+        # change the permission of this bash file:
+        proc_chmod_pyfile = subprocess.run(
+            ["chmod", "+x", fn_test_job],  # e.g., chmod +x code/participant_job.sh
+            stdout=subprocess.PIPE
+            )
+        proc_chmod_pyfile.check_returncode()
 
     def generate_job_submit_template(self, yaml_path, input_ds, babs, system):
         """
@@ -2557,7 +2593,7 @@ class Container():
                 + "-o " + babs.analysis_path + "/logs"
         else:
             warnings.warn("not supporting systems other than sge...")
-        
+
         # Check if the bash file already exist:
         if op.exists(yaml_path):
             os.remove(yaml_path)  # remove it
@@ -2570,10 +2606,10 @@ class Container():
             + " -N " + self.container_name[0:3] + "_" + "test_job"
         cmd += " " \
             + eo_args + " " \
-            + babs.analysis_path + "/code/check_setup/test_job.sh"
+            + babs.analysis_path + "/code/check_setup/call_test_job.sh"
         cmd += " " \
             + "cbica_tmpdir"
-        
+
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
 
         # TODO: currently only support SGE.

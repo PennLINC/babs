@@ -48,6 +48,10 @@
                 "--type_session", "multi-ses",
                 "--type_system", "sge"
             ]
+            // "args": [
+            //     "--path-workspace", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs",
+            //     "--path-check-setup", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code/check_setup"
+            // ]
         }
     ]
 }

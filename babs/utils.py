@@ -7,6 +7,7 @@ import warnings   # built-in, no need to install
 import pkg_resources
 # from ruamel.yaml import YAML
 import yaml
+import pprint
 import glob
 import regex
 import copy
@@ -1353,7 +1354,8 @@ def submit_one_test_job(analysis_path, flag_print_message=True):
     """
     # Load the job submission template:
     #   details of this template yaml file: see `Container.generate_test_job_submit_template()`
-    template_yaml_path = op.join(analysis_path, "code/check_setup", "submit_test_job_template.yaml")
+    template_yaml_path = op.join(analysis_path, "code/check_setup",
+                                 "submit_test_job_template.yaml")
     with open(template_yaml_path, "r") as f:
         templates = yaml.load(f, Loader=yaml.FullLoader)
     f.close()
@@ -1931,46 +1933,43 @@ def check_job_account(job_id_str, job_name, username_lowercase):
 
     return msg_toreturn
 
-def print_versions_from_log(log_fn):
+def print_versions_from_yaml(fn_yaml):
     """
-    This is to get version information (datalad, etc) from the log file.
-    It will print out the version number, or, if not installed, raise warning.
-    This is used by `babs-check-setup`, where test job will get those versions
-    and save into log files (`*.o*).
+    This is to go thru information in `code/check_setup/check_env.yaml` saved by `test_job.py`.
+    1. check if there is anything required but not installed
+    2. print out the versions for user to visually check
+    This is used by `babs-check-setup`.
 
     Parameters:
     ----------------
-    log_fn: str
-        path to the log file (usually is `*.o*`)
+    fn_yaml: str
+        path to the yaml file (usually is `code/check_setup/check_env.yaml`)
 
     Returns:
     ------------
+    flag_writable: bool
+        if the workspace is writable
     flag_all_installed: bool
         if all necessary packages are installed
     """
-    list_pattern = ["datalad ", "git version ", "git-annex version: ",
-                    "datalad_container "]
-    list_fail_pattern = [
-        "datalad: command not found",
-        "git: command not found",  # based on here (see section for Linux):
-        # https://www.linode.com/docs/guides/how-to-install-git-on-linux-mac-and-windows
-        "git-annex: command not found",
-        "datalad_container: command not found"
-    ]
+    # Read the yaml file and print the content:
+    config = read_yaml(fn_yaml)
+    print("Below is the information of designated environment and temporary workspace:")
+    # print the yaml file:
+    pprint.pprint(config, sort_dicts=False)
+    print("")
 
-    with open(log_fn, 'r') as f:
-        messages = f.readlines()
+    # Check if everything is as satisfied:
+    if config["workspace_writable"]:   # bool; if writable:
+        flag_writable = True
+    else:
+        flag_writable = False
 
+    # Check all dependent packages are installed:
     flag_all_installed = True
-    for line in messages:
-        temp_fail = [x for x in list_fail_pattern if x in line]
-        if len(temp_fail) > 0:
+    for key in config["version"]:
+        if config["version"][key] == "not_installed":   # see `babs/template_test_job.py`
             flag_all_installed = False
-            warnings.warn("This required package is not installed: " + ", ".join(temp_fail))
+            warnings.warn("This required package is not installed: " + key)
 
-        temp = [x for x in list_pattern if x in line]
-        if len(temp) > 0:   # if any pattern found in this line:
-            line = line.replace("\n", "")
-            print(line)
-
-    return flag_all_installed
+    return flag_writable, flag_all_installed
