@@ -49,6 +49,10 @@
                 "--type_system", "sge"
             ]
             // "args": [
+            //     "--project-root", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
+            //     //"--job-test"
+            // ]
+            // "args": [
             //     "--path-workspace", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs",
             //     "--path-check-setup", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code/check_setup"
             // ]

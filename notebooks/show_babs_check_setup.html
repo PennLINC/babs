@@ -14789,7 +14789,12 @@ container:
 Checking the BABS project itself...
 ✓ All good!
 
+Check status of &#39;analysis&#39; DataLad dataset...
+nothing to save, working tree clean
+✓ All good!
+
 Checking input dataset(s)...
+nothing to save, working tree clean
 ✓ All good!
 
 Checking container datalad dataset...
@@ -14802,22 +14807,18 @@ Checking input and output RIA...
 	Datalad dataset `analysis`&#39;s siblings:
 .: here(+) [git]
 .: output-storage(+) [ora]
-.: output(-) [/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/output_ria/ec5/a8143-30ff-4232-9d56-946c47d85776 (git)]
-.: input(-) [/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/input_ria/ec5/a8143-30ff-4232-9d56-946c47d85776 (git)]
-/gpfs/fs001/cbica/projects/BABS/babs/babs/babs.py:825: UserWarning: The hash of current commit of `analysis` datalad dataset does not match with that of output RIA. Former = 1f205c5c28b8274b0d0771888b67f73669101d26; Latter = d492dde07661112236e2ea1fd4a7056a8fd5be16.
-It might be because that latest commits in `analysis` were not pushed to output RIA.
-If there are already successful job(s) finished, please do NOT push updates from `analysis` to output RIA.
-If you&#39;re sure there is no successful job finished, you may try running this command at directory &#39;/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis&#39;: 
-$ datalad push --to output
-  warnings.warn(
-There is warning for output RIA - Please check it out! Else in input and output RIA is good.
+.: input(-) [/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/input_ria/23b/2147a-74c7-4582-97aa-7529fc898a50 (git)]
+.: output(-) [/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/output_ria/23b/2147a-74c7-4582-97aa-7529fc898a50 (git)]
+✓ All good!
 
 Submitting a test job, will take a while to finish...
 Although the script will be submitted to the cluster to run, this job will not run the BIDS App; instead, this test job will gather setup information in the designated environment and will make sure jobs can finish successfully on current cluster.
-Test job has been submitted (job ID: 4003437).
+Test job has been submitted (job ID: 4033868).
 Will check the test job&#39;s status every 1 min...
-2023-03-02 22:02:45.089398: Test job is pending (`qw`)...
-2023-03-02 22:03:45.202383: Test job is successfully finished!
+2023-03-03 21:50:22.751770: Test job is pending (`qw`)...
+2023-03-03 21:51:22.875797: Test job is pending (`qw`)...
+2023-03-03 21:52:23.005690: Test job is pending (`qw`)...
+2023-03-03 21:53:23.129024: Test job is successfully finished!
 Below is the information of designated environment and temporary workspace:
 
 workspace_writable: true
@@ -14832,8 +14833,6 @@ Please check if above versions are the ones you hope to use! If not, please chan
 ✓ All good in test job!
 
 `babs-check-setup` was successful! 
-
-Please check out the warning for output RIA!
 </pre>
 </div>
 </div>
