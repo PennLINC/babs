@@ -37,21 +37,21 @@
             //     "--type_system",
             //     "sge"
             // ]
-            "args": [
-                "--where_project", "/cbica/projects/BABS/data",
-                "--project_name", "test_babs_multi-ses_toybidsapp",
-                "--input", "BIDS", "/cbica/projects/BABS/data/w2nu3",
-                "--list_sub_file", "/cbica/projects/BABS/babs/notebooks/initial_sub_list_multi-ses.csv",
-                "--container_ds", "/cbica/projects/BABS/data/toybidsapp-container",
-                "--container_name", "toybidsapp-0-0-5",
-                "--container_config_yaml_file", "/cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml",
-                "--type_session", "multi-ses",
-                "--type_system", "sge"
-            ]
             // "args": [
-            //     "--project-root", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
-            //     //"--job-test"
+            //     "--where_project", "/cbica/projects/BABS/data",
+            //     "--project_name", "test_babs_multi-ses_toybidsapp",
+            //     "--input", "BIDS", "/cbica/projects/BABS/data/w2nu3",
+            //     "--list_sub_file", "/cbica/projects/BABS/babs/notebooks/initial_sub_list_multi-ses.csv",
+            //     "--container_ds", "/cbica/projects/BABS/data/toybidsapp-container",
+            //     "--container_name", "toybidsapp-0-0-5",
+            //     "--container_config_yaml_file", "/cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml",
+            //     "--type_session", "multi-ses",
+            //     "--type_system", "sge"
             // ]
+            "args": [
+                "--project-root", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
+                //"--job-test"
+            ]
             // "args": [
             //     "--path-workspace", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs",
             //     "--path-check-setup", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code/check_setup"

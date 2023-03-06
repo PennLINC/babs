@@ -643,9 +643,8 @@ def get_existing_babs_proj(project_root):
     for i in range(0, len(list_sections)):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
-            raise Exception( \
-                "`babs-init` was not successful;"
-                + " there is no section '" + the_section + "'"
+            raise Exception(
+                "There is no section '" + the_section + "'"
                 + " in 'babs_proj_config.yaml' file in 'analysis/code' folder!"
                 + " Please rerun `babs-init` to finish the setup.")
 
