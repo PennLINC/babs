@@ -28,10 +28,10 @@ def babs_init_cli():
     Example command:
     # TODO: to add an example command here!
 
+    NOTE: words here are not rendered.. Only words in `parser` -> `description` are rendered.
     """
-
     parser = argparse.ArgumentParser(
-        description="Initialize a babs project and bootstrap scripts that will be used later",
+        description="Initialize a babs project and bootstrap scripts that will be used later.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--where_project", "--where-project",
@@ -213,8 +213,21 @@ def babs_check_setup_cli():
     """
     This is the CLI for `babs-check-setup`.
     """
+    text_epilog = """
+
+    **Detailed description**
+
+    `babs-check-setup` will perform these steps:\n
+    1. Print out configurations of the BABS project;\n
+    2. Perform sanity checks in this BABS project;\n
+    3. Submit a test job to make sure necessary packages (e.g., `DataLad`) are installed
+    in the designated environment.\n
+
+    """
+
     parser = argparse.ArgumentParser(
-        description="Validates setups by `babs-init`",
+        description="Validates setups by `babs-init`.",
+        epilog=text_epilog,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--project_root", "--project-root",
