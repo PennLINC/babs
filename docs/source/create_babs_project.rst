@@ -12,8 +12,11 @@ If anything failed along the way of ``babs-init``,
 please fix the problems in the inputs according to the printed messages.
 Depend on the what you've changed, you should rerun ``babs-init`` or re-create a BABS project:
 
-* If you've changed the path to any input dataset, or the path to container BIDS App DataLad dataset:
-    * You should remove the current BABS project by following steps below, and then create a new one with ``babs-init``.
+* **Case 1**: If you've changed the path to/contents in any input dataset,
+  or the path to/contents in container BIDS App DataLad dataset:
+
+  * You should remove the current BABS project by following steps below, 
+    and then create a new one with ``babs-init``.
 
 .. code-block:: console
 
@@ -33,10 +36,12 @@ Depend on the what you've changed, you should rerun ``babs-init`` or re-create a
     cd ../..   # outside of <project_root>
     rm -rf <project_root>
 
-* If you only changed the container's configuration YAML file (used in `--container-config-yaml-file`):
-    * You can simply rerun ``babs-init`` until it finishes without error.
+* **Case 2**: If you only changed the container's configuration YAML file (used in `--container-config-yaml-file`):
 
-You should repeat above steps until ``babs-init`` finishes without error, i.e., printing the message as below at the end:
+  * You can simply rerun ``babs-init`` until it finishes without error.
+
+You should repeat above steps until ``babs-init`` finishes without error,
+i.e., printing the message as below at the end:
 
 .. code-block:: console
 

@@ -23,15 +23,11 @@ from babs.babs import BABS, Input_ds, System
 # @build_doc
 def babs_init_cli():
     """
-    Initialize a babs project and bootstrap scripts that will be used later.
-
-    Example command:
-    # TODO: to add an example command here!
-
-    NOTE: words here are not rendered.. Only words in `parser` -> `description` are rendered.
+    Initialize a BABS project and bootstrap scripts that will be used later.
     """
     parser = argparse.ArgumentParser(
-        description="Initialize a babs project and bootstrap scripts that will be used later.",
+        description="``babs-init`` initializes a BABS project and bootstraps scripts"
+                    " that will be used later.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--where_project", "--where-project",
@@ -40,7 +36,8 @@ def babs_init_cli():
     parser.add_argument(
         "--project_name", "--project-name",
         help="The name of the babs project; "
-             "this folder will be automatically created in the directory `where_project`.",
+             "this folder will be automatically created in the directory"
+             " specified in ``--where_project``.",
         required=True)
     parser.add_argument(
         '--input',
@@ -67,12 +64,12 @@ def babs_init_cli():
         required=True)
     parser.add_argument(
         '--container_name', '--container-name',
-        help="The name of the BIDS App container, the `NAME` in `datalad containers-add NAME`."
+        help="The name of the BIDS App container, the ``NAME`` in ``datalad containers-add NAME``."
         + " Importantly, this should include the BIDS App's name"
         + " to make sure the bootstrap scripts are set up correctly;"
         + " Also, the version number should be added, too. "
-        + " `babs-init` is not case sensitive to this `--container_name`"
-        + " Example: `QSIPrep-0-0-0`",
+        + " ``babs-init`` is not case sensitive to this ``--container_name``."
+        + " Example: ``QSIPrep-0-0-0`` for QSIPrep version 0.0.0.",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(
@@ -88,9 +85,10 @@ def babs_init_cli():
              "or multiple-session ['multi-ses']",
         required=True)
     parser.add_argument(
-        "--type_system",
+        "--type_system", "--type-system",
         choices=["sge", "slurm"],
-        help="The name of the job scheduling type_system that you will use. Choices are sge and slurm.",
+        help="The name of the job scheduling type_system that you will use."
+             "Choices are sge and slurm.",
         required=True)
 
     return parser
@@ -213,21 +211,9 @@ def babs_check_setup_cli():
     """
     This is the CLI for `babs-check-setup`.
     """
-    text_epilog = """
-
-    **Detailed description**
-
-    `babs-check-setup` will perform these steps:\n
-    1. Print out configurations of the BABS project;\n
-    2. Perform sanity checks in this BABS project;\n
-    3. Submit a test job to make sure necessary packages (e.g., `DataLad`) are installed
-    in the designated environment.\n
-
-    """
 
     parser = argparse.ArgumentParser(
-        description="Validates setups by `babs-init`.",
-        epilog=text_epilog,
+        description="``babs-check-setup`` validates setups by `babs-init`.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--project_root", "--project-root",
