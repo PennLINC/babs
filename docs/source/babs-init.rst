@@ -12,7 +12,7 @@ Command-Line Arguments
    :ref: babs.cli.babs_init_cli
    :prog: babs-init
 
-    --input : @after
+   --input : @after
       Notes to add here.
 
 **********************
