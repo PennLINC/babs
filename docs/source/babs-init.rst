@@ -13,7 +13,7 @@ Command-Line Arguments
    :prog: babs-init
 
     --input : @after
-      Notes to add here: --------
+      Notes to add here.
 
 **********************
 Detailed Description
