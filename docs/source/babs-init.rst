@@ -50,4 +50,4 @@ then rerun ``babs-init``::
 Example commands
 **********************
 
-TODO
+TODO: to add some example commands
