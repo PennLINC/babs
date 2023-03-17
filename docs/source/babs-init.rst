@@ -13,7 +13,13 @@ Command-Line Arguments
    :prog: babs-init
 
    --input : @after
-      Notes to add here.
+      Examples: ``--input BIDS /path/to/BIDS_datalad_dataset``;
+      ``--input raw_BIDS https://osf.io/t8urc/``.
+      
+      Note for ``<name>``: ``<name>`` is defined by yourself. As long as it is not repeated
+      across different ``--input``, you can use whatever string you'd like/you feel 
+      that's informative.
+
 
 **********************
 Detailed Description

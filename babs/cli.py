@@ -12,7 +12,8 @@ from filelock import Timeout, FileLock
 # from datalad.interface.base import build_doc
 
 # from babs.core_functions import babs_init, babs_submit, babs_status
-from babs.utils import (read_yaml,
+from babs.utils import (if_input_ds_from_osf,
+                        read_yaml,
                         write_yaml,
                         get_datalad_version,
                         validate_type_session,
@@ -48,8 +49,9 @@ def babs_init_cli():
         #            they will be gathered as one list
         metavar=('input_dataset_name', 'input_dataset_path'),
         help="Input datalad dataset. "
-             "First argument is a name of this input dataset. "
-             "Second argument is the path to this input dataset.",
+             "Format: ``--input <name> <path/to/input_datalad_dataset>``. "
+             "Here ``<name>`` is a name of this input dataset. "
+             "``<path/to/input_datalad_dataset>`` is the path to this input dataset.",
         required=True)
     parser.add_argument(
         '--list_sub_file', '--list-sub-file',   # optional flag
@@ -179,9 +181,10 @@ def babs_init_main():
 
     # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
     for the_input_ds in input_ds.df["path_in"]:
-        if the_input_ds[0:6] == "osf://":  # first 6 char
+        if if_input_ds_from_osf(the_input_ds):  # if considered from osf:
             pass   # not to check, as cannot be checked by `dlapi.status`
         else:
+            print("Input dataset status:")
             _ = dlapi.status(dataset=the_input_ds)
         # ^^ if not datalad dataset, there will be an error saying no installed dataset found
         # if fine, will print "nothing to save, working tree clean"

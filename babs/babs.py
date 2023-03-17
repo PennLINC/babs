@@ -21,7 +21,9 @@ from datalad_container.find_container import find_container_
 # from datalad.interface.base import build_doc
 
 from babs.utils import (get_immediate_subdirectories,
-                        check_validity_unzipped_input_dataset, generate_cmd_envvar,
+                        check_validity_unzipped_input_dataset,
+                        if_input_ds_from_osf,
+                        generate_cmd_envvar,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
                         generate_cmd_zipping_from_config,
@@ -400,23 +402,31 @@ class BABS():
                 # ^^ if path exists & it's a datalad dataset:
                 # check if it's the same dataset as the user wants to register:
                 # get info of the datalad ds of existing cloned input ds:
-                datalad_ds_input_ds = dlapi.Dataset(i_ds_path)
-                config_manager_input_ds = dlapi.datalad.config.ConfigManager(
-                    dataset=datalad_ds_input_ds)   # tested with large input dataset; quick to run
-                if config_manager_input_ds._merged_store["remote.origin.url"] == \
-                   input_ds.df["path_in"][i_ds]:   # if they are matched
+                if if_input_ds_from_osf(input_ds.df["path_in"][i_ds]):   # if osf:
+                    # not to check - if there is local copy, the `remote.origin.url`
+                    # will be the path to the local copy, but not the OSF url --> causing
+                    # error when comparing as below.
+                    # in addtion, error when `dlapi.Dataset()` for OSF link.
                     flag_register_input_ds_i = False
-                else:   # they are not matched, something is wrong:
-                    raise Exception(
-                        "For input dataset #" + str(i_ds + 1)
-                        + " '" + input_ds.df["name"][i_ds] + "':"
-                        + " The remote origin url in the current input dataset"
-                        + " is not the matched with the path you hope to register!"
-                        + " The former: '"
-                        + config_manager_input_ds._merged_store["remote.origin.url"] + "';"
-                        + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
-                    )
-                    # TODO: test ^^
+                    pass
+                else:   # to check:
+                    datalad_ds_input_ds = dlapi.Dataset(i_ds_path)
+                    config_manager_input_ds = dlapi.datalad.config.ConfigManager(
+                        dataset=datalad_ds_input_ds)   # tested with large input dataset; quick to run
+                    if config_manager_input_ds._merged_store["remote.origin.url"] == \
+                       input_ds.df["path_in"][i_ds]:   # if they are matched
+                        flag_register_input_ds_i = False
+                    else:   # they are not matched, something is wrong:
+                        raise Exception(
+                            "For input dataset #" + str(i_ds + 1)
+                            + " '" + input_ds.df["name"][i_ds] + "':"
+                            + " The remote origin url in the current input dataset"
+                            + " is not the matched with the path you hope to register!"
+                            + " The former: '"
+                            + config_manager_input_ds._merged_store["remote.origin.url"] + "';"
+                            + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
+                        )
+                        # TODO: test ^^
 
             if flag_register_input_ds_i:
                 print("Cloning input dataset #" + str(i_ds+1) + ": '"
@@ -755,22 +765,29 @@ class BABS():
                 + " '" + input_ds.df["name"][i_ds] + "' is not a valid DataLad dataset:" \
                 + " There is no file '.datalad/config' in its directory: " + path_now_abs
 
-            # get info of the datalad ds of input ds:
-            datalad_ds_input_ds = dlapi.Dataset(path_now_abs)
-            config_manager_input_ds = dlapi.datalad.config.ConfigManager(
-                dataset=datalad_ds_input_ds)    # tested with large input dataset; quick to run
-            # pprint(config_manager_input_ds.__dict__)   # from pprint import pprint
+            if if_input_ds_from_osf(input_ds.df["path_in"][i_ds]):   # if it was from OSF:
+                # not to check, as below assert may fail if there is a local copy,
+                # `_merged_store["remote.origin.url"]` will be that local copy, instead of OSF link
+                print("Not to check input dataset #" + str(i_ds + 1) \
+                      + " '" + input_ds.df["name"][i_ds] + "', as it was cloned from OSF.")
+            else:
+                # get info of the datalad ds of input ds:
+                datalad_ds_input_ds = dlapi.Dataset(path_now_abs)
+                config_manager_input_ds = dlapi.datalad.config.ConfigManager(
+                    dataset=datalad_ds_input_ds)    # tested with large input dataset; quick to run
+                # pprint(config_manager_input_ds.__dict__)   # from pprint import pprint
 
-            # confirm the remote.origin.url saved in datalad config is the same as BABS config:
-            assert config_manager_input_ds._merged_store["remote.origin.url"] == \
-                input_ds.df["path_in"][i_ds], \
-                "For input dataset #" + str(i_ds + 1) \
-                + " '" + input_ds.df["name"][i_ds] + "':" \
-                + " The remote origin url saved in DataLad config file" \
-                + " is not the same as 'path_in' saved in 'analysis/code/babs_proj_config.yaml'!" \
-                + " The former: '" \
-                + config_manager_input_ds._merged_store["remote.origin.url"] + "';" \
-                + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
+                # confirm the remote.origin.url saved in datalad config is the same as BABS config:
+                assert config_manager_input_ds._merged_store["remote.origin.url"] == \
+                    input_ds.df["path_in"][i_ds], \
+                    "For input dataset #" + str(i_ds + 1) \
+                    + " '" + input_ds.df["name"][i_ds] + "':" \
+                    + " The remote origin url saved in DataLad config file" \
+                    + " is not the same as 'path_in' saved in" \
+                    + " 'analysis/code/babs_proj_config.yaml'!" \
+                    + " The former: '" \
+                    + config_manager_input_ds._merged_store["remote.origin.url"] + "';" \
+                    + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
 
         print(CHECK_MARK + " All good!")
 
