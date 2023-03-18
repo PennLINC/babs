@@ -3,6 +3,7 @@
 import argparse
 import os
 import os.path as op
+import traceback
 import datalad.api as dlapi
 import pandas as pd
 import yaml
@@ -92,6 +93,12 @@ def babs_init_cli():
         help="The name of the job scheduling type_system that you will use."
              "Choices are sge and slurm.",
         required=True)
+    parser.add_argument(
+        "--keep_if_failed", "--keep-if-failed",
+        action='store_true',
+        # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
+        help="If `babs-init` failed with error, whether to keep the created BABS project."
+    )
 
     return parser
 
@@ -141,6 +148,8 @@ def babs_init_main():
         multi-ses or single-ses
     type_system: str
         sge or slurm
+    keep_if_failed: bool
+        If `babs-init` failed with error, whether to keep the created BABS project.
     """
 
     # Get arguments:
@@ -155,23 +164,27 @@ def babs_init_main():
     container_config_yaml_file = args.container_config_yaml_file
     type_session = args.type_session
     type_system = args.type_system
-
-    # print datalad version:
-    # if no datalad is installed, will raise error
-    print("DataLad version: " + get_datalad_version())
+    keep_if_failed = args.keep_if_failed
 
     # =================================================================
     # Sanity checks:
     # =================================================================
     project_root = op.join(where_project, project_name)
 
-    # # check if it exists:
-    # if op.exists(project_root):
-    #     raise Exception("the folder `project_name` already exists in the directory `where_project`!")
+    # check if it exists: if so, raise error
+    if op.exists(project_root):
+        raise Exception("The folder `--project_name` '" + project_name
+                        + "' already exists in the directory"
+                        + " `--where_project` '" + where_project + "'!"
+                        + " `babs-init` won't proceed to overwrite this folder.")
 
     # check if `where_project` is writable:
     if not os.access(where_project, os.W_OK):
         raise Exception("the `where_project` is not writable!")
+
+    # print datalad version:
+    #   if no datalad is installed, will raise error
+    print("DataLad version: " + get_datalad_version())
 
     # validate `type_session`:
     type_session = validate_type_session(type_session)
@@ -184,6 +197,8 @@ def babs_init_main():
         if if_input_ds_from_osf(the_input_ds):  # if considered from osf:
             pass   # not to check, as cannot be checked by `dlapi.status`
         else:
+            # TODO: change below to: check if `.datalad/config` exists, if so, good
+            #   otherwise, might take a long time to `datalad status` for large ds
             print("Input dataset status:")
             _ = dlapi.status(dataset=the_input_ds)
         # ^^ if not datalad dataset, there will be an error saying no installed dataset found
@@ -204,10 +219,22 @@ def babs_init_main():
     print("job scheduling system of this BABS project: " + babs_proj.type_system)
     print("")
 
-    # call method `babs_bootstrap()`:
-    babs_proj.babs_bootstrap(input_ds,
-                             container_ds, container_name, container_config_yaml_file,
-                             system)
+    # Call method `babs_bootstrap()`:
+    #   if success, good!
+    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs-init` creates!
+    try:
+        babs_proj.babs_bootstrap(input_ds,
+                                 container_ds, container_name, container_config_yaml_file,
+                                 system)
+    except:
+        print("\n`babs-init` failed! Below is the error message:")
+        traceback.print_exc()   # print out the traceback error messages
+        if not keep_if_failed:
+            # clean up:
+            print("\nCleaning up created BABS project...")
+            babs_proj.clean_up(input_ds)
+        else:
+            print("\n`--keep-if-failed` is requested, so not to clean up created BABS project.")
 
 
 def babs_check_setup_cli():

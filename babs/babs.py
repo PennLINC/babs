@@ -264,44 +264,18 @@ class BABS():
             information about the cluster management system
         """
 
-        # entry_pwd = os.getcwd()
-
         # ==============================================================
         # Initialize:
         # ==============================================================
 
         # Make a directory of project_root:
-        if not op.exists(self.project_root):
-            os.makedirs(self.project_root)
+        os.makedirs(self.project_root)   # we don't allow creation if folder exists
 
-        # Create `analysis` folder:
+        # Create `analysis` folder: -----------------------------
         print("\nCreating `analysis` folder (also a datalad dataset)...")
-        flag_to_create_analysis = True
-        if op.exists(self.analysis_path):
-            # check if it's an empty folder:
-            if not os.listdir(self.analysis_path):   # if nothing listed in the folder
-                flag_to_create_analysis = True
-                # ^^ just to `datalad create`; it will finish without error/warning
-            else:   # something is there in the `analysis` folder:
-                # check if it's a datalad dataset:
-                try:
-                    _ = dlapi.status(dataset=self.analysis_path)
-                    # if above can be run successfully:
-                    flag_to_create_analysis = False
-                except dlsupport.exceptions.NoDatasetFound:
-                    # something in the `analysis` folder, but it's not a datalad dataset:
-                    raise Exception("Folder 'analysis' exists but is not a datalad dataset. "
-                                    "Please remove this folder and rerun `babs-init`.")
-                    # otherwise, `datalad create` will fail
-        if flag_to_create_analysis:
-            self.analysis_datalad_handle = dlapi.create(self.analysis_path,
-                                                        cfg_proc='yoda',
-                                                        annex=True)
-        else:
-            self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
-            print("Folder 'analysis' exists in the `project_root`"
-                  " and it is a datalad dataset;"
-                  " not to re-create it.")
+        self.analysis_datalad_handle = dlapi.create(self.analysis_path,
+                                                    cfg_proc='yoda',
+                                                    annex=True)
 
         # create `babs_proj_config.yaml` file:
         print("Save configurations of BABS project in a yaml file ...")
@@ -328,129 +302,53 @@ class BABS():
         self.datalad_save(path="code/babs_proj_config.yaml",
                           message="Save configurations of this BABS project")
 
-        # Create output RIA sibling:
+        # Create output RIA sibling: -----------------------------
         print("\nCreating output and input RIA...")
-        flag_to_create_sibling_output_ria = True
-        if op.exists(self.output_ria_path):
-            # check if `analysis` has this sibling; if not, still needs to `create_sibling_ria()`
-            # get the sibling of `analysis`:
-            analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
-            if len(analysis_siblings) > 0:   # there is sibling:
-                for i_sibling in range(0, len(analysis_siblings)):
-                    the_sibling = analysis_siblings[i_sibling]
-                    if the_sibling["name"] == "output":   # registered a sibling called 'output':
-                        # get the url:
-                        output_ria_data_dir = the_sibling["url"]
-                        if op.exists(output_ria_data_dir):
-                            # exists, probably sibling output ria has been created:
-                            flag_to_create_sibling_output_ria = False
-                            # the final stage of `babs-init` will `datalad push --to output`
-
-        if flag_to_create_sibling_output_ria is True:
-            self.analysis_datalad_handle.create_sibling_ria(name="output",
-                                                            url=self.output_ria_url,
-                                                            new_store_ok=True)
-            # ^ ref: in python environment:
-            #   import datalad; help(datalad.distributed.create_sibling_ria)
-            #   sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`,
-            #   then `help(temp.create_sibling_ria)`, you can stop here,
-            #   or now you can help(datalad.distributed.create_sibling_ria)
-            #   seems there is no docs online?
-            # source code:
-            # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
-        else:
-            print("DataLad sibling output RIA has been created; will not create again.")
+        self.analysis_datalad_handle.create_sibling_ria(name="output",
+                                                        url=self.output_ria_url,
+                                                        new_store_ok=True)
+        # ^ ref: in python environment:
+        #   import datalad; help(datalad.distributed.create_sibling_ria)
+        #   sometimes, have to first `temp = dlapi.Dataset("/path/to/analysis/folder")`,
+        #   then `help(temp.create_sibling_ria)`, you can stop here,
+        #   or now you can help(datalad.distributed.create_sibling_ria)
+        #   seems there is no docs online?
+        # source code:
+        # https://github.com/datalad/datalad/blob/master/datalad/distributed/create_sibling_ria.py
 
         # Get some key information re: DataLad dataset `analysis`,
         # after creating output RIA:
         self.wtf_key_info()
 
         # Create input RIA sibling:
-        flag_to_create_sibling_input_ria = True
-        if op.exists(self.input_ria_path):
-            # check if `analysis` has this sibling; if not, still needs to `create_sibling_ria()`
-            # get the sibling of `analysis`:
-            analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
-            if len(analysis_siblings) > 0:   # there is sibling:
-                for i_sibling in range(0, len(analysis_siblings)):
-                    the_sibling = analysis_siblings[i_sibling]
-                    if the_sibling["name"] == "input":   # registered a sibling called 'input':
-                        # get the url:
-                        input_ria_data_dir = the_sibling["url"]
-                        if op.exists(input_ria_data_dir):
-                            # exists, probably sibling input ria has been created:
-                            flag_to_create_sibling_input_ria = False
-                            # the final stage of `babs-init` will `datalad push --to input`
+        self.analysis_datalad_handle.create_sibling_ria(
+            name="input",
+            url=self.input_ria_url,
+            storage_sibling=False,   # False is `off` in CLI of datalad
+            new_store_ok=True)
 
-        if flag_to_create_sibling_input_ria is True:
-            self.analysis_datalad_handle.create_sibling_ria(
-                name="input",
-                url=self.input_ria_url,
-                storage_sibling=False,   # False is `off` in CLI of datalad
-                new_store_ok=True)
-        else:
-            print("DataLad sibling input RIA has been created; will not create again.")
-
-        # Register the input dataset(s):
+        # Register the input dataset(s): -----------------------------
         print("\nRegistering the input dataset(s)...")
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
             i_ds_path = op.join(self.analysis_path,
                                 input_ds.df["path_now_rel"][i_ds])
-            flag_register_input_ds_i = True
-            if op.exists(i_ds_path) & op.exists(op.join(i_ds_path, ".datalad/config")):
-                # ^^ if path exists & it's a datalad dataset:
-                # check if it's the same dataset as the user wants to register:
-                # get info of the datalad ds of existing cloned input ds:
-                if if_input_ds_from_osf(input_ds.df["path_in"][i_ds]):   # if osf:
-                    # not to check - if there is local copy, the `remote.origin.url`
-                    # will be the path to the local copy, but not the OSF url --> causing
-                    # error when comparing as below.
-                    # in addtion, error when `dlapi.Dataset()` for OSF link.
-                    flag_register_input_ds_i = False
-                    pass
-                else:   # to check:
-                    datalad_ds_input_ds = dlapi.Dataset(i_ds_path)
-                    config_manager_input_ds = dlapi.datalad.config.ConfigManager(
-                        dataset=datalad_ds_input_ds)   # tested with large input dataset; quick to run
-                    if config_manager_input_ds._merged_store["remote.origin.url"] == \
-                       input_ds.df["path_in"][i_ds]:   # if they are matched
-                        flag_register_input_ds_i = False
-                    else:   # they are not matched, something is wrong:
-                        raise Exception(
-                            "For input dataset #" + str(i_ds + 1)
-                            + " '" + input_ds.df["name"][i_ds] + "':"
-                            + " The remote origin url in the current input dataset"
-                            + " is not the matched with the path you hope to register!"
-                            + " The former: '"
-                            + config_manager_input_ds._merged_store["remote.origin.url"] + "';"
-                            + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
-                        )
-                        # TODO: test ^^
+            print("Cloning input dataset #" + str(i_ds+1) + ": '"
+                  + input_ds.df["name"][i_ds] + "'")
+            # clone input dataset(s) as sub-dataset into `analysis` dataset:
+            dlapi.clone(dataset=self.analysis_path,
+                        source=input_ds.df["path_in"][i_ds],    # input dataset(s)
+                        path=i_ds_path)  # path to clone into
 
-            if flag_register_input_ds_i:
-                print("Cloning input dataset #" + str(i_ds+1) + ": '"
-                      + input_ds.df["name"][i_ds] + "'")
-                # clone input dataset(s) as sub-dataset into `analysis` dataset:
-                dlapi.clone(dataset=self.analysis_path,
-                            source=input_ds.df["path_in"][i_ds],    # input dataset(s)
-                            path=i_ds_path)  # path to clone into
-
-                # amend the previous commit with a nicer commit message:
-                proc_git_commit_amend = subprocess.run(
-                    ["git", "commit", "--amend", "-m",
-                     "Register input data dataset '" + input_ds.df["name"][i_ds]
-                     + "' as a subdataset"],
-                    cwd=self.analysis_path,
-                    stdout=subprocess.PIPE
-                )
-                proc_git_commit_amend.check_returncode()
-            else:   # already registered and url/path matched:
-                print("The input dataset #" + str(i_ds+1) + " '"
-                      + input_ds.df["name"][i_ds] + "'"
-                      + " has been cloned into `analysis` folder"
-                      + " and the input path is not changed;"
-                      + " not to clone again.")
+            # amend the previous commit with a nicer commit message:
+            proc_git_commit_amend = subprocess.run(
+                ["git", "commit", "--amend", "-m",
+                    "Register input data dataset '" + input_ds.df["name"][i_ds]
+                    + "' as a subdataset"],
+                cwd=self.analysis_path,
+                stdout=subprocess.PIPE
+            )
+            proc_git_commit_amend.check_returncode()
 
         # get the current absolute path to the input dataset:
         input_ds.assign_path_now_abs(self.analysis_path)
@@ -468,8 +366,6 @@ class BABS():
 
         # Update input ds information in `babs_proj_config.yaml`:
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)
-        # TODO: if `babs_proj_config["input_ds"]` exists, need to delete it and re-write,
-        #   to reflect any updated info
         for i_ds in range(0, input_ds.num_ds):
             ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
             # update `path_data_rel`:
@@ -484,23 +380,17 @@ class BABS():
         self.datalad_save(path="code/babs_proj_config.yaml",
                           message="Update configurations of input dataset of this BABS project")
 
-        # Add container as sub-dataset of `analysis`:
+        # Add container as sub-dataset of `analysis`: -----------------------------
         # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
         # dlapi.clone(source = container_ds,    # container datalad dataset
         #             path = op.join(self.project_root, "containers"))   # path to clone into
 
         # directly add container as sub-dataset of `analysis`:
         print("\nAdding the container as a sub-dataset of `analysis` dataset...")
-        if op.exists(op.join(self.analysis_path, "containers")):
-            print("The container has been added as a sub-dataset; not to do it again.")
-            pass
-            # TODO: check if the container has been successfully added as a sub-dataset!
-        else:
-            # clone input dataset(s) as sub-dataset into `analysis` dataset
-            dlapi.install(dataset=self.analysis_path,
-                          source=container_ds,    # container datalad dataset
-                          path=op.join(self.analysis_path, "containers"))
-            # into `analysis\containers` folder
+        dlapi.install(dataset=self.analysis_path,
+                      source=container_ds,    # container datalad dataset
+                      path=op.join(self.analysis_path, "containers"))
+        # into `analysis/containers` folder
 
         # original bash command, if directly going into as sub-dataset:
         # datalad install -d . --source ../../toybidsapp-container-docker/ containers
@@ -548,20 +438,6 @@ class BABS():
                           message="Participant compute job implementation")
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
-
-        # # Generate `submit_jobs.sh`: ------------------------------------------
-        # # this is temporary, and will be replaced by `babs-submit`
-        # print("\nGenerating a bash script for submitting jobs"
-        #       + " at participant (or session) level...")
-        # print("This bash script will be named as `submit_jobs.sh`")
-        # print("This will be deprecated and replaced by `babs-submit`")
-        # bash_path = op.join(self.analysis_path, "code", "submit_jobs.sh")
-        # container.generate_bash_submit_jobs(bash_path, input_ds, self,
-        #                                     system)
-        # self.datalad_save(path="code/submit_jobs.sh",
-        #                   message="Commands for job submission")
-        # self.datalad_save(path="code/*.csv",
-        #                   message="Record of inclusion/exclusion of participants")
 
         # Determine the list of subjects to analyze: -----------------------------
         print("\nDetermining the list of subjects (and sessions) to analyze...")
@@ -629,10 +505,10 @@ class BABS():
                           message="Submission setup")
 
         # ==============================================================
-        # Clean up:
+        # Final steps in bootstrapping:
         # ==============================================================
 
-        print("\nCleaning up...")
+        print("\nFinal steps...")
         # No need to keep the input dataset(s):
         #   old version: datalad uninstall -r --nocheck inputs/data
         print("DataLad dropping input dataset's contents...")
@@ -650,7 +526,6 @@ class BABS():
         #   datalad push --to input
         #   datalad push --to output
         self.analysis_datalad_handle.push(to="input")
-        # TODO: check if there is branch in output RIA; if so, should not push!
         self.analysis_datalad_handle.push(to="output")
 
         # Add an alias to the data in output RIA store:
@@ -677,6 +552,73 @@ class BABS():
 
         # SUCCESS!
         print("\n`babs-init` was successful!")
+
+    def clean_up(self, input_ds):
+        """
+        If `babs-init` failed, this function cleans up the BABS project `babs-init` creates.
+
+        Parameters:
+        --------------
+        input_ds: class `Input_ds`
+            information of input dataset(s)
+
+        Notes:
+        --------
+        Steps in `babs-init`:
+        * create `analysis` datalad dataset
+        * create input and output RIA
+        * clone input dataset(s)
+        * generate bootstrapped scripts
+        * finish up
+        """
+        if op.exists(self.project_root):   # if BABS project root folder has been created:
+            if op.exists(self.analysis_path):   # analysis folder is created by datalad 
+                self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+                # Remove each input dataset:
+                print("Removing input dataset(s) if cloned...")
+                for i_ds in range(0, input_ds.num_ds):
+                    # check if it exists yet:
+                    path_now_abs = op.join(self.analysis_path, input_ds.df["path_now_rel"][i_ds])
+                    if op.exists(path_now_abs):   # this input dataset has been cloned:
+                        # use `datalad remove` to remove:
+                        _ = self.analysis_datalad_handle.remove(
+                            path=path_now_abs,
+                            reckless="modification")
+
+                # `git annex dead here`:
+                print("Running `git annex dead here`...")
+                proc_git_annex_dead = subprocess.run(
+                    ["git", "annex", "dead", "here"],
+                    cwd=self.analysis_path,
+                    stdout=subprocess.PIPE)
+                proc_git_annex_dead.check_returncode()
+
+                # Update input and output RIA:
+                print("Updating input and output RIA if created...")
+                #   datalad push --to input
+                #   datalad push --to output
+                if op.exists(self.input_ria_path):
+                    self.analysis_datalad_handle.push(to="input")
+                if op.exists(self.output_ria_path):
+                    self.analysis_datalad_handle.push(to="output")
+
+            # Now we can delete this project folder:
+            print("Deleting created BABS project folder...")
+            proc_rm_project_folder = subprocess.run(
+                ["rm", "-rf", self.project_root],
+                stdout=subprocess.PIPE)
+            proc_rm_project_folder.check_returncode()
+
+        # TODO: test above out, 
+        #   e.g., using existing babs project and run `clean_up()`!
+        #   e.g., create cases that will fail when `babs-init`
+
+        # confirm the BABS project has been removed:
+        assert (not op.exists(self.project_root)), \
+            "Created BABS project was not completely deleted!" \
+            + " Path to created BABS project: '" + self.project_root + "'"
+
+        print("Created BABS project has been cleaned up.")
 
     def babs_check_setup(self, input_ds, flag_job_test):
         """
