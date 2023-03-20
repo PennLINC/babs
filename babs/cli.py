@@ -178,9 +178,13 @@ def babs_init_main():
                         + " `--where_project` '" + where_project + "'!"
                         + " `babs-init` won't proceed to overwrite this folder.")
 
+    # check if `where_project` exists:
+    if not op.exists(where_project):
+        raise Exception("Path provided in `--where_project` does not exist!")
+
     # check if `where_project` is writable:
     if not os.access(where_project, os.W_OK):
-        raise Exception("the `where_project` is not writable!")
+        raise Exception("Path provided in `--where_project` is not writable!")
 
     # print datalad version:
     #   if no datalad is installed, will raise error
@@ -189,20 +193,18 @@ def babs_init_main():
     # validate `type_session`:
     type_session = validate_type_session(type_session)
 
+    # input dataset:
     input_ds = Input_ds(input)
     input_ds.get_initial_inclu_df(list_sub_file, type_session)
 
-    # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
-    for the_input_ds in input_ds.df["path_in"]:
-        if if_input_ds_from_osf(the_input_ds):  # if considered from osf:
-            pass   # not to check, as cannot be checked by `dlapi.status`
-        else:
-            # TODO: change below to: check if `.datalad/config` exists, if so, good
-            #   otherwise, might take a long time to `datalad status` for large ds
-            print("Input dataset status:")
-            _ = dlapi.status(dataset=the_input_ds)
-        # ^^ if not datalad dataset, there will be an error saying no installed dataset found
-        # if fine, will print "nothing to save, working tree clean"
+    # Note: not to perform sanity check on the input dataset re: if it exists
+    #   as: 1) robust way is to clone it, which will take longer time;
+    #           so better to just leave to the real cloning when `babs-init`;
+    #       2) otherwise, if using "if `.datalad/config` exists" to check, then need to check
+    #           if input dataset is local or not, and it's very tricky to check that...
+    #       3) otherwise, if using "dlapi.status(dataset=the_input_ds)": will take long time
+    #           for big dataset; in addition, also need to check if it's local or not...
+    # currently solution: add notes in Debugging in `babs-init` docs: `babs-init.rst`
 
     # Create an instance of babs class:
     babs_proj = BABS(project_root,
@@ -233,8 +235,13 @@ def babs_init_main():
             # clean up:
             print("\nCleaning up created BABS project...")
             babs_proj.clean_up(input_ds)
+            print("Please check the error messages above!"
+                  + " Then fix the problem, and rerun `babs-init`.")
         else:
             print("\n`--keep-if-failed` is requested, so not to clean up created BABS project.")
+            print("Please check the error messages above!"
+                  + " Then fix the problem, delete this failed BABS project,"
+                  + " and rerun `babs-init`.")
 
 
 def babs_check_setup_cli():

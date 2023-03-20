@@ -57,3 +57,22 @@ Example commands
 **********************
 
 TODO: to add some example commands
+
+
+***************
+Debugging
+***************
+
+----------------------------------------
+Error when cloning an input dataset
+----------------------------------------
+What happened: After ``babs-init`` prints out a message like this:
+``Cloning input dataset #x: '/path/to/input_dataset'``, there was an error message that includes this information:
+``err: 'fatal: repository '/path/to/input_dataset' does not exist'``.
+
+Diagnosis: This means that the specified path to this input dataset (i.e., in ``--input``) was not valid;
+there is no DataLad dataset there.
+
+How to solve the problem: Fix this path. To confirm the updated path is valid, you can try cloning
+it to a temporary directory with ``datalad clone /updated/path/to/input_dataset``. If it is successful,
+you can go ahead rerun ``babs-init``.

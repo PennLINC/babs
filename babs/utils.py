@@ -102,16 +102,17 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
                             + "'!"
                         )
 
+
 def if_input_ds_from_osf(path_in):
     """
     This is to check if the input datalad dataset is from OSF.
-    Checking is based on the pattern of the string. Might not be robust!
+    Checking is based on the pattern of the path's string. Might not be robust!
 
     Paramters:
     -----------
     path_in: str
         path to the input dataset
-    
+
     Returns:
     --------
     if_osf: bool

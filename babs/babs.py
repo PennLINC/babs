@@ -586,7 +586,7 @@ class BABS():
                             reckless="modification")
 
                 # `git annex dead here`:
-                print("Running `git annex dead here`...")
+                print("\nRunning `git annex dead here`...")
                 proc_git_annex_dead = subprocess.run(
                     ["git", "annex", "dead", "here"],
                     cwd=self.analysis_path,
@@ -594,7 +594,7 @@ class BABS():
                 proc_git_annex_dead.check_returncode()
 
                 # Update input and output RIA:
-                print("Updating input and output RIA if created...")
+                print("\nUpdating input and output RIA if created...")
                 #   datalad push --to input
                 #   datalad push --to output
                 if op.exists(self.input_ria_path):
@@ -603,14 +603,14 @@ class BABS():
                     self.analysis_datalad_handle.push(to="output")
 
             # Now we can delete this project folder:
-            print("Deleting created BABS project folder...")
+            print("\nDeleting created BABS project folder...")
             proc_rm_project_folder = subprocess.run(
                 ["rm", "-rf", self.project_root],
                 stdout=subprocess.PIPE)
             proc_rm_project_folder.check_returncode()
 
-        # TODO: test above out, 
-        #   e.g., using existing babs project and run `clean_up()`!
+        # TODO: test above out,
+        #   done: e.g., using existing babs project and run `clean_up()`!
         #   e.g., create cases that will fail when `babs-init`
 
         # confirm the BABS project has been removed:
@@ -618,7 +618,7 @@ class BABS():
             "Created BABS project was not completely deleted!" \
             + " Path to created BABS project: '" + self.project_root + "'"
 
-        print("Created BABS project has been cleaned up.")
+        print("\nCreated BABS project has been cleaned up.")
 
     def babs_check_setup(self, input_ds, flag_job_test):
         """

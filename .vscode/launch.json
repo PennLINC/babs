@@ -27,10 +27,12 @@
                 // "test_temp",
                 "--input",
                 "BIDS",
-                // "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/w2nu3",
-                "https://osf.io/w2nu3/",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/w2nu3",
+                // "/random/path",
+                // "https://osf.io/w2nu3/",
                 "--container_ds",
-                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker",
+                // "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker",
+                "random/path",
                 "--container_name",
                 "toybidsapp-0-0-5",
                 "--container_config_yaml_file",
@@ -38,7 +40,8 @@
                 "--type_session",
                 "multi-ses",
                 "--type_system",
-                "sge"
+                "sge",
+                // "--keep-if-failed"
             ]
             // "args": [
             //     "--where_project", "/cbica/projects/BABS/data",

@@ -14,6 +14,8 @@ pip install -e .
 ```
 jupyter nbconvert --execute --to html notebooks/<your_ipynb_filename>.ipynb
 ```
+^^^ use `--output` to specify output html filename without (!!) folder names -> the html will be saved in the same folder of ipynb; otherwise, might raise error of "No such file or directory"!
+If `--output` is not specified, the filename of html will be same as ipynb.
 
 ## After `babs-init` is run:
 - save the printed messages to `analysis/code`
