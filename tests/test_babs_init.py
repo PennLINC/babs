@@ -1,6 +1,10 @@
 # This is to test `babs-init`.
 
 import pytest
+from get_data import (
+    get_input_data,
+    INFO_2ND_INPUT_DATA
+)
 
 # Define fixtures of different cases to test
 
@@ -8,13 +12,57 @@ import pytest
 
 # ARRANGE
 
+@pytest.mark.parametrize(
+    "which_bidsapp,which_input,type_session,if_input_local",
+    # test toybidsapp: BIDS/zipped x single/multi-ses:
+    #   the input data will also be remote by default:
+    [("toybidsapp", "BIDS", "single-ses", False),
+    #  ("toybidsapp", "BIDS", "multi-ses", False),
+    #  ("toybidsapp", "zipped_derivatives_qsiprep", "single-ses", False),
+    #  ("toybidsapp", "zipped_derivatives_qsiprep", "multi-ses", False),
+    #  # test if input is local:
+    #  ("toybidsapp", "BIDS", "single-ses", True),
+    #  # test fmriprep: single/multi-ses
+    #  ("fmriprep", "BIDS", "single-ses", False),
+    #  ("fmriprep", "BIDS", "multi-ses", False),
+    #  # test 2 input datasets:   # HOW TO DO SO????
+    #  ("toybidsapp_2inputs", "BIDS", "single-ses", False),
+     ])
+def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, tmp_path):
+    """
+    ...
 
-def test_babs_init(tmp_path):
+    Parameters:
+    --------------
+    ...
+    tmp_path: str
+        Path to a temporary directory, created by pytest
+    ...
+    """
 
-    # APPLY:
+    # Get the path to input dataset:
+    path_in = get_input_data(which_input, type_session, if_input_local)
+    input_ds_cli = [[path_in, which_input]]
+    if which_bidsapp == "toybidsapp_2inputs":
+        # get another input dataset: qsiprep derivatives
+        assert INFO_2ND_INPUT_DATA["which_input"] != which_input   # avoid repeated input ds name
+        path_in_2nd = get_input_data(
+            INFO_2ND_INPUT_DATA["which_input"],
+            type_session,   # should be consistent with the 1st dataset
+            INFO_2ND_INPUT_DATA["if_input_local"])
+        input_ds_cli.append([path_in_2nd], INFO_2ND_INPUT_DATA["which_input"])
 
-    print(tmp_path)
-    assert 0
+    # Get the path to the container dataset (depending on `which_case`):
+    print("TODO")
 
-    # ASSERT:
-    # assert inc(3) == 5
+    # get the cli
+    print("TODO")
+
+    # run `babs-init`:
+    print("TODO")
+
+    # assert several things:
+    print("TODO")
+
+    # clean up the temporary dir
+    print("TODO")
