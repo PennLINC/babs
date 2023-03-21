@@ -90,14 +90,14 @@ def babs_init_cli():
     parser.add_argument(
         "--type_system", "--type-system",
         choices=["sge", "slurm"],
-        help="The name of the job scheduling type_system that you will use."
-             "Choices are sge and slurm.",
+        help="The name of the job scheduling type_system that you will use.",
         required=True)
     parser.add_argument(
         "--keep_if_failed", "--keep-if-failed",
         action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help="If `babs-init` failed with error, whether to keep the created BABS project."
+        help="If ``babs-init`` failed with error, whether to keep the created BABS project."
+             " We do NOT recommend turn this on unless you're familiar with DataLad."
     )
 
     return parser

@@ -17,12 +17,12 @@ Command-Line Arguments
       ``--input raw_BIDS https://osf.io/t8urc/``.
       
       Note for ``<name>``: ``<name>`` is defined by yourself. As long as it is not repeated
-      across different ``--input``, you can use whatever string you'd like/you feel 
+      across different ``--input``, you can use whatever string you'd like or you think 
       that's informative.
 
 
 **********************
-Detailed Description
+Detailed description
 **********************
 
 --------------------------------------------------------------------
@@ -42,15 +42,15 @@ located at ``/path/to/my_BABS_project/analysis/code``
 See :ref:`list_included_subjects` for how this list is determined.
 
 --------------------------------------------------------------------
-What should I do for error message "input dataset is not matched"?
+What will happen if ``babs-init`` fails?
 --------------------------------------------------------------------
-This is probably because you've changed the path to an input dataset, and rerun ``babs-init``.
-To solve the issue, you need to remove the original input dataset (following commands below),
-then rerun ``babs-init``::
 
-    conda activate <my_env>    # replace `<my_env>` with the conda environment where DataLad is installed
-    cd /path/to/my_BABS_project/analysis   # change the path to yours
-    datalad remove -d inputs/data/<input_ds_name>   # replace `<input_ds_name>` with the name that has error
+If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project;
+if ``--keep-if-failed`` is specified, then this failed BABS project will be kept - in this case, however,
+if you want to create the BABS project in the same folder, you will have to remove the existing failed
+BABS project manually. Therefore, we do NOT recommend using ``--keep-if-failed`` unless you are familiar with DataLad
+and know how to remove a BABS project.
+
 
 **********************
 Example commands

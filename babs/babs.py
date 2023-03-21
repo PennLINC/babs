@@ -609,10 +609,6 @@ class BABS():
                 stdout=subprocess.PIPE)
             proc_rm_project_folder.check_returncode()
 
-        # TODO: test above out,
-        #   done: e.g., using existing babs project and run `clean_up()`!
-        #   e.g., create cases that will fail when `babs-init`
-
         # confirm the BABS project has been removed:
         assert (not op.exists(self.project_root)), \
             "Created BABS project was not completely deleted!" \
@@ -707,29 +703,11 @@ class BABS():
                 + " '" + input_ds.df["name"][i_ds] + "' is not a valid DataLad dataset:" \
                 + " There is no file '.datalad/config' in its directory: " + path_now_abs
 
-            if if_input_ds_from_osf(input_ds.df["path_in"][i_ds]):   # if it was from OSF:
-                # not to check, as below assert may fail if there is a local copy,
-                # `_merged_store["remote.origin.url"]` will be that local copy, instead of OSF link
-                print("Not to check input dataset #" + str(i_ds + 1) \
-                      + " '" + input_ds.df["name"][i_ds] + "', as it was cloned from OSF.")
-            else:
-                # get info of the datalad ds of input ds:
-                datalad_ds_input_ds = dlapi.Dataset(path_now_abs)
-                config_manager_input_ds = dlapi.datalad.config.ConfigManager(
-                    dataset=datalad_ds_input_ds)    # tested with large input dataset; quick to run
-                # pprint(config_manager_input_ds.__dict__)   # from pprint import pprint
-
-                # confirm the remote.origin.url saved in datalad config is the same as BABS config:
-                assert config_manager_input_ds._merged_store["remote.origin.url"] == \
-                    input_ds.df["path_in"][i_ds], \
-                    "For input dataset #" + str(i_ds + 1) \
-                    + " '" + input_ds.df["name"][i_ds] + "':" \
-                    + " The remote origin url saved in DataLad config file" \
-                    + " is not the same as 'path_in' saved in" \
-                    + " 'analysis/code/babs_proj_config.yaml'!" \
-                    + " The former: '" \
-                    + config_manager_input_ds._merged_store["remote.origin.url"] + "';" \
-                    + " The latter: '" + input_ds.df["path_in"][i_ds] + "'."
+            # ROADMAP: check if input dataset ID saved in YAML file
+            #           (not saved yet, also need to add to Input_ds class too)
+            #           = that in `.gitmodules` in cloned ds
+            #   However, It's pretty unlikely that someone changes inputs/data on their own
+            #       if they're using BABS
 
         print(CHECK_MARK + " All good!")
 
@@ -741,18 +719,11 @@ class BABS():
         assert op.exists(op.join(folder_container, ".datalad/config")), \
             "There is no containers DataLad dataset in folder: " + folder_container
 
-        # check if current container ds remote.origin.url = user's input:
-        datalad_ds_container = dlapi.Dataset(folder_container)
-        config_manager_container = dlapi.datalad.config.ConfigManager(
-            dataset=datalad_ds_container)
-        assert config_manager_container._merged_store["remote.origin.url"] == \
-            babs_proj_config["container"]["path_in"], \
-            "For container DataLad dataset, its remote original url" \
-            + " saved in DataLad config file is not the same as 'path_in'" \
-            + " saved in 'analysis/code/babs_proj_config.yaml'!" \
-            + " The former: '" \
-            + config_manager_container._merged_store["remote.origin.url"] + "';" \
-            + " The latter: '" + babs_proj_config["container"]["path_in"] + "'."
+        # ROADMAP: check if container dataset ID saved in YAML file (not saved yet)
+        #           (not saved yet, probably better to add to Container class?)
+        #           = that in `.gitmodules` in cloned ds
+        #   However, It's pretty unlikely that someone changes it on their own
+        #       if they're using BABS
 
         # no action now; when `babs-init`, has done `Container.sanity_check()`
         #               to make sure the container named `container_name` exists.
