@@ -56,8 +56,27 @@ and know how to remove a BABS project.
 Example commands
 **********************
 
-TODO: to add some example commands
+Example ``babs-init`` command for toy BIDS App + multi-session data on 
+an SGE cluster::
 
+    babs-init \
+        --where_project /path/to/a/folder/holding/BABS/project \
+        --project_name my_BABS_project \
+        --input BIDS /path/to/BIDS_datalad_dataset \
+        --container_ds /path/to/toybidsapp-container \
+        --container_name toybidsapp-0-0-5 \
+        --container_config_yaml_file /path/to/container_toybidsapp.yaml \
+        --type_session multi-ses \
+        --type_system sge
+
+Example command if you have more than one input datasets, e.g., fMRIPrep
+with FreeSurfer results ingressed::
+
+    babs-init \
+        ... \
+        --input BIDS /path/to/BIDS_datalad_dataset \
+        --input freesurfer /path/to/freesurfer_results_datalad_dataset \
+        ...
 
 ***************
 Debugging
