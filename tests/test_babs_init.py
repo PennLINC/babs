@@ -30,14 +30,22 @@ from get_data import (
      ])
 def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, tmp_path):
     """
-    ...
+    This is to test `babs-init` in different cases.
 
     Parameters:
     --------------
-    ...
+    which_bidsapp: str
+        The name of a BIDS App. However here we only use `toybidsapp` to test, even though you
+        specified e.g., fmriprep; we'll make sure the BIDS App to be tested is reflected in
+        `container_name` which BABS cares.
+    which_input: str
+        which input dataset. Options see keys in `origin_input_dataset.yaml`
+    type_session: str
+        multi-ses or single-ses
+    if_input_local: bool
+        whether the input dataset is a local copy (True), or it's remote (False)
     tmp_path: str
         Path to a temporary directory, created by pytest
-    ...
     """
 
     # Get the path to input dataset:

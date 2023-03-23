@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: pennlinc/babs_tests:datalad0.17.2_v2
+    - image: pennlinc/babs_tests:datalad0.17.2_v3
 
 # TODO:
 # runinstall: &runinstall
