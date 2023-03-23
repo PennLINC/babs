@@ -61,8 +61,20 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, tmp
     # run `babs-init`:
     print("TODO")
 
-    # assert several things:
+    # Assert several things:
     print("TODO")
+    # check if those scripts are generated:
+
+    # check if input dataset(s) are there:
+
+    # check if container dataset is there:
+
+    # check if input and output RIA have been created:
+
+    # check `sub_ses_final_inclu.csv`:
+    #   if qsiprep + multi-ses:  one session should not be included
+
+    # anything else from `babs-check-setup`?
 
     # clean up the temporary dir
     print("TODO")
