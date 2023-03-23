@@ -29,7 +29,7 @@ INFO_2ND_INPUT_DATA = {
     "if_input_local": False
 }
 LIST_WHICH_BIDSAPP = ["toybidsapp", "fmriprep", "qsiprep"]
-TOYBIDSAPP_VERSION = "0.0.6"
+TOYBIDSAPP_VERSION = "0.0.5"   # +++++++++++++++++++++++
 TOYBIDSAPP_VERSION_DASH = TOYBIDSAPP_VERSION.replace(".", "-")
 # ====================================================================
 
@@ -95,7 +95,8 @@ def prep_container_ds_toybidsapp(if_singularity_installed):
     #     The path to the built sif file.
     #     If singularity is not installed, it will be `None`.
     """
-    docker_addr = "pennlinc/toy_bids_app:" + TOYBIDSAPP_VERSION
+    # docker_addr = "pennlinc/toy_bids_app:" + TOYBIDSAPP_VERSION  # +++++++++++++++++++++++
+    docker_addr = "chenyingzhao/toy_bids_app:" + TOYBIDSAPP_VERSION
     docker_url = "docker://" + docker_addr
 
     # Pull the container image:
