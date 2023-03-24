@@ -98,10 +98,11 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
     # anything else from `babs-check-setup`?
 
     # Clean up the temporary dir:
-    # remove input dataset(s):
-    dlapi.remove(path=path_in)
-    if if_two_input:
-        dlapi.remove(dataset=path_in_2nd)
+    # remove input dataset(s) if cloned to local dir:
+    if if_input_local:
+        dlapi.remove(path=path_in)
+        if if_two_input:
+            dlapi.remove(dataset=path_in_2nd)
     # remove container dataset:
     dlapi.remove(dataset=ORIGIN_CONTAINER_DS, reckless="availability")
     # ^^ --reckless is probably needed as there is no other container ds copy
