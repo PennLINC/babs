@@ -6,8 +6,8 @@ import shutil
 import datalad.api as dlapi
 from get_data import (
     get_input_data,
-    if_singularity_installed,
     prep_container_ds_toybidsapp,
+    if_circleci,
     WORKING_DIR,
     INFO_2ND_INPUT_DATA,
     ORIGIN_CONTAINER_DS,
@@ -38,7 +38,7 @@ from get_data import (
      ])
 def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_two_input,
                    tmp_path, prep_container_ds_toybidsapp,
-                   if_singularity_installed):
+                   if_circleci):
     """
     This is to test `babs-init` in different cases.
 
