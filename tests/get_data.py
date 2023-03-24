@@ -3,7 +3,7 @@ import sys
 import os
 import os.path as op
 import pytest
-import tempfile
+# import tempfile
 import shutil
 import subprocess
 import datalad.api as dlapi
@@ -14,13 +14,7 @@ from babs.utils import (read_yaml)   # noqa
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
-# make a working dir:
-WORKING_DIR = tempfile.mkdtemp()    # will be different each time you call it
-# if using `tempfile.mkdtemp()`, have to manually delete the temp folder!
-# if using `tempfile.TemporaryDirectory()`, it will be removed, even when pytest is failed.
-
 # containers:
-ORIGIN_CONTAINER_DS = op.join(WORKING_DIR, "my-container")
 LIST_WHICH_BIDSAPP = ["toybidsapp", "fmriprep", "qsiprep"]
 TOYBIDSAPP_VERSION = "0.0.6"   # +++++++++++++++++++++++
 TOYBIDSAPP_VERSION_DASH = TOYBIDSAPP_VERSION.replace(".", "-")
@@ -36,7 +30,7 @@ INFO_2ND_INPUT_DATA = {
 }
 # ====================================================================
 
-def get_input_data(which_input, type_session, if_input_local):
+def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     """
     This is to get the path of input data.
 
@@ -48,6 +42,9 @@ def get_input_data(which_input, type_session, if_input_local):
         'single-ses' or 'multi-ses'
     if_input_local: bool
         if the input dataset is local [True] or remote (e.g., on OSF) [False]
+    tmp_path_factory: fixture
+        see: https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-tmp-path-factory-fixture
+        API see: https://docs.pytest.org/en/7.1.x/reference/reference.html#tmp-path-factory
 
     Returns:
     -----------
@@ -59,8 +56,17 @@ def get_input_data(which_input, type_session, if_input_local):
         path_in = ORIGIN_INPUT_DATA[which_input][type_session]
     else:
         origin_in = ORIGIN_INPUT_DATA[which_input][type_session]
-        # clone to a local temporary place:
-        path_in = tempfile.mkdtemp()
+        # create a temporary folder:
+        path_in_pathlib = tmp_path_factory.mktemp(which_input)
+        # turn into a string of absolute path (but seems not necessary):
+        path_in = path_in_pathlib.absolute().as_posix()
+        # ^^ e.g.: `/private/var/folders/fn/????/T/pytest-of-<username>/pytest-00/<which_input>0`
+        #   `????` is random number but consistent across pytests;
+        #   `pytest-00` is index of pytest, 01, 02, etc. Only most recent 3 temp dir will be kept.
+        #   `<which_input>0`: e.g., `bids0`, `bids1`, etc.
+        #       --> Even if same `which_input`, the temp dir won't be duplicated. Tested.
+
+        # clone to this local temporary place:
         dlapi.clone(source=origin_in,
                     path=path_in)
 
@@ -89,11 +95,11 @@ def if_circleci():
     return if_circleci
 
 @pytest.fixture(scope="session")
-def prep_container_ds_toybidsapp(if_circleci):
+def container_ds_path(if_circleci, tmp_path_factory):
     """
-    This is to pull toy BIDS App container image + create a datalad dataset of it.
-        Depending on if singularity is installed (True on CircleCI and clusters),
-    it will use singularity to build a sif file, or directly pull the Docker image.
+    This is to get toy BIDS App container image + create a datalad dataset of it.
+        Depending on if pytest is running on CircleCI,
+    it will use pre-built sif file (for CircleCI), or pull the Docker image (for other cases).
         Warning: no matter which BIDS App, we'll use toy BIDS App as the image,
     and name the container as those in `LIST_WHICH_BIDSAPP`. Tested that the same image
     can have different names in one datalad dataset.
@@ -103,12 +109,13 @@ def prep_container_ds_toybidsapp(if_circleci):
     if_circleci: from a fixture; bool
         If it's on circle ci. If so, will use pre-built sif file of toybidsapp stored in
         the docker image used for BABS tests.
+    tmp_path_factory: fixture in pytest
 
-    # Returns:
-    # -----------
-    # fn_sif: str or None
-    #     The path to the built sif file.
-    #     If singularity is not installed, it will be `None`.
+    Returns:
+    -----------
+    origin_container_ds: `pathlib.Path`
+        path to the created container datalad dataset
+        Note: seems `pathlib.Path` type is accepted by datalad and `op`
     """
     docker_addr = "pennlinc/toy_bids_app:" + TOYBIDSAPP_VERSION
 
@@ -120,14 +127,15 @@ def prep_container_ds_toybidsapp(if_circleci):
         # directly pull from docker:
         cmd = "docker pull " + docker_addr
         proc_docker_pull = subprocess.run(
-            cmd.split(),
-            cwd=WORKING_DIR)
+            cmd.split())
         proc_docker_pull.check_returncode()
 
-    # Set up container datalad dataset taht holds several names of containers
+    # Set up container datalad dataset that holds several names of containers
     #   though all of them are toy BIDS App...
+    # create a temporary dir:
+    origin_container_ds = tmp_path_factory.mktemp("my-container")
     # create a new datalad dataset for holding the container:
-    container_ds_handle = dlapi.create(path=ORIGIN_CONTAINER_DS)
+    container_ds_handle = dlapi.create(path=origin_container_ds)
     # add container image into this datalad dataset:
     for which_bidsapp in LIST_WHICH_BIDSAPP:
         if if_circleci:   # add the sif file:
@@ -146,7 +154,7 @@ def prep_container_ds_toybidsapp(if_circleci):
                 url="dhub://"+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.6"
             )
 
-    return 0
+    return origin_container_ds
 
 def if_command_installed(cmd):
     """
@@ -169,8 +177,3 @@ def if_command_installed(cmd):
         if_installed = True
 
     return if_installed
-
-def pytest_sessionfinish(session, exitstatus):
-    """ whole test run finishes. """
-    # if using `tempfile.TemporaryDirectory`, then no need to manually remove this.
-    shutil.rmtree(WORKING_DIR)

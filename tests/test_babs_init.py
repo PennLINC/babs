@@ -6,11 +6,9 @@ import shutil
 import datalad.api as dlapi
 from get_data import (
     get_input_data,
-    prep_container_ds_toybidsapp,
+    container_ds_path,
     if_circleci,
-    WORKING_DIR,
     INFO_2ND_INPUT_DATA,
-    ORIGIN_CONTAINER_DS,
     LIST_WHICH_BIDSAPP
 )
 
@@ -29,16 +27,17 @@ from get_data import (
     #  ("toybidsapp", "zipped_derivatives_qsiprep", "single-ses", False, False),
     #  ("toybidsapp", "zipped_derivatives_qsiprep", "multi-ses", False, False),
     #  # test if input is local:
-    #  ("toybidsapp", "BIDS", "single-ses", True, False),
+     ("toybidsapp", "BIDS", "single-ses", True, False),
     #  # test fmriprep: single/multi-ses
     #  ("fmriprep", "BIDS", "single-ses", False, False),
     #  ("fmriprep", "BIDS", "multi-ses", False, False),
     #  # test 2 input datasets:
-    #  ("toybidsapp", "BIDS", "single-ses", False, True),
+    # ("toybidsapp", "BIDS", "single-ses", False, True),
      ])
 def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_two_input,
-                   tmp_path, prep_container_ds_toybidsapp,
-                   if_circleci):
+                   tmp_path, tmp_path_factory,
+                   container_ds_path, if_circleci
+                   ):
     """
     This is to test `babs-init` in different cases.
 
@@ -55,14 +54,20 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         multi-ses or single-ses
     if_input_local: bool
         whether the input dataset is a local copy (True), or it's remote (False)
-    tmp_path: str
-        Path to a temporary directory, created by pytest
+    if_two_input: bool
+        whether to use two input datasets
+    tmp_path: fixture from pytest
+    tmp_path_factory: fixture from pytest
+    container_ds_path: fixture; `pathlib.Path`
+        Path to the container datalad dataset
+    if_circleci: fixture; bool
+        Whether currently in CircleCI
     """
     # Sanity checks:
     assert which_bidsapp in LIST_WHICH_BIDSAPP
 
     # Get the path to input dataset:
-    path_in = get_input_data(which_input, type_session, if_input_local)
+    path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
     input_ds_cli = [[path_in, which_input]]
     if if_two_input:
         # get another input dataset: qsiprep derivatives
@@ -70,11 +75,13 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         path_in_2nd = get_input_data(
             INFO_2ND_INPUT_DATA["which_input"],
             type_session,   # should be consistent with the 1st dataset
-            INFO_2ND_INPUT_DATA["if_input_local"])
+            INFO_2ND_INPUT_DATA["if_input_local"],
+            tmp_path_factory)
         input_ds_cli.append([path_in_2nd], INFO_2ND_INPUT_DATA["which_input"])
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
-    assert op.exists(ORIGIN_CONTAINER_DS)
+    assert op.exists(container_ds_path)
+    assert op.exists(op.join(container_ds_path, ".datalad/config"))
 
     # get the cli
     print("TODO")
@@ -97,16 +104,6 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
 
     # anything else from `babs-check-setup`?
 
-    # Clean up the temporary dir:
-    # remove input dataset(s) if cloned to local dir:
-    if if_input_local:
-        dlapi.remove(path=path_in)
-        if if_two_input:
-            dlapi.remove(dataset=path_in_2nd)
-    # remove container dataset:
-    dlapi.remove(dataset=ORIGIN_CONTAINER_DS, reckless="availability")
-    # ^^ --reckless is probably needed as there is no other container ds copy
-
-    # now, we can remove working directory:
-    shutil.rmtree(WORKING_DIR)
-    assert not op.exists(WORKING_DIR)
+    # No need to manually remove temporary dirs; those are created by pytest's fixtures
+    #   and will be automatically removed after 3 runs of pytests. ref below:
+    #   https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory
