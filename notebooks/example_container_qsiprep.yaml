@@ -7,11 +7,10 @@ cli_call: |
     --stop-on-first-crash \
     --fs-license-file code/license.txt \
     --skip-bids-validation \
-    --bids-filter-file "${filterfile}" \
-    --participant-label "$subid" \
     --unringing-method mrdegibbs \
     --output-resolution 2.0
 
+# You should not have flags of : `--participant-label`, or `--bids-filter-file`!
 
 babs_singularity_run:
     -v: "-v"

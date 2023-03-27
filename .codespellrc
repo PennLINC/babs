@@ -1,0 +1,2 @@
+[codespell]
+skip = versioneer.py,_version.py,.git,*html

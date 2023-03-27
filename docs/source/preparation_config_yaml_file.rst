@@ -77,7 +77,7 @@ Notes:
     * ``my_key: ""``    (empty value string)
     * ``my_key: Null``    (``Null`` is a placeholder)
     * ``my_key: NULL``    (``NULL`` is a placeholder)
-* Repeated arguments: As this YAML section will be read as a dictionary by BABS, each key before ``:`` can not be repeated. If you need to specify repeated arguments, e.g., ``-v -v``, please specify it as ``-v : '-v'`` as in the example above; for tripple ``-v``, specify as ``-v: '-v -v'``
+* Repeated arguments: As this YAML section will be read as a dictionary by BABS, each key before ``:`` can not be repeated. If you need to specify repeated arguments, e.g., ``-v -v``, please specify it as ``-v : '-v'`` as in the example above; for triple ``-v``, specify as ``-v: '-v -v'``
 * Value placeholders: There are several placeholders for values available in BABS:
 
     * ``"$BABS_TMPDIR"`` is a value placeholder for temporary working directory. You might use this for arguments e.g., working directory.
@@ -90,10 +90,17 @@ Notes:
         * ERROR! TOOD: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
             * might be able to use information from ``babs_proj_config.yaml``? e.g., ``path_data_rel``
 * path to the dataset, zipped or unzipped
+
     * e.g., ``$INPUT_PATH`` in fMRIPrep with FreeSurfer results ingressed
     * e.g., ``--fs-subjects-dir`` in fMRIPrep with FreeSurfer results ingressed
+* Make sure you did not include these arguments, as they've already been handled by BABS:
+
+    * ``--participant-label``
+    * ``--bids-filter-file``
 * TODO: go thru all yaml file for any missing notes!!
 * TODO: ``babs_proj_config.yaml`` might be helpful! However, read this file only, do not modify this file!
+
+... including `notebooks/inDev_*.yaml` in `babs_tests` repo!
 
 
 babs_zip_foldername
@@ -148,7 +155,7 @@ You may not need all of them.
 BABS will replace ``$VALUE`` with the value you provide.
 The second row in each cell, which is also in (), is an example.
 
-.. .. list-table:: Cluster resources requrests that BABS supports
+.. .. list-table:: Cluster resources requests that BABS supports
 ..     :widths: 10 10 10 10
 ..     :header-rows: 1
 
@@ -290,4 +297,4 @@ Detection of the keyword is performed in the order provided by the user. If ``o_
 * If a keyword has been detected in the first file (``o_file`` for above example), then won't detect any keyword in the other log file (``e_file`` for above example).
 
 .. warning::
-    Detecting the keywords in the log files by BABS is case-sensitve! So please make sure the cases of keywords are in the way you hope.
+    Detecting the keywords in the log files by BABS is case-sensitive! So please make sure the cases of keywords are in the way you hope.

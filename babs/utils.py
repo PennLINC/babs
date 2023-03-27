@@ -646,7 +646,7 @@ def generate_one_bashhead_resources(system, key, value):
     Parameters:
     ------------
     system: class `System`
-        information about cluster managemenet system
+        information about cluster management system
     value: str or number
         value of a key in section `cluster_resources` container's config yaml
         if it's number, will be changed to a string.
@@ -685,7 +685,7 @@ def generate_bashhead_resources(system, config):
     Parameters:
     ------------
     system: class `System`
-        information about cluster managemenet system
+        information about cluster management system
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
@@ -966,7 +966,7 @@ def get_list_sub_ses(input_ds, config, babs):
             #   then turn into a dict.
             #   above won't change `input_ds.initial_inclu_df`
 
-    else:   # no intial list:
+    else:   # no initial list:
         # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
         # for now, only check the first dataset
         print("Did not provide `list_sub_file`."
@@ -1061,7 +1061,7 @@ def get_list_sub_ses(input_ds, config, babs):
             i_ds_str = list(config["required_files"].keys())[i]  # $INPUT_DATASET_#?
             i_ds = int(i_ds_str.split('#', 1)[1]) - 1
             # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
-            if (i_ds + 1) > input_ds.num_ds:   # if '?' > acutal # of input ds:
+            if (i_ds + 1) > input_ds.num_ds:   # if '?' > actual # of input ds:
                 raise Exception("'" + i_ds_str + "' does not exist!"
                                 + " There is only " + str(input_ds.num_ds)
                                 + " input dataset(s)!")

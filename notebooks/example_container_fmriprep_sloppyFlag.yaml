@@ -1,4 +1,6 @@
-# This is an example config yaml file for fMRIPrep version 20.2.3.
+# This is an example config yaml file for fMRIPrep version 20.2.3,
+#   but in `--sloppy` mode, i.e., test mode, and there is no FreeSurfer recon either.
+# This should NOT be used to produce real outputs you need.
 
 # Warning!!!
 #   This is only an example, which may not necessarily fit your purpose,
@@ -16,14 +18,16 @@ babs_singularity_run:
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
     --output-spaces: MNI152NLin6Asym:res-2
     --force-bbr: ""
-    --cifti-output: 91k   # WHEN FULL RUN!
+    #--cifti-output: 91k   # ADD THIS WHEN FULL RUN!
     -v: '-v'   # this is for double "-v"
+    --sloppy: ''      # TEST RUN!
+    --fs-no-reconall: ''   # TEST RUN!
 
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
     fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
-    freesurfer: "20-2-3"   # use the same as in the above line for `fmriprep`
-    # ^^ # ADD THIS WHEN FULL RUN or --anat-only!
+    # freesurfer: "20-2-3"   # use the same as in the above line for `fmriprep`
+    # ^^ per `--fs-no-reconall`, there won't be an output folder called `freesurfer`
 
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic

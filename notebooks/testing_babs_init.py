@@ -121,7 +121,7 @@ else:
 
 # container_ds:
 if flag_where == "cubic":
-    container_ds = op.join(where_project, "toybidsapp-container")
+    container_ds = op.join(where_project, bidsapp + "-container")
 elif flag_where == "local":
     container_ds = op.join(where_project, "toybidsapp-container-docker")
 
