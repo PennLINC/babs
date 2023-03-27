@@ -87,7 +87,7 @@ Notes:
     * ``$INPUT_PATH`` is a placeholder for positional argument input dataset (or BIDS directory). This must be included if there are more than one input dataset, to tell BABS which input dataset to use for this positional argument. Also, this must be used as the first key/value in this section **babs_singularity_run**, i.e., before other arguments.
 
         * For example, if you hope to specify an input dataset called ``BIDS`` for this positional argument, simply write ``$INPUT_PATH: inputs/data/BIDS``. Replace ``BIDS`` with your input dataset's name, but make sure you keep ``inputs/data/`` which is needed by BABS. For more, please see the example YAML file for more than one dataset: `fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_.
-        * ERROR! TOOD: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
+        * ERROR! TODO: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
             * might be able to use information from ``babs_proj_config.yaml``? e.g., ``path_data_rel``
 * path to the dataset, zipped or unzipped
 

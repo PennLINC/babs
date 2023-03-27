@@ -371,7 +371,7 @@ class BABS():
             # update `path_data_rel`:
             babs_proj_config["input_ds"][ds_index_str]["path_data_rel"] = \
                 input_ds.df["path_data_rel"][i_ds]
-            # upate `is_zipped`:
+            # update `is_zipped`:
             babs_proj_config["input_ds"][ds_index_str]["is_zipped"] = \
                 input_ds.df["is_zipped"][i_ds]
         # dump:

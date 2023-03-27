@@ -108,7 +108,7 @@ def if_input_ds_from_osf(path_in):
     This is to check if the input datalad dataset is from OSF.
     Checking is based on the pattern of the path's string. Might not be robust!
 
-    Paramters:
+    Parameters:
     -----------
     path_in: str
         path to the input dataset
