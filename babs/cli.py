@@ -3,6 +3,7 @@
 import argparse
 import os
 import os.path as op
+import traceback
 import datalad.api as dlapi
 import pandas as pd
 import yaml
@@ -12,7 +13,10 @@ from filelock import Timeout, FileLock
 # from datalad.interface.base import build_doc
 
 # from babs.core_functions import babs_init, babs_submit, babs_status
-from babs.utils import (get_datalad_version,
+from babs.utils import (if_input_ds_from_osf,
+                        read_yaml,
+                        write_yaml,
+                        get_datalad_version,
                         validate_type_session,
                         read_job_status_csv,
                         create_job_status_csv)
@@ -21,15 +25,11 @@ from babs.babs import BABS, Input_ds, System
 # @build_doc
 def babs_init_cli():
     """
-    Initialize a babs project and bootstrap scripts that will be used later.
-
-    Example command:
-    # TODO: to add an example command here!
-
+    Initialize a BABS project and bootstrap scripts that will be used later.
     """
-
     parser = argparse.ArgumentParser(
-        description="Initialize a babs project and bootstrap scripts that will be used later",
+        description="``babs-init`` initializes a BABS project and bootstraps scripts"
+                    " that will be used later.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--where_project", "--where-project",
@@ -38,7 +38,8 @@ def babs_init_cli():
     parser.add_argument(
         "--project_name", "--project-name",
         help="The name of the babs project; "
-             "this folder will be automatically created in the directory `where_project`.",
+             "this folder will be automatically created in the directory"
+             " specified in ``--where_project``.",
         required=True)
     parser.add_argument(
         '--input',
@@ -49,8 +50,9 @@ def babs_init_cli():
         #            they will be gathered as one list
         metavar=('input_dataset_name', 'input_dataset_path'),
         help="Input datalad dataset. "
-             "First argument is a name of this input dataset. "
-             "Second argument is the path to this input dataset.",
+             "Format: ``--input <name> <path/to/input_datalad_dataset>``. "
+             "Here ``<name>`` is a name of this input dataset. "
+             "``<path/to/input_datalad_dataset>`` is the path to this input dataset.",
         required=True)
     parser.add_argument(
         '--list_sub_file', '--list-sub-file',   # optional flag
@@ -65,12 +67,12 @@ def babs_init_cli():
         required=True)
     parser.add_argument(
         '--container_name', '--container-name',
-        help="The name of the BIDS App container, the `NAME` in `datalad containers-add NAME`."
+        help="The name of the BIDS App container, the ``NAME`` in ``datalad containers-add NAME``."
         + " Importantly, this should include the BIDS App's name"
         + " to make sure the bootstrap scripts are set up correctly;"
         + " Also, the version number should be added, too. "
-        + " `babs-init` is not case sensitive to this `--container_name`"
-        + " Example: `QSIPrep-0-0-0`",
+        + " ``babs-init`` is not case sensitive to this ``--container_name``."
+        + " Example: ``QSIPrep-0-0-0`` for QSIPrep version 0.0.0.",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(
@@ -86,10 +88,17 @@ def babs_init_cli():
              "or multiple-session ['multi-ses']",
         required=True)
     parser.add_argument(
-        "--type_system",
+        "--type_system", "--type-system",
         choices=["sge", "slurm"],
-        help="The name of the job scheduling type_system that you will use. Choices are sge and slurm.",
+        help="The name of the job scheduling type_system that you will use.",
         required=True)
+    parser.add_argument(
+        "--keep_if_failed", "--keep-if-failed",
+        action='store_true',
+        # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
+        help="If ``babs-init`` failed with error, whether to keep the created BABS project."
+             " We do NOT recommend turn this on unless you're familiar with DataLad."
+    )
 
     return parser
 
@@ -139,6 +148,8 @@ def babs_init_main():
         multi-ses or single-ses
     type_system: str
         sge or slurm
+    keep_if_failed: bool
+        If `babs-init` failed with error, whether to keep the created BABS project.
     """
 
     # Get arguments:
@@ -153,37 +164,47 @@ def babs_init_main():
     container_config_yaml_file = args.container_config_yaml_file
     type_session = args.type_session
     type_system = args.type_system
-
-    # print datalad version:
-    # if no datalad is installed, will raise error
-    print("DataLad version: " + get_datalad_version())
+    keep_if_failed = args.keep_if_failed
 
     # =================================================================
     # Sanity checks:
     # =================================================================
     project_root = op.join(where_project, project_name)
 
-    # # check if it exists:
-    # if op.exists(project_root):
-    #     raise Exception("the folder `project_name` already exists in the directory `where_project`!")
+    # check if it exists: if so, raise error
+    if op.exists(project_root):
+        raise Exception("The folder `--project_name` '" + project_name
+                        + "' already exists in the directory"
+                        + " `--where_project` '" + where_project + "'!"
+                        + " `babs-init` won't proceed to overwrite this folder.")
+
+    # check if `where_project` exists:
+    if not op.exists(where_project):
+        raise Exception("Path provided in `--where_project` does not exist!")
 
     # check if `where_project` is writable:
     if not os.access(where_project, os.W_OK):
-        raise Exception("the `where_project` is not writable!")
+        raise Exception("Path provided in `--where_project` is not writable!")
+
+    # print datalad version:
+    #   if no datalad is installed, will raise error
+    print("DataLad version: " + get_datalad_version())
 
     # validate `type_session`:
     type_session = validate_type_session(type_session)
 
-    input_ds = Input_ds(input, list_sub_file, type_session)
+    # input dataset:
+    input_ds = Input_ds(input)
+    input_ds.get_initial_inclu_df(list_sub_file, type_session)
 
-    # sanity check on the input dataset: the dir should exist, and should be datalad dataset:
-    for the_input_ds in input_ds.df["path_in"]:
-        if the_input_ds[0:6] == "osf://":  # first 6 char
-            pass   # not to check, as cannot be checked by `dlapi.status`
-        else:
-            _ = dlapi.status(dataset=the_input_ds)
-        # ^^ if not datalad dataset, there will be an error saying no installed dataset found
-        # if fine, will print "nothing to save, working tree clean"
+    # Note: not to perform sanity check on the input dataset re: if it exists
+    #   as: 1) robust way is to clone it, which will take longer time;
+    #           so better to just leave to the real cloning when `babs-init`;
+    #       2) otherwise, if using "if `.datalad/config` exists" to check, then need to check
+    #           if input dataset is local or not, and it's very tricky to check that...
+    #       3) otherwise, if using "dlapi.status(dataset=the_input_ds)": will take long time
+    #           for big dataset; in addition, also need to check if it's local or not...
+    # currently solution: add notes in Debugging in `babs-init` docs: `babs-init.rst`
 
     # Create an instance of babs class:
     babs_proj = BABS(project_root,
@@ -200,11 +221,73 @@ def babs_init_main():
     print("job scheduling system of this BABS project: " + babs_proj.type_system)
     print("")
 
-    # call method `babs_bootstrap()`:
-    babs_proj.babs_bootstrap(input_ds,
-                             container_ds, container_name, container_config_yaml_file,
-                             system)
+    # Call method `babs_bootstrap()`:
+    #   if success, good!
+    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs-init` creates!
+    try:
+        babs_proj.babs_bootstrap(input_ds,
+                                 container_ds, container_name, container_config_yaml_file,
+                                 system)
+    except:
+        print("\n`babs-init` failed! Below is the error message:")
+        traceback.print_exc()   # print out the traceback error messages
+        if not keep_if_failed:
+            # clean up:
+            print("\nCleaning up created BABS project...")
+            babs_proj.clean_up(input_ds)
+            print("Please check the error messages above!"
+                  + " Then fix the problem, and rerun `babs-init`.")
+        else:
+            print("\n`--keep-if-failed` is requested, so not to clean up created BABS project.")
+            print("Please check the error messages above!"
+                  + " Then fix the problem, delete this failed BABS project,"
+                  + " and rerun `babs-init`.")
 
+
+def babs_check_setup_cli():
+    """
+    This is the CLI for `babs-check-setup`.
+    """
+
+    parser = argparse.ArgumentParser(
+        description="``babs-check-setup`` validates setups by `babs-init`.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        "--job_test", "--job-test",
+        action='store_true',
+        # ^^ if `--job-test` is specified, args.job_test = True; otherwise, False
+        help="Whether to submit and run a test job. Will take longer time if doing so.")
+
+    return parser
+
+
+def babs_check_setup_main():
+    """
+    This is the core function of babs-check-setup,
+    which validates the setups by `babs-init`.
+
+    project_root: str
+        Absolute path to the root of BABS project.
+        For example, '/path/to/my_BABS_project/'.
+    job_test: bool
+        Whether to submit and run a test job.
+    """
+
+    # Get arguments:
+    args = babs_check_setup_cli().parse_args()
+
+    project_root = args.project_root
+
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj, input_ds = get_existing_babs_proj(project_root)
+
+    # Call method `babs_check_setup()`:
+    babs_proj.babs_check_setup(input_ds, args.job_test)
 
 def babs_submit_cli():
     """
@@ -287,7 +370,7 @@ def babs_submit_main():
     job = args.job
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj = get_existing_babs_proj(project_root)
+    babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
@@ -457,7 +540,7 @@ def babs_status_main():
     job_account = args.job_account
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj = get_existing_babs_proj(project_root)
+    babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
@@ -557,7 +640,7 @@ def babs_status_main():
 
 def get_existing_babs_proj(project_root):
     """
-    This is to get `babs_proj` (class `BABS`)
+    This is to get `babs_proj` (class `BABS`) and `input_ds` (class `Input_ds`)
     based on existing yaml file `babs_proj_config.yaml`.
     This should be used by `babs_submit()` and `babs_status`.
 
@@ -571,6 +654,8 @@ def get_existing_babs_proj(project_root):
     --------------
     babs_proj: class `BABS`
         information about a BABS project
+    input_ds: class `Input_ds`
+        information about input dataset(s)
     """
 
     # Sanity check: the path `project_root` exists:
@@ -582,13 +667,22 @@ def get_existing_babs_proj(project_root):
     babs_proj_config_yaml = op.join(project_root,
                                     "analysis/code/babs_proj_config.yaml")
     if op.exists(babs_proj_config_yaml) is False:
-        raise Exception("`babs-init` was not successful:"
-                        + " there is no 'analysis/code/babs_proj_config.yaml' file!")
+        raise Exception( \
+            "`babs-init` was not successful;"
+            + " there is no 'analysis/code/babs_proj_config.yaml' file!"
+            + " Please rerun `babs-init` to finish the setup.")
 
-    with open(babs_proj_config_yaml) as f:
-        babs_proj_config = yaml.load(f, Loader=yaml.FullLoader)
-        # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
-    f.close()
+    babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
+
+    # make sure the YAML file has necessary sections:
+    list_sections = ["type_session", "type_system", "input_ds", "container"]
+    for i in range(0, len(list_sections)):
+        the_section = list_sections[i]
+        if the_section not in babs_proj_config:
+            raise Exception(
+                "There is no section '" + the_section + "'"
+                + " in 'babs_proj_config.yaml' file in 'analysis/code' folder!"
+                + " Please rerun `babs-init` to finish the setup.")
 
     type_session = babs_proj_config["type_session"]
     type_system = babs_proj_config["type_system"]
@@ -599,8 +693,36 @@ def get_existing_babs_proj(project_root):
     # update key information including `output_ria_data_dir`:
     babs_proj.wtf_key_info(flag_output_ria_only=True)
 
-    return babs_proj
+    # Get information for input dataset:
+    input_ds_yaml = babs_proj_config["input_ds"]
+    # sanity check:
+    if len(input_ds_yaml) == 0:   # there was no input ds:
+        raise Exception("Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
+                        + "does not include any input dataset!"
+                        + " Something was wrong during `babs-init`...")
 
+    input_cli = []   # to be a nested list
+    for i_ds in range(0, len(input_ds_yaml)):
+        ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
+        input_cli.append([input_ds_yaml[ds_index_str]["name"],
+                          input_ds_yaml[ds_index_str]["path_in"]])
+
+    # Get the class `Input_ds`:
+    input_ds = Input_ds(input_cli)
+    # update information based on current babs project:
+    # 1. `path_now_abs`:
+    input_ds.assign_path_now_abs(babs_proj.analysis_path)
+    # 2. `path_data_rel` and `is_zipped`:
+    for i_ds in range(0, input_ds.num_ds):
+        ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
+        # `path_data_rel`:
+        input_ds.df["path_data_rel"][i_ds] = \
+            babs_proj_config["input_ds"][ds_index_str]["path_data_rel"]
+        # `is_zipped`:
+        input_ds.df["is_zipped"][i_ds] = \
+            babs_proj_config["input_ds"][ds_index_str]["is_zipped"]
+
+    return babs_proj, input_ds
 
 def check_df_job_specific(df, job_status_path_abs,
                           type_session, which_function):
@@ -687,3 +809,7 @@ def check_df_job_specific(df, job_status_path_abs,
         print("Another instance of this application currently holds the lock.")
 
     return df
+
+
+# if __name__ == "__main__":
+#     babs_check_setup_main()

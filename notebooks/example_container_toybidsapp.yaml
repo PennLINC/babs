@@ -31,3 +31,20 @@ cluster_resources:
 #   the commands should not be quoted!
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+
+# Below is to filter out subjects (or sessions)
+#   right now we only filter based on unzipped dataset
+# required_files:
+#     $INPUT_DATASET_#1:
+#         - ""
+
+# Keywords for alerting messages in log files:
+keywords_alert:
+    # some_other:  # Only used for testing purpose!
+    o_file:
+        - "xxxx"
+        # - "did not provide --session_label"
+    e_file:
+        - "xxx"
+        # - "[INFO] Cloning dataset"
+        # - "git remote add outputstore"

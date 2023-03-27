@@ -16,6 +16,7 @@ Set up a BABS project
    :maxdepth: 1
 
    babs-init
+   babs-check-setup
 
 Submit jobs and check job status
 ==================================

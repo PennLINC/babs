@@ -2,6 +2,7 @@
 __pycache__/*
 */__pycache__/*
 BABS.egg-info/*
+babs.egg-info/*
 
 # Sphinx documentation
 docs/build

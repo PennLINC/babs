@@ -1,0 +1,6 @@
+BIDS:
+  single-ses: "https://osf.io/t8urc/"
+  multi-ses: "https://osf.io/w2nu3/"
+zipped_derivatives_qsiprep:
+  single-ses: "https://osf.io/8t9sf/"
+  multi-ses: "https://osf.io/d3js6/"

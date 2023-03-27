@@ -7,6 +7,7 @@ import warnings   # built-in, no need to install
 import pkg_resources
 # from ruamel.yaml import YAML
 import yaml
+import pprint
 import glob
 import regex
 import copy
@@ -102,6 +103,31 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
                         )
 
 
+def if_input_ds_from_osf(path_in):
+    """
+    This is to check if the input datalad dataset is from OSF.
+    Checking is based on the pattern of the path's string. Might not be robust!
+
+    Parameters:
+    -----------
+    path_in: str
+        path to the input dataset
+
+    Returns:
+    --------
+    if_osf: bool
+        the input dataset is from OSF (True) or not (False)
+    """
+
+    if_osf = False
+    if path_in[0:6] == "osf://":
+        if_osf = True
+    if path_in[0:14] == "https://osf.io":
+        if_osf = True
+
+    return if_osf
+
+
 def validate_type_session(type_session):
     """
     This is to validate variable `type_session`'s value
@@ -140,6 +166,81 @@ def validate_type_system(type_system):
                         + " Currently BABS only support one of these: "
                         + ', '.join(list_supported))   # names separated by ', '
     return type_system
+
+
+def read_yaml(fn, if_filelock=False):
+    """
+    This is to read yaml file.
+
+    Parameters:
+    ---------------
+    fn: str
+        path to the yaml file
+    if_filelock: bool
+        whether to use filelock
+
+    Returns:
+    ------------
+    config: dict
+        content of the yaml file
+    """
+
+    if if_filelock:
+        lock_path = fn + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
+                with open(fn) as f:
+                    config = yaml.load(f, Loader=yaml.FullLoader)
+                    # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
+                f.close()
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+    else:
+        with open(fn) as f:
+            config = yaml.load(f, Loader=yaml.FullLoader)
+            # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
+        f.close()
+
+    return config
+
+def write_yaml(config, fn, if_filelock=False):
+    """
+    This is to write contents into yaml file.
+
+    Parameters:
+    ---------------
+    config: dict
+        the content to write into yaml file
+    fn: str
+        path to the yaml file
+    if_filelock: bool
+        whether to use filelock
+    """
+    if if_filelock:
+        lock_path = fn + ".lock"
+        lock = FileLock(lock_path)
+
+        try:
+            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
+                with open(fn, "w") as f:
+                    _ = yaml.dump(config, f,
+                                  sort_keys=False,   # not to sort by keys
+                                  default_flow_style=False)  # keep the format of nested contents
+                f.close()
+        except Timeout:   # after waiting for time defined in `timeout`:
+            # if another instance also uses locks, and is currently running,
+            #   there will be a timeout error
+            print("Another instance of this application currently holds the lock.")
+    else:
+        with open(fn, "w") as f:
+            _ = yaml.dump(config, f,
+                          sort_keys=False,   # not to sort by keys
+                          default_flow_style=False)  # keep the format of nested contents
+        f.close()
 
 
 def replace_placeholder_from_config(value):
@@ -1248,6 +1349,68 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
 
     return job_id, job_id_str, log_filename
 
+
+def submit_one_test_job(analysis_path, flag_print_message=True):
+    """
+    This is to submit one *test* job.
+    This is used by `babs-check-setup`.
+
+    Parameters:
+    ----------------
+    analysis_path: str
+        path to the `analysis` folder. One attribute in class `BABS`
+    flag_print_message: bool
+        to print a message (True) or not (False)
+
+    Returns:
+    -----------
+    job_id: int
+        the int version of ID of the submitted job.
+    job_id_str: str
+        the string version of ID of the submitted job.
+    log_filename: str
+        log filename of this job.
+        Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
+
+    Notes:
+    -----------------
+    see `Container.generate_test_job_submit_template()`
+    for details about template yaml file.
+    """
+    # Load the job submission template:
+    #   details of this template yaml file: see `Container.generate_test_job_submit_template()`
+    template_yaml_path = op.join(analysis_path, "code/check_setup",
+                                 "submit_test_job_template.yaml")
+    with open(template_yaml_path, "r") as f:
+        templates = yaml.load(f, Loader=yaml.FullLoader)
+    f.close()
+    # sections in this template yaml file:
+    cmd = templates["cmd_template"]
+    job_name = templates["job_name_template"]
+
+    to_print = "Test job"
+
+    # run the command, get the job id:
+    proc_cmd = subprocess.run(cmd.split(),   # separate by space
+                              cwd=analysis_path,
+                              stdout=subprocess.PIPE)
+
+    proc_cmd.check_returncode()
+    msg = proc_cmd.stdout.decode('utf-8')
+    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+    job_id = int(job_id_str)
+
+    # log filename:
+    log_filename = job_name + ".*" + job_id_str
+
+    to_print += " has been submitted (job ID: " + job_id_str + ")."
+    if flag_print_message:
+        print(to_print)
+
+    return job_id, job_id_str, log_filename
+
+
 def create_job_status_csv(babs):
     """
     This is to create a CSV file of `job_status`.
@@ -1375,7 +1538,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                 # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
 
                 # summarize based on `alert_message` column:
-                
+
                 all_alert_message = df["alert_message"][list_index_job_failed].tolist()
                 unique_list_alert_message = list(set(all_alert_message))
                 # unique_list_alert_message.sort()   # sort and update the list itself
@@ -1794,3 +1957,46 @@ def check_job_account(job_id_str, job_name, username_lowercase):
         msg_toreturn = msg_failed_to_call_qacct
 
     return msg_toreturn
+
+def print_versions_from_yaml(fn_yaml):
+    """
+    This is to go thru information in `code/check_setup/check_env.yaml` saved by `test_job.py`.
+    1. check if there is anything required but not installed
+    2. print out the versions for user to visually check
+    This is used by `babs-check-setup`.
+
+    Parameters:
+    ----------------
+    fn_yaml: str
+        path to the yaml file (usually is `code/check_setup/check_env.yaml`)
+
+    Returns:
+    ------------
+    flag_writable: bool
+        if the workspace is writable
+    flag_all_installed: bool
+        if all necessary packages are installed
+    """
+    # Read the yaml file and print the content:
+    config = read_yaml(fn_yaml)
+    print("Below is the information of designated environment and temporary workspace:\n")
+    # print the yaml file:
+    f = open(fn_yaml, 'r')
+    file_contents = f.read()
+    print(file_contents)
+    f.close()
+
+    # Check if everything is as satisfied:
+    if config["workspace_writable"]:   # bool; if writable:
+        flag_writable = True
+    else:
+        flag_writable = False
+
+    # Check all dependent packages are installed:
+    flag_all_installed = True
+    for key in config["version"]:
+        if config["version"][key] == "not_installed":   # see `babs/template_test_job.py`
+            flag_all_installed = False
+            warnings.warn("This required package is not installed: " + key)
+
+    return flag_writable, flag_all_installed

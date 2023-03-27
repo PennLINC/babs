@@ -11,6 +11,7 @@ Documentations
    overview
    installation
    preparation
+   create_babs_project
    jobs
    walkthrough
    cli

@@ -1,6 +1,6 @@
-******************************
-Job submission and job status
-******************************
+***************************************
+Step II: Job submission and job status
+***************************************
 
 .. contents:: Table of Contents
 

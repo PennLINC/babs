@@ -10,17 +10,19 @@ BABS features several command-line interface programs (highlighted in blue):
 .. image:: https://github.com/PennLINC/babs/raw/enh/docs/docs/source/_static/babs_cli.png
 .. ^^ change `enh/docs` to `main` after merging the branch into main!
 
-BABS requires three stuff as inputs (please refer to ___ for details):
+BABS requires three stuff as inputs (please refer to :doc:`preparation` for details):
+
 1. DataLad dataset of BIDS dataset(s). This could be raw BIDS data, or zipped results from another BABS project.
 2. DataLad dataset of containerized BIDS App.
 3. A YAML file of parameters for executing the BIDS App etc.
 
 The first step is to set up a BABS project.
 With these three inputs, ``babs-init`` initializes a BABS project.
-It will clone input dataset and containerized BIDS App. It will also
+It will clone input dataset(s) and containerized BIDS App. It will also
 generate scripts that will later be used internally. These scripts will
-complete the FAIRly big workflow framework. ``babs-check-setup`` will
-check all necessaries mentioned in ``babs-init`` are correctly set up.
+complete the FAIRly big workflow framework. ``babs-check-setup`` will then
+perform sanity checks and make sure the BABS project is ready for job running.
+Details about BABS project initiation and checks are on this page: :doc:`create_babs_project`.
 
 The next step is to run the jobs for subjects (and sessions, if input is a multi-session dataset).
 You can iteratively call ``babs-submit`` and ``babs-status`` to submit jobs, check existing

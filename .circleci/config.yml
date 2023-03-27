@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: chenyingzhao/datalad:datalad0.17.2_v1
+    - image: pennlinc/babs_tests:datalad0.17.2_v4
 
 # TODO:
 # runinstall: &runinstall
@@ -13,6 +13,20 @@ version: 2.1
 
 jobs:
   # TODO: build; build_docs; see QSIPrep
+
+  pytest:
+    <<: *dockersetup
+    working_directory: /home/circleci/src/babs
+    steps:
+      - checkout:
+          path: /home/circleci/src/babs
+      - run:
+          name: pytest of BABS
+          command: |
+            pip install .
+            pip install pytest
+            pytest -v
+      
 
   run_rawBIDS_multises:
     <<: *dockersetup
@@ -46,6 +60,12 @@ workflows:
     jobs:
       # - build
       # - build_docs
+      - pytest:
+          # requires:
+          #  - build
+          filters:
+            tags:
+              only: /.*/
       - run_rawBIDS_multises:
           # requires:
           #  - build
