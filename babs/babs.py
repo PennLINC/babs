@@ -1942,6 +1942,8 @@ class Container():
             The path to the container image saved in BABS project;
             this path is relative to `analysis` folder.
             e.g., `containers/.datalad/environments/fmriprep-0-0-0/image`
+            This `image` could be a symlink (`op.islink()`, when late 2022)
+            or a folder (`op.isdir()`, when early 2023)
         """
 
         self.container_ds = container_ds
@@ -1970,19 +1972,21 @@ class Container():
         """
         # Sanity check: this `container_name` exists in the `container_ds`:
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
-        # ^^ path to the symlink/file `image`
-        # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
+        # ^^ path to the symlink (late 2022)/folder (early 2023) `image`
+        # e.g.:
+        #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
 
         # the path to `container_name` should exist:
+        # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
         assert op.exists(op.dirname(container_path_abs)), \
             "There is no valid image named '" + self.container_name \
             + "' in the provided container DataLad dataset!"
 
-        # the image should be a symlink:
-        if not op.islink(container_path_abs):
-            warnings.warn("the 'image' of container is not a symlink;"
-                          + " Path to this file in cloned container DataLad dataset: '"
-                          + container_path_abs + "'.")
+        # the 'image' symlink or folder should exist:
+        assert op.exists(container_path_abs), \
+            "the 'image' of container is not a symlink;" \
+            + " Path to this file in cloned container DataLad dataset: '" \
+            + container_path_abs + "'."
 
     def read_container_config_yaml(self):
         """

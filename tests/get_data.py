@@ -113,9 +113,8 @@ def container_ds_path(if_circleci, tmp_path_factory):
 
     Returns:
     -----------
-    origin_container_ds: `pathlib.Path`
+    origin_container_ds: str
         path to the created container datalad dataset
-        Note: seems `pathlib.Path` type is accepted by datalad and `op`
     """
     docker_addr = "pennlinc/toy_bids_app:" + TOYBIDSAPP_VERSION
 
@@ -133,7 +132,8 @@ def container_ds_path(if_circleci, tmp_path_factory):
     # Set up container datalad dataset that holds several names of containers
     #   though all of them are toy BIDS App...
     # create a temporary dir:
-    origin_container_ds = tmp_path_factory.mktemp("my-container")
+    origin_container_ds_pathlib = tmp_path_factory.mktemp("my-container")
+    origin_container_ds = origin_container_ds_pathlib.absolute().as_posix()
     # create a new datalad dataset for holding the container:
     container_ds_handle = dlapi.create(path=origin_container_ds)
     # add container image into this datalad dataset:

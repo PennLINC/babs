@@ -1,15 +1,23 @@
 # This is to test `babs-init`.
 import os
 import os.path as op
+import sys
+import argparse
 import pytest
 import shutil
+from unittest import mock
 import datalad.api as dlapi
+
+sys.path.append("..")
+from babs.cli import (babs_init_main)   # noqa
 from get_data import (
     get_input_data,
     container_ds_path,
     if_circleci,
+    __location__,
     INFO_2ND_INPUT_DATA,
-    LIST_WHICH_BIDSAPP
+    LIST_WHICH_BIDSAPP,
+    TOYBIDSAPP_VERSION_DASH
 )
 
 # Define fixtures of different cases to test
@@ -27,7 +35,7 @@ from get_data import (
     #  ("toybidsapp", "zipped_derivatives_qsiprep", "single-ses", False, False),
     #  ("toybidsapp", "zipped_derivatives_qsiprep", "multi-ses", False, False),
     #  # test if input is local:
-     ("toybidsapp", "BIDS", "single-ses", True, False),
+    # ("toybidsapp", "BIDS", "single-ses", True, False),
     #  # test fmriprep: single/multi-ses
     #  ("fmriprep", "BIDS", "single-ses", False, False),
     #  ("fmriprep", "BIDS", "multi-ses", False, False),
@@ -58,7 +66,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         whether to use two input datasets
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
-    container_ds_path: fixture; `pathlib.Path`
+    container_ds_path: fixture; str
         Path to the container datalad dataset
     if_circleci: fixture; bool
         Whether currently in CircleCI
@@ -68,7 +76,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
 
     # Get the path to input dataset:
     path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
-    input_ds_cli = [[path_in, which_input]]
+    input_ds_cli = [[which_input, path_in]]
     if if_two_input:
         # get another input dataset: qsiprep derivatives
         assert INFO_2ND_INPUT_DATA["which_input"] != which_input   # avoid repeated input ds name
@@ -77,17 +85,36 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
             type_session,   # should be consistent with the 1st dataset
             INFO_2ND_INPUT_DATA["if_input_local"],
             tmp_path_factory)
-        input_ds_cli.append([path_in_2nd], INFO_2ND_INPUT_DATA["which_input"])
+        input_ds_cli.append([INFO_2ND_INPUT_DATA["which_input"], path_in_2nd])
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
     assert op.exists(container_ds_path)
     assert op.exists(op.join(container_ds_path, ".datalad/config"))
 
-    # get the cli
-    print("TODO")
+    # Get the cli of `babs-init`:
+    where_project = tmp_path.absolute().as_posix()   # turn into a string
+    container_name = which_bidsapp + "-" + TOYBIDSAPP_VERSION_DASH
+    container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
+                                         "example_container_toybidsapp.yaml")
+    # +++++++++++++++ change to container-specific yaml file???? ++++++++++++
+
+    opts = argparse.Namespace(
+        where_project=where_project,
+        project_name="my_babs_project",
+        input=input_ds_cli,
+        list_sub_file=None,
+        container_ds=container_ds_path,
+        container_name=container_name,
+        container_config_yaml_file=container_config_yaml_file,
+        type_session=type_session,
+        type_system="sge",
+        keep_if_failed=None
+    )
 
     # run `babs-init`:
-    print("TODO")
+    with mock.patch.object(
+            argparse.ArgumentParser, 'parse_args', return_value=opts):
+        babs_init_main()
 
     # Assert several things:
     print("TODO")
