@@ -26,3 +26,17 @@ Schematic of BABS workflow
 ----------------------------
 .. image:: https://github.com/PennLINC/babs/raw/enh/docs/docs/source/_static/babs_workflow.png
 .. ^^ change `enh/docs` to `main` after merging the branch into main!
+
+Installation
+-------------------
+TODO: to add instructions for users.
+
+For developers:
+
+If there is any update in the source code locally, you may update the installation with::
+
+    # Supporse you're in root directory of ConFixel source code:
+    pip install -e .    # for developer to update
+
+If you'll do ``pytest`` locally, please make sure you have necessary packages
+for pytest installed: ``pip install -e .[tests]``.

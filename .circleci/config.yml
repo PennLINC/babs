@@ -27,6 +27,7 @@ jobs:
             pip install pytest
             pytest -v
       
+#           TODO: change back to `pip install .` after fixing the bug!
 
   run_rawBIDS_multises:
     <<: *dockersetup
