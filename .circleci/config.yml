@@ -23,7 +23,7 @@ jobs:
       - run:
           name: pytest of BABS
           command: |
-            pip install .
+            pip install -e .
             pip install pytest
             pytest -v
       
