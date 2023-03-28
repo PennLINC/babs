@@ -68,3 +68,6 @@ you may update the installation with::
 
     # Suppose you are in root directory of babs source code:
     pip install -e .    # for developer to update
+
+If you are a developer and you'd like to run ``pytest`` locally, please install BABS in the following way
+so that necessary packages for pytest will also be installed: ``pip install -e .[tests]``.
