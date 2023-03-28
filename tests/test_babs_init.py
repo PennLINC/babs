@@ -9,8 +9,10 @@ from unittest import mock
 import datalad.api as dlapi
 
 sys.path.append("..")
-from babs.cli import (babs_init_main)   # noqa
-from get_data import (
+from babs.cli import (    # noqa
+    babs_init_main,
+    babs_check_setup_main)
+from get_data import (   # noqa
     get_input_data,
     container_ds_path,
     if_circleci,
@@ -35,7 +37,7 @@ from get_data import (
     #  ("toybidsapp", "zipped_derivatives_qsiprep", "single-ses", False, False),
     #  ("toybidsapp", "zipped_derivatives_qsiprep", "multi-ses", False, False),
     #  # test if input is local:
-    # ("toybidsapp", "BIDS", "single-ses", True, False),
+    ("toybidsapp", "BIDS", "single-ses", True, False),
     #  # test fmriprep: single/multi-ses
     #  ("fmriprep", "BIDS", "single-ses", False, False),
     #  ("fmriprep", "BIDS", "multi-ses", False, False),
@@ -93,14 +95,16 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
 
     # Get the cli of `babs-init`:
     where_project = tmp_path.absolute().as_posix()   # turn into a string
+    project_name = "my_babs_project"
+    project_root = op.join(where_project, project_name)
     container_name = which_bidsapp + "-" + TOYBIDSAPP_VERSION_DASH
     container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
                                          "example_container_toybidsapp.yaml")
     # +++++++++++++++ change to container-specific yaml file???? ++++++++++++
 
-    opts = argparse.Namespace(
+    babs_init_opts = argparse.Namespace(
         where_project=where_project,
-        project_name="my_babs_project",
+        project_name=project_name,
         input=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
@@ -113,14 +117,20 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
 
     # run `babs-init`:
     with mock.patch.object(
-            argparse.ArgumentParser, 'parse_args', return_value=opts):
+            argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
         babs_init_main()
 
-    # Assert several things:
-    print("TODO")
-    # check if those scripts are generated:
+    # ================== ASSERT ============================
+    # Assert by running `babs-check-setup`
+    babs_check_setup_opts = argparse.Namespace(
+        project_root=project_root,
+        job_test=False
+    )
+    # run `babs-check-setup`:
+    with mock.patch.object(
+            argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts):
+        babs_check_setup_main()
 
-    # check if input dataset(s) are there:
 
     # check if container dataset is there:
 
