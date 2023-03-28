@@ -1887,7 +1887,7 @@ class System():
 
     def get_dict(self):
         # location of current python script:
-        __location__ = op.dirname(__file__)
+        __location__ = op.realpath(op.dirname(__file__))
 
         fn_dict_cluster_systems_yaml = op.join(__location__, "dict_cluster_systems.yaml")
         with open(fn_dict_cluster_systems_yaml) as f:
@@ -2495,7 +2495,7 @@ class Container():
 
         # Copy the existing python script to this BABS project:
         # location of current python script:
-        __location__ = op.dirname(__file__)
+        __location__ = op.realpath(op.dirname(__file__))
         fn_from = op.join(__location__, "template_test_job.py")
         # copy:
         shutil.copy(fn_from, fn_test_job)
@@ -2760,7 +2760,7 @@ class Container():
         bash_file.write("cd " + babs.project_root + "\n")
 
         # Read content from `merge_outputs_postscript.sh`:
-        __location__ = op.dirname(__file__)
+        __location__ = op.realpath(op.dirname(__file__))
 
         fn_meat = op.join(__location__, "merge_outputs_postscript.sh")
         bash_file_meat = open(fn_meat, "r")
