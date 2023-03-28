@@ -1941,8 +1941,8 @@ class Container():
             The path to the container image saved in BABS project;
             this path is relative to `analysis` folder.
             e.g., `containers/.datalad/environments/fmriprep-0-0-0/image`
-            This `image` could be a symlink (`op.islink()`, when late 2022)
-            or a folder (`op.isdir()`, when early 2023)
+            This `image` could be a symlink (`op.islink()`, more likely for singularity container)
+            or a folder (`op.isdir()`, more likely for docker container)
         """
 
         self.container_ds = container_ds
@@ -1969,22 +1969,22 @@ class Container():
         analysis_path: str
             Absolute path to the `analysis` folder in a BABS project.
         """
-        # Sanity check: this `container_name` exists in the `container_ds`:
+        # path to the symlink/folder `image`:
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
-        # ^^ path to the symlink (late 2022)/folder (early 2023) `image`
         # e.g.:
         #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
 
-        # the path to `container_name` should exist:
+        # Sanity check: the path to `container_name` should exist in the cloned `container_ds`:
         # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
         assert op.exists(op.dirname(container_path_abs)), \
             "There is no valid image named '" + self.container_name \
             + "' in the provided container DataLad dataset!"
 
         # the 'image' symlink or folder should exist:
-        assert op.exists(container_path_abs), \
-            "the 'image' of container is not a symlink;" \
-            + " Path to this file in cloned container DataLad dataset: '" \
+        assert op.exists(container_path_abs) or op.islink(container_path_abs), \
+            "the folder 'image' of container DataLad dataset does not exist," \
+            + " and there is no symlink called 'image' either;" \
+            + " Path to 'image' in cloned container DataLad dataset should be: '" \
             + container_path_abs + "'."
 
     def read_container_config_yaml(self):
