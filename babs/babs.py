@@ -769,6 +769,7 @@ class BABS():
         # get the actual `output_ria_data_dir`;
         #   the one in `self` attr is directly got from `analysis` remote,
         #   so should not use that here.
+        # output_ria:
         actual_output_ria_data_dir = os.readlink(
             op.join(self.output_ria_path, "alias/data"))   # get the symlink of `alias/data`
         assert op.exists(actual_output_ria_data_dir)    # make sure this exists
@@ -780,20 +781,32 @@ class BABS():
         actual_input_ria_data_dir = op.join(self.input_ria_path, data_foldername)
         assert op.exists(actual_input_ria_data_dir)    # make sure this exists
 
+        if_found_sibling_input = False
+        if_found_sibling_output = False
         for i_sibling in range(0, len(analysis_siblings)):
             the_sibling = analysis_siblings[i_sibling]
             if the_sibling["name"] == "output":   # output ria:
+                if_found_sibling_output = True
                 assert the_sibling["url"] == actual_output_ria_data_dir, \
                     "The `analysis` datalad dataset's sibling 'output' url does not match" \
                     + " the path to the output RIA." \
                     + " Former = " + the_sibling["url"] + ";" \
                     + " Latter = " + actual_output_ria_data_dir
             if the_sibling["name"] == "input":   # input ria:
+                if_found_sibling_input = True
                 assert the_sibling["url"] == actual_input_ria_data_dir, \
                     "The `analysis` datalad dataset's sibling 'input' url does not match" \
                     + " the path to the input RIA." \
                     + " Former = " + the_sibling["url"] + ";" \
                     + " Latter = " + actual_input_ria_data_dir
+        if not if_found_sibling_input:
+            raise Exception("Did not find a sibling of 'analysis' DataLad dataset"
+                            + " that's called 'input'. There may be something wrong when"
+                            + " setting up input RIA!")
+        if not if_found_sibling_output:
+            raise Exception("Did not find a sibling of 'analysis' DataLad dataset"
+                            + " that's called 'output'. There may be something wrong when"
+                            + " setting up output RIA!")
 
         # output_ria_datalad_handle = dlapi.Dataset(self.output_ria_data_dir)
 
