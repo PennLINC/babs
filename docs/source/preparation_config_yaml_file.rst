@@ -98,6 +98,8 @@ Notes:
     * ``--participant-label``
     * ``--bids-filter-file``
 * TODO: go thru all yaml file for any missing notes!!
+* TODO: explain when ``--bids-filter-file`` will be added
+* TODO: explain when exporting TemplateFlow env variable will be added and what commands will be
 * TODO: ``babs_proj_config.yaml`` might be helpful! However, read this file only, do not modify this file!
 
 ... including `notebooks/inDev_*.yaml` in `babs_tests` repo!
