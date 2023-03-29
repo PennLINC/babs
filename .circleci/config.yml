@@ -16,7 +16,7 @@ jobs:
 
   pytest:
     <<: *dockersetup
-    resource_class: medium
+    resource_class: xlarge
     working_directory: /home/circleci/src/babs
     steps:
       - checkout:
@@ -26,7 +26,7 @@ jobs:
           command: |
             pip install -e .[tests]
             pip install pytest
-            pytest -n 2 -sv
+            pytest -n 6 -sv
       
 #           TODO: change back to `pip install .` after fixing the bug!
 

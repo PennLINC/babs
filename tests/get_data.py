@@ -23,7 +23,7 @@ FN_TOYBIDSAPP_SIF_CIRCLECI = op.join("/singularity_images",
 # path of input datasets:
 ORIGIN_INPUT_DATA = read_yaml(op.join(__location__, "origin_input_dataset.yaml"))
 INFO_2ND_INPUT_DATA = {
-    "which_input": "zipped_derivatives_qsiprep",
+    "which_input": "fmriprep",
     # "type_session": this should be consistent with the first dataset
     "if_input_local": False
 }
@@ -36,7 +36,8 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     Parameters:
     ---------------
     which_input: str
-        'BIDS' or 'zipped_derivatives_qsiprep'
+        'BIDS' - unzipped
+        or 'fmriprep' or 'qsiprep' - zipped derivatives
     type_session: str
         'single-ses' or 'multi-ses'
     if_input_local: bool
@@ -154,6 +155,33 @@ def container_ds_path(if_circleci, tmp_path_factory):
             )
 
     return origin_container_ds
+
+def mk_freesurfer_home(tmp_path):
+    """
+    Create a temporary directory for `FREESURFER_HOME` environment variable,
+    and create a FreeSurfer license (fake one) in it.
+
+    Parameters:
+    ---------------
+    tmp_path: fixture
+
+    Returns:
+    -----------
+    freesurfer_home: str
+        path to freesurfer home
+    """
+    freesurfer_home = tmp_path.absolute().as_posix()   # turn into a string
+    # create a fake license file:
+    fn_license = op.join(freesurfer_home, "license.txt")
+    f = open(fn_license, "w")
+    f.write("This is a fake freesurfer license. For testing purpose only.")
+    f.close()
+
+    # export env variable:
+    os.environ["FREESURFER_HOME"] = freesurfer_home
+
+    return freesurfer_home
+
 
 def if_command_installed(cmd):
     """
