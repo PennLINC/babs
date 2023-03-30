@@ -9,8 +9,8 @@ from babs.utils import read_yaml, write_yaml   # noqa
 from babs.cli import babs_init_main  # noqa
 from babs.babs import BABS, Input_ds   # noqa
 
-babs_init_main()
-# babs_check_setup_main()
+# babs_init_main()
+babs_check_setup_main()
 
 
 # Below is to test out `clean_up()`: --------------------

@@ -111,7 +111,7 @@ def test_babs_check_setup(
         # ^^ see `get_existing_babs_proj()` in CLI
     elif which_case == "keep_failed":
         error_type = AssertionError   # error from `assert`
-        error_msg = "Analysis DataLad dataset's status is not clean"
+        error_msg = "There is no containers DataLad dataset in folder:"
 
     # Run `babs-check-setup`:
     with mock.patch.object(
