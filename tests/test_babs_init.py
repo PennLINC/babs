@@ -15,11 +15,11 @@ from get_data import (   # noqa
     container_ds_path,
     if_circleci,
     mk_freesurfer_home,
-    templateflow_home,
     __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH
+    TOYBIDSAPP_VERSION_DASH,
+    TEMPLATEFLOW_HOME
 )
 
 @pytest.mark.order(index=1)
@@ -107,7 +107,8 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         flag_requested_fs_license = False
 
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
-    assert templateflow_home is not None
+    os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
+    assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
     # Get the cli of `babs-init`:

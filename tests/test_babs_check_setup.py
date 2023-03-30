@@ -14,11 +14,11 @@ from get_data import (   # noqa
     get_input_data,
     container_ds_path,
     if_circleci,
-    templateflow_home,
     __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH
+    TOYBIDSAPP_VERSION_DASH,
+    TEMPLATEFLOW_HOME
 )
 
 @pytest.mark.order(index=2)
@@ -62,6 +62,10 @@ def test_babs_check_setup(
     assert op.exists(container_ds_path)
     assert op.exists(op.join(container_ds_path, ".datalad/config"))
     container_ds_path_wrong = "/random/path/to/container_ds"
+
+    # Preparation of env variable `TEMPLATEFLOW_HOME`:
+    os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
+    assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set
 
     # Get the cli of `babs-init`:
     where_project = tmp_path.absolute().as_posix()   # turn into a string

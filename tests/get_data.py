@@ -27,6 +27,9 @@ INFO_2ND_INPUT_DATA = {
     # "type_session": this should be consistent with the first dataset
     "if_input_local": False
 }
+
+# env variables
+TEMPLATEFLOW_HOME = "/test/templateflow_home"
 # ====================================================================
 
 def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
@@ -181,15 +184,6 @@ def mk_freesurfer_home(tmp_path):
     os.environ["FREESURFER_HOME"] = freesurfer_home
 
     return freesurfer_home
-
-
-@pytest.fixture(scope="session")
-def templateflow_home():
-    """ Set up env variable `TEMPLATEFLOW_HOME` """
-    path_templateflow_home = "/test/templateflow_home"
-    os.environ["TEMPLATEFLOW_HOME"] = path_templateflow_home
-
-    return path_templateflow_home
 
 
 def if_command_installed(cmd):
