@@ -183,6 +183,15 @@ def mk_freesurfer_home(tmp_path):
     return freesurfer_home
 
 
+@pytest.fixture(scope="session")
+def templateflow_home():
+    """ Set up env variable `TEMPLATEFLOW_HOME` """
+    path_templateflow_home = "/test/templateflow_home"
+    os.environ["TEMPLATEFLOW_HOME"] = path_templateflow_home
+
+    return path_templateflow_home
+
+
 def if_command_installed(cmd):
     """
     This is to check if a command has been installed on the system

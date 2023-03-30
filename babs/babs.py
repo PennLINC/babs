@@ -491,6 +491,8 @@ class BABS():
         elif system.type == "slurm":
             # TODO: add command for `slurm`!!!
             print("Not supported yet... To work on...")
+        # not to track lock file:
+        gitignore_file.write("\n" + "code/babs_proj_config.yaml.lock")
         # not to track `job_status.csv`:
         gitignore_file.write("\n" + "code/job_status.csv")
         gitignore_file.write("\n" + "code/job_status.csv.lock")
