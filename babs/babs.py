@@ -769,6 +769,7 @@ class BABS():
         # get the actual `output_ria_data_dir`;
         #   the one in `self` attr is directly got from `analysis` remote,
         #   so should not use that here.
+        # output_ria:
         actual_output_ria_data_dir = os.readlink(
             op.join(self.output_ria_path, "alias/data"))   # get the symlink of `alias/data`
         assert op.exists(actual_output_ria_data_dir)    # make sure this exists
@@ -780,20 +781,32 @@ class BABS():
         actual_input_ria_data_dir = op.join(self.input_ria_path, data_foldername)
         assert op.exists(actual_input_ria_data_dir)    # make sure this exists
 
+        if_found_sibling_input = False
+        if_found_sibling_output = False
         for i_sibling in range(0, len(analysis_siblings)):
             the_sibling = analysis_siblings[i_sibling]
             if the_sibling["name"] == "output":   # output ria:
+                if_found_sibling_output = True
                 assert the_sibling["url"] == actual_output_ria_data_dir, \
                     "The `analysis` datalad dataset's sibling 'output' url does not match" \
                     + " the path to the output RIA." \
                     + " Former = " + the_sibling["url"] + ";" \
                     + " Latter = " + actual_output_ria_data_dir
             if the_sibling["name"] == "input":   # input ria:
+                if_found_sibling_input = True
                 assert the_sibling["url"] == actual_input_ria_data_dir, \
                     "The `analysis` datalad dataset's sibling 'input' url does not match" \
                     + " the path to the input RIA." \
                     + " Former = " + the_sibling["url"] + ";" \
                     + " Latter = " + actual_input_ria_data_dir
+        if not if_found_sibling_input:
+            raise Exception("Did not find a sibling of 'analysis' DataLad dataset"
+                            + " that's called 'input'. There may be something wrong when"
+                            + " setting up input RIA!")
+        if not if_found_sibling_output:
+            raise Exception("Did not find a sibling of 'analysis' DataLad dataset"
+                            + " that's called 'output'. There may be something wrong when"
+                            + " setting up output RIA!")
 
         # output_ria_datalad_handle = dlapi.Dataset(self.output_ria_data_dir)
 
@@ -1887,8 +1900,7 @@ class System():
 
     def get_dict(self):
         # location of current python script:
-        __location__ = os.path.realpath(
-            os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        __location__ = op.realpath(op.dirname(__file__))
 
         fn_dict_cluster_systems_yaml = op.join(__location__, "dict_cluster_systems.yaml")
         with open(fn_dict_cluster_systems_yaml) as f:
@@ -1942,6 +1954,8 @@ class Container():
             The path to the container image saved in BABS project;
             this path is relative to `analysis` folder.
             e.g., `containers/.datalad/environments/fmriprep-0-0-0/image`
+            This `image` could be a symlink (`op.islink()`, more likely for singularity container)
+            or a folder (`op.isdir()`, more likely for docker container)
         """
 
         self.container_ds = container_ds
@@ -1968,21 +1982,23 @@ class Container():
         analysis_path: str
             Absolute path to the `analysis` folder in a BABS project.
         """
-        # Sanity check: this `container_name` exists in the `container_ds`:
+        # path to the symlink/folder `image`:
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
-        # ^^ path to the symlink/file `image`
-        # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
+        # e.g.:
+        #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
 
-        # the path to `container_name` should exist:
+        # Sanity check: the path to `container_name` should exist in the cloned `container_ds`:
+        # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
         assert op.exists(op.dirname(container_path_abs)), \
             "There is no valid image named '" + self.container_name \
             + "' in the provided container DataLad dataset!"
 
-        # the image should be a symlink:
-        if not op.islink(container_path_abs):
-            warnings.warn("the 'image' of container is not a symlink;"
-                          + " Path to this file in cloned container DataLad dataset: '"
-                          + container_path_abs + "'.")
+        # the 'image' symlink or folder should exist:
+        assert op.exists(container_path_abs) or op.islink(container_path_abs), \
+            "the folder 'image' of container DataLad dataset does not exist," \
+            + " and there is no symlink called 'image' either;" \
+            + " Path to 'image' in cloned container DataLad dataset should be: '" \
+            + container_path_abs + "'."
 
     def read_container_config_yaml(self):
         """
@@ -2492,8 +2508,7 @@ class Container():
 
         # Copy the existing python script to this BABS project:
         # location of current python script:
-        __location__ = os.path.realpath(
-            os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        __location__ = op.realpath(op.dirname(__file__))
         fn_from = op.join(__location__, "template_test_job.py")
         # copy:
         shutil.copy(fn_from, fn_test_job)
@@ -2758,8 +2773,7 @@ class Container():
         bash_file.write("cd " + babs.project_root + "\n")
 
         # Read content from `merge_outputs_postscript.sh`:
-        __location__ = os.path.realpath(
-            os.path.join(os.getcwd(), os.path.dirname(__file__)))
+        __location__ = op.realpath(op.dirname(__file__))
 
         fn_meat = op.join(__location__, "merge_outputs_postscript.sh")
         bash_file_meat = open(fn_meat, "r")

@@ -16,9 +16,9 @@ Command-Line Arguments
       Examples: ``--input BIDS /path/to/BIDS_datalad_dataset``;
       ``--input raw_BIDS https://osf.io/t8urc/``.
       
-      Note for ``<name>``: ``<name>`` is defined by yourself. As long as it is not repeated
-      across different ``--input``, you can use whatever string you'd like or you think 
-      that's informative.
+      ``<name>`` is defined by yourself. Please see section
+      :ref:`how-to-define-name-of-input-dataset` below for general guidelines
+      and specific restrictions.
 
 
 **********************
@@ -31,8 +31,29 @@ How to prepare input dataset, container, and container's YAML file?
 
 Please see document :ref:`preparation` for how to prepare these inputs.
 
+.. _how-to-define-name-of-input-dataset:
+----------------------------------------------------------------
+How to define input dataset's name ``<name>`` in ``--input``?
+----------------------------------------------------------------
+
+**General guideline**: a string you think that's informative, and you don't need to choose
+from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
+
+**Specific restrictions**:
+
+1. If you have more than one input dataset (i.e., more than one ``--input``),
+   please make sure the ``<name>`` are different for each dataset;
+2. If an input dataset is a zipped dataset, i.e., files are zipped files, such as BIDS data
+   derivatives from another BABS project: you must name it with pattern in the zip filenames
+   so that ``babs-init`` knows which zip file you want to use for a subject or session.
+   For example, one of your input dataset is BIDS derivates of fMRIPrep, which includes zip
+   files of ``sub-xx*_freesurfer*.zip`` and ``sub-xx*_fmriprep*.zip``. If you'd like to feed
+   ``freesurfer`` results zip files into current BABS project, then you should name this input
+   dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
+   is not a pattern found in these zip files, ``babs-init`` will fail.
+
 -----------------------------------------------------
-How the list of subjects (and sessions) determined?
+How is the list of subjects (and sessions) determined?
 -----------------------------------------------------
 A list of subjects (and sessions) will be determined when running ``babs-init``,
 and will be saved in a CSV file called named ``sub_final_inclu.csv`` (for single-session dataset)
@@ -69,8 +90,10 @@ an SGE cluster::
         --type_session multi-ses \
         --type_system sge
 
-Example command if you have more than one input datasets, e.g., fMRIPrep
-with FreeSurfer results ingressed::
+Example command if you have more than one input datasets, e.g., raw BIDS data, and fMRIPrep
+with FreeSurfer results ingressed. The 2nd dataset is also result from another BABS project -
+a zipped dataset has filenames in patterns of 'sub-xx*_freesurfer*.zip'.
+Therefore, the 2nd input dataset should be named as 'freesurfer', a keyword in filename::
 
     babs-init \
         ... \

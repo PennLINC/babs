@@ -16,42 +16,19 @@ jobs:
 
   pytest:
     <<: *dockersetup
+    resource_class: xlarge
     working_directory: /home/circleci/src/babs
     steps:
       - checkout:
           path: /home/circleci/src/babs
       - run:
           name: pytest of BABS
+          no_output_timeout: 1h
           command: |
-            pip install .
-            pip install pytest
-            pytest -v
+            pip install -e .[tests]
+            pytest -n 6 -sv
       
-
-  run_rawBIDS_multises:
-    <<: *dockersetup
-    steps:
-      - checkout
-      # - run: *runinstall
-      - run:
-          name: "Run BABS upon raw BIDS, multi-session dataset"
-          no_output_timeout: 1h
-          command: |
-            # echo ${PWD}  # current pwd is /root/project
-            cd .circleci
-            bash run_rawBIDS.sh multises
-
-  run_rawBIDS_singleses:
-    <<: *dockersetup
-    steps:
-      - checkout
-      # - run: *runinstall
-      - run:
-          name: "Run BABS upon raw BIDS, single-session dataset"
-          no_output_timeout: 1h
-          command: |
-            cd .circleci
-            bash run_rawBIDS.sh singleses
+#           TODO: change back to `pip install .` after fixing the bug!
 
 
 workflows:
@@ -61,18 +38,6 @@ workflows:
       # - build
       # - build_docs
       - pytest:
-          # requires:
-          #  - build
-          filters:
-            tags:
-              only: /.*/
-      - run_rawBIDS_multises:
-          # requires:
-          #  - build
-          filters:
-            tags:
-              only: /.*/
-      - run_rawBIDS_singleses:
           # requires:
           #  - build
           filters:
