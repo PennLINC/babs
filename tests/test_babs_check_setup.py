@@ -25,7 +25,8 @@ from get_data import (   # noqa
 @pytest.mark.parametrize(
     "which_case",
     [("not_to_keep_failed"),
-     ("wrong_container_ds")]
+     ("wrong_container_ds"),
+     ("wrong_input_ds")]
 )
 def test_babs_check_setup(
         which_case,
@@ -39,11 +40,12 @@ def test_babs_check_setup(
     Parameters:
     ---------------
     which_case: str
-        'not_to_keep_failed': `container_ds` wrong path; not to `--keep-if-failed`
-        'wrong_container_ds': `container_ds` wrong path, `--keep-if-failed`
-        'wrong_input_ds': `input ds` wrong path, `--keep-if-failed`
+        'not_to_keep_failed': `container_ds` has wrong path; not to `--keep-if-failed` in `babs-init`
+        'wrong_container_ds': `container_ds` has wrong path, `--keep-if-failed` in `babs-init`
+        'wrong_input_ds': `input ds` has wrong path, `--keep-if-failed` in `babs-init`
         All cases have something going wrong, leading to `babs-init` failure;
-        Only in case `not_to_keep_failed`, flag `--keep-if-failed` in `babs-init` won't turn on
+        Only in case `not_to_keep_failed`, flag `--keep-if-failed` in `babs-init` won't turn on,
+        so expected error will be: BABS project does not exist.
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
     container_ds_path: fixture; str
@@ -59,6 +61,7 @@ def test_babs_check_setup(
     # Get the path to input dataset:
     path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
     input_ds_cli = [[which_input, path_in]]
+    input_ds_cli_wrong = [[which_input, "/random/path/to/input_ds"]]
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
     assert op.exists(container_ds_path)
@@ -78,6 +81,7 @@ def test_babs_check_setup(
     container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
                                          container_config_yaml_filename)
 
+    # below are all correct options:
     babs_init_opts = argparse.Namespace(
         where_project=where_project,
         project_name=project_name,
@@ -101,8 +105,8 @@ def test_babs_check_setup(
         babs_init_opts.container_ds = container_ds_path_wrong
     elif which_case == "wrong_container_ds":
         babs_init_opts.container_ds = container_ds_path_wrong
-    # elif which_case == "wrong_input_ds":
-    #     xxxx
+    elif which_case == "wrong_input_ds":
+        babs_init_opts.input = input_ds_cli_wrong
 
     # run `babs-init`:
     with mock.patch.object(
@@ -122,6 +126,10 @@ def test_babs_check_setup(
     elif which_case == "wrong_container_ds":
         error_type = AssertionError   # error from `assert`
         error_msg = "There is no containers DataLad dataset in folder:"
+    elif which_case == "wrong_input_ds":
+        error_type = FileNotFoundError
+        error_msg = "No such file or directory:"
+        # ^^ No such file or diretory: '/path/to/my_babs_project/analysis/inputs/data'
 
     # Run `babs-check-setup`:
     with mock.patch.object(
