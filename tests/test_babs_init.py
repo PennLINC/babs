@@ -4,9 +4,7 @@ import os.path as op
 import sys
 import argparse
 import pytest
-import shutil
 from unittest import mock
-import datalad.api as dlapi
 sys.path.append("..")
 from babs.utils import (read_yaml)   # noqa
 from babs.cli import (    # noqa
@@ -20,9 +18,11 @@ from get_data import (   # noqa
     __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH
+    TOYBIDSAPP_VERSION_DASH,
+    TEMPLATEFLOW_HOME
 )
 
+@pytest.mark.order(index=1)
 @pytest.mark.parametrize(
     "which_bidsapp,which_input,type_session,if_input_local,if_two_input",
     #  test toybidsapp: BIDS/zipped x single/multi-ses:
@@ -44,7 +44,7 @@ from get_data import (   # noqa
      ])
 def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_two_input,
                    tmp_path, tmp_path_factory,
-                   container_ds_path, if_circleci
+                   container_ds_path, if_circleci,
                    ):
     """
     This is to test `babs-init` in different cases.
@@ -70,8 +70,6 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         Path to the container datalad dataset
     if_circleci: fixture; bool
         Whether currently in CircleCI
-    freesurfer_home: fixture; str
-        path to the `FREESURFER_HOME`
     """
     # Sanity checks:
     assert which_bidsapp in LIST_WHICH_BIDSAPP
@@ -109,7 +107,8 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         flag_requested_fs_license = False
 
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
-    os.environ["TEMPLATEFLOW_HOME"] = "/test/templateflow_home"
+    os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
+    assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
     # Get the cli of `babs-init`:
@@ -128,7 +127,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
         type_system="sge",
-        keep_if_failed=None
+        keep_if_failed=False
     )
 
     # run `babs-init`:

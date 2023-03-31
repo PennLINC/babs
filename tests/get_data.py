@@ -27,6 +27,9 @@ INFO_2ND_INPUT_DATA = {
     # "type_session": this should be consistent with the first dataset
     "if_input_local": False
 }
+
+# env variables
+TEMPLATEFLOW_HOME = "/test/templateflow_home"
 # ====================================================================
 
 def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):

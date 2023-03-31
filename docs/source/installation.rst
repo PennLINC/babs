@@ -29,8 +29,12 @@ If commands above do not work out, please refer to `Installation reference`_ for
 
 Optional dependencies
 -------------------------------
-Besides required software listed above,
-if your input DataLad dataset is on OSF, you also need to install ``datalad-osf``::
+Besides required software listed above, you also need to install ``datalad-osf`` only if:
+
+* if you're an end user and your input DataLad dataset is on OSF;
+* or if you're a developer and you will run ``pytest``;
+
+How to install ``datalad-osf``::
 
     # Install datalad-osf:
     pip install datalad-osf
@@ -46,8 +50,22 @@ Installation reference
 - ``datalad-container``: https://github.com/datalad/datalad-container
 - (optional) ``datalad-osf``: http://docs.datalad.org/projects/osf/en/latest/settingup.html
 
+Check if you have everything installed and up-to-date
+--------------------------------------------------------
+.. warning::
+    Before moving on, please check if you have up-to-date required dependencies! Sometimes although
+    dependent software has been installed, the version might be too old or not up-to-date, causing
+    future errors hard to debug.
 
+Check dependencies' versions using commands below::
 
+    # required dependencies:
+    datalad --version
+    git --version
+    git-annex version
+
+    # optional dependencies:
+    datalad osf-credentials --version
 
 
 Install BABS
