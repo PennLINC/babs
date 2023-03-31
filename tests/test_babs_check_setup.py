@@ -129,7 +129,7 @@ def test_babs_check_setup(
     elif which_case == "wrong_input_ds":
         error_type = FileNotFoundError
         error_msg = "No such file or directory:"
-        # ^^ No such file or diretory: '/path/to/my_babs_project/analysis/inputs/data'
+        # ^^ No such file or directory: '/path/to/my_babs_project/analysis/inputs/data'
 
     # Run `babs-check-setup`:
     with mock.patch.object(
