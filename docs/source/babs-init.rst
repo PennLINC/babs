@@ -32,6 +32,7 @@ How to prepare input dataset, container, and container's YAML file?
 Please see document :ref:`preparation` for how to prepare these inputs.
 
 .. _how-to-define-name-of-input-dataset:
+
 ----------------------------------------------------------------
 How to define input dataset's name ``<name>`` in ``--input``?
 ----------------------------------------------------------------
@@ -52,9 +53,9 @@ from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
    dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
    is not a pattern found in these zip files, ``babs-init`` will fail.
 
------------------------------------------------------
+--------------------------------------------------------
 How is the list of subjects (and sessions) determined?
------------------------------------------------------
+--------------------------------------------------------
 A list of subjects (and sessions) will be determined when running ``babs-init``,
 and will be saved in a CSV file called named ``sub_final_inclu.csv`` (for single-session dataset)
 or ``sub_ses_final_inclu.csv`` (for multiple-session dataset),
