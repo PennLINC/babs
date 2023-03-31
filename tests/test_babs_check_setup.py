@@ -24,8 +24,8 @@ from get_data import (   # noqa
 @pytest.mark.order(index=2)
 @pytest.mark.parametrize(
     "which_case",
-    [("no_babs_project"),
-     ("keep_failed")]
+    [("not_to_keep_failed"),
+     ("wrong_container_ds")]
 )
 def test_babs_check_setup(
         which_case,
@@ -39,9 +39,11 @@ def test_babs_check_setup(
     Parameters:
     ---------------
     which_case: str
-        'no_babs_project', 'keep_failed'
-        For both cases, `container_ds` will be a wrong path, leading to `babs-init` failure;
-        in addition, for case 'keep_failed', flag `--keep-if-failed` in `babs-init` will turn on
+        'not_to_keep_failed': `container_ds` wrong path; not to `--keep-if-failed`
+        'wrong_container_ds': `container_ds` wrong path, `--keep-if-failed`
+        'wrong_input_ds': `input ds` wrong path, `--keep-if-failed`
+        All cases have something going wrong, leading to `babs-init` failure;
+        Only in case `not_to_keep_failed`, flag `--keep-if-failed` in `babs-init` won't turn on
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
     container_ds_path: fixture; str
@@ -81,18 +83,26 @@ def test_babs_check_setup(
         project_name=project_name,
         input=input_ds_cli,
         list_sub_file=None,
-        # container_ds=container_ds_path,
+        container_ds=container_ds_path,
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
         type_system="sge",
-        keep_if_failed=False
+        keep_if_failed=True
     )
 
     # inject something wrong --> `babs-init` will fail:
     babs_init_opts.container_ds = container_ds_path_wrong
-    if which_case == "keep_failed":
-        babs_init_opts.keep_if_failed = True
+    # `--keep-if-failed`:
+    if which_case == "not_to_keep_failed":
+        babs_init_opts.keep_if_failed = False
+    # each case, what went wrong:
+    if which_case == "not_to_keep_failed":
+        babs_init_opts.container_ds = container_ds_path_wrong
+    elif which_case == "wrong_container_ds":
+        babs_init_opts.container_ds = container_ds_path_wrong
+    # elif which_case == "wrong_input_ds":
+    #     xxxx
 
     # run `babs-init`:
     with mock.patch.object(
@@ -105,11 +115,11 @@ def test_babs_check_setup(
         job_test=False
     )
     # Set up expected error message from `babs-check-setup`:
-    if which_case == "no_babs_project":
+    if which_case == "not_to_keep_failed":
         error_type = Exception   # what's after `raise` in the source code
         error_msg = "`--project-root` does not exist!"
         # ^^ see `get_existing_babs_proj()` in CLI
-    elif which_case == "keep_failed":
+    elif which_case == "wrong_container_ds":
         error_type = AssertionError   # error from `assert`
         error_msg = "There is no containers DataLad dataset in folder:"
 
