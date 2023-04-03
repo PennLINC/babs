@@ -86,7 +86,7 @@ an SGE cluster::
         --project_name my_BABS_project \
         --input BIDS /path/to/BIDS_datalad_dataset \
         --container_ds /path/to/toybidsapp-container \
-        --container_name toybidsapp-0-0-5 \
+        --container_name toybidsapp-0-0-6 \
         --container_config_yaml_file /path/to/container_toybidsapp.yaml \
         --type_session multi-ses \
         --type_system sge

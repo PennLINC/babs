@@ -49,7 +49,7 @@ def babs_init_cli():
         nargs=2,   # expect 2 arguments per `--input` from the command line;
         #            they will be gathered as one list
         metavar=('input_dataset_name', 'input_dataset_path'),
-        help="Input datalad dataset. "
+        help="Input BIDS DataLad dataset. "
              "Format: ``--input <name> <path/to/input_datalad_dataset>``. "
              "Here ``<name>`` is a name of this input dataset. "
              "``<path/to/input_datalad_dataset>`` is the path to this input dataset.",
@@ -63,7 +63,7 @@ def babs_init_cli():
         " Multi-session data: columns of 'sub_id' and 'ses_id'.",)
     parser.add_argument(
         '--container_ds', '--container-ds',
-        help="Path to the container datalad dataset",
+        help="Path to the container DataLad dataset",
         required=True)
     parser.add_argument(
         '--container_name', '--container-name',
