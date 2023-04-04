@@ -67,12 +67,13 @@ def babs_init_cli():
         required=True)
     parser.add_argument(
         '--container_name', '--container-name',
-        help="The name of the BIDS App container, the ``NAME`` in ``datalad containers-add NAME``."
+        help="The name of the BIDS App container, i.e.,"
+        + " the ``<image NAME>`` used when running``datalad containers-add <image NAME>``."
         + " Importantly, this should include the BIDS App's name"
         + " to make sure the bootstrap scripts are set up correctly;"
-        + " Also, the version number should be added, too. "
+        + " Also, the version number should be added, too."
         + " ``babs-init`` is not case sensitive to this ``--container_name``."
-        + " Example: ``QSIPrep-0-0-0`` for QSIPrep version 0.0.0.",
+        + " Example: ``toybidsapp-0-0-6`` for toy BIDS App version 0.0.6.",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(

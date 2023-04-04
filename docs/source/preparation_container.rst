@@ -31,6 +31,8 @@ Below is an example of building a Singularity image of toy BIDS App from
         toybidsapp-${toybidsapp_version}.sif \
         docker://pennlinc/toy_bids_app:${toybidsapp_version}
 
+.. _create-a-container-datalad-dataset:
+
 Step 2. Create a container DataLad dataset
 ----------------------------------------------
 You may use DataLad command ``datalad containers-add`` to add the built Singularity image
@@ -44,9 +46,9 @@ You may use DataLad command ``datalad containers-add`` to add the built Singular
         --url /full/path/to/toybidsapp-${toybidsapp_version}.sif \
         toybidsapp-${toybidsapp_version_dash}
 
-Note the last argument is the *image ID* in the container DataLad dataset.
+Note the last argument is the *image NAME* in the container DataLad dataset.
 This string can only have characters and dashes in it.
-Remember what you assign as the *image ID* because you will copy it for argument
+Remember what you assign as the *image NAME* because you will copy it for argument
 ``--container_ds`` when ``babs-init``.
 
 (Optional) Step 3. Delete the original sif file
