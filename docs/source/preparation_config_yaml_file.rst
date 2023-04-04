@@ -255,7 +255,7 @@ Advanced - Manual of writing section ``babs_singularity_run``
 
     * Yes, BABS assumes all BIDS Apps use Templateflow and will always handle its environment variable if
       environment variable ``$TEMPLATEFLOW_HOME`` exists.
-    * For BIDS Apps that truely depend on Templateflow (e.g., fMRIPrep, QSIPrep, XCP-D),
+    * For BIDS Apps that truly depend on Templateflow (e.g., fMRIPrep, QSIPrep, XCP-D),
       please make sure you have Templateflow installed and export environment variable
       ``$TEMPLATEFLOW_HOME``.
     * Example generated commands by BABS
