@@ -77,12 +77,12 @@ Below is example section **babs_singularity_run** for ``fMRIPrep``::
         --stop-on-first-crash: ""   # argument without value
         --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
         --skip-bids-validation: Null  # Null or NULL is also a placeholder for argument without value
-        --output-spaces: "MNI152NLin6Asym:res-2"
+        --output-spaces: MNI152NLin6Asym:res-2
         --force-bbr: ""
         --cifti-output: 91k
         -v: '-v'   # this is for double `-v`
 
-This section will be turned into a Singularity run command as below::
+This section will be turned into commands (including a Singularity run command) as below::
 
     export SINGULARITYENV_TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME
     mkdir -p ${PWD}/.git/tmp/wkdir
@@ -114,10 +114,15 @@ Basics - Manual of writing section ``babs_singularity_run``
     * No, not all arguments. Usually you only need to provide named arguments
       (i.e., those with flags starting with ``-`` or ``--``),
       but not positional arguments.
-    * :octicon:`alert-fill` :bdg-warning:`warning` Exception for named arguments: Make sure you do NOT include these named arguments, as they've already been handled by BABS:
+    * :octicon:`alert-fill` :bdg-warning:`warning` Exception for named arguments:
+      Make sure you do NOT include these named arguments, as they've already been handled by BABS:
 
         * ``--participant-label``
         * ``--bids-filter-file``
+
+            * See below :ref:`advanced_manual_singularity_run` --> bullet point _____
+              for explanations.
+
     * :octicon:`alert-fill` :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
       you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument input BIDS dataset.
       See :ref:`advanced_manual_singularity_run` --> bullet point "When more than one input dataset" for more.
@@ -150,10 +155,25 @@ Basics - Manual of writing section ``babs_singularity_run``
       please specify it as ``-v : '-v'`` as in the example above;
     * For triple ``-v``, please specify as ``-v: '-v -v'``
 
+* Can I see the ``singularity run`` command that BABS generated?
+
+    * Yes you can! When running ``babs-init`` it will print out ``singularity run`` command for you to check. 
+
+
 .. _advanced_manual_singularity_run:
 
 Advanced - Manual of writing section ``babs_singularity_run``
 -----------------------------------------------------------------
+
+* How to specify a number as a value?
+
+    * If you hope to make sure the number format will be exactly passed into ``singularity run``,
+      it will be a good idea to quote it, e.g. in QSIPrep::
+
+        --output-resolution: "2.0"
+    
+    * This is especially encouraged when there are only numbers in the value (without other characters).
+
 * How to specify working directory (e.g., ``-w`` in fMRIPrep)?
 
     * You can use ``"$BABS_TMPDIR"``. It is a value placeholder recognized by BABS for temporary working directory.
@@ -166,50 +186,97 @@ Advanced - Manual of writing section ``babs_singularity_run``
       e.g., ``--fs-license-file: "$FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
     * TODO: update ^^ after changing the strategy of providing freesurfer license!
 
-* When more than one input BIDS dataset: You need to specify which dataset goes to the positional argument 
+* Can I use a job environment variable, e.g., number of CPUs?
+
+    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep), for *SGE* clusters,
+      you can use environment variable ``$NSLOTS``, and you can specify it as::
+
+        --n_cpus: "$NSLOTS"
+      
+      as long as you also set ``number_of_cpus`` in **cluster_resources** section (see below).
+    
+    * :octicon:`alert-fill` :bdg-warning:`warning` However *Slurm* clusters probably have different environment variable name
+      for this - please check out its manual!
+
+.. developer's note: for Slurm it might be ``$SLURM_NTASKS`` (below ref), however did not find for MSI cluster..
+.. ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
+
+* When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument 
   ``input_dataset`` in the BIDS App, which dataset goes to another named argument.
 
   * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
     
     * ``$INPUT_PATH`` is a key placeholder recognized by BABS
-    * You must specify ``$INPUT_PATH`` as the first key/value pair in this section **babs_singularity_run**, 
+    * We recommend using ``$INPUT_PATH`` as the first key in this section **babs_singularity_run**, 
       i.e., before other arguments.
 
   * How to write the path to the input dataset? Here we use `example configuration YAML file of
     fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_:
 
-    * e.g., For the positional argument ``input_dataset``, we want to use (unzipped) raw BIDS dataset called ``BIDS``;
+    * For the positional argument ``input_dataset``, sawy we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
         * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS`` 
           which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
-        * Notice that you need to add ``inputs/data/`` before the dataset's name, and this name ``BIDS``
-          should show up in ``babs-init --input <name> /path/to/BIDS``.
+        * Note that you need to add ``inputs/data/`` before the dataset's name, and what you'll use for
+          ``<name>`` when calling ``babs-init --input <name> /path/to/BIDS`` should also be ``BIDS``.
 
-    * e.g., For the named argument ``--fs-subjects-dir``, we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
+    * For the named argument ``--fs-subjects-dir``, sawy we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
 
         * Then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
-        * As mentioned above, ``freesurfer`` should also show up as a dataset's name in ``babs-init --input``
-        * Notice that, as this is a zipped dataset, we need to specify repeat ``freesurfer`` twice (double-layered).
-          This is because, after unzipping a subject's (or a session's) freesurfer zipped folder, there will be
-          another folder layer called ``freesurfer``, making it "double-layered".
+        * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
+          in ``babs-init --input <name> /path/to/freesurfer_dataset``
+        * Note that, as this is a zipped dataset, you need to repeat ``freesurfer`` twice.
+
+            * .. dropdown:: Why we need to repeat it twice?
+
+                  This is because, ``freesurfer`` dataset will locate at ``inputs/data/freesurfer``, and after unzipping
+                  a subject's (or a session's) freesurfer zipped folder, there will be
+                  another folder called ``freesurfer``, so the path to the unzipped folder will be ``inputs/data/freesurfer/freesurfer``.
 
     * :octicon:`alert-fill` :bdg-warning:`warning` Please check :ref:`how-to-define-name-of-input-dataset` for
       restrictions in naming each dataset when calling ``babs-init``!
   
-TODO: why ``$INPUT_PATH`` must be first?
-TODO: check why ``*/freesurfer/freesurfer``?
-TODO: might be able to use information from ``babs_proj_config.yaml``? e.g., ``path_data_rel`` to determine the path?
+.. Note to developers: It's probably not a good idea to use information from ``babs_proj_config.yaml``,
+   e.g., ``path_data_rel`` to determine the path, as for zipped folder it will be ``inputs/data/freesurfer``,
+   instead of ``inputs/data/freesurfer/freesurfer`` that user needs to specify here.
 
-* Make sure you do NOT include these arguments, as they've already been handled by BABS:
+* ``--bids-filter-file``: When will BABS automatically add it?
+    
+    * When BIDS App is fMRIPrep or QSIPrep, and input BIDS dataset(s) are multi-session data.
+    * How BABS determine it's fMRIPrep or QSIPrep?
 
-    * ``--participant-label``
-    * ``--bids-filter-file``
-* TODO: go thru all yaml file for any missing notes!!
-* TODO: explain when ``--bids-filter-file`` will be added
-* TODO: explain when exporting TemplateFlow env variable will be added and what commands will be
-* TODO: ``babs_proj_config.yaml`` might be helpful! However, read this file only, do not modify this file!
+        * Based on ``container_name`` provided when calling ``babs-init``:
+          If ``container_name`` contains ``fMRIPrep`` or ``QSIPrep`` (not case sensitive).
+    * When BABS adds ``--bids-filter-file`` here for Singularity run,
+      BABS will also automatically generate a filter file (JSON format) when running each session's data,
+      so that only data from a specific session will be included for analysis.   
 
-... including `notebooks/inDev_*.yaml` in `babs_tests` repo!
+* Will BABS handle `Templateflow <https://www.templateflow.org/>`_ environment variable? 
+
+    * Yes, BABS assumes all BIDS Apps use Templateflow and will always handle its environment variable if
+      environment variable ``$TEMPLATEFLOW_HOME`` exists.
+    * For BIDS Apps that truely depend on Templateflow (e.g., fMRIPrep, QSIPrep, XCP-D),
+      please make sure you have Templateflow installed and export environment variable
+      ``$TEMPLATEFLOW_HOME``.
+    * Example generated commands by BABS
+      as below::
+
+        export SINGULARITYENV_TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME
+        ...
+        singularity run --cleanenv -B ${PWD},/path/to/templateflow_home:/TEMPLATEFLOW_HOME \
+        ...
+      
+      where ``/path/to/templateflow_home`` is the value of environment variable ``$TEMPLATEFLOW_HOME``
+
+    * TODO: update ^^ after fixing the bug in exporting templateflow!
+
+.. Go thru all YAML files for any missing notes: done 4/4/2023
+.. toybidsapp: done
+.. toybidsapp, zipped input: done
+.. qsiprep: done
+.. fmriprep: done
+.. fmriprep with fs ingressed: done
+.. `notebooks/inDev_*.yaml` in `babs_tests` repo: done
 
 
 Section ``babs_zip_foldername``

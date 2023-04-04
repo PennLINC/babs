@@ -42,18 +42,32 @@ from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
 
 **Specific restrictions**:
 
-1. If you have **more than one** input dataset (i.e., more than one ``--input``),
+1. If you have **more than one** input BIDS dataset (i.e., more than one ``--input``),
    please make sure the ``<name>`` are different for each dataset;
-2. If an input dataset is a **zipped dataset**, i.e., files are zipped files, such as BIDS data
-   derivatives from another BABS project: you must name it with pattern in the zip filenames
-   so that ``babs-init`` knows which zip file you want to use for a subject or session.
-   For example, one of your input dataset is BIDS derivates of fMRIPrep, which includes zip
-   files of ``sub-xx*_freesurfer*.zip`` and ``sub-xx*_fmriprep*.zip``. If you'd like to feed
-   ``freesurfer`` results zip files into current BABS project, then you should name this input
-   dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
-   is not a pattern found in these zip files, ``babs-init`` will fail.
+2. If an input BIDS dataset is a **zipped dataset**, i.e., files are zipped files, such as BIDS data
+   derivatives from another BABS project:
+   
+    #. You must name it with pattern in the zip filenames
+       so that ``babs-init`` knows which zip file you want to use for a subject or session.
+       For example, one of your input dataset is BIDS derivates of fMRIPrep, which includes zip
+       files of ``sub-xx*_freesurfer*.zip`` and ``sub-xx*_fmriprep*.zip``. If you'd like to feed
+       ``freesurfer`` results zip files into current BABS project, then you should name this input
+       dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
+       is not a pattern found in these zip files, ``babs-init`` will fail.
+    #. In addition, the zip files that have such pattern (e.g., ``*freesurfer*``) should include a folder named
+       as the same name too (e.g., a folder called ``freesurfer``).
+    #. For example,
+       in multi-session, zipped fMRIPrep derivatives data (e.g., https://osf.io/k9zw2/)::
 
-TODO: probably in each zip file, the zipped folder name should also be ``freesurfer``???
+            sub-01_ses-A_freesurfer-20.2.3.zip
+            ├── freesurfer
+            │   ├── fsaverage
+            │   └── sub-01
+            sub-01_ses-B_freesurfer-20.2.3.zip
+            ├── freesurfer
+            │   ├── fsaverage
+            │   └── sub-02
+            etc
 
 --------------------------------------------------------
 How is the list of subjects (and sessions) determined?
