@@ -114,13 +114,13 @@ Basics - Manual of writing section ``babs_singularity_run``
     * No, not all arguments. Usually you only need to provide named arguments
       (i.e., those with flags starting with ``-`` or ``--``),
       but not positional arguments.
-    * :bdg-warning:`warning` Exception for named arguments: Make sure you do NOT include these named arguments, as they've already been handled by BABS:
+    * :octicon:`alert-fill` :bdg-warning:`warning` Exception for named arguments: Make sure you do NOT include these named arguments, as they've already been handled by BABS:
 
         * ``--participant-label``
         * ``--bids-filter-file``
-    * :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
-      you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument BIDS dataset.
-      See below bullet point "Key placeholders:" -> ``$INPUT_PATH`` for more.
+    * :octicon:`alert-fill` :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
+      you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument input BIDS dataset.
+      See :ref:`advanced_manual_singularity_run` --> bullet point "When more than one input dataset" for more.
 
 * What's the format I should follow when providing an argument?
     
@@ -145,17 +145,20 @@ Basics - Manual of writing section ``babs_singularity_run``
 
     * Yes you can. However you need to follow a specific format.
     * This is because each YAML section will be read as a dictionary by BABS, so each *key* before ``:``
-      cannot be repeated. 
+      cannot be repeated, e.g., repeated key of ``-v`` in more than one line is not allowed. 
     * If you need to specify repeated arguments, e.g., ``-v -v``,
       please specify it as ``-v : '-v'`` as in the example above;
     * For triple ``-v``, please specify as ``-v: '-v -v'``
 
+.. _advanced_manual_singularity_run:
+
 Advanced - Manual of writing section ``babs_singularity_run``
 -----------------------------------------------------------------
-* How to specify working directory ``-w``?
+* How to specify working directory (e.g., ``-w`` in fMRIPrep)?
 
     * You can use ``"$BABS_TMPDIR"``. It is a value placeholder recognized by BABS for temporary working directory.
       Example would be: ``-w: "$BABS_TMPDIR"``.
+      By default BABS will automatically create a working directory.
 
 * How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
 
@@ -163,22 +166,39 @@ Advanced - Manual of writing section ``babs_singularity_run``
       e.g., ``--fs-license-file: "$FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
     * TODO: update ^^ after changing the strategy of providing freesurfer license!
 
-* Key placeholders:
+* When more than one input BIDS dataset: You need to specify which dataset goes to the positional argument 
+  ``input_dataset`` in the BIDS App, which dataset goes to another named argument.
 
-    * ``$INPUT_PATH`` is a placeholder recognized by BABS for positional argument input dataset
-      (or BIDS directory). This must be included if there are more than one input dataset,
-      to tell BABS which input dataset to use for this positional argument. 
-      Also, this must be used as the first key/value in this section **babs_singularity_run**,
+  * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
+    
+    * ``$INPUT_PATH`` is a key placeholder recognized by BABS
+    * You must specify ``$INPUT_PATH`` as the first key/value pair in this section **babs_singularity_run**, 
       i.e., before other arguments.
 
-        * For example, if you hope to specify an input dataset called ``BIDS`` for this positional argument, simply write ``$INPUT_PATH: inputs/data/BIDS``. Replace ``BIDS`` with your input dataset's name, but make sure you keep ``inputs/data/`` which is needed by BABS. For more, please see the example YAML file for more than one dataset: `fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_.
-        * ERROR! TODO: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
-            * might be able to use information from ``babs_proj_config.yaml``? e.g., ``path_data_rel``
+  * How to write the path to the input dataset? Here we use `example configuration YAML file of
+    fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_:
 
-* path to the dataset, zipped or unzipped
+    * e.g., For the positional argument ``input_dataset``, we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
-    * e.g., ``$INPUT_PATH`` in fMRIPrep with FreeSurfer results ingressed
-    * e.g., ``--fs-subjects-dir`` in fMRIPrep with FreeSurfer results ingressed
+        * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS`` 
+          which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
+        * Notice that you need to add ``inputs/data/`` before the dataset's name, and this name ``BIDS``
+          should show up in ``babs-init --input <name> /path/to/BIDS``.
+
+    * e.g., For the named argument ``--fs-subjects-dir``, we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
+
+        * Then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
+        * As mentioned above, ``freesurfer`` should also show up as a dataset's name in ``babs-init --input``
+        * Notice that, as this is a zipped dataset, we need to specify repeat ``freesurfer`` twice (double-layered).
+          This is because, after unzipping a subject's (or a session's) freesurfer zipped folder, there will be
+          another folder layer called ``freesurfer``, making it "double-layered".
+
+    * :octicon:`alert-fill` :bdg-warning:`warning` Please check :ref:`how-to-define-name-of-input-dataset` for
+      restrictions in naming each dataset when calling ``babs-init``!
+  
+TODO: why ``$INPUT_PATH`` must be first?
+TODO: check why ``*/freesurfer/freesurfer``?
+TODO: might be able to use information from ``babs_proj_config.yaml``? e.g., ``path_data_rel`` to determine the path?
 
 * Make sure you do NOT include these arguments, as they've already been handled by BABS:
 
