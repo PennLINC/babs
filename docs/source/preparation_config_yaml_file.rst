@@ -4,13 +4,20 @@ Prepare a configuration YAML file for the BIDS App
 
 .. contents:: Table of Contents
 
-A BIDS App usually has a few arguments, and different Apps may require different amount of cluster resources. To make sure BABS can run in a tailored way, it is required to prepare a YAML file to define a few configurations when running the BIDS App.
+A BIDS App usually has a few arguments, and different Apps may require different amount of cluster resources.
+To make sure BABS can run in a tailored way, it is required to prepare a YAML file to define a few configurations
+when running the BIDS App container.
 
-`YAML <https://yaml.org/>`_ is a serialization language that is often used to define configurations. A YAML file for running BABS includes a few "sections". These sections not only define how exactly the BIDS App will be run, but also will be helpful in filtering out unnecessary subjects (and sessions), and in an informative debugging.
+`YAML <https://yaml.org/>`_ is a serialization language that is often used to define configurations.
+A YAML file for running BABS includes a few "sections".
+These sections not only define how exactly the BIDS App will be run, but also will be helpful
+in filtering out unnecessary subjects (and sessions), and in an informative debugging.
 
-Overview of the YAML file structure
-========================================
-The YAML file required by BABS includes these sections:
+Overview of the configuration YAML file structure
+====================================================
+
+Sections in the configuration YAML file
+-----------------------------------------
 
 * **babs_singularity_run**: the arguments for ``singularity run`` of the BIDS App;
 * **babs_zip_foldername**: the results foldername(s) to be zipped;
@@ -19,20 +26,31 @@ The YAML file required by BABS includes these sections:
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
 * **keywords_alert**: keywords in alerting messages in the log files that may be helpful for debugging the error;
 
-
-Example/prepopulated YAML files:
-
-* One, unzipped input dataset: ___TO ADD ____
-* One, zipped input dataset: ___TO ADD ____
-* Two input datasets (one unzipped, one zipped): ___TO ADD ____
-
-.. `YAML file for fMRIPrep <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep.yaml>`_
-.. `YAML file for XCP-D <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_xcpd.yaml>`_
-.. `YAML file for fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_
-
 TODO: add if each section is optional ___________
 
-Terminology when describing YAML file: Below is an example "section" in a YAML file::
+
+Example/prepopulated configuration YAML files
+-----------------------------------------------
+
+* One, unzipped input dataset:
+
+    * `example configuration YAML file for toy BIDS App <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_toybidsapp.yaml>`_
+    * `example configuration YAML file for fMRIPrep (version xxxx) <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep.yaml>`_
+    * `example configuration YAML file for QSIPrep (version xxxx) <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_qsiprep.yaml>`_
+    * `example configuration YAML file for XCP-D (version xxxx)  <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_xcpd.yaml>`_
+
+* One, zipped input dataset: 
+
+    * `example configuration YAML file toy BIDS App for zipped input dataset <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_zipped_toybidsapp.yaml>`_
+
+* Two input datasets (one unzipped, one zipped):
+
+    * `example configuration YAML file for fMRIPrep (version xxx) with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_
+
+
+Terminology when describing a YAML file: 
+------------------------------------------
+Below is an example "section" in a YAML file::
 
     section_name:
         key: value
@@ -41,13 +59,17 @@ In a section, the string before ``:`` is called ``key``, the string after ``:`` 
 
 Below are the details for each section in this configuration YAML file.
 
-babs_singularity_run
-========================
+
+Section ``babs_singularity_run``
+==================================
 Currently, BABS does not support using configurations of running a BIDS App
 that are defined in ``datalad containers-add --call-fmt``.
 Instead, users are expected to define these in this section, **babs_singularity_run**.
 
-Example **babs_singularity_run** for ``fMRIPrep``::
+Example **babs_singularity_run**
+-----------------------------------
+
+Below is example section **babs_singularity_run** for ``fMRIPrep``::
 
     babs_singularity_run:
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
@@ -57,43 +79,108 @@ Example **babs_singularity_run** for ``fMRIPrep``::
         --skip-bids-validation: Null  # Null or NULL is also a placeholder for argument without value
         --output-spaces: "MNI152NLin6Asym:res-2"
         --force-bbr: ""
+        --cifti-output: 91k
         -v: '-v'   # this is for double `-v`
 
 This section will be turned into a Singularity run command as below::
 
-    TODO: add generated singularity run command!
+    export SINGULARITYENV_TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME
+    mkdir -p ${PWD}/.git/tmp/wkdir
+    singularity run --cleanenv -B ${PWD},/test/templateflow_home:/TEMPLATEFLOW_HOME \
+            containers/.datalad/environments/fmriprep-20-2-3/image \
+            inputs/data/BIDS \
+            outputs \
+            participant \
+            -w ${PWD}/.git/tmp/wkdir \
+            --n_cpus 1 \
+            --stop-on-first-crash \
+            --fs-license-file code/license.txt \
+            --skip-bids-validation \
+            --output-spaces MNI152NLin6Asym:res-2 \
+            --force-bbr \
+            --cifti-output 91k \
+            -v -v \
+            --bids-filter-file "${filterfile}" \
+            --participant-label "${subid}"
 
-Notes:
+TODO: update ^^ after fixing FreeSurfer license copying + templateflow!
 
-* Usually you only need to provide named arguments, but not positional arguments. However, if you have more than one input datasets, you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument BIDS dataset. See below bullet point "Key placeholders:" -> ``$INPUT_PATH`` for more.
-* Basic format: if you want to specify ``--my_argument its_value``, simply write as one of following format:
 
+Basics - Manual of writing section ``babs_singularity_run``
+------------------------------------------------------------
+
+* What arguments should I provide in this section? All arguments for running the BIDS App?
+
+    * No, not all arguments. Usually you only need to provide named arguments
+      (i.e., those with flags starting with ``-`` or ``--``),
+      but not positional arguments.
+    * :bdg-warning:`warning` Exception for named arguments: Make sure you do NOT include these named arguments, as they've already been handled by BABS:
+
+        * ``--participant-label``
+        * ``--bids-filter-file``
+    * :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
+      you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument BIDS dataset.
+      See below bullet point "Key placeholders:" -> ``$INPUT_PATH`` for more.
+
+* What's the format I should follow when providing an argument?
+    
+    * Say, you want to specify ``--my_argument its_value``, simply write as one of following format:
     * ``--my_argument: 'its_value'``    (value in single quotation marks)
     * ``--my_argument: "its_value"``    (value in double quotation marks)
     * ``--my_argument: its_value``    (value without quotation marks; avoid using this format for values of numbers)
-* Mixing: You can mix arguments that begins with double dashes ``--`` and those with single dash ``-``;
-* Arguments without values: There are several ways to specify arguments without values; just choose one of formats as follows:
 
+* Can I mix arguments with flags that begins with double dashes (``--``) and those with single dash (``-``)?
+
+    * Yes you can!
+
+* How about arguments without values (e.g., ``--force-bbr`` in above example of fMRIPrep)?
+
+    * There are several ways to specify arguments without values; just choose one of formats as follows:
     * ``my_key: ""``    (empty value string)
-    * ``my_key: Null``    (``Null`` is a placeholder)
-    * ``my_key: NULL``    (``NULL`` is a placeholder)
-* Repeated arguments: As this YAML section will be read as a dictionary by BABS, each key before ``:`` can not be repeated. If you need to specify repeated arguments, e.g., ``-v -v``, please specify it as ``-v : '-v'`` as in the example above; for triple ``-v``, specify as ``-v: '-v -v'``
-* Value placeholders: There are several placeholders for values available in BABS:
+    * ``my_key: Null``    (``Null`` is a placeholder recognized by BABS)
+    * ``my_key: NULL``    (``NULL`` is a placeholder recognized by BABS)
+    * And then replace ``my_key`` with your keys, e.g., ``--force-bbr``. Do not forget the dashes (``-`` or ``--``) if needed!
 
-    * ``"$BABS_TMPDIR"`` is a value placeholder for temporary working directory. You might use this for arguments e.g., working directory.
-    * ``"$FREESURFER_LICENSE"`` is a value placeholder for FreeSurfer license, e.g., ``--fs-license-file: "$FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
+* Can I have repeated arguments?
+
+    * Yes you can. However you need to follow a specific format.
+    * This is because each YAML section will be read as a dictionary by BABS, so each *key* before ``:``
+      cannot be repeated. 
+    * If you need to specify repeated arguments, e.g., ``-v -v``,
+      please specify it as ``-v : '-v'`` as in the example above;
+    * For triple ``-v``, please specify as ``-v: '-v -v'``
+
+Advanced - Manual of writing section ``babs_singularity_run``
+-----------------------------------------------------------------
+* How to specify working directory ``-w``?
+
+    * You can use ``"$BABS_TMPDIR"``. It is a value placeholder recognized by BABS for temporary working directory.
+      Example would be: ``-w: "$BABS_TMPDIR"``.
+
+* How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
+
+    * You can use ``"$FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license,
+      e.g., ``--fs-license-file: "$FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
+    * TODO: update ^^ after changing the strategy of providing freesurfer license!
+
 * Key placeholders:
 
-    * ``$INPUT_PATH`` is a placeholder for positional argument input dataset (or BIDS directory). This must be included if there are more than one input dataset, to tell BABS which input dataset to use for this positional argument. Also, this must be used as the first key/value in this section **babs_singularity_run**, i.e., before other arguments.
+    * ``$INPUT_PATH`` is a placeholder recognized by BABS for positional argument input dataset
+      (or BIDS directory). This must be included if there are more than one input dataset,
+      to tell BABS which input dataset to use for this positional argument. 
+      Also, this must be used as the first key/value in this section **babs_singularity_run**,
+      i.e., before other arguments.
 
         * For example, if you hope to specify an input dataset called ``BIDS`` for this positional argument, simply write ``$INPUT_PATH: inputs/data/BIDS``. Replace ``BIDS`` with your input dataset's name, but make sure you keep ``inputs/data/`` which is needed by BABS. For more, please see the example YAML file for more than one dataset: `fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_.
         * ERROR! TODO: ^^ should be depending on unzipped or zipped dataset (e.g., "inputs/data/freesurfer/freesurfer")!
             * might be able to use information from ``babs_proj_config.yaml``? e.g., ``path_data_rel``
+
 * path to the dataset, zipped or unzipped
 
     * e.g., ``$INPUT_PATH`` in fMRIPrep with FreeSurfer results ingressed
     * e.g., ``--fs-subjects-dir`` in fMRIPrep with FreeSurfer results ingressed
-* Make sure you did not include these arguments, as they've already been handled by BABS:
+
+* Make sure you do NOT include these arguments, as they've already been handled by BABS:
 
     * ``--participant-label``
     * ``--bids-filter-file``
@@ -105,8 +192,8 @@ Notes:
 ... including `notebooks/inDev_*.yaml` in `babs_tests` repo!
 
 
-babs_zip_foldername
-=======================
+Section ``babs_zip_foldername``
+================================
 
 This section defines the output folder name(s) that get saved and zipped.
 This also includes the version of the BIDS App you use.
@@ -130,8 +217,8 @@ both folders ``fmriprep`` and ``freesurfer``,
 although the version of ``FreeSurfer`` included in this ``fMRIPrep`` may not be ``20.2.3``.
 
 
-cluster_resources
-=====================
+Section ``cluster_resources``
+=================================
 This section defines how much cluster resources each participant's job will use.
 
 Example section **cluster_resources** for ``fMRIPrep``::
@@ -209,8 +296,8 @@ Note that:
 
 TODO: check all example YAML file i have, also check their `participant_job.sh`
 
-script_preamble
-====================
+Section ``script_preamble``
+=============================
 This part also goes to the preamble of the script ``participant_job.sh``
 (located at: ``/path/to/my_BABS_project/analysis/code``). Different from **cluster_resources**
 that provides options for cluster resources requests, this section **script_preamble** is for necessary
@@ -239,8 +326,8 @@ Notes:
 
 .. _required_files:
 
-required_files
-==================
+Section ``required_files``
+============================
 You may have a dataset where not all the subjects (and sessions) have the required files for
 running the BIDS App. You can simply provide this list of required files, and BABS will exclude those
 subjects and sessions who don't have any of listed required files.
@@ -270,8 +357,8 @@ Notes:
 
 .. _keywords_alert:
 
-keywords_alert
-================
+Section ``keywords_alert``
+==============================
 This section is optional.
 
 This section is to define a list of alerting keywords to be searched in log files,
