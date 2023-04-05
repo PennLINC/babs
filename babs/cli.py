@@ -644,6 +644,58 @@ def babs_status_main():
     babs_proj.babs_status(flags_resubmit, df_resubmit_job_specific, reckless,
                           container_config_yaml_file, job_account)
 
+
+def babs_merge_cli():
+    """
+    CLI for merging results.
+    """
+    parser = argparse.ArgumentParser(
+        description="`babs-merge` merges results.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        "--chunk-size", "--chunk_size",
+        type=int,
+        help="Number of branches in a chunk when merging at a time.")
+    parser.add_argument(
+        "--trial-run", "--trial_run",
+        action='store_true',
+        # ^^ if `--trial-run` is specified, args.trial_run = True; otherwise, False
+        help="Whether to run as a trial run which won't push the merge back to output RIA."
+             " This option should only be used by developers for testing purpose."
+             " Users: please don't turn this on!")
+
+    return parser
+
+def babs_merge_main():
+    """
+    To merge results and provenance from all successfully finished jobs.
+
+    Parameters:
+    ----------------
+    project_root: str
+        Absolute path to the root of BABS project.
+    chunk_size: int
+        Number of branches in a chunk when merging at a time.
+    trial_run: bool
+        Whether to run as a trial run which won't push the merging actions back to output RIA.
+        This option should only be used by developers for testing purpose.
+    """
+    # Get arguments:
+    args = babs_merge_cli().parse_args()
+    project_root = args.project_root
+
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj, _ = get_existing_babs_proj(project_root)
+
+    # Call method `babs_merge()`:
+    babs_proj.babs_merge(args.chunk_size, args.trial_run)
+
+
 def get_existing_babs_proj(project_root):
     """
     This is to get `babs_proj` (class `BABS`) and `input_ds` (class `Input_ds`)

@@ -1614,6 +1614,57 @@ class BABS():
             #   there will be a timeout error
             print("Another instance of this application currently holds the lock.")
 
+    def babs_merge(self, chunk_size, trial_run):
+        """
+        This function merges results and provenance from all successfully finished jobs.
+
+        Parameters:
+        ---------------
+        chunk_size: int
+            Number of branches in a chunk when merging at a time.
+        trial_run: bool
+            Whether to run as a trial run which won't push the merging actions back to output RIA.
+            This option should only be used by developers for testing purpose.
+        """
+        self.wtf_key_info()   # get `self.analysis_dataset_id`
+        # path to `merge_ds`:
+        merge_ds_path = op.join(self.project_root, "merge_ds")
+
+        # Clone output RIA to `merge_ds`:
+        # get the path to output RIA:
+        #   'ria+file:///path/to/BABS_project/output_ria#0000000-000-xxx-xxxxxxxx'
+        output_ria_source = self.output_ria_url \
+            + "#" + self.analysis_dataset_id
+        # clone: `datalad clone ${outputsource} merge_ds`
+        dlapi.clone(source=output_ria_source,
+                    path=merge_ds_path)
+
+        # List all branches in output RIA
+        # get all branches:
+        proc_git_branch_all = subprocess.run(
+            ["git", "branch", "-a"],
+            cwd=self.output_ria_data_dir,
+            stdout=subprocess.PIPE
+        )
+        proc_git_branch_all.check_returncode()
+        msg = proc_git_branch_all.stdout.decode('utf-8')
+        list_branches_all = msg.split()
+
+        # only keep those start with `job-`:
+        list_branches_jobs = [ele for ele in list_branches_all if ele[0:4] == "job-"]
+
+        # Find all valid branches (i.e., those with results --> have different SHASUM):
+        # get default branch's name: master or main:
+
+        # Merge valid branches chunk by chunk:
+
+        # Push merge back to output RIA:
+        if not trial_run:
+            # TODO: perform pushing merging actions to output RIA
+            print("TODO")
+
+        # Done:
+
 
 class Input_ds():
     """This class is for input dataset(s)"""
