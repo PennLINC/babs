@@ -20,6 +20,11 @@ Command-Line Arguments
       :ref:`how-to-define-name-of-input-dataset` below for general guidelines
       and specific restrictions.
 
+   --keep-if-failed : @after
+      Please refer to below section
+
+      here: :ref:`what-if-babs-init-fails` for details.   
+
 
 **********************
 Detailed description
@@ -79,15 +84,43 @@ located at ``/path/to/my_BABS_project/analysis/code``
 
 See :ref:`list_included_subjects` for how this list is determined.
 
+.. _what-if-babs-init-fails:
+
 --------------------------------------------------------------------
-What will happen if ``babs-init`` fails?
+What if ``babs-init`` fails?
 --------------------------------------------------------------------
 
-If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project;
-if ``--keep-if-failed`` is specified, then this failed BABS project will be kept - in this case, however,
-if you want to create the BABS project in the same folder, you will have to remove the existing failed
-BABS project manually. Therefore, we do NOT recommend using ``--keep-if-failed`` unless you are familiar with DataLad
-and know how to remove a BABS project.
+If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project.
+
+When this happens, if you hope to use ``babs-check-setup`` to debug what's wrong, you'll notice that
+the failed BABS project has been cleaned and it's not ready to run ``babs-check-setup`` yet. What you need
+to do are as follows:
+
+#. Run ``babs-init`` with ``--keep-if-failed`` turned on.
+
+    * In this way, the failed BABS project will be kept.
+
+#. Then you can run ``babs-check-setup`` for diagnosis.
+#. After you know what's wrong, please remove the failed BABS project
+   with following commands::
+
+    cd <project_root>/analysis    # replace `<project_root>` with the path to your BABS project
+
+    # Remove input dataset(s) one by one:
+    datalad remove -d inputs/data/<input_ds_name>   # replace `<input_ds_name>` with each input dataset's name
+    # repeat above step until all input datasets have been removed.
+    # if above command leads to "drop impossible" due to modified content, add `--reckless modification` at the end
+
+    git annex dead here
+    datalad push --to input
+    datalad push --to output
+
+    cd ..
+    pwd   # this prints `<project_root>`; you can copy it in case you forgot
+    cd ..   # outside of `<project_root>`
+    rm -rf <project_root>
+
+   If you don't remove the failed BABS project, you cannot overwrite it by running ``babs-init`` again.
 
 
 **********************

@@ -68,7 +68,7 @@ def babs_init_cli():
     parser.add_argument(
         '--container_name', '--container-name',
         help="The name of the BIDS App container, i.e.,"
-        + " the ``<image NAME>`` used when running``datalad containers-add <image NAME>``."
+        + " the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``."
         + " Importantly, this should include the BIDS App's name"
         + " to make sure the bootstrap scripts are set up correctly;"
         + " Also, the version number should be added, too."
@@ -97,8 +97,12 @@ def babs_init_cli():
         "--keep_if_failed", "--keep-if-failed",
         action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help="If ``babs-init`` failed with error, whether to keep the created BABS project."
-             " We do NOT recommend turn this on unless you're familiar with DataLad."
+        help="If ``babs-init`` fails with error, whether to keep the created BABS project."
+             " By default, you don't need to turn this option on."
+             " However, when ``babs-init`` fails and you hope to use ``babs-check-setup``"
+             " to diagnose, please turn it on to rerun ``babs-init``,"
+             " then run ``babs-check-setup``."
+        #      ^^ in `babs-init.rst`, pointed to below section for more
     )
 
     return parser
