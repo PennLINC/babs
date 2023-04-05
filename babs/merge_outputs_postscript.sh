@@ -2,7 +2,8 @@
 # The following should be pasted into the merge_outputs.sh script
 datalad clone ${outputsource} merge_ds
 cd merge_ds
-NBRANCHES=$(git branch -a | grep job- | sort | wc -l)
+# translate command below into python
+NBRANCHES=$(git branch -a | grep job- | sort | wc -l)  # no need `sort`, then count lines
 echo "Found $NBRANCHES branches to merge"
 
 # find the default branch's name: master or main: - added by Chenying
