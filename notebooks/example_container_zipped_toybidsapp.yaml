@@ -6,12 +6,11 @@ babs_singularity_run:
     -v: ""
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
-    toybidsapp: "0-0-5"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+    toybidsapp: "0-0-6"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
 
 # environment_variable:
 #     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs
 
-# TODO: add to docs: best to quote the values if numbers only
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
     hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic

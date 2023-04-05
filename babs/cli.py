@@ -49,7 +49,7 @@ def babs_init_cli():
         nargs=2,   # expect 2 arguments per `--input` from the command line;
         #            they will be gathered as one list
         metavar=('input_dataset_name', 'input_dataset_path'),
-        help="Input datalad dataset. "
+        help="Input BIDS DataLad dataset. "
              "Format: ``--input <name> <path/to/input_datalad_dataset>``. "
              "Here ``<name>`` is a name of this input dataset. "
              "``<path/to/input_datalad_dataset>`` is the path to this input dataset.",
@@ -63,16 +63,17 @@ def babs_init_cli():
         " Multi-session data: columns of 'sub_id' and 'ses_id'.",)
     parser.add_argument(
         '--container_ds', '--container-ds',
-        help="Path to the container datalad dataset",
+        help="Path to the container DataLad dataset",
         required=True)
     parser.add_argument(
         '--container_name', '--container-name',
-        help="The name of the BIDS App container, the ``NAME`` in ``datalad containers-add NAME``."
+        help="The name of the BIDS App container, i.e.,"
+        + " the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``."
         + " Importantly, this should include the BIDS App's name"
         + " to make sure the bootstrap scripts are set up correctly;"
-        + " Also, the version number should be added, too. "
+        + " Also, the version number should be added, too."
         + " ``babs-init`` is not case sensitive to this ``--container_name``."
-        + " Example: ``QSIPrep-0-0-0`` for QSIPrep version 0.0.0.",
+        + " Example: ``toybidsapp-0-0-6`` for toy BIDS App version 0.0.6.",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(
@@ -96,8 +97,13 @@ def babs_init_cli():
         "--keep_if_failed", "--keep-if-failed",
         action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help="If ``babs-init`` failed with error, whether to keep the created BABS project."
-             " We do NOT recommend turn this on unless you're familiar with DataLad."
+        help="If ``babs-init`` fails with error, whether to keep the created BABS project."
+             " By default, you don't need to turn this option on."
+             " However, when ``babs-init`` fails and you hope to use ``babs-check-setup``"
+             " to diagnose, please turn it on to rerun ``babs-init``,"
+             " then run ``babs-check-setup``."
+             " Please refer to section below 'What if ``babs-init`` fails?' for details."
+        #      ^^ in `babs-init.rst`, pointed to below section for more
     )
 
     return parser

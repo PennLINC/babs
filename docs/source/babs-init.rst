@@ -20,6 +20,11 @@ Command-Line Arguments
       :ref:`how-to-define-name-of-input-dataset` below for general guidelines
       and specific restrictions.
 
+   --keep_if_failed, --keep-if-failed : @after
+      These words below somehow refuse to appear in the built docs...
+      Please refer to below section
+      here: :ref:`what-if-babs-init-fails` for details.   
+
 
 **********************
 Detailed description
@@ -42,16 +47,32 @@ from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
 
 **Specific restrictions**:
 
-1. If you have more than one input dataset (i.e., more than one ``--input``),
+1. If you have **more than one** input BIDS dataset (i.e., more than one ``--input``),
    please make sure the ``<name>`` are different for each dataset;
-2. If an input dataset is a zipped dataset, i.e., files are zipped files, such as BIDS data
-   derivatives from another BABS project: you must name it with pattern in the zip filenames
-   so that ``babs-init`` knows which zip file you want to use for a subject or session.
-   For example, one of your input dataset is BIDS derivates of fMRIPrep, which includes zip
-   files of ``sub-xx*_freesurfer*.zip`` and ``sub-xx*_fmriprep*.zip``. If you'd like to feed
-   ``freesurfer`` results zip files into current BABS project, then you should name this input
-   dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
-   is not a pattern found in these zip files, ``babs-init`` will fail.
+2. If an input BIDS dataset is a **zipped dataset**, i.e., files are zipped files, such as BIDS data
+   derivatives from another BABS project:
+   
+    #. You must name it with pattern in the zip filenames
+       so that ``babs-init`` knows which zip file you want to use for a subject or session.
+       For example, one of your input dataset is BIDS derivates of fMRIPrep, which includes zip
+       files of ``sub-xx*_freesurfer*.zip`` and ``sub-xx*_fmriprep*.zip``. If you'd like to feed
+       ``freesurfer`` results zip files into current BABS project, then you should name this input
+       dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
+       is not a pattern found in these zip files, ``babs-init`` will fail.
+    #. In addition, the zip files that have such pattern (e.g., ``*freesurfer*``) should include a folder named
+       as the same name too (e.g., a folder called ``freesurfer``).
+    #. For example,
+       in multi-session, zipped fMRIPrep derivatives data (e.g., https://osf.io/k9zw2/)::
+
+            sub-01_ses-A_freesurfer-20.2.3.zip
+            ├── freesurfer
+            │   ├── fsaverage
+            │   └── sub-01
+            sub-01_ses-B_freesurfer-20.2.3.zip
+            ├── freesurfer
+            │   ├── fsaverage
+            │   └── sub-02
+            etc
 
 --------------------------------------------------------
 How is the list of subjects (and sessions) determined?
@@ -63,15 +84,43 @@ located at ``/path/to/my_BABS_project/analysis/code``
 
 See :ref:`list_included_subjects` for how this list is determined.
 
+.. _what-if-babs-init-fails:
+
 --------------------------------------------------------------------
-What will happen if ``babs-init`` fails?
+What if ``babs-init`` fails?
 --------------------------------------------------------------------
 
-If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project;
-if ``--keep-if-failed`` is specified, then this failed BABS project will be kept - in this case, however,
-if you want to create the BABS project in the same folder, you will have to remove the existing failed
-BABS project manually. Therefore, we do NOT recommend using ``--keep-if-failed`` unless you are familiar with DataLad
-and know how to remove a BABS project.
+If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project.
+
+When this happens, if you hope to use ``babs-check-setup`` to debug what's wrong, you'll notice that
+the failed BABS project has been cleaned and it's not ready to run ``babs-check-setup`` yet. What you need
+to do are as follows:
+
+#. Run ``babs-init`` with ``--keep-if-failed`` turned on.
+
+    * In this way, the failed BABS project will be kept.
+
+#. Then you can run ``babs-check-setup`` for diagnosis.
+#. After you know what's wrong, please remove the failed BABS project
+   with following commands::
+
+    cd <project_root>/analysis    # replace `<project_root>` with the path to your BABS project
+
+    # Remove input dataset(s) one by one:
+    datalad remove -d inputs/data/<input_ds_name>   # replace `<input_ds_name>` with each input dataset's name
+    # repeat above step until all input datasets have been removed.
+    # if above command leads to "drop impossible" due to modified content, add `--reckless modification` at the end
+
+    git annex dead here
+    datalad push --to input
+    datalad push --to output
+
+    cd ..
+    pwd   # this prints `<project_root>`; you can copy it in case you forgot
+    cd ..   # outside of `<project_root>`
+    rm -rf <project_root>
+
+   If you don't remove the failed BABS project, you cannot overwrite it by running ``babs-init`` again.
 
 
 **********************
@@ -86,7 +135,7 @@ an SGE cluster::
         --project_name my_BABS_project \
         --input BIDS /path/to/BIDS_datalad_dataset \
         --container_ds /path/to/toybidsapp-container \
-        --container_name toybidsapp-0-0-5 \
+        --container_name toybidsapp-0-0-6 \
         --container_config_yaml_file /path/to/container_toybidsapp.yaml \
         --type_session multi-ses \
         --type_system sge
