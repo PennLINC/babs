@@ -20,7 +20,7 @@ Command-Line Arguments
       :ref:`how-to-define-name-of-input-dataset` below for general guidelines
       and specific restrictions.
 
-   --keep-if-failed : @after
+   --keep_if_failed, --keep-if-failed : @after
       Please refer to below section
 
       here: :ref:`what-if-babs-init-fails` for details.   
