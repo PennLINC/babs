@@ -21,8 +21,8 @@ Command-Line Arguments
       and specific restrictions.
 
    --keep_if_failed, --keep-if-failed : @after
+      These words below somehow refuse to appear in the built docs...
       Please refer to below section
-
       here: :ref:`what-if-babs-init-fails` for details.   
 
 

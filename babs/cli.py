@@ -102,6 +102,7 @@ def babs_init_cli():
              " However, when ``babs-init`` fails and you hope to use ``babs-check-setup``"
              " to diagnose, please turn it on to rerun ``babs-init``,"
              " then run ``babs-check-setup``."
+             " Please refer to section below 'What if ``babs-init`` fails?' for details."
         #      ^^ in `babs-init.rst`, pointed to below section for more
     )
 
