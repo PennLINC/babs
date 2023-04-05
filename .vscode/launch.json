@@ -14,10 +14,10 @@
             "env": {
                 "PYDEVD_WARN_EVALUATION_TIMEOUT": "500"
             },
-            "args": [
-                "--project-root",
-                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp",
-            ],
+            // "args": [
+            //     "--project-root",
+            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp",
+            // ],
             // "args": [
             //     "--where_project",
             //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data",
@@ -53,11 +53,11 @@
             //     "--type_session", "multi-ses",
             //     "--type_system", "sge"
             // ]
-            // "args": [
-            //     "--project-root",
-            //     "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
-            //     //"--job-test"
-            // ]
+            "args": [
+                "--project-root",
+                "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
+                //"--job-test"
+            ]
             // "args": [
             //     "--path-workspace", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/logs",
             //     "--path-check-setup", "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp/analysis/code/check_setup"

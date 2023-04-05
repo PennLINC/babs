@@ -14,6 +14,7 @@ import yaml
 from filelock import Timeout, FileLock
 from datetime import datetime
 import time
+import re   # regular expression operations
 
 import datalad.api as dlapi
 import datalad.support as dlsupport   # for exception name etc
@@ -1630,6 +1631,13 @@ class BABS():
         # path to `merge_ds`:
         merge_ds_path = op.join(self.project_root, "merge_ds")
 
+        if op.exists(merge_ds_path):
+            raise Exception("Folder 'merge_ds' already exists. `babs-merge` won't proceed."
+                            " If you're sure you want to rerun `babs-merge`,"
+                            " please remove this folder before you rerun `babs-merge`."
+                            " Path to 'merge_ds': ______",   # TODO
+                            " How to remove it:")   # TODO
+
         # Clone output RIA to `merge_ds`:
         # get the path to output RIA:
         #   'ria+file:///path/to/BABS_project/output_ria#0000000-000-xxx-xxxxxxxx'
@@ -1655,6 +1663,38 @@ class BABS():
 
         # Find all valid branches (i.e., those with results --> have different SHASUM):
         # get default branch's name: master or main:
+        #   `git remote show origin | sed -n '/HEAD branch/s/.*: //p'`
+        proc_git_remote_show_origin = subprocess.run(
+            ["git", "remote", "show", 'origin'],
+            cwd=merge_ds_path,
+            stdout=subprocess.PIPE)
+        proc_git_remote_show_origin.check_returncode()
+        msg = proc_git_remote_show_origin.stdout.decode('utf-8')
+        # e.g., '... HEAD branch: master\n....': search between 'HEAD branch: ' and '\n':
+        temp = re.search('HEAD branch: '+'(.+?)'+'\n', msg)
+        if temp:   # not empty:
+            default_branch_name = temp.group(1)   # what's between those two keywords
+            # another way: `default_branch_name = msg.split("HEAD branch: ")[1].split("\n")[0]`
+        else:
+            raise Exception("There is no HEAD branch in output RIA!")
+        print("Git default branch's name of output RIA is: '" + default_branch_name + "'")
+
+        # get current git commit SHASUM before merging as a reference:
+        proc_git_show_ref = subprocess.run(
+            ["git", "show-ref", default_branch_name],
+            cwd=merge_ds_path,
+            stdout=subprocess.PIPE)
+        proc_git_show_ref.check_returncode()
+        msg = proc_git_show_ref.stdout.decode('utf-8')
+        # `msg.split()`:    # split by space
+        #   e.g., ['xxxxxx', 'refs/heads/master', 'xxxxx', 'refs/remotes/origin/master']
+        #   usually first 'xxxxx' and second 'xxxxx' are the same
+        git_ref = msg.split()[0]   # take the first element
+
+        # check if each job branch has a new commit
+        #   that's different from current git commit SHASUM (`git_ref`):
+        
+        print("")
 
         # Merge valid branches chunk by chunk:
 

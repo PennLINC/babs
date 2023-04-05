@@ -10,7 +10,7 @@ git_default_branchname=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p
 # ^^ `origin` is listed in `git remote` in `merge_ds`
 echo "git default branch's name: ${git_default_branchname}"
 
-# git commit SHASUM before merging:
+# get git commit SHASUM before merging:
 gitref=$(git show-ref ${git_default_branchname} | cut -d ' ' -f1 | head -n 1)    # changed to 'main'
 
 # check if each branch is different from previous one:
