@@ -2017,12 +2017,14 @@ def get_git_show_ref_shasum(branch_name, the_path):
     -------------
     git_ref: str
         current commit's shasum of this branch in this git repo
-
+    msg: str
+        the string got by `git show-ref`, before splited by space and '\n'.
     Notes:
     -------
     bash version would be:
     `git show-ref ${git_default_branchname} | cut -d ' ' -f1 | head -n 1`
-    Here, `cut` means split; `head -n 1` is to get the first element in the list
+    Here, `cut` means split, `-f1` is to get the first split in each element in the list;
+    `head -n 1` is to get the first element in the list
     """
 
     proc_git_show_ref = subprocess.run(
@@ -2039,4 +2041,13 @@ def get_git_show_ref_shasum(branch_name, the_path):
     #   ['xxxx', 'refs/remotes/origin/job-0000-sub-xxxx']
     git_ref = msg.split()[0]   # take the first element
 
-    return git_ref
+    return git_ref, msg
+
+
+def ceildiv(a, b):
+    """
+    This is to calculate the ceiling of division of a/b.
+    ref: https://stackoverflow.com/questions/14822184/...
+      ...is-there-a-ceiling-equivalent-of-operator-in-python
+    """
+    return -(a // -b)

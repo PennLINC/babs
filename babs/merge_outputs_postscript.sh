@@ -27,7 +27,7 @@ for i in $(git branch -a | grep job- | sort); \
   do [ x"$(git show-ref $i  \
      | cut -d ' ' -f1)" != x"${gitref}" ] && \
      echo $i; \
-done | tee code/has_results.txt
+done | tee code/has_results.txt   # this is saved to `merge_ds/analysis/code/`
 
 mkdir -p code/merge_batches   # this line can be deleted
 num_branches=$(wc -l < code/has_results.txt)
@@ -47,6 +47,9 @@ do
     [[ ${num_branches} -lt ${endnum} ]] && endnum=${num_branches}
     branches=$(sed -n "${startnum},${endnum}p;$(expr ${endnum} + 1)q" code/has_results.txt)
     echo ${branches} > ${batch_file}
+    # what's in `${batch_file}`: job branches names concat-ed with space:
+    # `remotes/origin/job-2187000-sub-01-ses-A remotes/origin/job-2187001-sub-01-ses-B ...`
+
     # below is the only command necessary:
     git merge -m "merge results batch ${chunknum}/${num_chunks}" $(cat ${batch_file})
 

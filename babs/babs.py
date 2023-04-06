@@ -51,7 +51,8 @@ from babs.utils import (get_immediate_subdirectories,
                         get_username,
                         check_job_account,
                         print_versions_from_yaml,
-                        get_git_show_ref_shasum)
+                        get_git_show_ref_shasum,
+                        ceildiv)
 
 # import pandas as pd
 
@@ -1639,11 +1640,16 @@ class BABS():
                             " Path to 'merge_ds': ______",   # TODO
                             " How to remove it:")   # TODO
 
-        # check if text file of invalid job list exists:
-        fn_list_invalid_jobs = op.join(self.analysis_path, "code/list_invalid_job_when_merging.txt")
-        if op.exists(fn_list_invalid_jobs):
-            # remove it:
-            os.remove(fn_list_invalid_jobs)
+        # Define two potential text files:
+        #   in 'merge_ds/code' folder
+        #   as `merge_ds` should not exist at the moment,
+        #   no need to check existence/remove these files.
+        # define path to text file of invalid job list exists:
+        fn_list_invalid_jobs = op.join(merge_ds_path, "code",
+                                       "list_invalid_job_when_merging.txt")
+        # define path to text file of files with missing content:
+        fn_list_content_missing = op.join(merge_ds_path, "code",
+                                          "list_content_missing.txt")
 
         # Clone output RIA to `merge_ds`:
         print("\nCloning output RIA to 'merge_ds'...")
@@ -1667,8 +1673,17 @@ class BABS():
         msg = proc_git_branch_all.stdout.decode('utf-8')
         list_branches_all = msg.split()
 
-        # only keep those start with `job-`:
-        list_branches_jobs = [ele for ele in list_branches_all if ele[0:4] == "job-"]
+        # only keep those having pattern `job-`:
+        list_branches_jobs = [ele for ele in list_branches_all if "job-" in ele]
+        # ^^ ["remotes/origin/job-xxx", "remotes/origin/job-xxx", ...]
+        #   it's normal and necessary to have `remotes/origin`. See notes below.
+        # NOTE: our original bash script for merging: `merge_outputs_postscript.sh`:
+        #   run `git branch -a | grep job- | sort` in `merge_ds`
+        #   --> should get all branches whose names contain `*job-*`
+        #   e.g., `remotes/origin/job-xxx`   # as run in `merge_ds`
+        # Should not run in output RIA data dir, as you'll get branches without `remotes/origin`
+        #   --> raise error of "merge: job-xxxx - not something we can merge"
+        #   i.e., cannot find the branch to merge.
 
         if len(list_branches_jobs) == 0:
             raise Exception("There is no successfully finished job yet."
@@ -1694,7 +1709,7 @@ class BABS():
         print("Git default branch's name of output RIA is: '" + default_branch_name + "'")
 
         # get current git commit SHASUM before merging as a reference:
-        git_ref = get_git_show_ref_shasum(default_branch_name, merge_ds_path)
+        git_ref, _ = get_git_show_ref_shasum(default_branch_name, merge_ds_path)
 
         # check if each job branch has a new commit
         #   that's different from current git commit SHASUM (`git_ref`):
@@ -1702,7 +1717,7 @@ class BABS():
         list_branches_with_results = []
         for branch_job in list_branches_jobs:
             # get the job's `git show-ref`:
-            git_ref_branch_job = \
+            git_ref_branch_job, _ = \
                 get_git_show_ref_shasum(branch_job, merge_ds_path)
             if git_ref_branch_job == git_ref:   # no new commit --> no results in this branch
                 list_branches_no_results.append(branch_job)
@@ -1720,35 +1735,41 @@ class BABS():
             # save to a text file:
             #   note: this file has been removed at the beginning of babs_merge() if it existed)
             warnings.warn("There are invalid job branch(es) in output RIA,"
-                          + " and these jobs do not have results."
+                          + " and these job(s) do not have results."
                           + " The list of such invalid jobs will be saved to"
-                          + " the following text file: " + fn_list_invalid_jobs)
+                          + " the following text file: '" + fn_list_invalid_jobs + "'."
+                          + " Please review it.")
             with open(fn_list_invalid_jobs, "w") as f:
                 f.write('\n'.join(list_branches_no_results))
                 f.write("\n")   # add a new line at the end
-        print("")
 
         # Merge valid branches chunk by chunk:
         print("\nMerging valid job branches chunk by chunk...")
+        print("Total number of job branches to merge = " + str(len(list_branches_with_results)))
+        print("Chunk size (number of job branches per chunk) = " + str(chunk_size))
         # turn the list into numpy array:
         arr = np.asarray(list_branches_with_results)
-        # ^^ e.g., array([1, 7, 0, 6, 2, 5, 6])
+        # ^^ e.g., array([1, 7, 0, 6, 2, 5, 6])   # but with `dtype='<U24'`
         # split into several chunks:
-        all_chunks = np.array_split(arr, chunk_size)
+        num_chunks = ceildiv(len(arr), chunk_size)
+        print("--> Number of chunks = " + str(num_chunks))
+        all_chunks = np.array_split(arr, num_chunks)
         # ^^ e.g., [array([1, 7, 0]), array([6, 2]), array([5, 6])]
-        num_chunks = len(all_chunks)
 
         # iterate across chunks:
         for i_chunk in range(0, num_chunks):
-            print("merging chunk #" + str(i_chunk+1) + "...")
+            print("Merging chunk #" + str(i_chunk+1)
+                  + " (total of " + str(num_chunks) + " chunk[s] to merge)...")
             the_chunk = all_chunks[i_chunk]  # e.g., array(['a', 'b', 'c'])
             # join all branches in this chunk:
             joined_by_space = " ".join(the_chunk)   # e.g., 'a b c'
             # command to run:
-            commit_msg = "'merge results batch " \
-                + str(i_chunk+1) + "/" + str(num_chunks) + "'"
-            cmd = ["git", "merge", "-m", commit_msg,
-                   joined_by_space.split(" ")]   # split by space
+            commit_msg = "merge results chunk " \
+                + str(i_chunk+1) + "/" + str(num_chunks)
+            # ^^ okay to not to be quoted,
+            #   as in `subprocess.run` this is a separate element in the `cmd` list
+            cmd = ["git", "merge", "-m", commit_msg] \
+                + joined_by_space.split(" ")   # split by space
             proc_git_merge = subprocess.run(
                 cmd,
                 cwd=merge_ds_path,
@@ -1757,15 +1778,68 @@ class BABS():
 
         # Push merging actions back to output RIA:
         if not trial_run:
-            print("Pushing merging actions to output RIA...")
-            # TODO: perform pushing merging actions to output RIA
-            print("TODO")
+            print("\nPushing merging actions to output RIA...")
+            # `git push`:
+            proc_git_push = subprocess.run(
+                ["git", "push"],
+                cwd=merge_ds_path, stdout=subprocess.PIPE)
+            proc_git_push.check_returncode()
+
+            # Get file availability information: which is very important!
+            # `git annex fsck --fast -f output-storage`:
+            #   `git annex fsck` = file system check
+            #   We've done the git merge of the symlinks of the files,
+            #   now we need to match the symlinks with the data content in `output-storage`.
+            #   `--fast`: just use the existing MD5, not to re-create a new one
+            proc_git_annex_fsck = subprocess.run(
+                ["git", "annex", "fsck", "--fast", "-f", "output-storage"],
+                cwd=merge_ds_path, stdout=subprocess.PIPE)
+            proc_git_annex_fsck.check_returncode()
+
+            # Double check: there should not be file content that's not in `output-storage`:
+            #   This should not print anything - we never has this error before
+            # `git annex find --not --in output-storage`
+            proc_git_annex_find_missing = subprocess.run(
+                ["git", "annex", "find", "--not", "--in", "output-storage"],
+                cwd=merge_ds_path, stdout=subprocess.PIPE)
+            proc_git_annex_find_missing.check_returncode()
+            msg = proc_git_annex_find_missing.stdout.decode('utf-8')
+            # `msg` should be None:
+            if msg is not None:
+                # save into a file:
+                with open(fn_list_content_missing, "w") as f:
+                    f.write(msg)
+                    f.write("\n")
+                raise Exception("Unable to find file content for some file(s)."
+                                + " The information has been saved to this text file: '"
+                                + fn_list_content_missing + "'.")
+
+            # `git annex dead here`:
+            #   stop tracking clone `merge_ds`,
+            #   i.e., not to get data from this `merge_ds` sibling:
+            proc_git_annex_dead_here = subprocess.run(
+                ["git", "annex", "dead", "here"],
+                cwd=merge_ds_path, stdout=subprocess.PIPE)
+            proc_git_annex_dead_here.check_returncode()
+
+            # Final `datalad push` to output RIA:
+            # `datalad push --data nothing`:
+            #   pushing to `git` branch in output RIA: has done with `git push`;
+            #   pushing to `git-annex` branch in output RIA: hasn't done after `git annex fsck`
+            #   `--data nothing`: don't transfer data from this local annex `merge_ds`
+            proc_datalad_push = subprocess.run(
+                ["datalad", "push", "--data", "nothing"],
+                cwd=merge_ds_path, stdout=subprocess.PIPE)
+            proc_datalad_push.check_returncode()
 
             # Done:
+            print("\n`babs-merge` was successful!")
 
-        else:    # `--trial-run`
-            warnings.warn("`--trial-run` was requested,"
+        else:    # `--trial-run` is on:
+            warnings.warn("\n`--trial-run` was requested,"
                           + " not to push merging actions to output RIA.")
+
+        print("")
 
 
 class Input_ds():
