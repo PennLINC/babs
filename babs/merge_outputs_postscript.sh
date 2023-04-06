@@ -17,6 +17,7 @@ gitref=$(git show-ref ${git_default_branchname} | cut -d ' ' -f1 | head -n 1)   
 #   query all branches for the most recent commit and check if it is identical.
 #   Write all branch identifiers for jobs without outputs into a file.
 #   `cut -d` is just to cut into strings
+#   here `x` in  `x"$()" = x"$()"` is just to avoid error if the two strings to be compared are both empty
 for i in $(git branch -a | grep job- | sort); do [ x"$(git show-ref $i \
   | cut -d ' ' -f1)" = x"${gitref}" ] && \
   echo $i; done | tee code/noresults.txt | wc -l
@@ -46,7 +47,7 @@ do
     [[ ${num_branches} -lt ${endnum} ]] && endnum=${num_branches}
     branches=$(sed -n "${startnum},${endnum}p;$(expr ${endnum} + 1)q" code/has_results.txt)
     echo ${branches} > ${batch_file}
-    # below is the only one necessary:
+    # below is the only command necessary:
     git merge -m "merge results batch ${chunknum}/${num_chunks}" $(cat ${batch_file})
 
 done

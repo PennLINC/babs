@@ -50,7 +50,8 @@ from babs.utils import (get_immediate_subdirectories,
                         get_alert_message_in_log_files,
                         get_username,
                         check_job_account,
-                        print_versions_from_yaml)
+                        print_versions_from_yaml,
+                        get_git_show_ref_shasum)
 
 # import pandas as pd
 
@@ -1638,7 +1639,14 @@ class BABS():
                             " Path to 'merge_ds': ______",   # TODO
                             " How to remove it:")   # TODO
 
+        # check if text file of invalid job list exists:
+        fn_list_invalid_jobs = op.join(self.analysis_path, "code/list_invalid_job_when_merging.txt")
+        if op.exists(fn_list_invalid_jobs):
+            # remove it:
+            os.remove(fn_list_invalid_jobs)
+
         # Clone output RIA to `merge_ds`:
+        print("\nCloning output RIA to 'merge_ds'...")
         # get the path to output RIA:
         #   'ria+file:///path/to/BABS_project/output_ria#0000000-000-xxx-xxxxxxxx'
         output_ria_source = self.output_ria_url \
@@ -1647,11 +1655,12 @@ class BABS():
         dlapi.clone(source=output_ria_source,
                     path=merge_ds_path)
 
-        # List all branches in output RIA
+        # List all branches in output RIA:
+        print("\nListing all branches in output RIA...")
         # get all branches:
         proc_git_branch_all = subprocess.run(
             ["git", "branch", "-a"],
-            cwd=self.output_ria_data_dir,
+            cwd=merge_ds_path,
             stdout=subprocess.PIPE
         )
         proc_git_branch_all.check_returncode()
@@ -1661,7 +1670,12 @@ class BABS():
         # only keep those start with `job-`:
         list_branches_jobs = [ele for ele in list_branches_all if ele[0:4] == "job-"]
 
+        if len(list_branches_jobs) == 0:
+            raise Exception("There is no successfully finished job yet."
+                            " Please run `babs-submit` first.")
+
         # Find all valid branches (i.e., those with results --> have different SHASUM):
+        print("\nFinding all valid job branches to merge...")
         # get default branch's name: master or main:
         #   `git remote show origin | sed -n '/HEAD branch/s/.*: //p'`
         proc_git_remote_show_origin = subprocess.run(
@@ -1680,30 +1694,78 @@ class BABS():
         print("Git default branch's name of output RIA is: '" + default_branch_name + "'")
 
         # get current git commit SHASUM before merging as a reference:
-        proc_git_show_ref = subprocess.run(
-            ["git", "show-ref", default_branch_name],
-            cwd=merge_ds_path,
-            stdout=subprocess.PIPE)
-        proc_git_show_ref.check_returncode()
-        msg = proc_git_show_ref.stdout.decode('utf-8')
-        # `msg.split()`:    # split by space
-        #   e.g., ['xxxxxx', 'refs/heads/master', 'xxxxx', 'refs/remotes/origin/master']
-        #   usually first 'xxxxx' and second 'xxxxx' are the same
-        git_ref = msg.split()[0]   # take the first element
+        git_ref = get_git_show_ref_shasum(default_branch_name, merge_ds_path)
 
         # check if each job branch has a new commit
         #   that's different from current git commit SHASUM (`git_ref`):
-        
+        list_branches_no_results = []
+        list_branches_with_results = []
+        for branch_job in list_branches_jobs:
+            # get the job's `git show-ref`:
+            git_ref_branch_job = \
+                get_git_show_ref_shasum(branch_job, merge_ds_path)
+            if git_ref_branch_job == git_ref:   # no new commit --> no results in this branch
+                list_branches_no_results.append(branch_job)
+            else:   # has results:
+                list_branches_with_results.append(branch_job)
+
+        # check if there is any valid job (with results):
+        if len(list_branches_with_results) == 0:   # empty:
+            raise Exception("There is no job branch in output RIA that has results yet,"
+                            + " i.e., there is no successfully finished job yet."
+                            + " Please run `babs-submit` first.")
+
+        # check if there is invalid job (without results):
+        if len(list_branches_no_results) > 0:   # not empty
+            # save to a text file:
+            #   note: this file has been removed at the beginning of babs_merge() if it existed)
+            warnings.warn("There are invalid job branch(es) in output RIA,"
+                          + " and these jobs do not have results."
+                          + " The list of such invalid jobs will be saved to"
+                          + " the following text file: " + fn_list_invalid_jobs)
+            with open(fn_list_invalid_jobs, "w") as f:
+                f.write('\n'.join(list_branches_no_results))
+                f.write("\n")   # add a new line at the end
         print("")
 
         # Merge valid branches chunk by chunk:
+        print("\nMerging valid job branches chunk by chunk...")
+        # turn the list into numpy array:
+        arr = np.asarray(list_branches_with_results)
+        # ^^ e.g., array([1, 7, 0, 6, 2, 5, 6])
+        # split into several chunks:
+        all_chunks = np.array_split(arr, chunk_size)
+        # ^^ e.g., [array([1, 7, 0]), array([6, 2]), array([5, 6])]
+        num_chunks = len(all_chunks)
 
-        # Push merge back to output RIA:
+        # iterate across chunks:
+        for i_chunk in range(0, num_chunks):
+            print("merging chunk #" + str(i_chunk+1) + "...")
+            the_chunk = all_chunks[i_chunk]  # e.g., array(['a', 'b', 'c'])
+            # join all branches in this chunk:
+            joined_by_space = " ".join(the_chunk)   # e.g., 'a b c'
+            # command to run:
+            commit_msg = "'merge results batch " \
+                + str(i_chunk+1) + "/" + str(num_chunks) + "'"
+            cmd = ["git", "merge", "-m", commit_msg,
+                   joined_by_space.split(" ")]   # split by space
+            proc_git_merge = subprocess.run(
+                cmd,
+                cwd=merge_ds_path,
+                stdout=subprocess.PIPE)
+            proc_git_merge.check_returncode()
+
+        # Push merging actions back to output RIA:
         if not trial_run:
+            print("Pushing merging actions to output RIA...")
             # TODO: perform pushing merging actions to output RIA
             print("TODO")
 
-        # Done:
+            # Done:
+
+        else:    # `--trial-run`
+            warnings.warn("`--trial-run` was requested,"
+                          + " not to push merging actions to output RIA.")
 
 
 class Input_ds():

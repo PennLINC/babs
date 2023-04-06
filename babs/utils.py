@@ -2000,3 +2000,43 @@ def print_versions_from_yaml(fn_yaml):
             warnings.warn("This required package is not installed: " + key)
 
     return flag_writable, flag_all_installed
+
+def get_git_show_ref_shasum(branch_name, the_path):
+    """
+    This is to get current commit's shasum by calling `git show-ref`.
+    This can be used by `babs-merge`.
+
+    Parameters:
+    --------------
+    branch_name: str
+        string name of the branch where you want to run `git show-ref` for
+    the_path: str
+        path to the git (or datalad) repository
+
+    Returns:
+    -------------
+    git_ref: str
+        current commit's shasum of this branch in this git repo
+
+    Notes:
+    -------
+    bash version would be:
+    `git show-ref ${git_default_branchname} | cut -d ' ' -f1 | head -n 1`
+    Here, `cut` means split; `head -n 1` is to get the first element in the list
+    """
+
+    proc_git_show_ref = subprocess.run(
+        ["git", "show-ref", branch_name],
+        cwd=the_path,
+        stdout=subprocess.PIPE)
+    proc_git_show_ref.check_returncode()
+    msg = proc_git_show_ref.stdout.decode('utf-8')
+    # `msg.split()`:    # split by space and '\n'
+    #   e.g. for default branch (main or master):
+    #   ['xxxxxx', 'refs/heads/master', 'xxxxx', 'refs/remotes/origin/master']
+    #   usually first 'xxxxx' and second 'xxxxx' are the same
+    #   for job's branch: usually there is only one line in msg, i.e.,:
+    #   ['xxxx', 'refs/remotes/origin/job-0000-sub-xxxx']
+    git_ref = msg.split()[0]   # take the first element
+
+    return git_ref

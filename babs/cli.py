@@ -660,7 +660,11 @@ def babs_merge_cli():
     parser.add_argument(
         "--chunk-size", "--chunk_size",
         type=int,
-        help="Number of branches in a chunk when merging at a time.")
+        default=2000,
+        help="Number of branches in a chunk when merging at a time."
+             " We recommend using default value.")
+    # Matt: 5000 is not good, 2000 is appropriate.
+    #   Smaller chunk is, more merging commits which is fine.
     parser.add_argument(
         "--trial-run", "--trial_run",
         action='store_true',
