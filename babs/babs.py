@@ -493,16 +493,6 @@ class BABS():
                                 "code/check_setup/submit_test_job_template.yaml"],
                           message="Template for job submission")
 
-        # Generate `merge_outputs.sh`: ----------------------------------------
-        # this is temporary, and will be replaced by `babs-merge`
-        print("\nGenerating a bash script for merging the result branches...")
-        print("This bash script will be named as `merge_outputs.sh`")
-        print("This will be deprecated and replaced by `babs-merge`")
-        bash_path = op.join(self.analysis_path, "code", "merge_outputs.sh")
-        container.generate_bash_merge_outputs(bash_path, self)
-        self.datalad_save(path="code/merge_outputs.sh",
-                          message="Bash script for merging result branches")
-
         # Finish up and get ready for clusters running: -----------------------
         # create folder `logs` in `analysis`; future log files go here
         #   this won't be tracked by git (as already added to `.gitignore`)
@@ -1629,6 +1619,7 @@ class BABS():
             Whether to run as a trial run which won't push the merging actions back to output RIA.
             This option should only be used by developers for testing purpose.
         """
+        if_any_warning = False
         self.wtf_key_info()   # get `self.analysis_dataset_id`
         # path to `merge_ds`:
         merge_ds_path = op.join(self.project_root, "merge_ds")
@@ -1637,7 +1628,7 @@ class BABS():
             raise Exception("Folder 'merge_ds' already exists. `babs-merge` won't proceed."
                             " If you're sure you want to rerun `babs-merge`,"
                             " please remove this folder before you rerun `babs-merge`."
-                            " Path to 'merge_ds': ______",   # TODO
+                            " Path to 'merge_ds': '" + merge_ds_path + "'. "
                             " How to remove it:")   # TODO
 
         # Define two potential text files:
@@ -1652,7 +1643,7 @@ class BABS():
                                           "list_content_missing.txt")
 
         # Clone output RIA to `merge_ds`:
-        print("\nCloning output RIA to 'merge_ds'...")
+        print("Cloning output RIA to 'merge_ds'...")
         # get the path to output RIA:
         #   'ria+file:///path/to/BABS_project/output_ria#0000000-000-xxx-xxxxxxxx'
         output_ria_source = self.output_ria_url \
@@ -1734,6 +1725,7 @@ class BABS():
         if len(list_branches_no_results) > 0:   # not empty
             # save to a text file:
             #   note: this file has been removed at the beginning of babs_merge() if it existed)
+            if_any_warning = True
             warnings.warn("There are invalid job branch(es) in output RIA,"
                           + " and these job(s) do not have results."
                           + " The list of such invalid jobs will be saved to"
@@ -1742,6 +1734,15 @@ class BABS():
             with open(fn_list_invalid_jobs, "w") as f:
                 f.write('\n'.join(list_branches_no_results))
                 f.write("\n")   # add a new line at the end
+        # NOTE to developers: when testing ^^:
+        #   You can `git branch job-test` in `output_ria/000/000-000` to make a fake branch
+        #       that has the same SHASUM as master branch's
+        #       then you should see above warning.
+        #   However, if you finish running `babs-merge`, this branch `job-test` will have
+        #       a *different* SHASUM from master's, making it a "valid" job now.
+        #   To continue testing above warning, you need to delete this branch:
+        #       `git branch --delete job-test` in `output_ria/000/000-000`
+        #       then re-create a new one: `git branch job-test`
 
         # Merge valid branches chunk by chunk:
         print("\nMerging valid job branches chunk by chunk...")
@@ -1804,8 +1805,8 @@ class BABS():
                 cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_git_annex_find_missing.check_returncode()
             msg = proc_git_annex_find_missing.stdout.decode('utf-8')
-            # `msg` should be None:
-            if msg is not None:
+            # `msg` should be empty:
+            if msg != '':   # if not empty:
                 # save into a file:
                 with open(fn_list_content_missing, "w") as f:
                     f.write(msg)
@@ -1833,13 +1834,17 @@ class BABS():
             proc_datalad_push.check_returncode()
 
             # Done:
-            print("\n`babs-merge` was successful!")
+            if if_any_warning:
+                print("\n`babs-merge` has finished but had warning(s)!"
+                      " Please check out the warning message(s) above!")
+            else:
+                print("\n`babs-merge` was successful!")
 
         else:    # `--trial-run` is on:
-            warnings.warn("\n`--trial-run` was requested,"
+            print("")    # new empty line
+            warnings.warn("`--trial-run` was requested,"
                           + " not to push merging actions to output RIA.")
-
-        print("")
+            print("\n`babs-merge` did not fully finish yet!")
 
 
 class Input_ds():
@@ -2967,57 +2972,6 @@ class Container():
                     bash_file.write(str)
 
         # TODO: currently only support SGE.
-
-        bash_file.close()
-
-        # Change the permission of this bash file:
-        proc_chmod_bashfile = subprocess.run(
-            ["chmod", "+x", bash_path],  # e.g., chmod +x code/submit_jobs.sh
-            stdout=subprocess.PIPE
-            )
-        proc_chmod_bashfile.check_returncode()
-
-    def generate_bash_merge_outputs(self, bash_path, babs):
-        """
-        This is to generate a bash script that merge result branches.
-        This is a temporary function which will be deprecated and replaced
-        by `babs-merge`.
-
-        Parameters:
-        -------------
-        bash_path: str
-            The path to the bash file to be generated. It should be in the `analysis/code` folder.
-        babs: class `BABS`
-            information about the BABS project
-        """
-
-        # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
-
-        # Write into the bash file:
-        bash_file = open(bash_path, "a")   # open in append mode
-
-        bash_file.write("#!/bin/bash\n")
-        bash_file.write("set -e -u -x\n")
-
-        # Variable `outputsource`:
-        bash_file.write("outputsource=" + babs.output_ria_url
-                        + "#" + babs.analysis_dataset_id + "\n")
-
-        # cd to project root:
-        bash_file.write("cd " + babs.project_root + "\n")
-
-        # Read content from `merge_outputs_postscript.sh`:
-        __location__ = op.realpath(op.dirname(__file__))
-
-        fn_meat = op.join(__location__, "merge_outputs_postscript.sh")
-        bash_file_meat = open(fn_meat, "r")
-        the_meat = bash_file_meat.read()   # read the content
-        bash_file_meat.close()
-
-        bash_file.write("\n")
-        bash_file.write(the_meat)
 
         bash_file.close()
 
