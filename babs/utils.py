@@ -742,12 +742,44 @@ def generate_cmd_script_preamble(config):
         warnings.warn("Did not find the section 'script_preamble'"
                       + " in `container_config_yaml_file`."
                         + " Not to generate script preamble.")
+        # TODO: ^^ this should be changed to an error!
     else:   # there is `script_preamble`:
         # directly grab the commands in the section:
         cmd += "\n# Script preambles:\n"
         cmd += config["script_preamble"]
 
     cmd += "\necho I" + "\\" + "\'" + "m in $PWD using `which python`\n"
+
+    return cmd
+
+def generate_cmd_job_compute_space(config):
+    """
+    This is to generate bash cmd based on `job_compute_space`
+    from the `container_config_yaml_file`
+
+    Parameters:
+    ------------
+    config: dictionary
+        attribute `config` in class Container;
+        got from `read_container_config_yaml()`
+
+    Returns:
+    ------------
+    cmd: str
+        It's part of the `participant_job.sh`; it is generated
+        based on config yaml file.
+    """
+
+    cmd = ""
+    # sanity check:
+    if "job_compute_space" not in config:
+        raise Exception("Did not find the section 'job_compute_space'"
+                        + " in `container_config_yaml_file`!")
+
+    cmd += "\n# Change path to an ephemeral (temporary) job compute workspace:\n"
+    cmd += "# The path is specified according to 'job_compute_space'" \
+        + " in container's configuration YAML file.\n"
+    cmd += "cd " + config["job_compute_space"] + "\n"
 
     return cmd
 

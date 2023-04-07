@@ -32,7 +32,7 @@ script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
 
 # Where to run the jobs:
-compute_job_working_dir: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 # "/cbica/comp_space/$(basename $HOME)"   # PennMed CUBIC cluster compute space
 
 # Below is to filter out subjects (or sessions)

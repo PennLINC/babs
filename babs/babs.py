@@ -33,6 +33,7 @@ from babs.utils import (get_immediate_subdirectories,
                         write_yaml,
                         generate_bashhead_resources,
                         generate_cmd_script_preamble,
+                        generate_cmd_job_compute_space,
                         generate_cmd_datalad_run,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
@@ -2265,18 +2266,11 @@ class Container():
         if type_session == "multi-ses":
             # also have the input of `sesid`:
             bash_file.write('sesid="$4"\n')
-            bash_file.write('where_to_run="$5"\n')
-        elif type_session == "single-ses":
-            bash_file.write('where_to_run="$4"\n')
 
-        # TODO: if `where_to_run` is not specified, change to default = ??
-
-        bash_file.write("\n# Change to a temporary directory or compute space:\n")
-        bash_file.write('if [[ "${where_to_run}" == "cbica_tmpdir"  ]]; then\n')
-        bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
-        bash_file.write('elif [[ "${where_to_run}" == "comp_space"   ]]; then\n')
-        bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
-        bash_file.write("fi\n")
+        # Change path to a temporary job compute workspace:
+        #   the path is based on what users provide in section 'job_compute_space' in YAML file:
+        cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
+        bash_file.write(cmd_job_compute_space)
 
         # Setups: ---------------------------------------------------------------
         # set up the branch:
@@ -2476,17 +2470,12 @@ class Container():
                         + " use -x to get verbose logfiles:\n")
         bash_file.write("set -e -u -x\n")
 
-        # Inputs of the bash script:
-        bash_file.write("\n")
-        bash_file.write('where_to_run="$1"\n')
+        # NOTE: There is no input argument for this bash file.
 
-        bash_file.write("\n# Change to a temporary directory or compute space:\n")
-        bash_file.write('if [[ "${where_to_run}" == "cbica_tmpdir"  ]]; then\n')
-        bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
-        bash_file.write('elif [[ "${where_to_run}" == "comp_space"   ]]; then\n')
-        bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
-        bash_file.write("fi\n")
-        # TODO: update ^^ after adding this choice as a section in `--container-config-yaml-file`
+        # Change path to a temporary job compute workspace:
+        #   the path is based on what users provide in section 'job_compute_space' in YAML file:
+        cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
+        bash_file.write(cmd_job_compute_space)
 
         # Call `test_job.py`:
         # get which python:
@@ -2581,8 +2570,6 @@ class Container():
                 + babs.analysis_path + "/code/participant_job.sh" + " " \
                 + dssource + " " \
                 + pushgitremote + " " + "${sub_id}"
-            cmd += " " \
-                + "cbica_tmpdir"
 
         elif babs.type_session == "multi-ses":
             cmd = submit_head + " " + env_flags \
@@ -2592,8 +2579,6 @@ class Container():
                 + babs.analysis_path + "/code/participant_job.sh" + " " \
                 + dssource + " " \
                 + pushgitremote + " " + "${sub_id} ${ses_id}"
-            cmd += " " \
-                + "cbica_tmpdir"
 
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
 
@@ -2616,7 +2601,7 @@ class Container():
         Parameters:
         ------------
         yaml_path: str
-            The path to the yaml file to be generated. 
+            The path to the yaml file to be generated.
             It should be in the `analysis/code/check_setup` folder.
             It has several fields: 1) cmd_template; 2) job_name_template
         babs: class `BABS`
@@ -2648,8 +2633,6 @@ class Container():
         cmd += " " \
             + eo_args + " " \
             + babs.analysis_path + "/code/check_setup/call_test_job.sh"
-        cmd += " " \
-            + "cbica_tmpdir"
 
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
 

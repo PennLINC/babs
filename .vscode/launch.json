@@ -14,34 +14,31 @@
             "env": {
                 "PYDEVD_WARN_EVALUATION_TIMEOUT": "500"
             },
-            "args": [
-                "--project-root",
-                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp",
-            ],
             // "args": [
-            //     "--where_project",
-            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data",
-            //     "--project_name",
-            //     "test_babs_multi-ses_toybidsapp",
-            //     // "test_temp",
-            //     "--input",
-            //     "BIDS",
-            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/w2nu3",
-            //     // "/random/path",
-            //     // "https://osf.io/w2nu3/",
-            //     "--container_ds",
-            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker",
-            //     // "random/path",
-            //     "--container_name",
-            //     "toybidsapp-0-0-6",
-            //     "--container_config_yaml_file",
-            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container_toybidsapp.yaml",
-            //     "--type_session",
-            //     "multi-ses",
-            //     "--type_system",
-            //     "sge",
-            //     // "--keep-if-failed"
-            // ]
+            //     "--project-root",
+            //     "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_toybidsapp",
+            // ],
+            "args": [
+                "--where_project",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data",
+                "--project_name",
+                "test_babs_multi-ses_toybidsapp",
+                "--input",
+                "BIDS",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/w2nu3",
+                // "https://osf.io/w2nu3/",
+                "--container_ds",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker",
+                "--container_name",
+                "toybidsapp-0-0-6",
+                "--container_config_yaml_file",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container_toybidsapp.yaml",
+                "--type_session",
+                "multi-ses",
+                "--type_system",
+                "sge",
+                "--keep-if-failed"
+            ]
             // "args": [
             //     "--where_project", "/cbica/projects/BABS/data",
             //     "--project_name", "test_babs_multi-ses_toybidsapp",

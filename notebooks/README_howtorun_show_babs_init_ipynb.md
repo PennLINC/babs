@@ -29,11 +29,6 @@ If the list of branches looks good to you:
 - merge: `[analysis] $ bash code/merge_outputs.sh`
 - clone out output_ria to see
 
-## How to interactively test out the bootstrapped scripts:
-- open `participant_job.sh` and `submit_jobs.sh`
-- enter the arguments value into terminal based on `submit_job.sh`
-- `$ where_to_run="/cbica/comp_space/$(basename $HOME)"   # using comp_space `
-
 ## After the job is gone from the list, check:
 - output_ria/xxx/xxx-xxx-xxx-xxx: $ git branch -a  # to see if the job is success
 - `analysis/logs` for logs
