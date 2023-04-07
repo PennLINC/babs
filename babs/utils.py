@@ -2018,7 +2018,7 @@ def get_git_show_ref_shasum(branch_name, the_path):
     git_ref: str
         current commit's shasum of this branch in this git repo
     msg: str
-        the string got by `git show-ref`, before splited by space and '\n'.
+        the string got by `git show-ref`, before split by space and '\n'.
     Notes:
     -------
     bash version would be:
