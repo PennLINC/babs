@@ -34,7 +34,6 @@ script_preamble: |
 
 # Where to run the jobs:
 job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
-# "/cbica/comp_space/$(basename $HOME)"   # PennMed CUBIC cluster compute space
 
 required_files:
     $INPUT_DATASET_#1:
