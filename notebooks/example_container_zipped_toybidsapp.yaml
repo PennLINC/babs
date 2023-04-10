@@ -25,6 +25,8 @@ cluster_resources:
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
 
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 
 # Below is to filter out subjects (or sessions)
 #   right now we only filter based on unzipped dataset

@@ -46,6 +46,9 @@ script_preamble: |
 # ^^ based on what you need on your cluster; some people even don't use `conda`...
 # for MSI, might need to add command e.g., "module_load"
 
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+
 # Below is to filter out subjects (or sessions)
 #   right now we only filter based on unzipped dataset
 required_files:

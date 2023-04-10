@@ -33,6 +33,7 @@ from babs.utils import (get_immediate_subdirectories,
                         write_yaml,
                         generate_bashhead_resources,
                         generate_cmd_script_preamble,
+                        generate_cmd_job_compute_space,
                         generate_cmd_datalad_run,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
@@ -2265,18 +2266,11 @@ class Container():
         if type_session == "multi-ses":
             # also have the input of `sesid`:
             bash_file.write('sesid="$4"\n')
-            bash_file.write('where_to_run="$5"\n')
-        elif type_session == "single-ses":
-            bash_file.write('where_to_run="$4"\n')
 
-        # TODO: if `where_to_run` is not specified, change to default = ??
-
-        bash_file.write("\n# Change to a temporary directory or compute space:\n")
-        bash_file.write('if [[ "${where_to_run}" == "cbica_tmpdir"  ]]; then\n')
-        bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
-        bash_file.write('elif [[ "${where_to_run}" == "comp_space"   ]]; then\n')
-        bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
-        bash_file.write("fi\n")
+        # Change path to a temporary job compute workspace:
+        #   the path is based on what users provide in section 'job_compute_space' in YAML file:
+        cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
+        bash_file.write(cmd_job_compute_space)
 
         # Setups: ---------------------------------------------------------------
         # set up the branch:
@@ -2476,17 +2470,12 @@ class Container():
                         + " use -x to get verbose logfiles:\n")
         bash_file.write("set -e -u -x\n")
 
-        # Inputs of the bash script:
-        bash_file.write("\n")
-        bash_file.write('where_to_run="$1"\n')
+        # NOTE: There is no input argument for this bash file.
 
-        bash_file.write("\n# Change to a temporary directory or compute space:\n")
-        bash_file.write('if [[ "${where_to_run}" == "cbica_tmpdir"  ]]; then\n')
-        bash_file.write("\t" + "cd ${CBICA_TMPDIR}" + "\n")
-        bash_file.write('elif [[ "${where_to_run}" == "comp_space"   ]]; then\n')
-        bash_file.write("\t" + "cd /cbica/comp_space/$(basename $HOME)\n")
-        bash_file.write("fi\n")
-        # TODO: update ^^ after adding this choice as a section in `--container-config-yaml-file`
+        # Change path to a temporary job compute workspace:
+        #   the path is based on what users provide in section 'job_compute_space' in YAML file:
+        cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
+        bash_file.write(cmd_job_compute_space)
 
         # Call `test_job.py`:
         # get which python:
@@ -2581,8 +2570,6 @@ class Container():
                 + babs.analysis_path + "/code/participant_job.sh" + " " \
                 + dssource + " " \
                 + pushgitremote + " " + "${sub_id}"
-            cmd += " " \
-                + "cbica_tmpdir"
 
         elif babs.type_session == "multi-ses":
             cmd = submit_head + " " + env_flags \
@@ -2592,8 +2579,6 @@ class Container():
                 + babs.analysis_path + "/code/participant_job.sh" + " " \
                 + dssource + " " \
                 + pushgitremote + " " + "${sub_id} ${ses_id}"
-            cmd += " " \
-                + "cbica_tmpdir"
 
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
 
@@ -2616,7 +2601,7 @@ class Container():
         Parameters:
         ------------
         yaml_path: str
-            The path to the yaml file to be generated. 
+            The path to the yaml file to be generated.
             It should be in the `analysis/code/check_setup` folder.
             It has several fields: 1) cmd_template; 2) job_name_template
         babs: class `BABS`
@@ -2648,8 +2633,6 @@ class Container():
         cmd += " " \
             + eo_args + " " \
             + babs.analysis_path + "/code/check_setup/call_test_job.sh"
-        cmd += " " \
-            + "cbica_tmpdir"
 
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
 
@@ -2661,94 +2644,6 @@ class Container():
         yaml_file.write("job_name_template: '" + job_name + "'\n")
 
         yaml_file.close()
-
-    def generate_bash_submit_jobs(self, bash_path, input_ds, babs, system):
-        """
-        !!!DEPRECATED!!!
-
-        This is to generate a bash script that submit jobs for each participant (or session).
-        This is a temporary function which will be deprecated and replaced
-        by `babs-submit`.
-
-        Parameters:
-        -------------
-        bash_path: str
-            The path to the bash file to be generated. It should be in the `analysis/code` folder.
-        input_ds: class `Input_ds`
-            input dataset(s) information
-        babs: class `BABS`
-            information about the BABS project
-        system: class `System`
-            information on cluster management system
-        """
-
-        # Flags when submitting the job:
-        if system.type == "sge":
-            submit_head = "qsub -cwd"
-            env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
-            eo_args = "-e " + babs.analysis_path + "/logs " \
-                + "-o " + babs.analysis_path + "/logs"
-        else:
-            warnings.warn("not supporting systems other than sge...")
-
-        # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
-
-        # Write into the bash file:
-        bash_file = open(bash_path, "a")   # open in append mode
-
-        bash_file.write("#!/bin/bash\n")
-
-        # Variables to use:
-        # `dssource`: Input RIA:
-        dssource = babs.input_ria_url + "#" + babs.analysis_dataset_id
-        # `pushgitremote`: Output RIA:
-        pushgitremote = babs.output_ria_data_dir
-
-        # Get the list of subjects + generate the commands:
-        #   `get_list_sub_ses` will also remove the sub/ses
-        #   that does not have required file(s) (based on input yaml file)
-        if babs.type_session == "single-ses":
-            subs = get_list_sub_ses(input_ds, self.config, babs)
-            # iterate across subs:
-            for sub in subs:
-                str = submit_head + " " + env_flags \
-                    + " -N " + self.container_name[0:3] + "_" + sub + " " \
-                    + eo_args + " " \
-                    + babs.analysis_path + "/code/participant_job.sh" + " " \
-                    + dssource + " " \
-                    + pushgitremote + " " \
-                    + sub + " " \
-                    + "cbica_tmpdir" + "\n"
-                bash_file.write(str)
-
-        else:   # multi-ses
-            dict_sub_ses = get_list_sub_ses(input_ds, self.config, babs)
-            # iterate across subs, then iterate across sess:
-            for sub in list(dict_sub_ses.keys()):   # keys are subs
-                for ses in dict_sub_ses[sub]:
-                    str = submit_head + " " + env_flags \
-                        + " -N " + self.container_name[0:3] + "_" + sub + "_" + ses + " " \
-                        + eo_args + " " \
-                        + babs.analysis_path + "/code/participant_job.sh" + " " \
-                        + dssource + " " \
-                        + pushgitremote + " " \
-                        + sub + " " \
-                        + ses + " " \
-                        + "cbica_tmpdir" + "\n"
-                    bash_file.write(str)
-
-        # TODO: currently only support SGE.
-
-        bash_file.close()
-
-        # Change the permission of this bash file:
-        proc_chmod_bashfile = subprocess.run(
-            ["chmod", "+x", bash_path],  # e.g., chmod +x code/submit_jobs.sh
-            stdout=subprocess.PIPE
-            )
-        proc_chmod_bashfile.check_returncode()
 
     def generate_bash_merge_outputs(self, bash_path, babs):
         """
