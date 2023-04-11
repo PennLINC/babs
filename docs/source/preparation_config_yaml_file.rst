@@ -23,6 +23,7 @@ Sections in the configuration YAML file
 * **babs_zip_foldername**: the results foldername(s) to be zipped;
 * **cluster_resources**: how much cluster resources are needed to run this BIDS App?
 * **script_preamble**: the preambles in the script to run a participant's job;
+* **job_compute_space**: where to run the jobs?
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
 * **keywords_alert**: keywords in alerting messages in the log files that may be helpful for debugging the error;
 
@@ -178,11 +179,17 @@ Advanced - Manual of writing section ``babs_singularity_run``
     
     * This is especially encouraged when there are only numbers in the value (without letters).
 
-* How to specify working directory (e.g., ``-w`` in fMRIPrep)?
+* How to specify "path where intermediate results should be stored" (e.g., ``-w`` in fMRIPrep or QSIPrep)?
 
-    * You can use ``"$BABS_TMPDIR"``. It is a value placeholder recognized by BABS for temporary working directory.
-      Example would be: ``-w: "$BABS_TMPDIR"``.
-      By default BABS will automatically create a working directory.
+    * You can use ``"$BABS_TMPDIR"``. It is a value placeholder recognized by BABS for temporary directory
+      for holding intermediate results.
+      Example would be::
+        
+        -w: "$BABS_TMPDIR"
+
+      By default BABS will automatically create such temporary directory if you use ``$BABS_TMPDIR``.
+
+.. developer's note: it will be changed ``-w ${PWD}/.git/tmp/wkdir`` - see the example above.
 
 * How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
 
@@ -420,11 +427,60 @@ This will appear as below in the ``participant_job.sh``::
     Above command may not apply to your cluster; check how to activate conda environment on your cluster and replace above command.
     You may also need to add command ``module_load`` for some modules (like FreeSurfer) too.
 
+.. warning::
+    Different from other sections, please do **NOT** quote the commands in this section!
+
 Notes:
 
 * Remember to add ``|`` after ``script_preamble:``;
-* You can also add more necessary commands by adding new lines;
-* :octicon:`alert-fill` :bdg-warning:`warning` Please do NOT quote the commands in this section!
+* You can also add more necessary commands by adding new lines.
+
+
+Section ``job_compute_space``
+================================
+The jobs will be computed in ephemeral (temporary) compute space. Specifically,
+this space could be temporary space on a cluster node, or some scratch space. It's totally fine (and recommended!)
+if the data or the directory in the space will be removed after the job finishes - all results will be pushed back
+to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates. 
+
+.. dropdown:: Why recommending space where data/directory will be automatically removed after the job finishes?
+
+    If a job fails, and if the data or the directory won't be automatically removed, 
+    data will be accumulated and takes up space.
+
+    We recommend using space that automatically cleans after the job finishes especially for large-scale dataset
+    which has a large amount of jobs to do.
+
+Example section **job_compute_space**::
+
+    job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+
+Here, ``"${CBICA_TMPDIR}"`` is an environment variable recognized by Penn Medicine CUBIC cluster,
+which points to some temporary compute space local to the compute node. This environment variable
+might not be recognized by your clusters, but you can use the path that's specific to yours::
+
+    job_compute_space: "/path/to/some_temporary_compute_space"
+
+You can also use an environment variable recognized by your clusters.
+
+.. developer's note: for Penn Medicine CUBIC cluster, you might also use ``comp_space``.
+.. However if jobs failed, the results data won't be automatically cleaned from this space,
+.. causing accumulations of data that takes up space. Only use this space when you're debugging BABS.
+.. job_compute_space: "/cbica/comp_space/$(basename $HOME)"   # PennMed CUBIC cluster compute space
+
+.. note::
+    
+    Best to quote (``""``) the string of the path to the space as shown in the examples above.
+
+Notes:
+
+* What's the different between this section and the argument "path where intermediate results should be stored"
+  in some BIDS Apps (e.g., ``-w`` in fMRIPrep or QSIPrep)?
+
+    * The space specified in this section is for job computing by BABS, and such job computing includes not only
+      ``singularity run`` of the BIDS App, but also other necessary data version tracking steps done by BABS.
+    * The "path where intermediate results should be stored" (e.g., ``-w``) is directly used by BIDS Apps.
+      It is also a sub-folder of the space specified in this section.
 
 .. _required_files:
 
