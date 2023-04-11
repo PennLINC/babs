@@ -56,7 +56,7 @@
             "args": [
                 "--project-root",
                 "/cbica/projects/BABS/data/test_babs_multi-ses_toybidsapp",
-                "--chunk-size", "4",
+                // "--chunk-size", "4",
                 // "--trial-run"
                 //"--job-test"
             ]

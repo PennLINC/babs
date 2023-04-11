@@ -1775,6 +1775,7 @@ class BABS():
                 cwd=merge_ds_path,
                 stdout=subprocess.PIPE)
             proc_git_merge.check_returncode()
+            print(proc_git_merge.stdout.decode('utf-8'))
 
         # Push merging actions back to output RIA:
         if not trial_run:
@@ -1784,6 +1785,7 @@ class BABS():
                 ["git", "push"],
                 cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_git_push.check_returncode()
+            print(proc_git_push.stdout.decode('utf-8'))
 
             # Get file availability information: which is very important!
             # `git annex fsck --fast -f output-storage`:
@@ -1795,6 +1797,8 @@ class BABS():
                 ["git", "annex", "fsck", "--fast", "-f", "output-storage"],
                 cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_git_annex_fsck.check_returncode()
+            # print(proc_git_annex_fsck.stdout.decode('utf-8'))
+            # ^^ if printed, will be a long list of "fsck xxx.zip (fixing location log) ok"
 
             # Double check: there should not be file content that's not in `output-storage`:
             #   This should not print anything - we never has this error before
@@ -1821,6 +1825,7 @@ class BABS():
                 ["git", "annex", "dead", "here"],
                 cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_git_annex_dead_here.check_returncode()
+            print(proc_git_annex_dead_here.stdout.decode('utf-8'))
 
             # Final `datalad push` to output RIA:
             # `datalad push --data nothing`:
@@ -1831,6 +1836,7 @@ class BABS():
                 ["datalad", "push", "--data", "nothing"],
                 cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_datalad_push.check_returncode()
+            print(proc_datalad_push.stdout.decode('utf-8'))
 
             # Done:
             if if_any_warning:
