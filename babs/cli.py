@@ -650,7 +650,8 @@ def babs_merge_cli():
     CLI for merging results.
     """
     parser = argparse.ArgumentParser(
-        description="`babs-merge` merges results.",
+        description="``babs-merge`` merges results and provenance"
+        " from all successfully finished jobs.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--project_root", "--project-root",

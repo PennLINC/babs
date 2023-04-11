@@ -1628,8 +1628,7 @@ class BABS():
             raise Exception("Folder 'merge_ds' already exists. `babs-merge` won't proceed."
                             " If you're sure you want to rerun `babs-merge`,"
                             " please remove this folder before you rerun `babs-merge`."
-                            " Path to 'merge_ds': '" + merge_ds_path + "'. "
-                            " How to remove it:")   # TODO
+                            " Path to 'merge_ds': '" + merge_ds_path + "'. ")
 
         # Define two potential text files:
         #   in 'merge_ds/code' folder

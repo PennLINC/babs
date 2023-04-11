@@ -128,7 +128,9 @@ Example commands
 **********************
 
 Example ``babs-init`` command for toy BIDS App + multi-session data on 
-an SGE cluster::
+an SGE cluster:
+
+.. code-block:: bash
 
     babs-init \
         --where_project /path/to/a/folder/holding/BABS/project \
@@ -143,7 +145,9 @@ an SGE cluster::
 Example command if you have more than one input datasets, e.g., raw BIDS data, and fMRIPrep
 with FreeSurfer results ingressed. The 2nd dataset is also result from another BABS project -
 a zipped dataset has filenames in patterns of 'sub-xx*_freesurfer*.zip'.
-Therefore, the 2nd input dataset should be named as 'freesurfer', a keyword in filename::
+Therefore, the 2nd input dataset should be named as 'freesurfer', a keyword in filename:
+
+.. code-block:: bash
 
     babs-init \
         ... \
