@@ -13,6 +13,7 @@ Documentations
    preparation
    create_babs_project
    jobs
+   after_jobs
    walkthrough
    cli
    developer
