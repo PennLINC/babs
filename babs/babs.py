@@ -1630,7 +1630,7 @@ class BABS():
                             " please remove this folder before you rerun `babs-merge`."
                             " Path to 'merge_ds': '" + merge_ds_path + "'. ")
 
-        # Define two potential text files:
+        # Define (potential) text files:
         #   in 'merge_ds/code' folder
         #   as `merge_ds` should not exist at the moment,
         #   no need to check existence/remove these files.
@@ -1640,6 +1640,10 @@ class BABS():
         # define path to text file of files with missing content:
         fn_list_content_missing = op.join(merge_ds_path, "code",
                                           "list_content_missing.txt")
+        # define path to printed messages from `git annex fsck`:
+        # ^^ this will be absolutely used if `babs-merge` does not fail:
+        fn_msg_fsck = op.join(merge_ds_path, "code",
+                              "log_git_annex_fsck.txt")
 
         # Clone output RIA to `merge_ds`:
         print("Cloning output RIA to 'merge_ds'...")
@@ -1797,8 +1801,17 @@ class BABS():
                 ["git", "annex", "fsck", "--fast", "-f", "output-storage"],
                 cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_git_annex_fsck.check_returncode()
-            # print(proc_git_annex_fsck.stdout.decode('utf-8'))
-            # ^^ if printed, will be a long list of "fsck xxx.zip (fixing location log) ok"
+            # if printing the returned msg,
+            #   will be a long list of "fsck xxx.zip (fixing location log) ok"
+            #   or "fsck xxx.zip ok"
+            # instead, save it into a text file:
+            with open(fn_msg_fsck, "w") as f:
+                f.write("# Below are printed messages from"
+                        " `git annex fsck --fast -f output-storage`:\n\n")
+                f.write(proc_git_annex_fsck.stdout.decode('utf-8'))
+                f.write("\n")
+            # now we can delete `proc_git_annex_fsck` to save memory:
+            del proc_git_annex_fsck
 
             # Double check: there should not be file content that's not in `output-storage`:
             #   This should not print anything - we never has this error before

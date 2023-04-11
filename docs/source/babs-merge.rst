@@ -59,8 +59,9 @@ you need to remove folder ``merge_ds`` first:
 
 .. Developer's notes:
 .. `datalad save` is just due to new files: 
-..  `merge_ds/code/list_content_missing.txt`
-..  `merge_ds/code/list_invalid_job_when_merging.txt`
+..  `merge_ds/code/log_git_annex_fsck.txt`   # will def appear
+..  `merge_ds/code/list_content_missing.txt`   # extremely low chance to appear
+..  `merge_ds/code/list_invalid_job_when_merging.txt`   #  very low chance to appear
 
 .. After `git merge`, regardless of pushing to output RIA or not,
 ..  needs `--reckless availability`
