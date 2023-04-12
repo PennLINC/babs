@@ -1865,6 +1865,38 @@ class BABS():
                           + " not to push merging actions to output RIA.")
             print("\n`babs-merge` did not fully finish yet!")
 
+    def babs_unzip(container_config_yaml_file):
+        """
+        This function unzips results and extract desired files.
+        This is done in 3 steps:
+        1. Generate scripts used by `babs-unzip`
+        2. Run scripts to unzip data
+        3. Merge all branches of unzipping
+
+        Parameters:
+        --------------
+        config: dict
+            loaded container config yaml file
+        """
+
+        # ====================================================
+        # Generate scripts used by `babs-unzip`
+        # ====================================================
+
+        # Prepare input_ds_unzip:
+        # Call `babs_bootstrap()`:
+        #   !!!! using babs_proj_unzip, instead current `self`!!!
+
+        print("TODO")
+
+        # ====================================================
+        # Run scripts to unzip data
+        # ====================================================
+
+        # ====================================================
+        # Merge all branches of unzipping
+        # ====================================================
+
 
 class Input_ds():
     """This class is for input dataset(s)"""
@@ -2298,13 +2330,23 @@ class Container():
 
         # check if `self.config` from the YAML file contains information we need:
         if "babs_singularity_run" not in self.config:
-            print("The key 'babs_singularity_run' was not included "
-                  "in the `container_config_yaml_file`. "
-                  "Therefore we will not refer to the yaml file for `singularity run` arguments, "
-                  "but will use regular `singularity run` command.")
-        #       "command of singularity run will be read from information "
-        #       "saved by `call-fmt` when `datalad containers-add.`")
-            cmd_singularity_flags = "\n\t"
+            # sanity check: there should be only one input ds
+            #   otherwise need to specify in this section:
+            assert input_ds.num_ds == 1, \
+                "Section 'babs_singularity_run' is missing in the provided" \
+                + " `container_config_yaml_file`. As there are more than one" \
+                + " input dataset, you must include this section to specify" \
+                + " to which argument that each input dataset will go."
+            # if there is only one input ds, fine:
+            print("Section 'babs_singularity_run' was not included "
+                  "in the `container_config_yaml_file`. ")
+            cmd_singularity_flags = ""   # should be empty
+            # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
+            #   also have values:
+            # as "--fs-license-file" or "$FREESURFER_LICENSE" is not provided:
+            flag_fs_license = None
+            # copied from `generate_cmd_singularityRun_from_config`:
+            singuRun_input_dir = input_ds.df["path_data_rel"][0]
         else:
             # print("Generate singularity run command from `container_config_yaml_file`")
             # # contain \ for each key-value

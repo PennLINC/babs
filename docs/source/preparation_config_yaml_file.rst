@@ -29,6 +29,12 @@ Sections in the configuration YAML file
 
 Among these sections, these sections are optional:
 
+* **babs_singularity_run**
+
+  * Only if you are sure that besides arguments handled by BABS, you don't need any other argument,
+    you may exclude this section from the YAML file.
+  * You must include this section if there are more one input dataset.
+
 * **required_files**
 * **keywords_alert**
 

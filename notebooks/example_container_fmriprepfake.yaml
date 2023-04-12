@@ -1,0 +1,44 @@
+# This is an example config yaml file for fmriprep-fake version 0.1.0.
+# fmriprep-fake's Docker image is publicly available at: https://hub.docker.com/r/djarecka/fmriprep_fake
+# fmriprep-fake generates fMRIPrep outputs without running fMRIPrep itself. You may use it to check fmriprep outputs.
+#     More details please see: https://github.com/djarecka/fmriprep-fake
+# Thanks to Dorota Jarecka for preparing and sharing this BIDS App!
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the toy BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# 'babs_singularity_run': There is no such section for fmriprep-fake
+#   as all commands needed by fmriprep-fake have been handled by BABS.
+
+babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+    fmriprepfake: "0-1-1"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+
+cluster_resources:
+    interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
+    hard_memory_limit: 2G   # "-l h_vmem=25G" on cubic
+    temporary_disk_space: 20G   # "-l tmpfree=50G" on cubic  # this is highly-recommended on cubic
+    hard_runtime_limit: "24:00:00"   # needed by cubic for PennLINC lab members; otherwise jobs will be sent to generic nodes 
+    customized_text: |
+        #$ -R y
+
+# Users need to add their customized bash command below,
+#   they will be used as preambles in `participant_job.sh`
+#   the commands should not be quoted!
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+
+# Below is to filter out subjects (or sessions)
+#   right now we only filter based on unzipped dataset
+required_files:
+    $INPUT_DATASET_#1:
+        - "func/*_bold.nii*"
+        - "anat/*_T1w.nii*"
+
+# Keywords for alerting messages in log files:
+# 'keywords_alert': not to include this section for now.
