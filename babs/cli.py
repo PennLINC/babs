@@ -701,6 +701,48 @@ def babs_merge_main():
     babs_proj.babs_merge(args.chunk_size, args.trial_run)
 
 
+def babs_unzip_cli():
+    """ CLI for babs-unzip """
+
+    parser = argparse.ArgumentParser(
+        description="``babs-unzip`` unzips results zip files and extracts desired files",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        '--container_config_yaml_file', '--container-config-yaml-file',
+        help="Path to a YAML file of the BIDS App container that contains information of"
+        " what files to unzip etc.")
+    
+    return parser
+
+
+def babs_unzip_main():
+    """
+    This is the core function of babs-unzip, which unzip results zip files
+    and extracts desired files.
+
+    project_root: str
+        Absolute path to the root of BABS project.
+        For example, '/path/to/my_BABS_project/'.
+    container_config_yaml_file: str
+        path to container's configuration YAML file.
+    """
+
+    # Get arguments:
+    args = babs_unzip_cli().parse_args()
+    project_root = args.project_root
+
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj, _ = get_existing_babs_proj(project_root)
+
+    # Call method `babs_unzip()`:
+    babs_proj.babs_unzip()
+
+
 def get_existing_babs_proj(project_root):
     """
     This is to get `babs_proj` (class `BABS`) and `input_ds` (class `Input_ds`)
@@ -730,7 +772,7 @@ def get_existing_babs_proj(project_root):
     babs_proj_config_yaml = op.join(project_root,
                                     "analysis/code/babs_proj_config.yaml")
     if op.exists(babs_proj_config_yaml) is False:
-        raise Exception( \
+        raise Exception(
             "`babs-init` was not successful;"
             + " there is no 'analysis/code/babs_proj_config.yaml' file!"
             + " Please rerun `babs-init` to finish the setup.")
