@@ -2646,13 +2646,6 @@ class Container():
                 (cd inputs/data/<name> && rm -f `ls sub-*.zip | grep -v ${subid}`)
                 """
 
-        # `datalad get` the container ??
-        # NOTE: only found in `bootstrap-fmriprep-ingressed-fs.sh`...
-        #   not sure if this is really needed
-        bash_file.write("\n# Get the container dataset:\n")
-        bash_file.write("datalad get -r containers" + "\n")
-        # NOTE: ^^ not sure if `-r` is needed....
-
         # determine the zip filename:
         cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
         bash_file.write(cmd_determine_zipfilename)
