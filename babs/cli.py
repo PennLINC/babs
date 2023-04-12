@@ -730,17 +730,31 @@ def babs_unzip_main():
         For example, '/path/to/my_BABS_project/'.
     container_config_yaml_file: str
         path to container's configuration YAML file.
+        These two sections will be used:
+        1. 'unzip_desired_filenames' - must be included
+        2. 'rename_conflict_files' - optional
     """
 
     # Get arguments:
     args = babs_unzip_cli().parse_args()
     project_root = args.project_root
+    container_config_yaml_file = args.container_config_yaml_file
+
+    # container config:
+    config = read_yaml(container_config_yaml_file)
+    # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
+
+    # Sanity checks:
+    if "unzip_desired_filenames" not in config:
+        raise Exception("Section 'unzip_desired_filenames' is not included"
+                        " in `--container_config_yaml_file`. This section is required."
+                        " Path to this YAML file: '" + container_config_yaml_file + "'.")
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Call method `babs_unzip()`:
-    babs_proj.babs_unzip()
+    babs_proj.babs_unzip(config)
 
 
 def get_existing_babs_proj(project_root):

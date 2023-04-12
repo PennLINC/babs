@@ -1865,6 +1865,38 @@ class BABS():
                           + " not to push merging actions to output RIA.")
             print("\n`babs-merge` did not fully finish yet!")
 
+    def babs_unzip(container_config_yaml_file):
+        """
+        This function unzips results and extract desired files.
+        This is done in 3 steps:
+        1. Generate scripts used by `babs-unzip`
+        2. Run scripts to unzip data
+        3. Merge all branches of unzipping
+
+        Parameters:
+        --------------
+        config: dict
+            loaded container config yaml file
+        """
+
+        # ====================================================
+        # Generate scripts used by `babs-unzip`
+        # ====================================================
+
+        # Prepare input_ds_unzip:
+        # Call `babs_bootstrap()`:
+        #   !!!! using babs_proj_unzip, instead current `self`!!!
+
+        print("TODO")
+
+        # ====================================================
+        # Run scripts to unzip data
+        # ====================================================
+
+        # ====================================================
+        # Merge all branches of unzipping
+        # ====================================================
+
 
 class Input_ds():
     """This class is for input dataset(s)"""
