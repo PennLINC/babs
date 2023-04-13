@@ -53,7 +53,8 @@ from babs.utils import (get_immediate_subdirectories,
                         check_job_account,
                         print_versions_from_yaml,
                         get_git_show_ref_shasum,
-                        ceildiv)
+                        ceildiv,
+                        generate_bash_get_files)
 
 # import pandas as pd
 
@@ -250,17 +251,24 @@ class BABS():
                        container_ds, container_name, container_config_yaml_file,
                        system, if_unzip=False):
         """
-        Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
+        Bootstrap a BABS project:
+            initialize datalad-tracked RIAs, generate scripts to be used, etc.
+        This can also be used to bootstrap an unzip project to unzip files.
+            if that's the case, `if_unzip = True`, and:
+            1. input dataset will be output RIA (with merged results) of a BABS project;
+            2. there is no container datalad dataset
 
         Parameters:
         -------------
         input_ds: class `Input_ds`
             Input dataset(s).
-        container_name: str
+        container_name: str or None
             name of the container, best to include version number.
             e.g., 'fmriprep-0-0-0'
-        container_ds: str
+            `None` only when `if_unzip=True`
+        container_ds: str or None
             path to the container datalad dataset which the user provides
+            `None` only when `if_unzip=True`
         container_config_yaml_file: str
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container
@@ -331,8 +339,14 @@ class BABS():
             babs_proj_config_file.write("    is_zipped: 'TO_BE_FILLED'\n")
         # container ds:
         babs_proj_config_file.write("container:\n")
-        babs_proj_config_file.write("  name: '" + container_name + "'\n")
-        babs_proj_config_file.write("  path_in: '" + container_ds + "'\n")
+        if not if_unzip:
+            babs_proj_config_file.write("  name: '" + container_name + "'\n")
+            babs_proj_config_file.write("  path_in: '" + container_ds + "'\n")
+        else:    # `if_unzip=True`: there is no container ds as input:
+            # save as `null` to YAML file, which will be read as `None`
+            babs_proj_config_file.write("  name: null\n")
+            babs_proj_config_file.write("  path_in: null\n")
+            # tested: after re-loading and re-saving, what's in YAML will still be `null`
 
         babs_proj_config_file.close()
         self.datalad_save(path="code/babs_proj_config.yaml",
@@ -394,7 +408,10 @@ class BABS():
         print("\nChecking whether each input dataset is a zipped or unzipped dataset...")
         input_ds.check_if_zipped()
         # sanity checks:
-        input_ds.check_validity_zipped_input_dataset(self.type_session)
+        if not if_unzip:
+            input_ds.check_validity_zipped_input_dataset(self.type_session)
+        # if if_unzip: not to perform the sanity check, as the input ds's
+        #   name is fixed: "results", and won't match with zip filenames or foldernames inside)
 
         # Check validity of unzipped ds:
         #   if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
@@ -422,23 +439,26 @@ class BABS():
         #             path = op.join(self.project_root, "containers"))   # path to clone into
 
         # directly add container as sub-dataset of `analysis`:
-        print("\nAdding the container as a sub-dataset of `analysis` dataset...")
-        dlapi.install(dataset=self.analysis_path,
-                      source=container_ds,    # container datalad dataset
-                      path=op.join(self.analysis_path, "containers"))
-        # into `analysis/containers` folder
+        if not if_unzip:    # only when bootstrap for a regular BABS project:
+            print("\nAdding the container as a sub-dataset of `analysis` dataset...")
+            dlapi.install(dataset=self.analysis_path,
+                          source=container_ds,    # container datalad dataset
+                          path=op.join(self.analysis_path, "containers"))
+            # into `analysis/containers` folder
 
-        # original bash command, if directly going into as sub-dataset:
-        # datalad install -d . --source ../../toybidsapp-container-docker/ containers
+            # original bash command, if directly going into as sub-dataset:
+            # datalad install -d . --source ../../toybidsapp-container-docker/ containers
 
-        # from our the way:
-        # cd ${PROJECTROOT}/analysis
-        # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
+            # from our the way:
+            # cd ${PROJECTROOT}/analysis
+            # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
-        container = Container(container_ds, container_name, container_config_yaml_file)
+            container = Container(container_ds, container_name, container_config_yaml_file)
 
-        # sanity check of container ds:
-        container.sanity_check(self.analysis_path)
+            # sanity check of container ds:
+            container.sanity_check(self.analysis_path)
+        else:    # for `babs-unzip`:
+            container = None
 
         # ==============================================================
         # Bootstrap scripts:
@@ -447,15 +467,21 @@ class BABS():
         # Generate `<containerName>_zip.sh`: ----------------------------------
         # which is a bash script of singularity run + zip
         # in folder: `analysis/code`
-        print("\nGenerating a bash script for running container and zipping the outputs...")
-        print("This bash script will be named as `" + container_name + "_zip.sh`")
-        bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
-        container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
-        self.datalad_save(path="code/" + container_name + "_zip.sh",
-                          message="Generate script of running container")
-
-        # make another folder within `code` for test jobs:
-        os.makedirs(op.join(self.analysis_path, "code/check_setup"), exist_ok=True)
+        os.makedirs(op.join(self.analysis_path, "code"), exist_ok=True)
+        if not if_unzip:
+            print("\nGenerating a bash script for running container and zipping the outputs...")
+            print("This bash script will be named as `" + container_name + "_zip.sh`")
+            bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
+            container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
+            self.datalad_save(path="code/" + container_name + "_zip.sh",
+                              message="Generate script of running container")
+        else:   # if this is for `babs-unzip`:
+            # generate `get_files.sh`:
+            # as class `Container` is not generated, will call a plain function:
+            bash_path = op.join(self.analysis_path, "code", "get_files.sh")
+            generate_bash_get_files(bash_path, container_config_yaml_file)
+            # TODO: add datalad save:
+            print("TODO")
 
         # Generate `participant_job.sh`: --------------------------------------
         print("\nGenerating a bash script for running jobs at participant (or session) level...")
@@ -463,15 +489,19 @@ class BABS():
         bash_path = op.join(self.analysis_path, "code", "participant_job.sh")
         container.generate_bash_participant_job(bash_path, input_ds, self.type_session,
                                                 system)
+        self.datalad_save(path="code/participant_job.sh",
+                          message="Participant compute job implementation")
 
-        # also, generate a bash script of a test job used by `babs-check-setup`:
+        # Generate bash scripts for a test job used by `babs-check-setup`: -------------
+        # make another folder within `code` for test jobs:
+        os.makedirs(op.join(self.analysis_path, "code/check_setup"), exist_ok=True)
         path_check_setup = op.join(self.analysis_path, "code/check_setup")
+        # generate `call_test_job.sh` and `test_job.py`:
         container.generate_bash_test_job(path_check_setup, system)
 
-        self.datalad_save(path=["code/participant_job.sh",
-                                "code/check_setup/call_test_job.sh",
+        self.datalad_save(path=["code/check_setup/call_test_job.sh",
                                 "code/check_setup/test_job.py"],
-                          message="Participant compute job implementation")
+                          message="Generate scripts for test jobs in babs-check-setup")
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
 
@@ -1895,6 +1925,10 @@ class BABS():
         input_ds_cli = [["results", input_ds_path]]
         # initialize `Input_ds` class:
         input_ds_unzip = Input_ds(input_ds_cli)
+        # get `initial_inclu_df` - expect to be `None`:
+        input_ds_unzip.get_initial_inclu_df(
+            list_sub_file=None,
+            type_session=self.type_session)
 
         # Initialize unzip project:
         unzip_project_root = op.join(where_unzip_project, unzip_project_name)

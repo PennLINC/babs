@@ -2083,3 +2083,72 @@ def ceildiv(a, b):
       ...is-there-a-ceiling-equivalent-of-operator-in-python
     """
     return -(a // -b)
+
+
+def generate_bash_get_files(bash_path, container_config_yaml_file, type_session):
+    """
+    This is to generate a bash script `get_files` used by unzipping.
+    
+    Parameters:
+    ------------
+    bash_file: str
+        The path to the bash file to be generated.
+        It should be in the `analysis/code` folder.
+        and probably named as `get_files.sh`
+    container_config_yaml_file: str
+        path to container's configuration yaml file.
+        This should probably include section:
+        - 'unzip_desired_filenames'
+        - 'rename_conflict_files'
+    type_session: str
+        multi-ses or single-ses.
+
+    Notes:
+    -------
+    This function should be similar to `Container.generate_bash_run_bidsapp()`
+    """
+    # =====================================================================
+    # Sanity checks and preparations:
+    # =====================================================================
+    type_session = validate_type_session(type_session)
+
+    # create the folder if not existing yet:
+    os.makedirs(op.dirname(bash_path), exist_ok=True)
+
+    # Check if the bash file already exist:
+    if op.exists(bash_path):
+        os.remove(bash_path)  # remove it
+
+    # Check yaml file sections: TODO
+
+    # =====================================================================
+    # Generate `get_files.sh`:
+    # =====================================================================
+    # Write into the bash file:
+    bash_file = open(bash_path, "a")   # open in append mode
+
+    # Generate the header and input arguments: -------------------------
+
+
+    # Generate unzipping part: ---------------------------------------
+    #   for each foldernames requested:
+    #   1. identify the zip filename
+    #   2. for each desired file pattern, unzip
+    #   3. rename files `mv` if requested
+    #   4. remove unzipped folder
+
+
+    # Done generating `get_files.sh`: --------------------------------
+    bash_file.write("\n")
+    bash_file.close()
+
+    # =====================================================================
+    # Finish up:
+    # =====================================================================
+    # Execute necessary commands: -------------------------------------
+    # change the permission of this bash file:
+    proc_chmod_bashfile = subprocess.run(
+        ["chmod", "+x", bash_path],  # e.g., chmod +x code/get_files.sh
+        stdout=subprocess.PIPE
+        )
+    proc_chmod_bashfile.check_returncode()
