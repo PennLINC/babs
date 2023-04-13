@@ -27,10 +27,18 @@ Submit jobs and check job status
    babs-submit
    babs-status
 
-After jobs are finished
+Merge results
 ===========================
 
 .. toctree::
    :maxdepth: 1
 
    babs-merge
+
+Unzip results
+===========================
+   
+.. toctree::
+   :maxdepth: 1
+
+   babs-unzip

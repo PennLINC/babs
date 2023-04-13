@@ -705,7 +705,8 @@ def babs_unzip_cli():
     """ CLI for babs-unzip """
 
     parser = argparse.ArgumentParser(
-        description="``babs-unzip`` unzips results zip files and extracts desired files",
+        description="``babs-unzip`` initializes an unzip project"
+        " to unzip results zip files and extract desired files.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--babs_project_root", "--babs-project-root",
