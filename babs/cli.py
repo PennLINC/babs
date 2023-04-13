@@ -33,11 +33,11 @@ def babs_init_cli():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--where_project", "--where-project",
-        help="Absolute path to the directory where the babs project will locate",
+        help="Absolute path to the directory where the BABS project will locate.",
         required=True)
     parser.add_argument(
         "--project_name", "--project-name",
-        help="The name of the babs project; "
+        help="The name of the BABS project; "
              "this folder will be automatically created in the directory"
              " specified in ``--where_project``.",
         required=True)
@@ -708,15 +708,25 @@ def babs_unzip_cli():
         description="``babs-unzip`` unzips results zip files and extracts desired files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
-        "--project_root", "--project-root",
-        help="Absolute path to the root of BABS project."
+        "--babs_project_root", "--babs-project-root",
+        help="Absolute path to the root of BABS project whose results will be unzipped."
         " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        "--where_unzip_project", "--where-unzip-project",
+        help="Absolute path to the directory where the unzip project will locate.",
+        required=True)
+    parser.add_argument(
+        "--unzip_project_name", "--unzip-project-name",
+        help="The name of the unzip project; "
+             "this folder will be automatically created in the directory"
+             " specified in ``--where_unzip_project``.",
         required=True)
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file of the BIDS App container that contains information of"
         " what files to unzip etc.")
-    
+
     return parser
 
 
@@ -725,36 +735,52 @@ def babs_unzip_main():
     This is the core function of babs-unzip, which unzip results zip files
     and extracts desired files.
 
-    project_root: str
-        Absolute path to the root of BABS project.
+    babs_project_root: str
+        Absolute path to the root of BABS project to be unzipped.
         For example, '/path/to/my_BABS_project/'.
-    container_config_yaml_file: str
+    where_unzip_project: str
+        Absolute path to the directory where the unzip project will locate.
+    unzip_project_name: str
+        The name of the unzip project.
+    container_config_yaml_file: str or None
         path to container's configuration YAML file.
-        These two sections will be used:
-        1. 'unzip_desired_filenames' - must be included
-        2. 'rename_conflict_files' - optional
+        It contains info of what files to unzip etc
+        `None` if not provided by the user.
     """
 
     # Get arguments:
     args = babs_unzip_cli().parse_args()
-    project_root = args.project_root
+    babs_project_root = args.babs_project_root
+    where_unzip_project = args.where_unzip_project
+    unzip_project_name = args.unzip_project_name
     container_config_yaml_file = args.container_config_yaml_file
 
-    # container config:
-    config = read_yaml(container_config_yaml_file)
-    # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
-
+    # =================================================================
     # Sanity checks:
-    if "unzip_desired_filenames" not in config:
-        raise Exception("Section 'unzip_desired_filenames' is not included"
-                        " in `--container_config_yaml_file`. This section is required."
-                        " Path to this YAML file: '" + container_config_yaml_file + "'.")
+    # =================================================================
+    unzip_project_root = op.join(where_unzip_project, unzip_project_name)
+
+    # check if it exists: if so, raise error
+    if op.exists(unzip_project_root):
+        raise Exception("The folder `--unzip_project_name` '" + unzip_project_name
+                        + "' already exists in the directory"
+                        + " `--where_unzip_project` '" + where_unzip_project + "'!"
+                        + " `babs-init` won't proceed to overwrite this folder.")
+
+    # check if `where_project` exists:
+    if not op.exists(where_unzip_project):
+        raise Exception("Path provided in `--where_unzip_project` does not exist!")
+
+    # check if `where_project` is writable:
+    if not os.access(where_unzip_project, os.W_OK):
+        raise Exception("Path provided in `--where_unzip_project` is not writable!")
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, _ = get_existing_babs_proj(project_root)
+    babs_proj, _ = get_existing_babs_proj(babs_project_root)
 
     # Call method `babs_unzip()`:
-    babs_proj.babs_unzip(config)
+    babs_proj.babs_unzip(where_unzip_project, unzip_project_name,
+                         container_config_yaml_file)
 
 
 def get_existing_babs_proj(project_root):

@@ -248,7 +248,7 @@ class BABS():
 
     def babs_bootstrap(self, input_ds,
                        container_ds, container_name, container_config_yaml_file,
-                       system):
+                       system, if_unzip=False):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
@@ -266,6 +266,8 @@ class BABS():
             of how to run the BIDS App container
         system: class `System`
             information about the cluster management system
+        if_unzip: bool
+            if bootstrap scripts for an unzip project (i.e., not regular BABS project)
         """
 
         # ==============================================================
@@ -1865,29 +1867,57 @@ class BABS():
                           + " not to push merging actions to output RIA.")
             print("\n`babs-merge` did not fully finish yet!")
 
-    def babs_unzip(container_config_yaml_file):
+    def babs_unzip(self, where_unzip_project, unzip_project_name,
+                   container_config_yaml_file):
         """
-        This function unzips results and extract desired files.
-        This is done in 3 steps:
-        1. Generate scripts used by `babs-unzip`
-        2. Run scripts to unzip data
-        3. Merge all branches of unzipping
+        This function initialize an unzip project for a BABS project.
 
         Parameters:
         --------------
-        config: dict
-            loaded container config yaml file
+        where_unzip_project: str
+            Absolute path to the directory where the unzip project will locate.
+        unzip_project_name: str
+            The name of the unzip project.
+        container_config_yaml_file: str or None
+            path to container's configuration YAML file.
+            It contains info of what files to unzip etc
+            `None` if not provided by the user.
         """
 
         # ====================================================
         # Generate scripts used by `babs-unzip`
         # ====================================================
 
-        # Prepare input_ds_unzip:
+        # Prepare `input_ds_unzip` (class `Input_ds`) for unzipping:
+        # path to the output ria to be cloned:
+        #   e.g., "ria+file:///path/to/my_BABS_project/output_ria#~data""
+        input_ds_path = self.output_ria_url + "#~data"
+        input_ds_cli = [["results", input_ds_path]]
+        # initialize `Input_ds` class:
+        input_ds_unzip = Input_ds(input_ds_cli)
+
+        # Initialize unzip project:
+        unzip_project_root = op.join(where_unzip_project, unzip_project_name)
+        # initialize:
+        unzip_babs_project = BABS(unzip_project_root,
+                                  self.type_session,  # same as BABS project
+                                  self.type_system)   # same as BABS project
+        # Other necessary inputs for `babs_bootstrap()`:
+        system = System(self.type_system)
+
         # Call `babs_bootstrap()`:
-        #   !!!! using babs_proj_unzip, instead current `self`!!!
+        #   !!!! using `unzip_project_root`, instead of current `self`!!!
+        unzip_babs_project.babs_bootstrap(
+            input_ds=input_ds_unzip,
+            container_ds=None,    # no container ds for bootstrap unzip project
+            container_name=None,
+            container_config_yaml_file=container_config_yaml_file,
+            system=system,
+            if_unzip=True)
 
         print("TODO")
+        # TODO: `container_config_yaml_file` could be `None`!
+        #   Check before loading in `babs_bootstrap()`!!!
 
         # ====================================================
         # Run scripts to unzip data
