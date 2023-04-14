@@ -454,11 +454,18 @@ class BABS():
             # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
             container = Container(container_ds, container_name, container_config_yaml_file)
-
             # sanity check of container ds:
             container.sanity_check(self.analysis_path)
+            # load config as dict - this is not necessary here,
+            #   but just to be consistent with `if_unzip`:
+            container_config_yaml = container.config
         else:    # for `babs-unzip`:
             container = None
+            # the config dict loaded from YAML file:
+            if container_config_yaml_file is None:
+                container_config_yaml = None
+            else:
+                container_config_yaml = read_yaml(container_config_yaml_file)
 
         # ==============================================================
         # Bootstrap scripts:
@@ -479,7 +486,7 @@ class BABS():
             # generate `get_files.sh`:
             # as class `Container` is not generated, will call a plain function:
             bash_path = op.join(self.analysis_path, "code", "get_files.sh")
-            generate_bash_get_files(bash_path, container_config_yaml_file)
+            generate_bash_get_files(bash_path, container_config_yaml)
             # TODO: add datalad save:
             print("TODO")
 
@@ -1950,8 +1957,6 @@ class BABS():
             if_unzip=True)
 
         print("TODO")
-        # TODO: `container_config_yaml_file` could be `None`!
-        #   Check before loading in `babs_bootstrap()`!!!
 
         # ====================================================
         # Run scripts to unzip data

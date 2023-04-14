@@ -2085,21 +2085,42 @@ def ceildiv(a, b):
     return -(a // -b)
 
 
-def generate_bash_get_files(bash_path, container_config_yaml_file, type_session):
+def unzip_folder_patterns(config):
+    """
+    This is to determine the folder patterns for unzipping.
+    If 'unzip_desired_filenames' is provided in the config YAML file, then refer to that;
+    if not, meaning getting all files, then get 'zip_foldernames' from 'babs_proj_config.yaml'
+
+    Parameters:
+    -------------
+    config: dict or None
+        config read from container's config yaml file.
+        If the yaml file is not provided, it's `None`.
+
+    Notes:
+    ----------
+    TODO: probably called by `babs-init`, and pass to functions for generating
+    `participant_job.sh` and `get_files.sh` for unzipping?
+    TODO: add 'zip_foldernames' section into 'babs_proj_config.yaml' when babs-init
+    """
+    print("TODO")
+
+def generate_bash_get_files(bash_path, config, type_session):
     """
     This is to generate a bash script `get_files` used by unzipping.
-    
+
     Parameters:
     ------------
     bash_file: str
         The path to the bash file to be generated.
         It should be in the `analysis/code` folder.
         and probably named as `get_files.sh`
-    container_config_yaml_file: str
-        path to container's configuration yaml file.
+    config: dict or None
+        config loaded from container's configuration yaml file.
         This should probably include section:
         - 'unzip_desired_filenames'
         - 'rename_conflict_files'
+        If YAML file was not provided, it's `None`.
     type_session: str
         multi-ses or single-ses.
 
@@ -2128,7 +2149,19 @@ def generate_bash_get_files(bash_path, container_config_yaml_file, type_session)
     bash_file = open(bash_path, "a")   # open in append mode
 
     # Generate the header and input arguments: -------------------------
+    bash_file.write("#!/bin/bash\n")
+    bash_file.write("set -e -u -x\n")
 
+    count_inputs_bash = 0
+    bash_file.write('\nsubid="$1"\n')
+    count_inputs_bash += 1
+
+    if type_session == "multi-ses":
+        # also have the input of `sesid`:
+        bash_file.write('sesid="$2"\n')
+        count_inputs_bash += 1
+
+    # add zip file name:
 
     # Generate unzipping part: ---------------------------------------
     #   for each foldernames requested:
