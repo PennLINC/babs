@@ -891,6 +891,11 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     ------------
     cmd: str
         `datalad run`, part of the `participant_job.sh`.
+    
+    Notes:
+    ----------
+    Needs to quote any globs (`*`) in `-i` (or `-o`)!!
+        Otherwise, after expansion by DataLad, some values might miss `-i` (or `-o`)!
     """
 
     cmd = ""
@@ -913,8 +918,9 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
                     + '${subid}' + " \\" + "\n"
 
             # input: also the json file:
-            cmd += "\t" + "-i " + input_ds.df["path_now_rel"][i_ds] + "/" \
-                + "*json" + " \\" + "\n"
+            # as using globs `*`, need to be quoted (`''`)!
+            cmd += "\t" + "-i '" + input_ds.df["path_now_rel"][i_ds] + "/" \
+                + "*json" + "' \\" + "\n"
             flag_expand_inputs = True    # `--expand inputs`
 
         else:   # zipped:
