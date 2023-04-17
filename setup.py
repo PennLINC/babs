@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 import versioneer
 
 
@@ -15,6 +15,7 @@ SETUP_REQUIRES += ['wheel'] if 'bdist_wheel' in sys.argv else []
 
 
 setup(name='babs',
+      packages=find_packages(),
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       setup_requires=SETUP_REQUIRES

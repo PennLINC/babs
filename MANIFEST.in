@@ -1,0 +1,11 @@
+#Misc
+# include CHANGES.rst
+include LICENSE
+
+# necessary files in babs/:
+#   by default it only includes *.py
+recursive-include babs *.yaml
+
+# versioneer
+include versioneer.py
+include babs/_version.py
