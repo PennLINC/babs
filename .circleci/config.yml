@@ -25,10 +25,8 @@ jobs:
           name: pytest of BABS
           no_output_timeout: 1h
           command: |
-            pip install -e .[tests]
+            pip install .[tests]
             pytest -n 6 -sv
-      
-#           TODO: change back to `pip install .` after fixing the bug!
 
 
 workflows:
