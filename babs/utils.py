@@ -2089,3 +2089,105 @@ def ceildiv(a, b):
       ...is-there-a-ceiling-equivalent-of-operator-in-python
     """
     return -(a // -b)
+
+
+def unzip_folder_patterns(config):
+    """
+    This is to determine the folder patterns for unzipping.
+    If 'unzip_desired_filenames' is provided in the config YAML file, then refer to that;
+    if not, meaning getting all files, then get 'zip_foldernames' from 'babs_proj_config.yaml'
+
+    Parameters:
+    -------------
+    config: dict or None
+        config read from container's config yaml file.
+        If the yaml file is not provided, it's `None`.
+
+    Notes:
+    ----------
+    TODO: probably called by `babs-init`, and pass to functions for generating
+    `participant_job.sh` and `get_files.sh` for unzipping?
+    TODO: add 'zip_foldernames' section into 'babs_proj_config.yaml' when babs-init
+    """
+    print("TODO")
+
+def generate_bash_get_files(bash_path, config, type_session):
+    """
+    This is to generate a bash script `get_files` used by unzipping.
+
+    Parameters:
+    ------------
+    bash_file: str
+        The path to the bash file to be generated.
+        It should be in the `analysis/code` folder.
+        and probably named as `get_files.sh`
+    config: dict or None
+        config loaded from container's configuration yaml file.
+        This should probably include section:
+        - 'unzip_desired_filenames'
+        - 'rename_conflict_files'
+        If YAML file was not provided, it's `None`.
+    type_session: str
+        multi-ses or single-ses.
+
+    Notes:
+    -------
+    This function should be similar to `Container.generate_bash_run_bidsapp()`
+    """
+    # =====================================================================
+    # Sanity checks and preparations:
+    # =====================================================================
+    type_session = validate_type_session(type_session)
+
+    # create the folder if not existing yet:
+    os.makedirs(op.dirname(bash_path), exist_ok=True)
+
+    # Check if the bash file already exist:
+    if op.exists(bash_path):
+        os.remove(bash_path)  # remove it
+
+    # Check yaml file sections: TODO
+
+    # =====================================================================
+    # Generate `get_files.sh`:
+    # =====================================================================
+    # Write into the bash file:
+    bash_file = open(bash_path, "a")   # open in append mode
+
+    # Generate the header and input arguments: -------------------------
+    bash_file.write("#!/bin/bash\n")
+    bash_file.write("set -e -u -x\n")
+
+    count_inputs_bash = 0
+    bash_file.write('\nsubid="$1"\n')
+    count_inputs_bash += 1
+
+    if type_session == "multi-ses":
+        # also have the input of `sesid`:
+        bash_file.write('sesid="$2"\n')
+        count_inputs_bash += 1
+
+    # add zip file name:
+
+    # Generate unzipping part: ---------------------------------------
+    #   for each foldernames requested:
+    #   1. identify the zip filename
+    #   2. for each desired file pattern, unzip
+    #   3. rename files `mv` if requested
+    #   4. remove unzipped folder
+
+
+    # Done generating `get_files.sh`: --------------------------------
+    bash_file.write("\n")
+    bash_file.close()
+
+    # =====================================================================
+    # Finish up:
+    # =====================================================================
+    # Execute necessary commands: -------------------------------------
+    # change the permission of this bash file:
+    proc_chmod_bashfile = subprocess.run(
+        ["chmod", "+x", bash_path],  # e.g., chmod +x code/get_files.sh
+        stdout=subprocess.PIPE
+        )
+    proc_chmod_bashfile.check_returncode()
