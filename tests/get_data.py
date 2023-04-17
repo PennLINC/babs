@@ -11,7 +11,9 @@ sys.path.append("..")
 from babs.utils import (read_yaml)   # noqa
 
 # =============== Define several constant variables: ==================
-__location__ = op.dirname(__file__)   # the path to the directory of current python script
+__location__ = op.dirname(op.abspath(__file__))   # the path to the directory of current python script
+#   ^^ `op.abspath()` is to make sure always returns abs path, regardless of python version
+#       ref: https://note.nkmk.me/en/python-script-file-path/
 
 # containers:
 LIST_WHICH_BIDSAPP = ["toybidsapp", "fmriprep", "qsiprep"]

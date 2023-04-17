@@ -2192,7 +2192,9 @@ class System():
 
     def get_dict(self):
         # location of current python script:
-        __location__ = op.realpath(op.dirname(__file__))
+        #   `op.abspath()` is to make sure always returns abs path, regardless of python version
+        #   ref: https://note.nkmk.me/en/python-script-file-path/
+        __location__ = op.realpath(op.dirname(op.abspath(__file__)))
 
         fn_dict_cluster_systems_yaml = op.join(__location__, "dict_cluster_systems.yaml")
         with open(fn_dict_cluster_systems_yaml) as f:
@@ -2791,7 +2793,9 @@ class Container():
 
         # Copy the existing python script to this BABS project:
         # location of current python script:
-        __location__ = op.realpath(op.dirname(__file__))
+        #   `op.abspath()` is to make sure always returns abs path, regardless of python version
+        #   ref: https://note.nkmk.me/en/python-script-file-path/
+        __location__ = op.realpath(op.dirname(op.abspath(__file__)))
         fn_from = op.join(__location__, "template_test_job.py")
         # copy:
         shutil.copy(fn_from, fn_test_job)
