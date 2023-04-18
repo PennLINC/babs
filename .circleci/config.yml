@@ -13,7 +13,7 @@ version: 2.1
 # TODO: add tests from flake8
 
 jobs:
-  pytest:
+  pytest:    # run pytest
     <<: *dockersetup
     resource_class: xlarge
     working_directory: /home/circleci/src/babs
@@ -32,7 +32,7 @@ jobs:
     steps:
       - run: echo Deploying!
 
-  deploy_pypi:
+  deploy_pypi:   # deploy to pypi
     <<: *dockersetup
     working_directory: /tmp/src/babs
     steps:
@@ -46,10 +46,8 @@ jobs:
           name: Upload packages to PyPI
           command: |
             python3 -m pip install --upgrade twine
-            python3 -m twine upload --repository testpypi dist/*
-        # TODO: change back to normal pypi by removing `--repository testpypi`!
-        # not sure if only `babs*gz` is needed
-        # not sure if this is needed in `twine upload`: `wrapper/dist/babs*`
+            python3 -m twine upload dist/*
+        # NOTE: if want to test with test pypi, add `--repository testpypi` after `twine upload`
 
 
 workflows:
@@ -67,17 +65,16 @@ workflows:
       - deployable:
           requires:    # should require all jobs' success before deploying
             - pytest
-          # filters:    # run when main branch + tags
-          #   branches:
-          #     only: main
-          #   tags:
-          #     only: /.*/
+          filters:    # run when main branch + any tags
+            branches:
+              only: main
+            tags:
+              only: /.*/
       - deploy_pypi:
           requires:
             - deployable
-          # filters:   # runs for no branches but runs for any tags
-          #   branches:
-          #     ignore: /.*/
-          #   tags:
-          #     only: /.*/
-# TODO: uncomment out filters for deployable and deploy_pypi!!!
+          filters:   # runs for no branches but runs for any tags
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
