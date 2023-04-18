@@ -2,16 +2,16 @@
 Installation
 **********************
 
-Prepare a conda environment for BABS
-=====================================
+Step 1. Prepare a conda environment for BABS
+=============================================
 
 After installing conda, let's initiate a conda environment (e.g., named ``babs``) for running BABS::
 
     conda create -n babs python=3.9.12
     conda activate babs
 
-Install dependent software
-================================
+Step 2. Install dependent software
+=====================================
 
 Required dependencies
 ------------------------------
@@ -68,10 +68,28 @@ Check dependencies' versions using commands below::
     datalad osf-credentials --version
 
 
-Install BABS
+Step 3. Install BABS
 ============================
 
-Currently we only support installing BABS from GitHub::
+Way 1: Install from PyPI (recommended way for end users)
+-------------------------------------------------------------
+
+To install BABS from `PyPI <https://pypi.org/project/babs/>`_::
+
+    pip install babs
+
+
+Way 2: Install from GitHub
+-----------------------------
+
+.. warning::
+
+    You may install an unstable version from GitHub.
+    Therefore installing from GitHub is not the recommended way for **end users**,
+    unless you're specifically looking for an unstable version
+    that's not available on PyPI.
+
+To install BABS from `GitHub <https://github.com/PennLINC/babs>`_::
 
     git clone https://github.com/PennLINC/babs.git
     cd babs

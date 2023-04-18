@@ -13,7 +13,7 @@ Full documentation at https://pennlinc-babs.readthedocs.io
 About
 ---------
 BIDS App Bootstrap (BABS) is a reproducible, generalizable, and
-scalable python package for BIDS App analysis of large datasets.
+scalable Python package for BIDS App analysis of large datasets.
 It uses `DataLad <https://www.datalad.org/>`_ and adopts
 `FAIRly big framework <https://doi.org/10.1038/s41597-022-01163-2>`_.
 
