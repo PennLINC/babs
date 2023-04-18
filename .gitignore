@@ -11,3 +11,4 @@ build/
 
 # Distribution / packaging
 dist/
+babs/VERSION

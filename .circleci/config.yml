@@ -40,6 +40,7 @@ jobs:
       - run:
           name: Generate distribution archives
           command: |
+            THISVERSION=$( python get_version.py )
             echo "${CIRCLE_TAG:-$THISVERSION}" > babs/VERSION
             python setup.py sdist
             pip wheel --no-deps -w dist/ .
@@ -48,7 +49,9 @@ jobs:
           command: |
             pip install --user twine
             pip install --user --upgrade importlib-metadata
-            twine upload dist/*
+            twine upload --repository testpypi dist/*
+        # TODO: change back to normal pypi by removing `--repository testpypi`!
+        # not sure if only `babs*gz` is needed
         # not sure if this is needed in `twine upload`: `wrapper/dist/babs*`
 
 
