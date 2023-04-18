@@ -8,3 +8,6 @@ babs.egg-info/*
 docs/build
 docs/source/generated
 build/
+
+# Distribution / packaging
+dist/
