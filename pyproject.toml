@@ -1,0 +1,4 @@
+[build-system]
+# "versioneer-518" is needed to use both versioneer and `pyproject.toml`:
+requires = ["setuptools", "wheel", "versioneer-518"]
+build-backend = "setuptools.build_meta"
