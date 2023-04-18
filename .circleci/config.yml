@@ -40,16 +40,13 @@ jobs:
       - run:
           name: Generate distribution archives
           command: |
-            THISVERSION=$( python get_version.py )
-            echo "${CIRCLE_TAG:-$THISVERSION}" > babs/VERSION
-            python setup.py sdist
-            pip wheel --no-deps -w dist/ .
+            python3 -m pip install --upgrade build
+            python3 -m build
       - run:
           name: Upload packages to PyPI
           command: |
-            pip install --user twine
-            pip install --user --upgrade importlib-metadata
-            twine upload --repository testpypi dist/*
+            python3 -m pip install --upgrade twine
+            python3 -m twine upload --repository testpypi dist/*
         # TODO: change back to normal pypi by removing `--repository testpypi`!
         # not sure if only `babs*gz` is needed
         # not sure if this is needed in `twine upload`: `wrapper/dist/babs*`
@@ -70,16 +67,17 @@ workflows:
       - deployable:
           requires:    # should require all jobs' success before deploying
             - pytest
-          filters:    # run when main branch + tags
-            branches:
-              only: main
-            tags:
-              only: /.*/
+          # filters:    # run when main branch + tags
+          #   branches:
+          #     only: main
+          #   tags:
+          #     only: /.*/
       - deploy_pypi:
           requires:
             - deployable
-          filters:   # runs for no branches but runs for any tags
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
+          # filters:   # runs for no branches but runs for any tags
+          #   branches:
+          #     ignore: /.*/
+          #   tags:
+          #     only: /.*/
+# TODO: uncomment out filters for deployable and deploy_pypi!!!
