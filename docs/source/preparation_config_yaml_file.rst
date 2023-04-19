@@ -230,14 +230,14 @@ Advanced - Manual of writing section ``babs_singularity_run``
   * How to write the path to the input dataset? Here we use `example configuration YAML file of
     fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_:
 
-    * For the positional argument ``input_dataset``, sawy we want to use (unzipped) raw BIDS dataset called ``BIDS``;
+    * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
         * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS`` 
           which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
         * Note that you need to add ``inputs/data/`` before the dataset's name, and what you'll use for
           ``<name>`` when calling ``babs-init --input <name> /path/to/BIDS`` should also be ``BIDS``.
 
-    * For the named argument ``--fs-subjects-dir``, sawy we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
+    * For the named argument ``--fs-subjects-dir``, say we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
 
         * Then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
         * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
