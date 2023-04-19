@@ -32,6 +32,9 @@ Optional dependencies
 Besides required software listed above, you also need to install ``datalad-osf`` only if:
 
 * if you're an end user and your input DataLad dataset is on OSF;
+
+    * e.g., when you follow :doc:`the example walkthrough <walkthrough>`;
+
 * or if you're a developer and you will run ``pytest``;
 
 How to install ``datalad-osf``::
@@ -84,7 +87,7 @@ Way 2: Install from GitHub
 
 .. warning::
 
-    You may install an unstable version from GitHub.
+    The version you will install from GitHub might be an unstable version.
     Therefore installing from GitHub is not the recommended way for **end users**,
     unless you're specifically looking for an unstable version
     that's not available on PyPI.
