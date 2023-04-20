@@ -326,6 +326,8 @@ In addition to the folder name(s), please also add the version of the BIDS App a
   although the version of ``FreeSurfer`` included in this ``fMRIPrep`` may not be ``20.2.3``.
 
 
+.. _cluster-resources:
+
 Section ``cluster_resources``
 =================================
 This section defines how much cluster resources each participant's job will use.
@@ -410,6 +412,8 @@ Note that:
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 
+.. _script-preamble:
+
 Section ``script_preamble``
 =============================
 This part also goes to the preamble of the script ``participant_job.sh``
@@ -441,6 +445,7 @@ Notes:
 * Remember to add ``|`` after ``script_preamble:``;
 * You can also add more necessary commands by adding new lines.
 
+.. _job-compute-space:
 
 Section ``job_compute_space``
 ================================

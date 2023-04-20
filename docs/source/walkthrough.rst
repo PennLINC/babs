@@ -152,44 +152,47 @@ Then create a DataLad dataset of this container (i.e., let DataLad tracks this S
 Now, the DataLad dataset of toy BIDS App container ``toybidsapp-container`` is ready to use.
 Please get its full path for later use by calling ``echo $PWD``.
 
+As the ``sif`` file has been copied into ``toybidsapp-container``,
+you can remove the original ``sif`` file:
+
+.. code-block:: console
+
+    $ cd ..
+    $ rm toybidsapp-0.0.6.sif
+
 .. developer's note: for my case, it's ``/cbica/projects/BABS/babs_demo/toybidsapp-container``
 
 Step 1.3. Prepare a YAML file for the BIDS App
 -------------------------------------------------------------
 
 Finally, we'll prepare a YAML file that instructs BABS for how to run the BIDS App.
-You can copy the example YAML file for toy BIDS App as below:
+Below is an example YAML file for toy BIDS App:
 
-.. code-block:: yaml
+.. developer's note: ref below: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-literalinclude
+..  `:lines:` is the line ranges in the original file
+..  `:emphasize-lines:`: line # in the selected lines defined in `:lines:`
+
+.. literalinclude:: ../../notebooks/example_container_toybidsapp_walkthrough.yaml
+   :language: yaml
+   :lines: 21-
    :linenos:
-   :emphasize-lines: 18
+   :emphasize-lines: 11,17,18,21
 
-    # Arguments in `singularity run`:
-    babs_singularity_run:
-        --no-zipped: ""
-        -v: ""
+You can copy above content and save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
 
-    # Zip foldernames of the results, with BIDS App version included:
-    babs_zip_foldername:
-        toybidsapp: "0-0-6"
+.. dropdown:: How to copy above content using ``Vim`` with correct indent?
 
-    # How much cluster resources it needs:
-    cluster_resources:
-        interpreting_shell: /bin/bash
-        hard_memory_limit: 2G
-        temporary_disk_space: 20G
+    After copying above content, and initializing a new file using ``vim``, you need to enter: ``:set paste``, hit ``Enter`` key,
+    then hit ``i`` to start ``INSERT (paste)`` mode, then paste above content into the file. Otherwise, you'll see wrong indent.
+    Then you can hit ``escape`` key and enter ``:set nopaste`` and hit ``Enter`` key to turn off pasting.
+    You now can save this file by typing ``:w``. Close the file by enter ``:q`` and hit ``Enter`` key.
 
-    # Necessary commands to be run first:
-    script_preamble: |
-        source ${CONDA_PREFIX}/bin/activate babs    # for Penn Med CUBIC cluster
+Before moving forward, there are several lines (highlighted above) requires customization for your cluster:
 
-    # Where to run the jobs:
-    job_compute_space: "${CBICA_TMPDIR}"   # for Penn Med CUBIC cluster tmp space
+* Section ``cluster_resources``:
 
-
-And save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
-
-There are several place you need to change for your cluster:
+    * If needed, you may add requests for other resources. See :ref:`cluster-resources`
+      for how to do so.
 
 * Section ``script_preamble``:
 
@@ -204,7 +207,27 @@ There are several place you need to change for your cluster:
             script_preamble: |
                 source ${CONDA_PREFIX}/bin/activate babs
                 module_load xxxx
+    
+    * For more, please see: :ref:`script-preamble`.
 
+* Section ``job_compute_space``:
+
+    * You need to change ``"${CBICA_TMPDIR}"`` to temporary compute space available on your cluster,
+      e.g., ``"/path/to/some_temporary_compute_space"``.
+      Here ``"${CBICA_TMPDIR}"`` is for Penn Medicine CUBIC cluster only.
+    * For more, please see: :ref:`job-compute-space`.
+
+By now, we have prepared these in the ``~/babs_demo`` folder:
+
+.. code-block:: console
+
+    config_toybidsapp_demo.yaml
+    toybidsapp-container/
+
+It's optional to have cloned dataset ``raw_BIDS_multi-ses`` locally, as we can directly use its OSF link
+for input dataset for BABS.
+
+We now start to use BABS for data analysis.
 
 Step 2. Create a BABS project
 =================================
