@@ -19,7 +19,7 @@ babs_singularity_run:    # Q: to change this section name to "singularity_run"??
     --cifti-output: 91k   # WHEN FULL RUN!
     -v: '-v'   # this is for double "-v"
 
-# zip foldernames:
+# What's the foldername to be zipped, and what version number string should be added to the zip file?
 babs_zip_foldername:    # Q: to change this section name to "zip_foldername" or "zip_foldernames"??
     fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
     freesurfer: "20-2-3"   # use the same as in the above line for `fmriprep`
