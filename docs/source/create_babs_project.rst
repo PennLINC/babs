@@ -1,5 +1,5 @@
 ******************************
-Step I: Create a BABS project
+Step II: Create a BABS project
 ******************************
 
 Initialize a BABS project using ``babs-init``

@@ -2,12 +2,14 @@
 Installation
 **********************
 
+.. contents:: Table of Contents
+
 Step 1. Prepare a conda environment for BABS
 =============================================
 
 After installing conda, let's initiate a conda environment (e.g., named ``babs``) for running BABS::
 
-    conda create -n babs python=3.9.12
+    conda create -n babs python=3.9.16
     conda activate babs
 
 Step 2. Install dependent software
@@ -66,6 +68,7 @@ Check dependencies' versions using commands below::
     datalad --version
     git --version
     git-annex version
+    datalad containers-add --version
 
     # optional dependencies:
     datalad osf-credentials --version
