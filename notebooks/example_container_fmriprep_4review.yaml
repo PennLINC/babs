@@ -8,19 +8,19 @@
 
 # Arguments when executing the BIDS App using `singularity run`:
 # You should not have flags of : `--participant-label`, or `--bids-filter-file`!
-babs_singularity_run:
+babs_singularity_run:    # Q: to change this section name to "singularity_run"???
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: '1'
     --stop-on-first-crash: ""
     --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
-    --output-spaces: MNI152NLin6Asym:res-2
+    --output-spaces: "MNI152NLin6Asym:res-2 MNI152NLin2009cAsym"    # if you want 2 output spaces
     --force-bbr: ""
     --cifti-output: 91k   # WHEN FULL RUN!
     -v: '-v'   # this is for double "-v"
 
-
-babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+# zip foldernames:
+babs_zip_foldername:    # Q: to change this section name to "zip_foldername" or "zip_foldernames"??
     fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
     freesurfer: "20-2-3"   # use the same as in the above line for `fmriprep`
     # ^^ # ADD THIS WHEN FULL RUN or --anat-only!
@@ -44,7 +44,7 @@ script_preamble: |
 # ^^ based on what you need on your cluster; some people even don't use `conda`...
 # for MSI, might need to add command e.g., "module_load"
 
-# Where to run the jobs:
+# Where to run the jobs: (temporary compute space)
 job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 
 # Below is to filter out subjects (or sessions)
@@ -55,13 +55,13 @@ required_files:
         - "anat/*_T1w.nii*"
 
 # Keywords for alerting messages in log files:
-keywords_alert:
-    o_file:
+keywords_alert:    # Q: to change this section name to "log_message_alert"?? As these are multi-word phrases, not individual words
+    stdout:   # standard output log file
         - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
         - "Excessive topologic defect encountered"
         - "Cannot allocate memory"
         - "mris_curvature_stats: Could not open file"
         - "Numerical result out of range"
         - "fMRIPrep failed"
-    e_file:
+    stderr:    # standard error output log file
         - "xxxxx"
