@@ -110,7 +110,8 @@ so no extra work needs to be done here.
 Step 1.2. Prepare DataLad dataset of containerized BIDS App
 -------------------------------------------------------------
 For BIDS App, we have prepared a [toy BIDS App](https://hub.docker.com/r/pennlinc/toy_bids_app)
-that performs a simple task: count non-hidden files in a subject's folder. Note that
+that performs a simple task: if the input dataset is a raw BIDS dataset (unzipped),
+toy BIDS App will count non-hidden files in a subject's folder. Note that
 even if the input dataset is multi-session dataset, it will still count at subject-level
 (instead of session-level).
 
@@ -153,16 +154,16 @@ Then create a DataLad dataset of this container (i.e., let DataLad tracks this S
         add(ok): .datalad/config (file)                                                                                                               
         save(ok): . (dataset)                                                                                                                         
         action summary:                                                                                                                               
-        add (ok: 2)
-        save (ok: 1)
+          add (ok: 2)
+          save (ok: 1)
         add(ok): .datalad/environments/toybidsapp-0-0-7/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
         containers_add(ok): /cbica/projects/BABS/babs_demo/toybidsapp-container/.datalad/environments/toybidsapp-0-0-7/image (file)
         action summary:
-        add (ok: 2)
-        containers_add (ok: 1)
-        save (ok: 1)
+          add (ok: 2)
+          containers_add (ok: 1)
+          save (ok: 1)
 
 Now, the DataLad dataset of toy BIDS App container ``toybidsapp-container`` is ready to use.
 .. developer's note: no need:
@@ -233,6 +234,10 @@ Before moving forward, there are several lines (highlighted above) requires cust
 
     * You might need to change the highlighted line #19 of ``source`` command
       for how to activate the conda environment ``babs``;
+
+        * In addition, if you wants to use a conda environment that has different name than ``babs``,
+          please replace ``babs`` with the name you're using.
+
     * You might need to add another line to ``module_load`` any necessary modules,
       such as ``singularity``.
       This section will looks like this after you add it:
@@ -251,6 +256,7 @@ Before moving forward, there are several lines (highlighted above) requires cust
       e.g., ``"/path/to/some_temporary_compute_space"``.
       Here ``"${CBICA_TMPDIR}"`` is for Penn Medicine CUBIC cluster only.
     * For more, please see: :ref:`job-compute-space`.
+
 
 By now, we have prepared these in the ``~/babs_demo`` folder:
 
@@ -312,6 +318,7 @@ If ``babs-init`` succeeded, you should see this message at the end:
     .. literalinclude:: walkthrough_babs-init_printed_messages.txt
        :language: console
 .. developer's note: cannot change the `language` to `bash` here...
+.. developer's note: check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
 
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
@@ -379,9 +386,14 @@ It's important to let BABS checks if everything has been correctly set up. In ad
 it's a good idea to run a toy, test job to make sure the environment you specified in the YAML file
 is working as expected.
 
+Note that starting from this step, without further instructions,
+all BABS commands should be called from where the BABS project
+is located: ``~/babs_demo/my_BABS_project``,
+so please make sure you switch to this directory before calling them.
+
 ..  code-block:: console
 
-    $ cd ~/babs_demo/my_BABS_project
+    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
     $ babs-check-setup \
         --project-root ${PWD} \
         --job-test
@@ -389,9 +401,6 @@ is working as expected.
 It might take a bit time to finish, depending on how busy your cluster is,
 and how much resources you requested in the YAML file - in this example,
 we only requested very minimal amount of resources.
-
-
-
 
 You'll see this message at the end if ``babs-check-setup`` was successful:
 
@@ -419,8 +428,245 @@ especially the version numbers:
     .. literalinclude:: walkthrough_babs-check-setup_printed_messages.txt
        :language: console
 
+Now it's ready for job submissions.
+
 Step 3. Submit jobs and check job status
 ==========================================
+We'll iteratively use ``babs-submit`` and ``babs-status`` to submit jobs and check job status.
+
+We first use ``babs-status`` to check how many jobs to complete.
+The list of jobs to complete was determined during ``babs-init``:
+As no initial list was provided, BABS dived into the input BIDS dataset,
+and got the list of subjects and sessions to process. As we did not specify
+required files in the container's configuration YAML file, BABS would not
+perform extra filtering.
+
+..  code-block:: console
+
+    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
+    $ babs-status --project-root $PWD
+
+You'll see:
+
+..  code-block:: console
+    :emphasize-lines: 4
+
+    Did not request resubmit based on job states (no `--resubmit`).
+
+    Job status:
+    There are in total of 6 jobs to complete.
+    0 job(s) have been submitted; 6 job(s) haven't been submitted.
+
+Let's use ``babs-submit`` submit one job to see if it will successfully finish.
+If only argument ``--project-root`` is provided, ``babs-submit`` will only submit
+one job to avoid all jobs getting submitted by mistake:
+
+.. code-block:: console
+
+    $ babs-submit --project-root $PWD
+
+You'll see something like this (the job ID will probably be different):
+
+..  code-block:: console
+
+    Job for sub-01, ses-A has been submitted (job ID: 4475292).
+    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done  is_failed   
+    0  sub-01  ses-A           True  4475292                 NaN             NaN       NaN    False        NaN  \
+    1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN   
+    2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN   
+    3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False        NaN   
+    4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN   
+    5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN   
+
+                    log_filename  last_line_o_file  alert_message  job_account  
+    0  toy_sub-01_ses-A.*4475292               NaN            NaN          NaN  
+    1                        NaN               NaN            NaN          NaN  
+    2                        NaN               NaN            NaN          NaN  
+    3                        NaN               NaN            NaN          NaN  
+    4                        NaN               NaN            NaN          NaN  
+    5                        NaN               NaN            NaN          NaN  
+
+We can check the job status via ``babs-status``:
+
+..  code-block:: console
+
+    $ babs-status --project-root $PWD
+
+If it's successfully finished, you'll see:
+
+..  code-block:: console
+    :emphasize-lines: 5,7
+
+    Did not request resubmit based on job states (no `--resubmit`).
+
+    Job status:
+    There are in total of 6 jobs to complete.
+    1 job(s) have been submitted; 5 job(s) haven't been submitted.
+    Among submitted jobs,
+    1 job(s) are successfully finished;
+    0 job(s) are pending;
+    0 job(s) are running;
+    0 job(s) are failed.
+
+    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
+
+Now, we can submit all other jobs by specifying ``--all``:
+
+.. code-block:: console
+
+    $ babs-submit --project-root $PWD --all
+
+You can again call ``babs-status --project-root $PWD`` to check status.
+If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
+
+..  code-block:: console
+    :linenos:
+    :emphasize-lines: 5,8
+
+    Did not request resubmit based on job states (no `--resubmit`).
+
+    Job status:
+    There are in total of 6 jobs to complete.
+    6 job(s) have been submitted; 0 job(s) haven't been submitted.
+    Among submitted jobs,
+    1 job(s) are successfully finished;
+    5 job(s) are pending;
+    0 job(s) are running;
+    0 job(s) are failed.
+
+    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
+
+If some jobs are running or failed, you'll see non-zero numbers in line #9 or #10.
+
+If all jobs are successfully completed, you'll see:
+
+..  code-block:: console
+    :emphasize-lines: 7,8
+
+    Did not request resubmit based on job states (no `--resubmit`).
+
+    Job status:
+    There are in total of 6 jobs to complete.
+    6 job(s) have been submitted; 0 job(s) haven't been submitted.
+    Among submitted jobs,
+    6 job(s) are successfully finished;
+    All jobs are completed!
+
+    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
 
 Step 4. After jobs are finished
 ===================================
+
+Step 4.1. Use ``babs-merge`` to merge all results and provenance
+--------------------------------------------------------------------
+After all jobs are successfully finished,
+we will first merge all the results and provenance.
+This is because each job was executed on a different branch,
+we need to merge them together onto the default branch.
+
+We now run ``babs-merge`` in the root directory of ``my_BABS_project``:
+
+..  code-block:: console
+
+    $ babs-merge --project-root $PWD
+
+If it was successfull, you'll see this message at the end:
+
+..  code-block:: console
+
+    `babs-merge` was successful!
+
+
+.. dropdown:: Full printed messages from ``babs-merge``
+
+    .. literalinclude:: walkthrough_babs-merge_printed_messages.txt
+       :language: console
+
+
+Now, we have reached the end of the BABS workflow, and we're ready to consume the results.
+
+Step 4.2. Consume results
+------------------------------
+
+To consume the results, we should not directly go into output RIA to check results there;
+instead, we should clone the output RIA as another folder (e.g., called ``my_BABS_project_outputs``)
+outside the original BABS project:
+
+..  code-block:: console
+
+    $ cd ~/babs_demo    # outside of `my_BABS_project`
+    $ datalad clone \
+        ria+file://${PWD}/my_BABS_project/output_ria#~data \
+        my_BABS_project_outputs
+
+You'll see:
+
+..  code-block:: console
+
+    [INFO   ] Configure additional publication dependency on "output-storage"                                                                     
+    configure-sibling(ok): . (sibling)
+    install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project_outputs (dataset)
+    action summary:
+      configure-sibling (ok: 1)
+      install (ok: 1)
+
+Let's go into this new folder and see what's inside:
+
+..  code-block:: console
+
+    $ cd my_BABS_project_outputs
+    $ ls
+
+You'll see:
+
+..  code-block:: console
+
+    CHANGELOG.md				sub-01_ses-B_toybidsapp-0-0-7.zip@
+    code/			                sub-01_ses-C_toybidsapp-0-0-7.zip@
+    containers/					sub-02_ses-A_toybidsapp-0-0-7.zip@
+    inputs/					sub-02_ses-B_toybidsapp-0-0-7.zip@
+    README.md					sub-02_ses-D_toybidsapp-0-0-7.zip@
+    sub-01_ses-A_toybidsapp-0-0-7.zip@
+
+.. developer's note: do NOT change the indents above! In the html the 2nd column is aligned...
+
+As you can see, each session's results have been saved in a zip file.
+Before unzipping a zip file, we need to get its content first:
+
+..  code-block:: console
+
+    $ datalad get sub-01_ses-A_toybidsapp-0-0-7.zip
+    $ unzip sub-01_ses-A_toybidsapp-0-0-7.zip
+
+You'll see:
+
+..  code-block:: console
+
+    # from `datalad get`:
+    get(ok): sub-01_ses-A_toybidsapp-0-0-7.zip (file) [from output-storage...]
+
+    # from unzip:
+    Archive:  sub-01_ses-A_toybidsapp-0-0-7.zip
+       creating: toybidsapp/
+     extracting: toybidsapp/num_nonhidden_files.txt 
+
+From the zip file, we got a folder called ``toybidsapp``.
+
+..  code-block:: console
+
+    $ cd toybidsapp
+    $ ls
+
+In this folder, there is a file called ``num_nonhidden_files.txt``.
+This is the result from toy BIDS App, which is the number of non-hidden files in this subject.
+Note that for raw BIDS dataset, toy BIDS App counts at subject-level, even though
+current dataset is multi-session dataset.
+
+..  code-block:: console
+
+    $ cat num_nonhidden_files.txt
+    67
+
+Here, ``67`` is the expected number for ``sub-01`` (which we're looking at),
+``56`` is the expected number for ``sub-02``.
+This means that toy BIDS App and BABS ran as expected :).

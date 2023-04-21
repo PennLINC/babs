@@ -1,0 +1,71 @@
+Cloning output RIA to 'merge_ds'...
+[INFO   ] Configure additional publication dependency on "output-storage"                                                                     
+configure-sibling(ok): . (sibling)
+install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds (dataset)
+action summary:
+  configure-sibling (ok: 1)
+  install (ok: 1)
+
+Listing all branches in output RIA...
+
+Finding all valid job branches to merge...
+Git default branch's name of output RIA is: 'master'
+
+Merging valid job branches chunk by chunk...
+Total number of job branches to merge = 6
+Chunk size (number of job branches per chunk) = 2000
+--> Number of chunks = 1
+Merging chunk #1 (total of 1 chunk[s] to merge)...
+Fast-forwarding to: remotes/origin/job-4475292-sub-01-ses-A
+Trying simple merge with remotes/origin/job-4475293-sub-01-ses-B
+Trying simple merge with remotes/origin/job-4475294-sub-01-ses-C
+Trying simple merge with remotes/origin/job-4475295-sub-02-ses-A
+Trying simple merge with remotes/origin/job-4475296-sub-02-ses-B
+Trying simple merge with remotes/origin/job-4475297-sub-02-ses-D
+Merge made by the 'octopus' strategy.
+ sub-01_ses-A_toybidsapp-0-0-7.zip | 1 +
+ sub-01_ses-B_toybidsapp-0-0-7.zip | 1 +
+ sub-01_ses-C_toybidsapp-0-0-7.zip | 1 +
+ sub-02_ses-A_toybidsapp-0-0-7.zip | 1 +
+ sub-02_ses-B_toybidsapp-0-0-7.zip | 1 +
+ sub-02_ses-D_toybidsapp-0-0-7.zip | 1 +
+ 6 files changed, 6 insertions(+)
+ create mode 120000 sub-01_ses-A_toybidsapp-0-0-7.zip
+ create mode 120000 sub-01_ses-B_toybidsapp-0-0-7.zip
+ create mode 120000 sub-01_ses-C_toybidsapp-0-0-7.zip
+ create mode 120000 sub-02_ses-A_toybidsapp-0-0-7.zip
+ create mode 120000 sub-02_ses-B_toybidsapp-0-0-7.zip
+ create mode 120000 sub-02_ses-D_toybidsapp-0-0-7.zip
+
+
+Pushing merging actions to output RIA...
+Enumerating objects: 8, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 40 threads
+Compressing objects: 100% (2/2), done.
+Writing objects: 100% (2/2), 520 bytes | 520.00 KiB/s, done.
+Total 2 (delta 1), reused 0 (delta 0), pack-reused 0
+To /cbica/projects/BABS/babs_demo/my_BABS_project/output_ria/e5f/7a667-f033-4aa7-b539-01663250f9a9
+   a47058d..71d3e6d  master -> master
+
+dead here (recording state in git...)
+ok
+(recording state in git...)
+
+[INFO] Determine push target 
+[INFO] Push refspecs 
+[INFO] Determine push target 
+[INFO] Push refspecs 
+[INFO] Update availability information 
+[INFO] Start enumerating objects 
+[INFO] Start counting objects 
+[INFO] Start compressing objects 
+[INFO] Start writing objects 
+[INFO] Finished push of Dataset(/gpfs/fs001/cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds) 
+[INFO] Finished push of Dataset(/gpfs/fs001/cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds) 
+publish(ok): . (dataset) [refs/heads/git-annex->origin:refs/heads/git-annex b8e13df..bf5c457]
+action summary:
+  publish (notneeded: 1, ok: 1)
+
+
+`babs-merge` was successful!
