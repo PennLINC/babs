@@ -1,0 +1,60 @@
+Will check setups of BABS project located at: /cbica/projects/BABS/babs_demo/my_BABS_project
+Will submit a test job for testing; will take longer time.
+Below is the configuration information saved during `babs-init` in file 'analysis/code/babs_proj_config.yaml':
+
+type_session: multi-ses
+type_system: sge
+input_ds:
+  $INPUT_DATASET_#1:
+    name: BIDS
+    path_in: https://osf.io/w2nu3/
+    path_data_rel: inputs/data/BIDS
+    is_zipped: false
+container:
+  name: toybidsapp-0-0-7
+  path_in: /cbica/projects/BABS/babs_demo/toybidsapp-container
+
+Checking the BABS project itself...
+✓ All good!
+
+Check status of 'analysis' DataLad dataset...
+nothing to save, working tree clean
+✓ All good!
+
+Checking input dataset(s)...
+✓ All good!
+
+Checking container datalad dataset...
+✓ All good!
+
+Checking `analysis/code/` folder...
+✓ All good!
+
+Checking input and output RIA...
+	Datalad dataset `analysis`'s siblings:
+.: here(+) [git]
+.: output-storage(+) [ora]
+.: output(-) [/cbica/projects/BABS/babs_demo/my_BABS_project/output_ria/e5f/7a667-f033-4aa7-b539-01663250f9a9 (git)]
+.: input(-) [/cbica/projects/BABS/babs_demo/my_BABS_project/input_ria/e5f/7a667-f033-4aa7-b539-01663250f9a9 (git)]
+✓ All good!
+
+Submitting a test job, will take a while to finish...
+Although the script will be submitted to the cluster to run, this job will not run the BIDS App; instead, this test job will gather setup information in the designated environment and will make sure jobs can finish successfully on current cluster.
+Test job has been submitted (job ID: 4472560).
+Will check the test job's status every 1 min...
+2023-04-20 21:37:55.607916: Test job is pending (`qw`)...
+2023-04-20 21:38:55.966025: Test job is successfully finished!
+Below is the information of designated environment and temporary workspace:
+
+workspace_writable: true
+which_python: '/cbica/projects/BABS/miniconda3/envs/babs/bin/python'
+version:
+  datalad: 'datalad 0.18.3'
+  git: 'git version 2.34.1'
+  git-annex: 'git-annex version: 10.20230215-gd24914f2a'
+  datalad_containers: 'datalad_container 1.1.9'
+
+Please check if above versions are the ones you hope to use! If not, please change the version in the designated environment, or change the designated environment you hope to use in `--container-config-yaml-file` and rerun `babs-init`.
+✓ All good in test job!
+
+`babs-check-setup` was successful! 

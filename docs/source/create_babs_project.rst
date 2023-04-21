@@ -6,7 +6,8 @@ Initialize a BABS project using ``babs-init``
 ===============================================
 
 After you've prepared the three things BABS requires (details see here: :doc:`preparation`), 
-now you can initialize a BABS project using ``babs-init``.
+now you can initialize a BABS project using ``babs-init``. Please follow documentation :doc:`babs-init`
+for how to use ``babs-init``.
 
 If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project.
 What you need to do is to read the error messages and fix the problem (e.g., any problem

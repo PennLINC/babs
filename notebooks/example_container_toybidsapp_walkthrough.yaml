@@ -21,11 +21,12 @@
 # Arguments in `singularity run`:
 babs_singularity_run:
     --no-zipped: ""
+    --dummy: "2"
     -v: ""
 
-# Zip foldernames of the results, with BIDS App version included:
+# Foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 babs_zip_foldername:
-    toybidsapp: "0-0-6"
+    toybidsapp: "0-0-7"
 
 # How much cluster resources it needs:
 cluster_resources:
