@@ -570,7 +570,7 @@ We now run ``babs-merge`` in the root directory of ``my_BABS_project``:
 
     $ babs-merge --project-root $PWD
 
-If it was successfull, you'll see this message at the end:
+If it was successful, you'll see this message at the end:
 
 ..  code-block:: console
 
