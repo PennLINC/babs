@@ -12,7 +12,7 @@ babs_singularity_run:    # Q: to change this section name to "singularity_run"??
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: '1'
     --stop-on-first-crash: ""
-    --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
+    --fs-license-file: "$FREESURFER_LICENSE" # Q: change the placeholder "$FREESURFER_LICENSE" to -> "$BABS_FREESURFER_LICENSE"?  # this is a placeholder.
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
     --output-spaces: "MNI152NLin6Asym:res-2 MNI152NLin2009cAsym"    # if you want 2 output spaces
     --force-bbr: ""
