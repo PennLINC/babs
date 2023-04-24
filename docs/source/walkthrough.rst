@@ -51,7 +51,7 @@ the toy, multi-session BIDS dataset we'll use in this example walkthrough:
     $ datalad clone https://osf.io/w2nu3/ raw_BIDS_multi-ses
 
 The printed messages should look like below.
-Note that the absolate path to ``babs_demo`` (i.e., ``/cbica/projects/BABS/babs_demo``)
+Note that the absolute path to ``babs_demo`` (i.e., ``/cbica/projects/BABS/babs_demo``)
 would probably be different from yours due to different clusters, which is fine:
 
 .. code-block:: console
