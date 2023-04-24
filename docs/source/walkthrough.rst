@@ -50,11 +50,22 @@ the toy, multi-session BIDS dataset we'll use in this example walkthrough:
 
     $ datalad clone https://osf.io/w2nu3/ raw_BIDS_multi-ses
 
-The printed messages should be like this:
+The printed messages should look like below.
+Note that the absolate path to ``babs_demo`` (i.e., ``/cbica/projects/BABS/babs_demo``)
+would probably be different from yours due to different clusters, which is fine:
 
 .. code-block:: console
 
     install(ok): /cbica/projects/BABS/babs_demo/raw_BIDS_multi-ses (dataset)
+
+.. dropdown:: Why do I also see ``[INFO]`` messages?
+    
+    It's normal to see additional messages from DataLad like below:
+
+    ..  code-block:: console
+
+        [INFO   ] Remote origin uses a protocol not supported by git-annex; setting annex-ignore
+
 
 There are two subjects (``sub-01`` and ``sub-02``), in total of six sessions in this toy dataset.
 Now let's try getting a file's content:
@@ -70,8 +81,11 @@ You should see:
 
     get(ok): sub-01/ses-A/anat/sub-01_ses-A_T1w.nii.gz (file) [from osf-storage...]
 
-These mean that you can successfully install this dataset, and get the file contents.
+You can now view this image in image viewers.
+Note that the intensities of images in this dataset have been zero-ed out, so it's normal to
+see all-black images in image viewers.
 
+By now, we have made sure we can successfully install this dataset and get the file contents.
 Now we can drop the file content and remove this local copy of this dataset,
 as we can directly use its OSF link for input dataset for BABS:
 
@@ -109,13 +123,13 @@ so no extra work needs to be done here.
 
 Step 1.2. Prepare DataLad dataset of containerized BIDS App
 -------------------------------------------------------------
-For BIDS App, we have prepared a [toy BIDS App](https://hub.docker.com/r/pennlinc/toy_bids_app)
+For BIDS App, we have prepared a `toy BIDS App <https://hub.docker.com/r/pennlinc/toy_bids_app>`_
 that performs a simple task: if the input dataset is a raw BIDS dataset (unzipped),
 toy BIDS App will count non-hidden files in a subject's folder. Note that
 even if the input dataset is multi-session dataset, it will still count at subject-level
 (instead of session-level).
 
-We now needs to pull it as a Singularity image (the current latest version is ``0.0.7``):
+We now need to pull it as a Singularity image (the current latest version is ``0.0.7``):
 
 ..  code-block:: console
 
@@ -125,13 +139,14 @@ We now needs to pull it as a Singularity image (the current latest version is ``
         docker://pennlinc/toy_bids_app:0.0.7
 
 Now you should see the file ``toybidsapp-0.0.7.sif`` in the current directory.
-Then create a DataLad dataset of this container (i.e., let DataLad tracks this Singularity image):
+Then create a DataLad dataset of this container (i.e., let DataLad track this Singularity image):
 
 .. dropdown:: I'm confused - Why the container is another DataLad `dataset`?
 
     Here, "DataLad dataset of container" means "a collection of container image(s) in a folder tracked by DataLad".
     Same as DataLad dataset of input BIDS dataset, it's tracked by DataLad;
-    but different from input BIDS dataset, it contains container, and it won't `be processed`.
+    but different from input BIDS dataset, "DataLad dataset of container"
+    contains container image(s), and it won't `be processed`.
 
 .. code-block:: console
 
@@ -166,6 +181,7 @@ Then create a DataLad dataset of this container (i.e., let DataLad tracks this S
           save (ok: 1)
 
 Now, the DataLad dataset of toy BIDS App container ``toybidsapp-container`` is ready to use.
+
 .. developer's note: no need:
 ..  Please get its full path for later use by calling ``echo $PWD``.
 
@@ -198,12 +214,12 @@ Below is an example YAML file for toy BIDS App:
 As you can see, there are several sections in this YAML file.
 
 Here, in section ``babs_singularity_run``,
-both ``--dummy`` and ``-v`` are dummy arguments to this toy BIDS Apps,
-where ``--dummy`` can take any value afterwards, whereas ``-v`` does not take values.
-Here we use them to show examples of:
+both ``--dummy`` and ``-v`` are dummy arguments to this toy BIDS Apps:
+argument ``--dummy`` can take any value afterwards, whereas argument ``-v`` does not take values.
+Here we use these arguments to show examples of:
 
-* how to add values after flags: e.g., ``--dummy: "2"``;
-* how to add flags without values: e.g., ``--no-zipped: ""`` and ``-v: ""``;
+* how to add values after arguments: e.g., ``--dummy: "2"``;
+* how to add arguments without values: e.g., ``--no-zipped: ""`` and ``-v: ""``;
 * and it's totally fine to mix flags with prefix of ``--`` and ``-``.
 
 You can copy above content and save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
@@ -302,7 +318,7 @@ For container, we will use the DataLad-tracked ``toybidsapp-container`` and the 
 It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--container_name`` (line #7)
 is consistent with the image name we specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
-As this input dataset is multi-session dataset, we specify it as ``--type_session multi-ses`` (line #9).
+As this input dataset is a multi-session dataset, we specify this as ``--type_session multi-ses`` (line #9).
 Finally, please change the cluster system type ``--type_system`` (highlighted line #10) to yours;
 currently BABS supports ``sge`` and ``slurm``.
 
@@ -347,7 +363,7 @@ It's very important to check if the generated ``singularity run`` command is wha
 
 
 As you can see, BABS has automatically handled the positional arguments of BIDS App (i.e., input directory,
-output directory, and analysis level - 'participant'). ``--participant-label`` will also be covered by BABS, too.
+output directory, and analysis level - 'participant'). ``--participant-label`` is also covered by BABS, too.
 
 .. dropdown:: What's inside the created BABS project ``my_BABS_project``?
 
@@ -386,10 +402,11 @@ It's important to let BABS checks if everything has been correctly set up. In ad
 it's a good idea to run a toy, test job to make sure the environment you specified in the YAML file
 is working as expected.
 
-Note that starting from this step, without further instructions,
-all BABS commands should be called from where the BABS project
-is located: ``~/babs_demo/my_BABS_project``,
-so please make sure you switch to this directory before calling them.
+Note that starting from this step in this example walkthrough, without further instructions,
+all BABS functions will be called from where the BABS project
+is located: ``~/babs_demo/my_BABS_project``.
+This is to make sure we can directly use ``${PWD}`` for argument ``--project-root``.
+Therefore, please make sure you switch to this directory before calling them.
 
 ..  code-block:: console
 
@@ -458,7 +475,8 @@ You'll see:
     0 job(s) have been submitted; 6 job(s) haven't been submitted.
 
 Let's use ``babs-submit`` submit one job to see if it will successfully finish.
-If only argument ``--project-root`` is provided, ``babs-submit`` will only submit
+If only argument ``--project-root`` is provided (as we're doing right now),
+``babs-submit`` will only submit
 one job to avoid all jobs getting submitted by mistake:
 
 .. code-block:: console
@@ -561,8 +579,8 @@ Step 4.1. Use ``babs-merge`` to merge all results and provenance
 --------------------------------------------------------------------
 After all jobs are successfully finished,
 we will first merge all the results and provenance.
-This is because each job was executed on a different branch,
-we need to merge them together onto the default branch.
+This is because each job was executed on a different branch.
+We need to merge them together onto the default branch.
 
 We now run ``babs-merge`` in the root directory of ``my_BABS_project``:
 
@@ -583,12 +601,13 @@ If it was successful, you'll see this message at the end:
        :language: console
 
 
-Now, we have reached the end of the BABS workflow, and we're ready to consume the results.
+Now we're ready to consume the results.
 
 Step 4.2. Consume results
 ------------------------------
 
-To consume the results, we should not directly go into output RIA to check results there;
+To consume the results, we should not directly go into output RIA 
+or ``merge_ds`` folder (created by ``babs-merge``) to check results there;
 instead, we should clone the output RIA as another folder (e.g., called ``my_BABS_project_outputs``)
 outside the original BABS project:
 
@@ -638,7 +657,7 @@ Before unzipping a zip file, we need to get its content first:
     $ datalad get sub-01_ses-A_toybidsapp-0-0-7.zip
     $ unzip sub-01_ses-A_toybidsapp-0-0-7.zip
 
-You'll see:
+You'll see printed messages like this:
 
 ..  code-block:: console
 
@@ -660,7 +679,7 @@ From the zip file, we got a folder called ``toybidsapp``.
 In this folder, there is a file called ``num_nonhidden_files.txt``.
 This is the result from toy BIDS App, which is the number of non-hidden files in this subject.
 Note that for raw BIDS dataset, toy BIDS App counts at subject-level, even though
-current dataset is multi-session dataset.
+current dataset is a multi-session dataset.
 
 ..  code-block:: console
 
