@@ -2346,7 +2346,7 @@ class Container():
             cmd_singularity_flags = ""   # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
-            # as "--fs-license-file" or "$FREESURFER_LICENSE" is not provided:
+            # as "$BABS_FREESURFER_LICENSE" was not one of the value in `singularity_run` section:
             flag_fs_license = None
             # copied from `generate_cmd_singularityRun_from_config`:
             singuRun_input_dir = input_ds.df["path_data_rel"][0]
@@ -2431,23 +2431,26 @@ class Container():
 
         # Write the head of the command `singularity run`:
         bash_file.write("mkdir -p ${PWD}/.git/tmp/wkdir\n")
-        cmd_head_singularityRun = "singularity run --cleanenv" 
+        cmd_head_singularityRun = "singularity run --cleanenv"
         # binding:
         cmd_head_singularityRun += " \\" + "\n\t" + "-B ${PWD}"
 
         # check if `templateflow_home` needs to be bound:
         if templateflow_home is not None:
             # add `,/path/to/templateflow_home:/TEMPLATEFLOW_HOME` to `-B`:
-            cmd_head_singularityRun += "," + templateflow_home + ":"
+            # for multiple bindings: multiple `-B` or separate path with comma (too long)
+            cmd_head_singularityRun += " \\" + "\n\t" + "-B "
+            cmd_head_singularityRun += templateflow_home + ":"
             cmd_head_singularityRun += templateflow_in_container
             # ^^ bind to dir in container
 
         # check if `freesurfer_home` needs to be bound:
         if flag_fs_license is True:
             # add `,/path/to/freesurfer_home:/FREESURFER_HOME` to `-B`:
-            cmd_head_singularityRun += "," + freesurfer_home + ":"
+            cmd_head_singularityRun += " \\" + "\n\t" + "-B "
+            cmd_head_singularityRun += freesurfer_home + ":"
             cmd_head_singularityRun += freesurfer_in_container
-        
+
         # inject env variable into container:
         if templateflow_home is not None:
             # add `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`:

@@ -257,9 +257,10 @@ def replace_placeholder_from_config(value):
     value = str(value)
     if value == "$BABS_TMPDIR":
         replaced = "${PWD}/.git/tmp/wkdir"
-    elif value == "$FREESURFER_LICENSE":
-        replaced = "/FREESURFER_HOME/license.txt"
-        # ^^ ${FREESURFER_HOME} in container: see definition in `generate_cmd_set_envvar()`
+    elif value == "$BABS_FREESURFER_LICENSE":
+        replaced = "${FREESURFER_LICENSE}"
+        # ^^ `${FREESURFER_LICENSE}` is an env var in container
+        # see Container.generate_bash_run_bidsapp()
     return replaced
 
 
@@ -344,13 +345,14 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 cmd += " \\" + "\n\t" + str(key)
             else:  # a flag with value
                 # check if it is a placeholder which needs to be replaced:
+                # e.g., `$BABS_TMPDIR`, `$BABS_FREESURFER_LICENSE`
                 if str(value)[:6] == "$BABS_":
                     replaced = replace_placeholder_from_config(value)
                     cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
-                elif str(value) == "$FREESURFER_LICENSE":
-                    replaced = replace_placeholder_from_config(value)
-                    flag_fs_license = True
-                    cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
+
+                    if str(value) == "$BABS_FREESURFER_LICENSE":
+                        # check if FS license was requested:
+                        flag_fs_license = True
 
                 elif value is None:    # if entered `Null` or `NULL` without quotes
                     cmd += " \\" + "\n\t" + str(key)
@@ -462,24 +464,30 @@ def generate_cmd_set_envvar(env_var_name):
     env_var_name: str
         The name of the environment variable to be injected into the container
         e.g., "FREESURFER_HOME", "TEMPLATEFLOW_HOME"
-    
+
     Returns:
     ------------
     cmd: str
         argument `--env` of `singularity run`
         e.g., `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`
     value: str
-        The value of the env varialbe `env_var_name`
+        The value of the env variable `env_var_name`
     env_var_value_in_container: str
         The env var value used in container;
-        e.g., "/FREESURFER_HOME", "/TEMPLATEFLOW_HOME"
+        e.g., "/SGLR/FREESURFER_HOME", "/SGLR/TEMPLATEFLOW_HOME"
     """
 
     # Generate argument `--env` in `singularity run`:
-    env_var_value_in_container = "/" + env_var_name
+    env_var_value_in_container = "/SGLR/" + env_var_name
 
-    cmd = "--env "
-    cmd += env_var_name + "=" + env_var_value_in_container
+    if env_var_name == "FREESURFER_HOME":
+        # cmd should be: `--env FREESURFER_LICENSE=/SGLR/FREESURFER_HOME/license.txt`
+        cmd = "--env "
+        cmd += "FREESURFER_LICENSE=" + env_var_value_in_container + "/license.txt"
+    else:
+        # cmd should be: `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`
+        cmd = "--env "
+        cmd += env_var_name + "=" + env_var_value_in_container
 
     # Get env var's value, to be used for binding `-B` in `singularity run`:
     env_var_value = os.getenv(env_var_name)
@@ -488,10 +496,10 @@ def generate_cmd_set_envvar(env_var_name):
     if env_var_name == "TEMPLATEFLOW_HOME":
         if env_var_value is None:
             warnings.warn("Usually BIDS App depends on TemplateFlow,"
-                      + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
-                      + " Therefore, BABS will not export it or bind its directory"
-                      + " when running the container. This may cause errors.")
-    
+                          + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
+                          + " Therefore, BABS will not export it or bind its directory"
+                          + " when running the container. This may cause errors.")
+
     # If it's freesurfer:
     #   current function is called only when freesurfer will be used
     if env_var_name == "FREESURFER_HOME":
@@ -505,8 +513,8 @@ def generate_cmd_set_envvar(env_var_name):
         # check if `${FREESURFER_HOME}/license.txt` exists: if not, error:
         fs_license_path = op.join(env_var_value, "license.txt")
         if op.exists(fs_license_path) is False:
-                raise Exception("There is no `license.txt` file in $FREESURFER_HOME!"
-                    + " Here, $FREESURFER_HOME = '" + env_var_value + "'.")
+            raise Exception("There is no `license.txt` file in $FREESURFER_HOME!"
+                            + " Here, $FREESURFER_HOME = '" + env_var_value + "'.")
 
     return cmd, env_var_value, env_var_value_in_container
 

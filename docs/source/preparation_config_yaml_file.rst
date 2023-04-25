@@ -86,7 +86,7 @@ Below is example section **babs_singularity_run** for ``fMRIPrep``::
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
         --n_cpus: '1'
         --stop-on-first-crash: ""   # argument without value
-        --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
+        --fs-license-file: "$BABS_FREESURFER_LICENSE" # this is a placeholder.
         --skip-bids-validation: Null  # Null or NULL is also a placeholder for argument without value
         --output-spaces: MNI152NLin6Asym:res-2
         --force-bbr: ""
@@ -199,8 +199,8 @@ Advanced - Manual of writing section ``babs_singularity_run``
 
 * How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
 
-    * You can use ``"$FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license,
-      e.g., ``--fs-license-file: "$FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
+    * You can use ``"$BABS_FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license,
+      e.g., ``--fs-license-file: "$BABS_FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
     * TODO: update ^^ after changing the strategy of providing freesurfer license!
 
 * Can I use a job environment variable, e.g., number of CPUs?

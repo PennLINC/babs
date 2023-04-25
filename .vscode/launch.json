@@ -37,7 +37,7 @@
                 "multi-ses",
                 "--type_system",
                 "sge",
-                "--keep-if-failed"
+                // "--keep-if-failed"
             ]
             // "args": [
             //     "--where_project", "/cbica/projects/BABS/data",

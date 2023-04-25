@@ -3,7 +3,8 @@ import os.path as op
 import sys
 import pprint   # no need to install, provided by python
 
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
+sys.path.append("../babs")
+# sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "babs"))
 from babs.cli import babs_check_setup_main   # noqa
 from babs.utils import read_yaml, write_yaml   # noqa
 from babs.cli import babs_init_main  # noqa

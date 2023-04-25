@@ -18,7 +18,7 @@ babs_singularity_run:
     --n_cpus: "$NSLOTS"   # `$NSLOTS` can be recognized by SGE; if you're using Slurm clusters please change to Slurm version!
     --omp-nthreads: "3"   # without this, only run single-threaded jobs (N=`--n_cpus`) at once
     --stop-on-first-crash: ""
-    --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
+    --fs-license-file: "$BABS_FREESURFER_LICENSE" # this is a placeholder.
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
     --unringing-method: "mrdegibbs"
     --output-resolution: "2.0"
