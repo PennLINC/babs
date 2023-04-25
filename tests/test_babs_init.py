@@ -189,7 +189,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         + " in '" + container_name + "_zip.sh'."
     assert if_bind_template, \
         "Env variable 'TEMPLATEFLOW_HOME' has been set," \
-        + " but Templateflow home path did not get binded in 'singularity run'" \
+        + " but Templateflow home path did not get bound in 'singularity run'" \
         + " in '" + container_name + "_zip.sh'."
     # 2) BIDS filter file: only when qsiprep/fmriprep & multi-ses:
     if (which_bidsapp in ["qsiprep", "fmriprep"]) & (type_session == "multi-ses"):

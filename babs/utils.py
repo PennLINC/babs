@@ -258,7 +258,8 @@ def replace_placeholder_from_config(value):
     if value == "$BABS_TMPDIR":
         replaced = "${PWD}/.git/tmp/wkdir"
     elif value == "$FREESURFER_LICENSE":
-        replaced = "code/license.txt"
+        replaced = "/FREESURFER_HOME/license.txt"
+        # ^^ ${FREESURFER_HOME} in container: see definition in `generate_cmd_set_envvar()`
     return replaced
 
 
@@ -384,8 +385,10 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     #     # tested: '' or "" is the same to pyyaml
 
 
-def generate_cmd_envvar(config, container_name):
+def generate_cmd_envvar_templateflow(config, container_name):
     """
+    DEPRECATED - SEE `generate_cmd_set_envvar()`.
+
     This is to generate bash command to export necessary environment variables.
     Currently this only supports `templateflow_home`.
     Roadmap: customize env var (original one, and SINGULARITYENV_*) in yaml file.
@@ -446,6 +449,66 @@ def generate_cmd_envvar(config, container_name):
 
     cmd += "\n"
     return cmd, templateflow_home, singularityenv_templateflow_home
+
+def generate_cmd_set_envvar(env_var_name):
+    """
+    This is to generate argument `--env` in `singularity run`,
+    and to get the env var value for later use: binding the path (env var value).
+    Call this function for `FREESURFER_HOME` and `TEMPLATEFLOW_HOME`, separately.
+    Note for FreeSurfer: call current function ONLY when FreeSurfer will be used!
+
+    Parameters:
+    ----------------
+    env_var_name: str
+        The name of the environment variable to be injected into the container
+        e.g., "FREESURFER_HOME", "TEMPLATEFLOW_HOME"
+    
+    Returns:
+    ------------
+    cmd: str
+        argument `--env` of `singularity run`
+        e.g., `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`
+    value: str
+        The value of the env varialbe `env_var_name`
+    env_var_value_in_container: str
+        The env var value used in container;
+        e.g., "/FREESURFER_HOME", "/TEMPLATEFLOW_HOME"
+    """
+
+    # Generate argument `--env` in `singularity run`:
+    env_var_value_in_container = "/" + env_var_name
+
+    cmd = "--env "
+    cmd += env_var_name + "=" + env_var_value_in_container
+
+    # Get env var's value, to be used for binding `-B` in `singularity run`:
+    env_var_value = os.getenv(env_var_name)
+
+    # If it's templateflow:
+    if env_var_name == "TEMPLATEFLOW_HOME":
+        if env_var_value is None:
+            warnings.warn("Usually BIDS App depends on TemplateFlow,"
+                      + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
+                      + " Therefore, BABS will not export it or bind its directory"
+                      + " when running the container. This may cause errors.")
+    
+    # If it's freesurfer:
+    #   current function is called only when freesurfer will be used
+    if env_var_name == "FREESURFER_HOME":
+        if env_var_value is None:
+            raise Exception(
+                "FreeSurfer's license will be used"
+                + " but `$FREESURFER_HOME` was not set."
+                + " Therefore, BABS cannot bind FreeSurfer directory for `singularity run`"
+                + " and FreeSurfer license would probably not be passed into the container..."
+                )
+        # check if `${FREESURFER_HOME}/license.txt` exists: if not, error:
+        fs_license_path = op.join(env_var_value, "license.txt")
+        if op.exists(fs_license_path) is False:
+                raise Exception("There is no `license.txt` file in $FREESURFER_HOME!"
+                    + " Here, $FREESURFER_HOME = '" + env_var_value + "'.")
+
+    return cmd, env_var_value, env_var_value_in_container
 
 
 def generate_cmd_zipping_from_config(config, type_session, output_foldername="outputs"):
