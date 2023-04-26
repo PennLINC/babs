@@ -199,9 +199,11 @@ Advanced - Manual of writing section ``babs_singularity_run``
 
 * How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
 
-    * You can use ``"$BABS_FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license,
-      e.g., ``--fs-license-file: "$BABS_FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
-    * TODO: update ^^ after changing the strategy of providing freesurfer license!
+    * You can use ``"$BABS_FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license.
+    * For example, you can specify ``--fs-license-file: "$BABS_FREESURFER_LICENSE"`` in current section of YAML file.
+    * If you use this placeholder, when running the BIDS App container,
+      BABS will bind the path of the cluster's ``$FREESURFER_HOME``,
+      and ask the container to use the ``license.txt`` from that directory.
 
 * Can I use a job environment variable, e.g., number of CPUs?
 

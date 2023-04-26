@@ -379,78 +379,12 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # print(cmd)
     return cmd, flag_fs_license, singuRun_input_dir
 
-
 # adding zip filename:
     # if value != '':
     #     raise Exception("Invalid element under `one_dash`: " + str(key) + ": " + str(value) +
     #                     "\n" + "The value should be empty '', instead of " + str(value))
     #     # tested: '' or "" is the same to pyyaml
 
-
-def generate_cmd_envvar_templateflow(config, container_name):
-    """
-    DEPRECATED - SEE `generate_cmd_set_envvar()`.
-
-    This is to generate bash command to export necessary environment variables.
-    Currently this only supports `templateflow_home`.
-    Roadmap: customize env var (original one, and SINGULARITYENV_*) in yaml file.
-
-    Parameters:
-    ------------
-    config: dictionary
-        attribute `config` in class Container;
-        got from `read_container_config_yaml()`
-    container_name: str
-        The name of the container when adding to datalad dataset.
-        e.g., fmriprep-0-0-0.
-        See class `Container` for more.
-
-    Returns:
-    ---------
-    cmd: str
-        It's part of the singularity run command; it is generated
-        based on section `environment_variable` in the yaml file.
-    templateflow_home: None or str
-        The environment variable `TEMPLATEFLOW_HOME`.
-    singularityenv_templateflow_home: None or str
-        The environment variable `SINGULARITYENV_TEMPLATEFLOW_HOME`.
-        Its value will be used within the container.
-        Only set when `templateflow_home` is not None.
-    """
-    cmd = ""
-
-    templateflow_home = None
-    singularityenv_templateflow_home = None
-
-    # Set up `templateflow_home`:
-    # Why: QSIPrep, fMRIPrep, and XCP-D all need it; therefore BABS will automatically set it up.
-    # How: We get it from environment variable `TEMPLATEFLOW_HOME` below.
-    #      If we get it, do two actions below:
-    # action 1: export;
-    # action 2: bind the directory when `singularity run`
-    #           ^^ this will ask `generate_bash_run_bidsapp()` to achieve
-
-    # get `templateflow_home`:
-    # check if it's set up:
-    if templateflow_home is None:  # not set up yet:
-        # get it from env var `TEMPLATEFLOW_HOME`:
-        templateflow_home = os.getenv("TEMPLATEFLOW_HOME")
-
-    if templateflow_home is not None:
-        # action #1: add to the cmd to export:
-        singularityenv_templateflow_home = "/TEMPLATEFLOW_HOME"  # within container
-        # ^^ hard code it for now. ROADMAP.
-        cmd += "\nexport SINGULARITYENV_TEMPLATEFLOW_HOME=" + singularityenv_templateflow_home
-    else:
-        # we have checked existing env var;
-        # if it still does not exist, warning:
-        warnings.warn("Usually BIDS App depends on TemplateFlow,"
-                      + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
-                      + " Therefore, BABS will not export it or bind its directory"
-                      + " when running the container. This may cause errors.")
-
-    cmd += "\n"
-    return cmd, templateflow_home, singularityenv_templateflow_home
 
 def generate_cmd_set_envvar(env_var_name):
     """

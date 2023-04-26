@@ -24,7 +24,6 @@ from datalad_container.find_container import find_container_
 from babs.utils import (get_immediate_subdirectories,
                         check_validity_unzipped_input_dataset,
                         if_input_ds_from_osf,
-                        generate_cmd_envvar_templateflow,
                         generate_cmd_set_envvar,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
@@ -2411,14 +2410,8 @@ class Container():
         # Other necessary commands for preparation:
         bash_file.write("\n")
 
-        # Export environment variable:
-        # TODO: change function below to `generate_cmd_set_envvar`
-        # cmd_envvar, templateflow_home, singularityenv_templateflow_home = \
-        #     generate_cmd_envvar_templateflow(
-        #         self.config, self.container_name)
-        # bash_file.write(cmd_envvar)
-        
-        # Get environment variables to be injected into container and whose value to be bound:
+        # Environment variables in container:
+        # get environment variables to be injected into container and whose value to be bound:
         cmd_env_templateflow, templateflow_home, templateflow_in_container = \
             generate_cmd_set_envvar("TEMPLATEFLOW_HOME")
         if flag_fs_license is True:    # requested:
@@ -2469,9 +2462,6 @@ class Container():
         cmd_head_singularityRun += output_foldername   # output folder
 
         # currently all BIDS App support `participant` positional argu:
-        # if any(ele in self.container_name.lower() for ele in ["xcp"]):
-        #     pass
-        # else:
         cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += "participant"  # at participant-level
 
