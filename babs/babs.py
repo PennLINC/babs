@@ -2444,10 +2444,6 @@ class Container():
             # add `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`:
             cmd_head_singularityRun += " \\" + "\n\t"
             cmd_head_singularityRun += cmd_env_templateflow
-        if flag_fs_license is True:
-            # add `--env FREESURFER_HOME=/FREESURFER_HOME`:
-            cmd_head_singularityRun += " \\" + "\n\t"
-            cmd_head_singularityRun += cmd_env_freesurfer
 
         cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += self.container_path_relToAnalysis
