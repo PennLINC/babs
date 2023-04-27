@@ -2321,6 +2321,7 @@ class Container():
         When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
         meaning, starting with space, a backward slash, a return, and a tab.
         """
+        from .constants import PATH_FS_LICENSE_IN_CONTAINER
 
         type_session = validate_type_session(type_session)
         output_foldername = "outputs"    # folername of BIDS App outputs
@@ -2345,8 +2346,9 @@ class Container():
             cmd_singularity_flags = ""   # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
-            # as "$BABS_FREESURFER_LICENSE" was not one of the value in `singularity_run` section:
-            flag_fs_license = None
+            # as "--fs-license-file" was not one of the value in `singularity_run` section:
+            flag_fs_license = False
+            path_fs_license = None
             # copied from `generate_cmd_singularityRun_from_config`:
             singuRun_input_dir = input_ds.df["path_data_rel"][0]
         else:
@@ -2354,7 +2356,7 @@ class Container():
             # # contain \ for each key-value
 
             # read config from the yaml file:
-            cmd_singularity_flags, flag_fs_license, singuRun_input_dir = \
+            cmd_singularity_flags, flag_fs_license, path_fs_license, singuRun_input_dir = \
                 generate_cmd_singularityRun_from_config(self.config, input_ds)
 
         print()
@@ -2414,13 +2416,6 @@ class Container():
         # get environment variables to be injected into container and whose value to be bound:
         cmd_env_templateflow, templateflow_home, templateflow_in_container = \
             generate_cmd_set_envvar("TEMPLATEFLOW_HOME")
-        if flag_fs_license is True:    # requested:
-            cmd_env_freesurfer, freesurfer_home, freesurfer_in_container = \
-                generate_cmd_set_envvar("FREESURFER_HOME")
-        else:
-            cmd_env_freesurfer = None
-            freesurfer_home = None
-            freesurfer_in_container = None
 
         # Write the head of the command `singularity run`:
         bash_file.write("mkdir -p ${PWD}/.git/tmp/wkdir\n")
@@ -2430,7 +2425,7 @@ class Container():
 
         # check if `templateflow_home` needs to be bound:
         if templateflow_home is not None:
-            # add `,/path/to/templateflow_home:/TEMPLATEFLOW_HOME` to `-B`:
+            # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
             # for multiple bindings: multiple `-B` or separate path with comma (too long)
             cmd_head_singularityRun += " \\" + "\n\t" + "-B "
             cmd_head_singularityRun += templateflow_home + ":"
@@ -2439,10 +2434,10 @@ class Container():
 
         # check if `freesurfer_home` needs to be bound:
         if flag_fs_license is True:
-            # add `,/path/to/freesurfer_home:/FREESURFER_HOME` to `-B`:
+            # add `-B /path/to/license.txt:/SGLR/FREESURFER_HOME/license.txt`:
             cmd_head_singularityRun += " \\" + "\n\t" + "-B "
-            cmd_head_singularityRun += freesurfer_home + ":"
-            cmd_head_singularityRun += freesurfer_in_container
+            cmd_head_singularityRun += path_fs_license + ":"
+            cmd_head_singularityRun += PATH_FS_LICENSE_IN_CONTAINER
 
         # inject env variable into container:
         if templateflow_home is not None:

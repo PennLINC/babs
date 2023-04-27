@@ -257,10 +257,7 @@ def replace_placeholder_from_config(value):
     value = str(value)
     if value == "$BABS_TMPDIR":
         replaced = "${PWD}/.git/tmp/wkdir"
-    elif value == "$BABS_FREESURFER_LICENSE":
-        replaced = "${FREESURFER_LICENSE}"
-        # ^^ `${FREESURFER_LICENSE}` is an env var in container
-        # see Container.generate_bash_run_bidsapp()
+
     return replaced
 
 
@@ -282,11 +279,14 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         It's part of the singularity run command; it is generated
         based on section `babs_singularity_run` in the yaml file.
     flag_fs_license: True or False
-        Whether FreeSurfer's license will be used; if so, BABS needs to copy it to workspace.
+        Whether FreeSurfer's license will be used.
+        This is determined by checking if there is argument called `--fs-license-file`
+        If so, the license file will be bound into and used by the container
+    path_fs_license: None or str
+        Path to the FreeSurfer license. This is provided by the user in `--fs-license-file`.
     singuRun_input_dir: None or str
         The positional argument of input dataset path in `singularity run`
     """
-
     # human readable: (just like appearance in a yaml file;
     # print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
 
@@ -294,9 +294,12 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # for key, value in config.items():
     #     print(key + " : " + str(value))
 
+    from .constants import PATH_FS_LICENSE_IN_CONTAINER
+
     cmd = ""
     # is_first_flag = True
     flag_fs_license = False
+    path_fs_license = None
     singuRun_input_dir = None
 
     # re: positional argu `$INPUT_PATH`:
@@ -323,7 +326,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         # print(key + ": " + str(value))
 
         if key == "$INPUT_PATH":  # placeholder
-
             #   if not, warning....
             if value[-1] == "/":
                 value = value[:-1]   # remove the unnecessary forward slash at the end
@@ -340,6 +342,20 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             # ^^ no matter one or more input dataset(s)
             # and not add to the flag cmd
 
+        # Check if FreeSurfer license will be used:
+        elif key == "--fs-license-file":
+            flag_fs_license = True
+            path_fs_license = value   # the provided value is the path to the FS license
+            # sanity check: `path_fs_license` exists:
+            assert op.exists(path_fs_license), \
+                "Path to FreeSurfer license provided in `--fs-license-file`" \
+                + " in container's configuration YAML file" \
+                + " does NOT exist! The path provided: '" \
+                + path_fs_license + "'."
+            # if alright:
+            cmd += " \\" + "\n\t" + str(key) + " " + PATH_FS_LICENSE_IN_CONTAINER
+            # ^^ the 'license.txt' will be bound to above path.
+
         else:   # check on values:
             if value == "":   # a flag, without value
                 cmd += " \\" + "\n\t" + str(key)
@@ -350,10 +366,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                     replaced = replace_placeholder_from_config(value)
                     cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
 
-                    if str(value) == "$BABS_FREESURFER_LICENSE":
-                        # check if FS license was requested:
-                        flag_fs_license = True
-
                 elif value is None:    # if entered `Null` or `NULL` without quotes
                     cmd += " \\" + "\n\t" + str(key)
                 elif value in ["Null", "NULL"]:  # "Null" or "NULL" w/ quotes, i.e., as strings
@@ -363,10 +375,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 else:
                     cmd += " \\" + "\n\t" + str(key) + " " + str(value)
 
-        # is_first_flag = False
-
-        # print(cmd)
-
+    # Finalize `singuRun_input_dir`:
     if singuRun_input_dir is None:
         # now, it must be only one input dataset, and user did not provide `$INPUT_PATH` key:
         assert input_ds.num_ds == 1
@@ -377,7 +386,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # config["babs_singularity_run"]["n_cpus"]
 
     # print(cmd)
-    return cmd, flag_fs_license, singuRun_input_dir
+    return cmd, flag_fs_license, path_fs_license, singuRun_input_dir
 
 # adding zip filename:
     # if value != '':
@@ -390,14 +399,13 @@ def generate_cmd_set_envvar(env_var_name):
     """
     This is to generate argument `--env` in `singularity run`,
     and to get the env var value for later use: binding the path (env var value).
-    Call this function for `FREESURFER_HOME` and `TEMPLATEFLOW_HOME`, separately.
-    Note for FreeSurfer: call current function ONLY when FreeSurfer will be used!
+    Call this function for `TEMPLATEFLOW_HOME`.
 
     Parameters:
     ----------------
     env_var_name: str
         The name of the environment variable to be injected into the container
-        e.g., "FREESURFER_HOME", "TEMPLATEFLOW_HOME"
+        e.g., "TEMPLATEFLOW_HOME"
 
     Returns:
     ------------
@@ -408,20 +416,15 @@ def generate_cmd_set_envvar(env_var_name):
         The value of the env variable `env_var_name`
     env_var_value_in_container: str
         The env var value used in container;
-        e.g., "/SGLR/FREESURFER_HOME", "/SGLR/TEMPLATEFLOW_HOME"
+        e.g., "/SGLR/TEMPLATEFLOW_HOME"
     """
 
     # Generate argument `--env` in `singularity run`:
     env_var_value_in_container = "/SGLR/" + env_var_name
 
-    if env_var_name == "FREESURFER_HOME":
-        # cmd should be: `--env FREESURFER_LICENSE=/SGLR/FREESURFER_HOME/license.txt`
-        cmd = "--env "
-        cmd += "FREESURFER_LICENSE=" + env_var_value_in_container + "/license.txt"
-    else:
-        # cmd should be: `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`
-        cmd = "--env "
-        cmd += env_var_name + "=" + env_var_value_in_container
+    # cmd should be: `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`
+    cmd = "--env "
+    cmd += env_var_name + "=" + env_var_value_in_container
 
     # Get env var's value, to be used for binding `-B` in `singularity run`:
     env_var_value = os.getenv(env_var_name)
@@ -433,22 +436,6 @@ def generate_cmd_set_envvar(env_var_name):
                           + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
                           + " Therefore, BABS will not export it or bind its directory"
                           + " when running the container. This may cause errors.")
-
-    # If it's freesurfer:
-    #   current function is called only when freesurfer will be used
-    if env_var_name == "FREESURFER_HOME":
-        if env_var_value is None:
-            raise Exception(
-                "FreeSurfer's license will be used"
-                + " but `$FREESURFER_HOME` was not set."
-                + " Therefore, BABS cannot bind FreeSurfer directory for `singularity run`"
-                + " and FreeSurfer license would probably not be passed into the container..."
-                )
-        # check if `${FREESURFER_HOME}/license.txt` exists: if not, error:
-        fs_license_path = op.join(env_var_value, "license.txt")
-        if op.exists(fs_license_path) is False:
-            raise Exception("There is no `license.txt` file in $FREESURFER_HOME!"
-                            + " Here, $FREESURFER_HOME = '" + env_var_value + "'.")
 
     return cmd, env_var_value, env_var_value_in_container
 
