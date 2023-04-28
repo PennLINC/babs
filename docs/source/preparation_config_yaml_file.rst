@@ -128,7 +128,7 @@ This section will be turned into commands (including a Singularity run command) 
     * line #7 sets the path to the container image;
     * line #8-10 are positional arguments of BIDS App;
     * line #11-end are named arguments of BIDS App, where some are requested by the user
-      in the YAML file, some are automaticaly set up by BABS.
+      in the YAML file, some are automatically set up by BABS.
 
 
 Basics - Manual of writing section ``babs_singularity_run``
