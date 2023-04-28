@@ -73,7 +73,7 @@ def babs_init_cli():
         + " to make sure the bootstrap scripts are set up correctly;"
         + " Also, the version number should be added, too."
         + " ``babs-init`` is not case sensitive to this ``--container_name``."
-        + " Example: ``toybidsapp-0-0-6`` for toy BIDS App version 0.0.6.",
+        + " Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(

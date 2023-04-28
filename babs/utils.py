@@ -434,7 +434,8 @@ def generate_cmd_set_envvar(env_var_name):
         if env_var_value is None:
             warnings.warn("Usually BIDS App depends on TemplateFlow,"
                           + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
-                          + " Therefore, BABS will not export it or bind its directory"
+                          + " Therefore, BABS will not bind its directory"
+                          + " or inject this environment variable into the container"
                           + " when running the container. This may cause errors.")
 
     return cmd, env_var_value, env_var_value_in_container
