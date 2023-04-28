@@ -194,32 +194,6 @@ def container_ds_path(where_now, tmp_path_factory):
 
     return origin_container_ds
 
-def mk_freesurfer_home(tmp_path):
-    """
-    Create a temporary directory for `FREESURFER_HOME` environment variable,
-    and create a FreeSurfer license (fake one) in it.
-
-    Parameters:
-    ---------------
-    tmp_path: fixture
-
-    Returns:
-    -----------
-    freesurfer_home: str
-        path to freesurfer home
-    """
-    freesurfer_home = tmp_path.absolute().as_posix()   # turn into a string
-    # create a fake license file:
-    fn_license = op.join(freesurfer_home, "license.txt")
-    f = open(fn_license, "w")
-    f.write("This is a fake freesurfer license. For testing purpose only.")
-    f.close()
-
-    # export env variable:
-    os.environ["FREESURFER_HOME"] = freesurfer_home
-
-    return freesurfer_home
-
 
 def if_command_installed(cmd):
     """

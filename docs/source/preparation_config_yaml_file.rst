@@ -86,7 +86,7 @@ Below is example section **babs_singularity_run** for ``fMRIPrep``::
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
         --n_cpus: '1'
         --stop-on-first-crash: ""   # argument without value
-        --fs-license-file: "$BABS_FREESURFER_LICENSE" # this is a placeholder.
+        --fs-license-file: "/path/to/freesurfer/license.txt"
         --skip-bids-validation: Null  # Null or NULL is also a placeholder for argument without value
         --output-spaces: MNI152NLin6Asym:res-2
         --force-bbr: ""
@@ -197,13 +197,17 @@ Advanced - Manual of writing section ``babs_singularity_run``
 
 .. developer's note: it will be changed ``-w ${PWD}/.git/tmp/wkdir`` - see the example above.
 
-* How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
+* How to provide FreeSurfer license for argument ``--fs-license-file`` of BIDS App?
 
-    * You can use ``"$BABS_FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license.
-    * For example, you can specify ``--fs-license-file: "$BABS_FREESURFER_LICENSE"`` in current section of YAML file.
-    * If you use this placeholder, when running the BIDS App container,
-      BABS will bind the path of the cluster's ``$FREESURFER_HOME``,
-      and ask the container to use the ``license.txt`` from that directory.
+    * You should provide it as you normally does when running the BIDS App:
+      just provide the path to your FreeSurfer license on the cluster.
+      For example::
+        
+        --fs-license-file: "/path/to/freesurfer/license.txt"
+
+    * When there is argument ``--fs-license-file`` in ``babs_singularity_run`` section,
+      BABS will bind this provided ``license.txt`` file to container in ``singularity run`` command, so that
+      the BIDS App container can use that file on the cluster ("host machine").
 
 * Can I use a job environment variable, e.g., number of CPUs?
 
