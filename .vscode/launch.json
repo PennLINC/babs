@@ -22,7 +22,7 @@
                 "--where_project",
                 "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data",
                 "--project_name",
-                "test_babs_multi-ses_toybidsapp",
+                "test_babs_multi-ses_toybidsapp", // "test_babs_multi-ses_fmriprep",
                 "--input",
                 "BIDS",
                 "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/w2nu3",
@@ -30,23 +30,29 @@
                 "--container_ds",
                 "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/toybidsapp-container-docker",
                 "--container_name",
-                "toybidsapp-0-0-6",
+                "toybidsapp-0-0-6", // "fmriprep-20-2-3", 
                 "--container_config_yaml_file",
                 "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container_toybidsapp.yaml",
+                // "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/babs/notebooks/example_container_fmriprep.yaml",
                 "--type_session",
                 "multi-ses",
                 "--type_system",
                 "sge",
-                "--keep-if-failed"
+                // "--keep-if-failed"
             ]
             // "args": [
             //     "--where_project", "/cbica/projects/BABS/data",
-            //     "--project_name", "test_babs_multi-ses_toybidsapp",
-            //     "--input", "BIDS", "/cbica/projects/BABS/data/w2nu3",
-            //     "--list_sub_file", "/cbica/projects/BABS/babs/notebooks/initial_sub_list_multi-ses.csv",
-            //     "--container_ds", "/cbica/projects/BABS/data/toybidsapp-container",
-            //     "--container_name", "toybidsapp-0-0-6",
-            //     "--container_config_yaml_file", "/cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml",
+            //     // "--project_name", "test_babs_multi-ses_toybidsapp",
+            //     "--project_name", "test_babs_multi-ses_fmriprep_anatonly_2",
+            //     // "--input", "BIDS", "/cbica/projects/BABS/data/w2nu3",
+            //     "--input", "BIDS", "/cbica/projects/BABS/data/testdata_NKI/data_hashedID_bids",  // toy real data
+            //     // "--list_sub_file", "/cbica/projects/BABS/babs/notebooks/initial_sub_list_multi-ses.csv",
+            //     // "--container_ds", "/cbica/projects/BABS/data/toybidsapp-container",
+            //     "--container_ds", "/cbica/projects/BABS/data/fmriprep-container",
+            //     // "--container_name", "toybidsapp-0-0-6",
+            //     "--container_name", "fmriprep-20-2-3",
+            //     // "--container_config_yaml_file", "/cbica/projects/BABS/babs/notebooks/example_container_toybidsapp.yaml",
+            //     "--container_config_yaml_file", "/cbica/projects/BABS/babs/notebooks/example_container_fmriprep_anatonly.yaml",
             //     "--type_session", "multi-ses",
             //     "--type_system", "sge"
             // ]

@@ -7,6 +7,7 @@ import argparse
 import pytest
 from unittest import mock
 sys.path.append("..")
+sys.path.append("../babs")
 from babs.cli import (    # noqa
     babs_init_main,
     babs_check_setup_main)

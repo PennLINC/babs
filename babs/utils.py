@@ -257,8 +257,7 @@ def replace_placeholder_from_config(value):
     value = str(value)
     if value == "$BABS_TMPDIR":
         replaced = "${PWD}/.git/tmp/wkdir"
-    elif value == "$FREESURFER_LICENSE":
-        replaced = "code/license.txt"
+
     return replaced
 
 
@@ -280,11 +279,14 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         It's part of the singularity run command; it is generated
         based on section `babs_singularity_run` in the yaml file.
     flag_fs_license: True or False
-        Whether FreeSurfer's license will be used; if so, BABS needs to copy it to workspace.
+        Whether FreeSurfer's license will be used.
+        This is determined by checking if there is argument called `--fs-license-file`
+        If so, the license file will be bound into and used by the container
+    path_fs_license: None or str
+        Path to the FreeSurfer license. This is provided by the user in `--fs-license-file`.
     singuRun_input_dir: None or str
         The positional argument of input dataset path in `singularity run`
     """
-
     # human readable: (just like appearance in a yaml file;
     # print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
 
@@ -292,9 +294,12 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # for key, value in config.items():
     #     print(key + " : " + str(value))
 
+    from .constants import PATH_FS_LICENSE_IN_CONTAINER
+
     cmd = ""
     # is_first_flag = True
     flag_fs_license = False
+    path_fs_license = None
     singuRun_input_dir = None
 
     # re: positional argu `$INPUT_PATH`:
@@ -321,7 +326,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         # print(key + ": " + str(value))
 
         if key == "$INPUT_PATH":  # placeholder
-
             #   if not, warning....
             if value[-1] == "/":
                 value = value[:-1]   # remove the unnecessary forward slash at the end
@@ -338,17 +342,33 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             # ^^ no matter one or more input dataset(s)
             # and not add to the flag cmd
 
+        # Check if FreeSurfer license will be used:
+        elif key == "--fs-license-file":
+            flag_fs_license = True
+            path_fs_license = value   # the provided value is the path to the FS license
+            # sanity check: `path_fs_license` exists:
+            if op.exists(path_fs_license) is False:
+                # raise a warning, instead of an error
+                #   so that pytest using example yaml files will always pass
+                #   regardless of the path provided in the yaml file
+                warnings.warn(
+                    "Path to FreeSurfer license provided in `--fs-license-file`"
+                    + " in container's configuration YAML file"
+                    + " does NOT exist! The path provided: '"
+                    + path_fs_license + "'.")
+
+            # if alright: Now use the path within the container:
+            cmd += " \\" + "\n\t" + str(key) + " " + PATH_FS_LICENSE_IN_CONTAINER
+            # ^^ the 'license.txt' will be bound to above path.
+
         else:   # check on values:
             if value == "":   # a flag, without value
                 cmd += " \\" + "\n\t" + str(key)
             else:  # a flag with value
                 # check if it is a placeholder which needs to be replaced:
+                # e.g., `$BABS_TMPDIR`
                 if str(value)[:6] == "$BABS_":
                     replaced = replace_placeholder_from_config(value)
-                    cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
-                elif str(value) == "$FREESURFER_LICENSE":
-                    replaced = replace_placeholder_from_config(value)
-                    flag_fs_license = True
                     cmd += " \\" + "\n\t" + str(key) + " " + str(replaced)
 
                 elif value is None:    # if entered `Null` or `NULL` without quotes
@@ -360,10 +380,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 else:
                     cmd += " \\" + "\n\t" + str(key) + " " + str(value)
 
-        # is_first_flag = False
-
-        # print(cmd)
-
+    # Finalize `singuRun_input_dir`:
     if singuRun_input_dir is None:
         # now, it must be only one input dataset, and user did not provide `$INPUT_PATH` key:
         assert input_ds.num_ds == 1
@@ -374,8 +391,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # config["babs_singularity_run"]["n_cpus"]
 
     # print(cmd)
-    return cmd, flag_fs_license, singuRun_input_dir
-
+    return cmd, flag_fs_license, path_fs_license, singuRun_input_dir
 
 # adding zip filename:
     # if value != '':
@@ -384,68 +400,50 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     #     # tested: '' or "" is the same to pyyaml
 
 
-def generate_cmd_envvar(config, container_name):
+def generate_cmd_set_envvar(env_var_name):
     """
-    This is to generate bash command to export necessary environment variables.
-    Currently this only supports `templateflow_home`.
-    Roadmap: customize env var (original one, and SINGULARITYENV_*) in yaml file.
+    This is to generate argument `--env` in `singularity run`,
+    and to get the env var value for later use: binding the path (env var value).
+    Call this function for `TEMPLATEFLOW_HOME`.
 
     Parameters:
-    ------------
-    config: dictionary
-        attribute `config` in class Container;
-        got from `read_container_config_yaml()`
-    container_name: str
-        The name of the container when adding to datalad dataset.
-        e.g., fmriprep-0-0-0.
-        See class `Container` for more.
+    ----------------
+    env_var_name: str
+        The name of the environment variable to be injected into the container
+        e.g., "TEMPLATEFLOW_HOME"
 
     Returns:
-    ---------
+    ------------
     cmd: str
-        It's part of the singularity run command; it is generated
-        based on section `environment_variable` in the yaml file.
-    templateflow_home: None or str
-        The environment variable `TEMPLATEFLOW_HOME`.
-    singularityenv_templateflow_home: None or str
-        The environment variable `SINGULARITYENV_TEMPLATEFLOW_HOME`.
-        Its value will be used within the container.
-        Only set when `templateflow_home` is not None.
+        argument `--env` of `singularity run`
+        e.g., `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`
+    value: str
+        The value of the env variable `env_var_name`
+    env_var_value_in_container: str
+        The env var value used in container;
+        e.g., "/SGLR/TEMPLATEFLOW_HOME"
     """
-    cmd = ""
 
-    templateflow_home = None
-    singularityenv_templateflow_home = None
+    # Generate argument `--env` in `singularity run`:
+    env_var_value_in_container = "/SGLR/" + env_var_name
 
-    # Set up `templateflow_home`:
-    # Why: QSIPrep, fMRIPrep, and XCP-D all need it; therefore BABS will automatically set it up.
-    # How: We get it from environment variable `TEMPLATEFLOW_HOME` below.
-    #      If we get it, do two actions below:
-    # action 1: export;
-    # action 2: bind the directory when `singularity run`
-    #           ^^ this will ask `generate_bash_run_bidsapp()` to achieve
+    # cmd should be: `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`
+    cmd = "--env "
+    cmd += env_var_name + "=" + env_var_value_in_container
 
-    # get `templateflow_home`:
-    # check if it's set up:
-    if templateflow_home is None:  # not set up yet:
-        # get it from env var `TEMPLATEFLOW_HOME`:
-        templateflow_home = os.getenv("TEMPLATEFLOW_HOME")
+    # Get env var's value, to be used for binding `-B` in `singularity run`:
+    env_var_value = os.getenv(env_var_name)
 
-    if templateflow_home is not None:
-        # action #1: add to the cmd to export:
-        singularityenv_templateflow_home = "/TEMPLATEFLOW_HOME"  # within container
-        # ^^ hard code it for now. ROADMAP.
-        cmd += "\nexport SINGULARITYENV_TEMPLATEFLOW_HOME=" + singularityenv_templateflow_home
-    else:
-        # we have checked existing env var;
-        # if it still does not exist, warning:
-        warnings.warn("Usually BIDS App depends on TemplateFlow,"
-                      + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
-                      + " Therefore, BABS will not export it or bind its directory"
-                      + " when running the container. This may cause errors.")
+    # If it's templateflow:
+    if env_var_name == "TEMPLATEFLOW_HOME":
+        if env_var_value is None:
+            warnings.warn("Usually BIDS App depends on TemplateFlow,"
+                          + " but environment variable `TEMPLATEFLOW_HOME` was not set up."
+                          + " Therefore, BABS will not bind its directory"
+                          + " or inject this environment variable into the container"
+                          + " when running the container. This may cause errors.")
 
-    cmd += "\n"
-    return cmd, templateflow_home, singularityenv_templateflow_home
+    return cmd, env_var_value, env_var_value_in_container
 
 
 def generate_cmd_zipping_from_config(config, type_session, output_foldername="outputs"):

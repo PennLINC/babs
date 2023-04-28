@@ -12,7 +12,8 @@ babs_singularity_run:
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: '1'
     --stop-on-first-crash: ""
-    --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
+    --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"   # personal license on CUBIC
+    # --fs-license-file: "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/freesurfer_fake/license.txt"  # personal license on laptop
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
     --output-spaces: MNI152NLin6Asym:res-2
     --force-bbr: ""

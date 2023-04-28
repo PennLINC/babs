@@ -86,18 +86,24 @@ Below is example section **babs_singularity_run** for ``fMRIPrep``::
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
         --n_cpus: '1'
         --stop-on-first-crash: ""   # argument without value
-        --fs-license-file: "$FREESURFER_LICENSE" # this is a placeholder.
+        --fs-license-file: "/path/to/freesurfer/license.txt"
         --skip-bids-validation: Null  # Null or NULL is also a placeholder for argument without value
         --output-spaces: MNI152NLin6Asym:res-2
         --force-bbr: ""
         --cifti-output: 91k
         -v: '-v'   # this is for double `-v`
 
-This section will be turned into commands (including a Singularity run command) as below::
+This section will be turned into commands (including a Singularity run command) as below:
 
-    export SINGULARITYENV_TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME
-    mkdir -p ${PWD}/.git/tmp/wkdir
-    singularity run --cleanenv -B ${PWD},/test/templateflow_home:/TEMPLATEFLOW_HOME \
+    ..  code-block:: bash
+        :linenos:
+
+        mkdir -p ${PWD}/.git/tmp/wkdir
+        singularity run --cleanenv \
+            -B ${PWD} \
+            -B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \
+            -B /path/to/freesurfer/license.txt:/SGLR/FREESURFER_HOME/license.txt \
+            --env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME \
             containers/.datalad/environments/fmriprep-20-2-3/image \
             inputs/data/BIDS \
             outputs \
@@ -105,7 +111,7 @@ This section will be turned into commands (including a Singularity run command) 
             -w ${PWD}/.git/tmp/wkdir \
             --n_cpus 1 \
             --stop-on-first-crash \
-            --fs-license-file code/license.txt \
+            --fs-license-file /SGLR/FREESURFER_HOME/license.txt \
             --skip-bids-validation \
             --output-spaces MNI152NLin6Asym:res-2 \
             --force-bbr \
@@ -114,7 +120,15 @@ This section will be turned into commands (including a Singularity run command) 
             --bids-filter-file "${filterfile}" \
             --participant-label "${subid}"
 
-TODO: update ^^ after fixing FreeSurfer license copying + templateflow!
+.. dropdown:: explanation of generated ``singualrity run`` command
+
+    * line #1 is to set up a path for argument ``-w``;
+    * line #2 starts the ``singularity run`` command;
+    * line #3-6 bind necessary paths and set necessary environment variables;
+    * line #7 sets the path to the container image;
+    * line #8-10 are positional arguments of BIDS App;
+    * line #11-end are named arguments of BIDS App, where some are requested by the user
+      in the YAML file, some are automatically set up by BABS.
 
 
 Basics - Manual of writing section ``babs_singularity_run``
@@ -131,8 +145,8 @@ Basics - Manual of writing section ``babs_singularity_run``
         * ``--participant-label``
         * ``--bids-filter-file``
 
-            * See below :ref:`advanced_manual_singularity_run` --> bullet point _____
-              for explanations.
+            * See below :ref:`advanced_manual_singularity_run` --> bullet point regarding
+              ``--bids-filter-file`` for explanations.
 
     * :octicon:`alert-fill` :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
       you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument input BIDS dataset.
@@ -197,11 +211,28 @@ Advanced - Manual of writing section ``babs_singularity_run``
 
 .. developer's note: it will be changed ``-w ${PWD}/.git/tmp/wkdir`` - see the example above.
 
-* How to provide FreeSurfer license (e.g., for ``--fs-license-file``)?
+* How to provide FreeSurfer license for argument ``--fs-license-file`` of BIDS App?
 
-    * You can use ``"$FREESURFER_LICENSE"``. It is a value placeholder recognized by BABS for FreeSurfer license,
-      e.g., ``--fs-license-file: "$FREESURFER_LICENSE"``. BABS will use the license from ``$FREESURFER_HOME``.
-    * TODO: update ^^ after changing the strategy of providing freesurfer license!
+    * You should provide it as you normally do when running the BIDS App:
+      just provide the path to your FreeSurfer license on the cluster.
+      For example::
+        
+        --fs-license-file: "/path/to/freesurfer/license.txt"
+
+    * When there is argument ``--fs-license-file`` in ``babs_singularity_run`` section,
+      BABS will bind this provided license file path to container in ``singularity run`` command, so that
+      the BIDS App container can directly use that file (which is outside the container, on "host machine").
+    * Example generated ``singularity run`` by ``babs-init``::
+
+        singualrity run ... \
+            -B /path/to/freesurfer/license.txt:/SGLR/FREESURFER_HOME/license.txt \
+            ...
+            --fs-license-file /SGLR/FREESURFER_HOME/license.txt \
+            ...
+
+      After binding this license file, the value for ``--fs-license-file`` is changed to
+      the path *within* the container by BABS.
+    
 
 * Can I use a job environment variable, e.g., number of CPUs?
 
@@ -270,22 +301,38 @@ Advanced - Manual of writing section ``babs_singularity_run``
 
 * Will BABS handle `Templateflow <https://www.templateflow.org/>`_ environment variable? 
 
-    * Yes, BABS assumes all BIDS Apps use Templateflow and will always handle its environment variable if
-      environment variable ``$TEMPLATEFLOW_HOME`` exists.
+    * Yes, BABS assumes all BIDS Apps use Templateflow, and will handle its environment variable ``$TEMPLATEFLOW_HOME``
+      *if* this environmental variable exists in the terminal environment where ``babs-init`` will be run.
     * For BIDS Apps that truly depend on Templateflow (e.g., fMRIPrep, QSIPrep, XCP-D),
-      please make sure you have Templateflow installed and export environment variable
-      ``$TEMPLATEFLOW_HOME``.
-    * Example generated commands by BABS
-      as below::
-
-        export SINGULARITYENV_TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME
-        ...
-        singularity run --cleanenv -B ${PWD},/path/to/templateflow_home:/TEMPLATEFLOW_HOME \
-        ...
+      before you run ``babs-init``, please make sure you:
       
-      where ``/path/to/templateflow_home`` is the value of environment variable ``$TEMPLATEFLOW_HOME``
+        #. Find a directory for holding Templateflow's templates.
+    
+            * If no (or not all necessary) Templateflow's templates has been downloaded
+              in this directory, then this directory must be writable, so that when running the BIDS App,
+              necessary templates can be downloaded in this directory;
+            * if all necessary templates have been downloaded in this directory,
+              then this directory should at least be readable.
+        #. Export environment variable
+           ``$TEMPLATEFLOW_HOME`` to set its value as the path to this directory you prepared.
+           This step should be done in the terminal environment where ``babs-init`` will be used.
 
-    * TODO: update ^^ after fixing the bug in exporting templateflow!
+    * If ``babs-init`` detects environment variable ``$TEMPLATEFLOW_HOME``, when generating ``singularity run`` command,
+      ``babs-init`` will:
+
+        #. Bind the path provided in this environment variable to the container;
+        #. Set the corresponding environment variable *within* the container.
+    * For example,
+      BABS will add these in command ``singularity run`` of the container::
+
+            singularity run ... \
+                ... \
+                -B /path/to/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \
+                --env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME \
+                ...
+      
+      where ``/path/to/templateflow_home`` is the value of environment variable ``$TEMPLATEFLOW_HOME``.
+
 
 .. Go thru all YAML files for any missing notes: done 4/4/2023
 .. toybidsapp: done

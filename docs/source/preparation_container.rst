@@ -25,8 +25,8 @@ Below is an example of building a Singularity image of toy BIDS App from
 
 .. code-block:: console
     
-    toybidsapp_version="0.0.6"   # or the latest tagged version
-    toybidsapp_version_dash="0-0-6"   # same version, just in different format: connected by dashes
+    toybidsapp_version="0.0.7"   # or the latest tagged version
+    toybidsapp_version_dash="0-0-7"   # same version, just in different format: connected by dashes
     singularity build \
         toybidsapp-${toybidsapp_version}.sif \
         docker://pennlinc/toy_bids_app:${toybidsapp_version}
