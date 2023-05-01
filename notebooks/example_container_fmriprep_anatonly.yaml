@@ -1,7 +1,7 @@
 # Below is example config yaml file for fMRIPrep:
-# currently we only support the option of "babs_singularity_run"
+# currently we only support the option of "singularity_run"
 # In the future, we might:
-    # Priority: cli_call > babs_singularity_run > cli_options
+    # Priority: cli_call > singularity_run > cli_options
         # If anything provided at higher level, the lower levels will be ignored.
 
 # below is currently not supported.
@@ -27,7 +27,7 @@ cli_call: |
     # "$BABS_TMPDIR"
     # "", `Null`, `NULL` (without quotes), or with quotes: "Null", "NULL":
         # will all be taken as there is no value in the arguments
-babs_singularity_run:
+singularity_run:
     #--test: NULL
     # $INPUT_PATH: inputs/data/BIDS   # the key is a placeholder; optional to one input ds
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`

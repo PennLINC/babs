@@ -2332,16 +2332,16 @@ class Container():
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
-        if "babs_singularity_run" not in self.config:
+        if "singularity_run" not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, \
-                "Section 'babs_singularity_run' is missing in the provided" \
+                "Section 'singularity_run' is missing in the provided" \
                 + " `container_config_yaml_file`. As there are more than one" \
                 + " input dataset, you must include this section to specify" \
                 + " to which argument that each input dataset will go."
             # if there is only one input ds, fine:
-            print("Section 'babs_singularity_run' was not included "
+            print("Section 'singularity_run' was not included "
                   "in the `container_config_yaml_file`. ")
             cmd_singularity_flags = ""   # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`

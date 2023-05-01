@@ -10,7 +10,7 @@
 #   or be compatible to the toy BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
-# 'babs_singularity_run': There is no such section for fmriprep-fake
+# 'singularity_run': There is no such section for fmriprep-fake
 #   as all commands needed by fmriprep-fake have been handled by BABS.
 
 babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)

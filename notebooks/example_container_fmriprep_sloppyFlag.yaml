@@ -10,7 +10,7 @@
 
 # Arguments when executing the BIDS App using `singularity run`:
 # You should not have flags of : `--participant-label`, or `--bids-filter-file`!
-babs_singularity_run:
+singularity_run:
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: 1
     --stop-on-first-crash: ""

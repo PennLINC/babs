@@ -19,17 +19,17 @@ Overview of the configuration YAML file structure
 Sections in the configuration YAML file
 -----------------------------------------
 
-* **babs_singularity_run**: the arguments for ``singularity run`` of the BIDS App;
-* **babs_zip_foldername**: the results foldername(s) to be zipped;
+* **singularity_run**: the arguments for ``singularity run`` of the BIDS App;
+* **zip_foldernames**: the results foldername(s) to be zipped;
 * **cluster_resources**: how much cluster resources are needed to run this BIDS App?
-* **script_preamble**: the preambles in the script to run a participant's job;
+* **script_preamble**: the preamble in the script to run a participant's job;
 * **job_compute_space**: where to run the jobs?
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
-* **keywords_alert**: keywords in alerting messages in the log files that may be helpful for debugging the error;
+* **alert_log_messages**: Alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
 Among these sections, these sections are optional:
 
-* **babs_singularity_run**
+* **singularity_run**
 
   * Only if you are sure that besides arguments handled by BABS, you don't need any other argument,
     you may exclude this section from the YAML file.
@@ -71,18 +71,18 @@ In a section, the string before ``:`` is called ``key``, the string after ``:`` 
 Below are the details for each section in this configuration YAML file.
 
 
-Section ``babs_singularity_run``
+Section ``singularity_run``
 ==================================
 Currently, BABS does not support using configurations of running a BIDS App
 that are defined in ``datalad containers-add --call-fmt``.
-Instead, users are expected to define these in this section, **babs_singularity_run**.
+Instead, users are expected to define these in this section, **singularity_run**.
 
-Example **babs_singularity_run**
+Example **singularity_run**
 -----------------------------------
 
-Below is example section **babs_singularity_run** for ``fMRIPrep``::
+Below is example section **singularity_run** for ``fMRIPrep``::
 
-    babs_singularity_run:
+    singularity_run:
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
         --n_cpus: '1'
         --stop-on-first-crash: ""   # argument without value
@@ -131,7 +131,7 @@ This section will be turned into commands (including a Singularity run command) 
       in the YAML file, some are automatically set up by BABS.
 
 
-Basics - Manual of writing section ``babs_singularity_run``
+Basics - Manual of writing section ``singularity_run``
 ------------------------------------------------------------
 
 * What arguments should I provide in this section? All arguments for running the BIDS App?
@@ -187,7 +187,7 @@ Basics - Manual of writing section ``babs_singularity_run``
 
 .. _advanced_manual_singularity_run:
 
-Advanced - Manual of writing section ``babs_singularity_run``
+Advanced - Manual of writing section ``singularity_run``
 -----------------------------------------------------------------
 
 * How to specify a number as a value?
@@ -219,7 +219,7 @@ Advanced - Manual of writing section ``babs_singularity_run``
         
         --fs-license-file: "/path/to/freesurfer/license.txt"
 
-    * When there is argument ``--fs-license-file`` in ``babs_singularity_run`` section,
+    * When there is argument ``--fs-license-file`` in ``singularity_run`` section,
       BABS will bind this provided license file path to container in ``singularity run`` command, so that
       the BIDS App container can directly use that file (which is outside the container, on "host machine").
     * Example generated ``singularity run`` by ``babs-init``::
@@ -255,7 +255,7 @@ Advanced - Manual of writing section ``babs_singularity_run``
   * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
     
     * ``$INPUT_PATH`` is a key placeholder recognized by BABS
-    * We recommend using ``$INPUT_PATH`` as the first key in this section **babs_singularity_run**, 
+    * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**, 
       i.e., before other arguments.
 
   * How to write the path to the input dataset? Here we use `example configuration YAML file of

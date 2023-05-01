@@ -277,7 +277,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     ---------
     cmd: str
         It's part of the singularity run command; it is generated
-        based on section `babs_singularity_run` in the yaml file.
+        based on section `singularity_run` in the yaml file.
     flag_fs_license: True or False
         Whether FreeSurfer's license will be used.
         This is determined by checking if there is argument called `--fs-license-file`
@@ -288,7 +288,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         The positional argument of input dataset path in `singularity run`
     """
     # human readable: (just like appearance in a yaml file;
-    # print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
+    # print(yaml.dump(config["singularity_run"], sort_keys=False))
 
     # not very human readable way, if nested structure:
     # for key, value in config.items():
@@ -305,24 +305,24 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # re: positional argu `$INPUT_PATH`:
     if input_ds.num_ds > 1:   # more than 1 input dataset:
         # check if `$INPUT_PATH` is one of the keys (must):
-        if "$INPUT_PATH" not in config["babs_singularity_run"]:
-            raise Exception("The key '$INPUT_PATH' is expected in section `babs_singularity_run`"
+        if "$INPUT_PATH" not in config["singularity_run"]:
+            raise Exception("The key '$INPUT_PATH' is expected in section `singularity_run`"
                             + " in `container_config_yaml_file`, because there are more than"
                             + " one input dataset!")
     else:   # only 1 input dataset:
         # check if the path is consistent with the name of the only input ds's name:
-        if "$INPUT_PATH" in config["babs_singularity_run"]:
+        if "$INPUT_PATH" in config["singularity_run"]:
             expected_temp = "inputs/data/" + input_ds.df["name"][0]
-            if config["babs_singularity_run"]["$INPUT_PATH"] != expected_temp:
+            if config["singularity_run"]["$INPUT_PATH"] != expected_temp:
                 raise Exception("As there is only one input dataset, the value of '$INPUT_PATH'"
-                                + " in section `babs_singularity_run`"
+                                + " in section `singularity_run`"
                                 + " in `container_config_yaml_file` should be"
                                 + " '" + expected_temp + "'; You can also choose"
                                 + " not to specify '$INPUT_PATH'.")
 
     # example key: "-w", "--n_cpus"
     # example value: "", "xxx", Null (placeholder)
-    for key, value in config["babs_singularity_run"].items():
+    for key, value in config["singularity_run"].items():
         # print(key + ": " + str(value))
 
         if key == "$INPUT_PATH":  # placeholder
@@ -333,7 +333,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             # sanity check that `value` should match with one of input ds's `path_data_rel`
             if value not in list(input_ds.df["path_data_rel"]):  # after unzip, if needed
                 warnings.warn("'" + value + "' specified after $INPUT_PATH"
-                              + " (in section `babs_singularity_run`"
+                              + " (in section `singularity_run`"
                               + " in `container_config_yaml_file`), does not"
                                 + " match with any dataset's current path."
                                 + " This may cause error when running the BIDS App.")
@@ -388,7 +388,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         # ^^ path to data (if zipped ds: after unzipping)
 
     # example of access one slot:
-    # config["babs_singularity_run"]["n_cpus"]
+    # config["singularity_run"]["n_cpus"]
 
     # print(cmd)
     return cmd, flag_fs_license, path_fs_license, singuRun_input_dir

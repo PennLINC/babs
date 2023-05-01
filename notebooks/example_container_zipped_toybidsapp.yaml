@@ -1,6 +1,6 @@
 # Below is example config yaml file for toy BIDS App:
 
-babs_singularity_run:
+singularity_run:
     # --no-zipped: ""  # for raw BIDS dataset
     --zipped: ""    # for zipped input dataset
     -v: ""

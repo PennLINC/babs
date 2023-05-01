@@ -5,7 +5,7 @@ cli_call: |
     --despike --lower-bpf 0.01 --upper-bpf 0.08 --participant_label $subid -p 36P -f 10 -w ${PWD}/.git/tmp/wkdir --nthreads 6
 
 
-babs_singularity_run:
+singularity_run:
     --despike: ""
     --lower-bpf: 0.01
     --upper-bpf: 0.08

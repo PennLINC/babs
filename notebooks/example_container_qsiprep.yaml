@@ -12,7 +12,7 @@ cli_call: |
 
 # You should not have flags of : `--participant-label`, or `--bids-filter-file`!
 
-babs_singularity_run:
+singularity_run:
     -v: "-v"
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: "$NSLOTS"   # `$NSLOTS` can be recognized by SGE; if you're using Slurm clusters please change to Slurm version!
