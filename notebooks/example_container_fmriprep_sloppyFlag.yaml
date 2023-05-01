@@ -24,7 +24,7 @@ singularity_run:
     --fs-no-reconall: ''   # TEST RUN!
 
 
-babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
     fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
     # freesurfer: "20-2-3"   # use the same as in the above line for `fmriprep`
     # ^^ per `--fs-no-reconall`, there won't be an output folder called `freesurfer`

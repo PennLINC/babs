@@ -464,7 +464,7 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     ---------
     cmd: str
         It's part of the `<containerName_zip.sh>`; it is generated
-        based on section `babs_zip_foldername` in the yaml file.
+        based on section `zip_foldernames` in the yaml file.
     """
 
     # cd to output folder:
@@ -476,16 +476,16 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     else:
         str_sesid = ""
 
-    if "babs_zip_foldername" in config:
+    if "zip_foldernames" in config:
         value_temp = ""
         temp = 0
 
-        for key, value in config["babs_zip_foldername"].items():
+        for key, value in config["zip_foldernames"].items():
             # each key is a foldername to be zipped;
             # each value is the version string;
             temp = temp + 1
             if (temp != 1) & (value_temp != value):    # not matching last value
-                warnings.warn("In section `babs_zip_foldername` in `container_config_yaml_file`: \n"
+                warnings.warn("In section `zip_foldernames` in `container_config_yaml_file`: \n"
                               "The version string of '" + key + "': '" + value + "'"
                               + " does not match with the last version string; "
                               + "we suggest using the same version string across all foldernames.")
@@ -495,9 +495,9 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
                 key + "-" + value + ".zip" + " " + key + "\n"
             # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
 
-    else:    # the yaml file does not have the section `babs_zip_foldername`:
+    else:    # the yaml file does not have the section `zip_foldernames`:
         raise Exception("The `container_config_yaml_file` does not contain"
-                        + " the section `babs_zip_foldername`. Please add this section!")
+                        + " the section `zip_foldernames`. Please add this section!")
 
     # return to original dir:
     cmd += "cd ..\n"
@@ -943,7 +943,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     if type_session == 'multi-ses':
         fixed_cmd += "${sesid}_"
 
-    for key, value in container.config["babs_zip_foldername"].items():
+    for key, value in container.config["zip_foldernames"].items():
         cmd += fixed_cmd + key + "-" + value + ".zip" + " \\" + "\n"
 
     # message:

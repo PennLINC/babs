@@ -5,7 +5,7 @@ singularity_run:
     --zipped: ""    # for zipped input dataset
     -v: ""
 
-babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
     toybidsapp: "0-0-7"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
 
 # environment_variable:

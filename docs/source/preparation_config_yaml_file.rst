@@ -25,7 +25,7 @@ Sections in the configuration YAML file
 * **script_preamble**: the preamble in the script to run a participant's job;
 * **job_compute_space**: where to run the jobs?
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
-* **alert_log_messages**: Alert messages in the log files that may be helpful for debugging errors in failed jobs;
+* **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
 Among these sections, these sections are optional:
 
@@ -343,15 +343,15 @@ Advanced - Manual of writing section ``singularity_run``
 .. `notebooks/inDev_*.yaml` in `babs_tests` repo: done
 
 
-Section ``babs_zip_foldername``
+Section ``zip_foldernames``
 ================================
 
 This section defines the output folder name(s) that get saved and zipped.
 This also includes the version of the BIDS App you use.
 
-Example section **babs_zip_foldername** for ``fMRIPrep``::
+Example section **zip_foldernames** for ``fMRIPrep``::
 
-    babs_zip_foldername:
+    zip_foldernames:
         fmriprep: "20-2-3"
         freesurfer: "20-2-3"
 

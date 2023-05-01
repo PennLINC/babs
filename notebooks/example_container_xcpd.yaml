@@ -14,7 +14,7 @@ singularity_run:
     -w: "$BABS_TMPDIR"   # this is a placeholder.
     # --nthreads: 6
 
-babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
     xcp_d: "0-3-0"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
 
 cluster_resources:

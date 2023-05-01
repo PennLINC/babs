@@ -13,7 +13,7 @@
 # 'singularity_run': There is no such section for fmriprep-fake
 #   as all commands needed by fmriprep-fake have been handled by BABS.
 
-babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
+zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
     fmriprepfake: "0-1-1"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
 
 cluster_resources:
