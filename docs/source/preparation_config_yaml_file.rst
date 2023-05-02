@@ -198,6 +198,9 @@ Advanced - Manual of writing section ``singularity_run``
         --output-resolution: "2.0"
     
     * This is especially encouraged when there are only numbers in the value (without letters).
+      Quoting will make sure that when BABS generates scripts, it will keep the string format of the value
+      and pass the value exactly as it is,
+      without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
 * How to specify "path where intermediate results should be stored" (e.g., ``-w`` in fMRIPrep or QSIPrep)?
 
@@ -470,7 +473,9 @@ Note that:
 * Remember to add ``|`` after ``customized_text:``;
 * As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the option, e.g., ``#$`` for SGE clusters.
 * For values with numbers only (without letters), it's recommended to quote the value,
-  e.g., ``number_of_cpus: "6"``
+  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
+  and pass the value exactly as it is,
+  without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 
