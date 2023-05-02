@@ -40,7 +40,7 @@ in short, it's a iteration between ``babs-submit`` and ``babs-status``:
 
     * You may submit several exemplar jobs with ``babs-submit``, then check job status
       with ``babs-status`` to see if they're failed, and in failed jobs' log files
-      (usually in ``*.o*`` and ``*.e*`` files), what could be alert messages for the failure.
+      (usually in ``stdout`` and ``stderr`` files), what could be alert messages for the failure.
     * You may also refer to the example YAML files we provide (link: ______________).
     * No worry if you could not cover all alert messages at once;
       you can add/change this section **alert_log_messages** in the YAML file anytime you want,
@@ -123,7 +123,7 @@ Example job status summary from ``babs-status``
     3 job(s) are failed.
 
     Among all failed job(s):
-    1 job(s) have alert message: '.o file: fMRIPrep failed';
+    1 job(s) have alert message: 'stdout file: fMRIPrep failed';
     2 job(s) have alert message: 'BABS: No alert message found in log files.';
 
     Among job(s) that are failed and don't have alert message in log files:
@@ -148,7 +148,7 @@ As you can see, in the summary ``Job status``, there are multiple sections:
    In above case, the 2 jobs are failed due to runtime exceeding the user-defined one,
    ``hard_runtime_limit: "48:00:00"``, i.e., ``-l h_rt:48:00:00``.
 
-Finally, you can find the log files (``*.o*``, ``*.e*``) in the path provided
+Finally, you can find the log files (``stdout``, ``stderr``) in the path provided
 in the last line of the printed message.
 
 
@@ -229,12 +229,12 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
       ``head`` (printing first several lines), ``tail`` (printing last several lines), etc.
     * Also note that if a job hasn't started running, although its ``log_filename`` is a valid string,
       the log files won't exist until the job starts running.
-* ``last_line_o_file``: string or ``np.nan``, the last line of current ``*.o*`` file.
-  Before a job is submitted, ``last_line_o_file = np.nan``.
+* ``last_line_stdout_file``: string or ``np.nan``, the last line of current ``stdout`` file.
+  Before a job is submitted, ``last_line_stdout_file = np.nan``.
 * ``alert_message``: string or ``np.nan``, a message from BABS that whether BABS found any
   alert messages (defined in **alert_log_messages** in the YAML file) in the log files.
 
-    * Example ``alert_message``: ``'.o file: fMRIPrep failed'`` (alert messages found);
+    * Example ``alert_message``: ``'stdout file: fMRIPrep failed'`` (alert messages found);
       ``BABS: No alert message found in log files.`` (alert messages not found).
     * This column of all submitted jobs will be updated every time ``babs-status`` is called.
       It will be updated based on current ``--container-config-yaml-file`` (if provided).
@@ -270,7 +270,7 @@ A:
        (e.g., calling ``qacct`` on SGE clusters) is slow
 
 Q: A job is done (i.e., ``is_done = True`` in ``job_status.csv``),
-but column ``last_line_o_file`` is not ``SUCCESS``?
+but column ``last_line_stdout_file`` is not ``SUCCESS``?
 
 A: This should be an edge case. Simply run ``babs-status`` again,
 and it might be updated with 'SUCCESS'.

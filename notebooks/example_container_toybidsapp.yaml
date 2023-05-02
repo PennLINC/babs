@@ -44,10 +44,10 @@ job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 #   These messages may be helpful for debugging errors in failed jobs.
 alert_log_messages:
     # some_other:  # Only used for testing purpose!
-    o_file:
+    stdout:
         - "xxxx"
         # - "did not provide --session_label"
-    e_file:
+    stderr:
         - "xxx"
         # - "[INFO] Cloning dataset"
         # - "git remote add outputstore"

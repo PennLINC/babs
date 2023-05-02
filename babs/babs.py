@@ -943,7 +943,7 @@ class BABS():
                         flag_success_test_job = False
                         to_print += "Test job was not successfully finished"
                         to_print += " and is currently out of queue."
-                        to_print += " Last line of *.o* log file: '" + last_line + "'."
+                        to_print += " Last line of stdout log file: '" + last_line + "'."
                         to_print += " Path to the log file: " + log_fn
                 print(to_print)
 
@@ -1249,8 +1249,8 @@ class BABS():
                             # print("debugging purpose: request to resubmit job: " + sub + ", " + ses)
                             # ^^ only for multi-ses!
 
-                    # Update the "last_line_o_file":
-                    df_job_updated.at[i_job, "last_line_o_file"] = \
+                    # Update the "last_line_stdout_file":
+                    df_job_updated.at[i_job, "last_line_stdout_file"] = \
                         get_last_line(o_fn)
 
                     # Check if any alert message in log files for this job:
@@ -1329,7 +1329,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
 
@@ -1372,7 +1372,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
 
@@ -1410,7 +1410,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
                                 else:   # not to resubmit:
@@ -1455,7 +1455,7 @@ class BABS():
                                 df_job_updated.at[i_job, "job_id"] = job_id_updated
                                 df_job_updated.at[i_job, "log_filename"] = log_filename
                                 df_job_updated.at[i_job, "is_failed"] = np.nan
-                                df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                 df_job_updated.at[i_job, "alert_message"] = np.nan
                                 df_job_updated.at[i_job, "job_account"] = np.nan
                                 # reset of `job_state_*` have been done - see above
@@ -1551,14 +1551,14 @@ class BABS():
                         df_job_updated.at[i_job, "duration"] = np.nan
                         df_job_updated.at[i_job, "is_done"] = False
                         df_job_updated.at[i_job, "is_failed"] = np.nan
-                        df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                        df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                         df_job_updated.at[i_job, "alert_message"] = np.nan
                         df_job_updated.at[i_job, "job_account"] = np.nan
 
                     else:    # did not request resubmit, or `--reckless` is None:
                         # just perform normal stuff for a successful job:
-                        # Update the "last_line_o_file":
-                        df_job_updated.at[i_job, "last_line_o_file"] = \
+                        # Update the "last_line_stdout_file":
+                        df_job_updated.at[i_job, "last_line_stdout_file"] = \
                             get_last_line(o_fn)
                         # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml

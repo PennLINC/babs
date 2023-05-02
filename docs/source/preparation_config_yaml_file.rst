@@ -592,31 +592,31 @@ and these messages may indicates failure of a job.
 Example section **alert_log_messages** for fMRIPrep::
 
     alert_log_messages:
-        o_file:
+        stdout:
             - "Exception: No T1w images found for"  # not needed if setting T1w in `required_files`
             - "Excessive topologic defect encountered"
             - "Cannot allocate memory"
             - "mris_curvature_stats: Could not open file"
             - "Numerical result out of range"
             - "fMRIPrep failed"
-        e_file:
-            - "xxxxx"    # change this to any messages to be found in `*.e*` file; if there is no messages for `*.e*` file, delete line `e_file:` and this line
+        stderr:
+            - "xxxxx"    # change this to any messages to be found in `stderr` file; if there is no messages for `stderr` file, delete line `stderr:` and this line
 
 
-Usually there are two log files that are useful for debugging purpose, ``*.o*`` and ``*.e*``,
+Usually there are two log files that are useful for debugging purpose, ``stdout`` and ``stderr``,
 for example, ``<jobname>.o<jobid>`` and ``<jobname>.e<jobid>``.
-You can define alert messages in either or both files, i.e., by filling out ``o_file`` section
-(for ``*.o*`` file) and/or ``e_file`` section (for ``*.e*`` file).
+You can define alert messages in either or both files, i.e., by filling out ``stdout`` section
+(for ``stdout`` file) and/or ``stderr`` section (for ``stderr`` file).
 
 Detection of the message is performed in the order provided by the user.
-If ``o_file`` is former (e.g., in example above), then detection of it will be performed earlier;
+If ``stdout`` is former (e.g., in example above), then detection of it will be performed earlier;
 if a message is former, then that will be checked earlier.
 BABS also follows "detect and break" rule, i.e., for each job:
 
 * If any message is detected, the detected message will be thrown into the ``job_status.csv``,
   and BABS won't detect any further message down in the list in **alert_log_messages**.
-* If a message has been detected in the first file (``o_file`` for above example),
-  then won't detect any message in the other log file (``e_file`` for above example).
+* If a message has been detected in the first file (``stdout`` for above example),
+  then won't detect any message in the other log file (``stderr`` for above example).
 
 .. warning::
     Detecting the messages in the log files by BABS is case-sensitive! So please make sure the cases of messages are in the way you hope.

@@ -1475,7 +1475,7 @@ def create_job_status_csv(babs):
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job["is_failed"] = np.nan
         df_job["log_filename"] = np.nan
-        df_job["last_line_o_file"] = np.nan
+        df_job["last_line_stdout_file"] = np.nan
         df_job["alert_message"] = np.nan
         df_job["job_account"] = np.nan
 
@@ -1719,7 +1719,7 @@ def calcu_runtime(start_time_str):
 
 def get_last_line(fn):
     """
-    This is to get the last line of a text file, e.g., `*.o*` file
+    This is to get the last line of a text file, e.g., `stdout` file
 
     Parameters:
     --------------------
@@ -1770,21 +1770,21 @@ def get_config_msg_alert(container_config_yaml_file):
             config_msg_alert = container_config["alert_log_messages"]
             # ^^ if it's empty under `alert_log_messages`: config_msg_alert=None
 
-            # Check if there is either 'o_file' or 'e_file' in "alert_log_messages":
+            # Check if there is either 'stdout' or 'stderr' in "alert_log_messages":
             if config_msg_alert is not None:  # there is sth under "alert_log_messages":
-                if ("o_file" not in config_msg_alert) & \
-                   ("e_file" not in config_msg_alert):
+                if ("stdout" not in config_msg_alert) & \
+                   ("stderr" not in config_msg_alert):
                     # neither is included:
                     warnings.warn(
                         "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
-                        " neither 'o_file' nor 'e_file' is included in this section."
+                        " neither 'stdout' nor 'stderr' is included in this section."
                         " So BABS won't check if there is"
                         " any alerting message in log files.")
                     config_msg_alert = None   # not useful anymore, set to None then.
             else:  # nothing under "alert_log_messages":
                 warnings.warn(
                     "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
-                    " neither 'o_file' nor 'e_file' is included in this section."
+                    " neither 'stdout' nor 'stderr' is included in this section."
                     " So BABS won't check if there is"
                     " any alerting message in log files.")
                 # `config_msg_alert` is already `None`, no need to set to None
@@ -1820,7 +1820,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         if not None, `alert_message` will be a str.
             Examples:
             - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
-            - if found: ".o file: <message>"
+            - if found: "stdout file: <message>"
     if_no_alert_in_log: bool
         There is no alert message in the log files.
         When `alert_message` is `msg_no_alert`,
@@ -1829,9 +1829,9 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
 
     Notes:
     -----------------
-    An edge case (not a bug): On cubic cluster, some info will be printed to '.e'
-    before '.o' have any printed messages. So 'alert_message' column may say 'BABS: No alert'
-    but 'last_line_o_file' is still 'NaN'
+    An edge case (not a bug): On cubic cluster, some info will be printed to 'stderr' file
+    before 'stdout' file have any printed messages. So 'alert_message' column may say 'BABS: No alert'
+    but 'last_line_stdout_file' is still 'NaN'
     """
 
     from .constants import MSG_NO_ALERT_IN_LOGS
@@ -1851,8 +1851,8 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
             alert_message = msg_no_alert
 
             for key in config_msg_alert:  # as it's dict, keys cannot be duplicated
-                if key == "o_file" or "e_file":
-                    one_char = key[0]   # 'o' or 'e'
+                if key == "stdout" or "stderr":
+                    one_char = key[3]   # 'o' or 'e'
                     # the log file to look into:
                     fn = log_fn.replace("*", one_char)
 
@@ -1864,8 +1864,8 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                                 for message in config_msg_alert[key]:
                                     if message in line:   # found:
                                         found_message = True
-                                        alert_message = "." + one_char + " file: " + message
-                                        # e.g., '.o file: <message>'
+                                        alert_message = key + " file: " + message
+                                        # e.g., 'stdout file: <message>'
                                         break  # no need to search next message
 
                                 if found_message:

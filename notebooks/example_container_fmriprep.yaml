@@ -56,12 +56,12 @@ required_files:
 # Alert messages that might be found in log files of failed jobs:
 #   These messages may be helpful for debugging errors in failed jobs.
 alert_log_messages:
-    o_file:
+    stdout:
         - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
         - "Excessive topologic defect encountered"
         - "Cannot allocate memory"
         - "mris_curvature_stats: Could not open file"
         - "Numerical result out of range"
         - "fMRIPrep failed"
-    # e_file:
+    # stderr:
     #     - "xxxxx"

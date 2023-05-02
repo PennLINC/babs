@@ -6,12 +6,18 @@ Done:
 * `alerting keyword` --> `alert message`
 * `found_keyword` --> `found_message`
 * `keywords` --> `message` or `messages`
-
-Doing:
-
-
-TODO:
+* some `o_file` --> `stdout_file`
+    * mostly in `last_line_o_file`
+* `last_line_o_file` --> `last_line_stdout_file`
 * `o_file` --> `stdout`
 * `e_file` --> `stderr`
-* `*.o*` --> `___`
-* `*.e*` --> `___`
+* `*.o*` --> `stdout`
+* `.o file` --> `stdout file`
+* some `.o` --> `stdout`
+* manually change things in `get_alert_message_in_log_files()`
+    * e.g., `one_char`
+* `*.e*` --> `stderr`
+
+No actions:
+* `.e file` - not found
+* `.e`: mostly `op.exists` or `i.e.,`
