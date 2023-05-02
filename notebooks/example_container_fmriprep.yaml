@@ -53,8 +53,9 @@ required_files:
         - "func/*_bold.nii*"
         - "anat/*_T1w.nii*"
 
-# Keywords for alerting messages in log files:
-keywords_alert:
+# Alert messages that might be found in log files of failed jobs:
+#   These messages may be helpful for debugging errors in failed jobs.
+alert_log_messages:
     o_file:
         - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
         - "Excessive topologic defect encountered"

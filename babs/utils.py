@@ -1518,7 +1518,7 @@ def read_job_status_csv(csv_path):
                             })
     return df
 
-def report_job_status(df, analysis_path, config_keywords_alert):
+def report_job_status(df, analysis_path, config_msg_alert):
     """
     This is to report the job status
     based on the dataframe loaded from `job_status.csv`.
@@ -1530,8 +1530,8 @@ def report_job_status(df, analysis_path, config_keywords_alert):
     analysis_path: str
         Path to the analysis folder.
         This is used to generate the folder of log files
-    config_keywords_alert: dict or None
-        From `get_config_keywords_alert()`
+    config_msg_alert: dict or None
+        From `get_config_msg_alert()`
         This is used to determine if to report `alert_message` column
     """
 
@@ -1567,7 +1567,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
 
             # if there is job failed: print more info by categorizing msg:
             if total_is_failed > 0:
-                if config_keywords_alert is not None:
+                if config_msg_alert is not None:
                     print("\nAmong all failed job(s):")
                 # get the list of jobs that 'is_failed=True':
                 list_index_job_failed = df.index[df["is_failed"] == True].tolist()
@@ -1580,7 +1580,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                 # unique_list_alert_message.sort()   # sort and update the list itself
                 # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
 
-                if config_keywords_alert is not None:
+                if config_msg_alert is not None:
                     for unique_alert_msg in unique_list_alert_message:
                         # count:
                         temp_count = all_alert_message.count(unique_alert_msg)
@@ -1605,7 +1605,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                               + " Note that with `--job-account`, `babs-status` may take longer time.")
                     else:
                         all_job_account = pdseries.tolist()
-                        # ^^ only limit to jobs failed & no alert keywords in log files
+                        # ^^ only limit to jobs failed & no alert message in log files
                         unique_list_job_account = list(set(all_job_account))
                         # unique_list_job_account.sort()   # sort and update the list itself
                         # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
@@ -1746,68 +1746,68 @@ def get_last_line(fn):
 
     return last_line
 
-def get_config_keywords_alert(container_config_yaml_file):
+def get_config_msg_alert(container_config_yaml_file):
     """
-    To extract the configs of keywords alert in log files.
+    To extract the configs of alert msgs in log files.
 
     Parameters:
     --------------
     container_config_yaml_file: str or None
         path to the config yaml file of containers, which might includes
-        a section of `keywords_alert`
+        a section of `alert_log_messages`
 
     Returns:
     ---------------
-    config_keywords_alert: dict or None
+    config_msg_alert: dict or None
     """
 
     if container_config_yaml_file is not None:  # yaml file is provided
         with open(container_config_yaml_file) as f:
             container_config = yaml.load(f, Loader=yaml.FullLoader)
 
-        # Check if there is section 'keywords_alert':
-        if "keywords_alert" in container_config:
-            config_keywords_alert = container_config["keywords_alert"]
-            # ^^ if it's empty under `keywords_alert`: config_keywords_alert=None
+        # Check if there is section 'alert_log_messages':
+        if "alert_log_messages" in container_config:
+            config_msg_alert = container_config["alert_log_messages"]
+            # ^^ if it's empty under `alert_log_messages`: config_msg_alert=None
 
-            # Check if there is either 'o_file' or 'e_file' in "keywords_alert":
-            if config_keywords_alert is not None:  # there is sth under "keywords_alert":
-                if ("o_file" not in config_keywords_alert) & \
-                   ("e_file" not in config_keywords_alert):
+            # Check if there is either 'o_file' or 'e_file' in "alert_log_messages":
+            if config_msg_alert is not None:  # there is sth under "alert_log_messages":
+                if ("o_file" not in config_msg_alert) & \
+                   ("e_file" not in config_msg_alert):
                     # neither is included:
                     warnings.warn(
-                        "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
+                        "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
                         " neither 'o_file' nor 'e_file' is included in this section."
                         " So BABS won't check if there is"
                         " any alerting message in log files.")
-                    config_keywords_alert = None   # not useful anymore, set to None then.
-            else:  # nothing under "keywords_alert":
+                    config_msg_alert = None   # not useful anymore, set to None then.
+            else:  # nothing under "alert_log_messages":
                 warnings.warn(
-                    "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
+                    "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
                     " neither 'o_file' nor 'e_file' is included in this section."
                     " So BABS won't check if there is"
                     " any alerting message in log files.")
-                # `config_keywords_alert` is already `None`, no need to set to None
+                # `config_msg_alert` is already `None`, no need to set to None
         else:
-            config_keywords_alert = None
+            config_msg_alert = None
             warnings.warn(
-                "There is no section called 'keywords_alert' in the provided"
+                "There is no section called 'alert_log_messages' in the provided"
                 " `container_config_yaml_file`. So BABS won't check if there is"
                 " any alerting message in log files.")
     else:
-        config_keywords_alert = None
+        config_msg_alert = None
 
-    return config_keywords_alert
+    return config_msg_alert
 
-def get_alert_message_in_log_files(config_keywords_alert, log_fn):
+def get_alert_message_in_log_files(config_msg_alert, log_fn):
     """
     This is to get any alert message in log files of a job.
 
     Parameters:
     -----------------
-    config_keywords_alert: dict or None
-        section 'keywords_alert' in container config yaml file
-        that includes what alert keywords to look for in log files.
+    config_msg_alert: dict or None
+        section 'alert_log_messages' in container config yaml file
+        that includes what alert messages to look for in log files.
     log_fn: str
         Absolute path to a job's log files. It should have `*` to be replaced with `o` or `e`
         Example: /path/to/analysis/logs/toy_sub-0000.*11111
@@ -1815,7 +1815,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     Returns:
     ----------------
     alert_message: str or np.nan
-        If config_keywords_alert is None, or log file does not exist yet,
+        If config_msg_alert is None, or log file does not exist yet,
             `alert_message` will be `np.nan`;
         if not None, `alert_message` will be a str.
             Examples:
@@ -1839,7 +1839,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
 
-    if config_keywords_alert is None:
+    if config_msg_alert is None:
         alert_message = np.nan
         if_valid_alert_msg = False
     else:
@@ -1850,7 +1850,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
             found_keyword = False
             alert_message = msg_no_alert
 
-            for key in config_keywords_alert:  # as it's dict, keys cannot be duplicated
+            for key in config_msg_alert:  # as it's dict, keys cannot be duplicated
                 if key == "o_file" or "e_file":
                     one_char = key[0]   # 'o' or 'e'
                     # the log file to look into:
@@ -1860,8 +1860,8 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
                         with open(fn) as f:
                             # Loop across lines, from the beginning of the file:
                             for line in f:
-                                # Loop across the keywords for this kind of log file:
-                                for keyword in config_keywords_alert[key]:
+                                # Loop across the messages for this kind of log file:
+                                for keyword in config_msg_alert[key]:
                                     if keyword in line:   # found:
                                         found_keyword = True
                                         alert_message = "." + one_char + " file: " + keyword

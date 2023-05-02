@@ -36,7 +36,7 @@ Among these sections, these sections are optional:
   * You must include this section if there are more one input dataset.
 
 * **required_files**
-* **keywords_alert**
+* **alert_log_messages**
 
 
 
@@ -580,18 +580,18 @@ Notes:
   in unzipped input dataset (e.g., raw BIDS dataset).
 
 
-.. _keywords_alert:
+.. _alert_log_messages:
 
-Section ``keywords_alert``
+Section ``alert_log_messages``
 ==============================
 This section is optional.
 
 This section is to define a list of alerting keywords to be searched in log files,
 and these keywords may indicates failure of a job.
 
-Example section **keywords_alert** for fMRIPrep::
+Example section **alert_log_messages** for fMRIPrep::
 
-    keywords_alert:
+    alert_log_messages:
         o_file:
             - "Exception: No T1w images found for"  # not needed if setting T1w in `required_files`
             - "Excessive topologic defect encountered"
@@ -614,7 +614,7 @@ if a keyword is former, then that will be checked earlier.
 BABS also follows "detect and break" rule, i.e., for each job:
 
 * If any keyword is detected, the detected keyword will be thrown into the ``job_status.csv``,
-  and BABS won't detect any further keyword down in the list in **keywords_alert**.
+  and BABS won't detect any further keyword down in the list in **alert_log_messages**.
 * If a keyword has been detected in the first file (``o_file`` for above example),
   then won't detect any keyword in the other log file (``e_file`` for above example).
 

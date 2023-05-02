@@ -40,8 +40,9 @@ job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 #     $INPUT_DATASET_#1:
 #         - ""
 
-# Keywords for alerting messages in log files:
-keywords_alert:
+# Alert messages that might be found in log files of failed jobs:
+#   These messages may be helpful for debugging errors in failed jobs.
+alert_log_messages:
     # some_other:  # Only used for testing purpose!
     o_file:
         - "xxxx"

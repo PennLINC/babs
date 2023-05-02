@@ -40,5 +40,4 @@ required_files:
         - "func/*_bold.nii*"
         - "anat/*_T1w.nii*"
 
-# Keywords for alerting messages in log files:
-# 'keywords_alert': not to include this section for now.
+# 'alert_log_messages': not to include this section for now.

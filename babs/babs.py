@@ -47,7 +47,7 @@ from babs.utils import (get_immediate_subdirectories,
                         request_all_job_status,
                         calcu_runtime,
                         get_last_line,
-                        get_config_keywords_alert,
+                        get_config_msg_alert,
                         get_alert_message_in_log_files,
                         get_username,
                         check_job_account,
@@ -1169,7 +1169,7 @@ class BABS():
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
-            It may include 'keywords_alert' section
+            It may include 'alert_log_messages' section
             to be used by babs-status.
         job_account: bool
             Whether to account failed jobs (e.g., using `qacct` for SGE),
@@ -1185,8 +1185,8 @@ class BABS():
         lock = FileLock(lock_path)
 
         # Prepare for checking alert messages in log files:
-        #   get the keywords of alert messages:
-        config_keywords_alert = get_config_keywords_alert(container_config_yaml_file)
+        #   get the pre-defined alert messages:
+        config_msg_alert = get_config_msg_alert(container_config_yaml_file)
 
         # Get username, if `--job-account` is requested:
         username_lowercase = get_username()
@@ -1253,13 +1253,13 @@ class BABS():
                     df_job_updated.at[i_job, "last_line_o_file"] = \
                         get_last_line(o_fn)
 
-                    # Check if any alert keywords in log files for this job:
+                    # Check if any alert message in log files for this job:
                     # NOTE: in theory can skip failed jobs in previous round,
                     #       but making assigning variables hard; so not to skip
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
                     alert_message_in_log_files, if_no_alert_in_log = \
-                        get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                    # ^^ the function will handle even if `config_keywords_alert=None`
+                        get_alert_message_in_log_files(config_msg_alert, log_fn)
+                    # ^^ the function will handle even if `config_msg_alert=None`
                     df_job_updated.at[i_job, "alert_message"] = \
                         alert_message_in_log_files
 
@@ -1560,11 +1560,11 @@ class BABS():
                         # Update the "last_line_o_file":
                         df_job_updated.at[i_job, "last_line_o_file"] = \
                             get_last_line(o_fn)
-                        # Check if any alert keywords in log files for this job:
+                        # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
                         alert_message_in_log_files, if_no_alert_in_log = \
-                            get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                        # ^^ the function will handle even if `config_keywords_alert=None`
+                            get_alert_message_in_log_files(config_msg_alert, log_fn)
+                        # ^^ the function will handle even if `config_msg_alert=None`
                         df_job_updated.at[i_job, "alert_message"] = \
                             alert_message_in_log_files
                 # Done: 'is_done' jobs.
@@ -1601,7 +1601,7 @@ class BABS():
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
 
                 # Report the job status:
-                report_job_status(df_job_updated, self.analysis_path, config_keywords_alert)
+                report_job_status(df_job_updated, self.analysis_path, config_msg_alert)
 
         except Timeout:   # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
