@@ -35,7 +35,7 @@ singularity_run:
     --stop-on-first-crash: ""
     --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # path to FS license file
     --skip-bids-validation: Null  # Null or NULL is also a placeholder
-    --output-spaces: MNI152NLin6Asym:res-2
+    --output-spaces: "MNI152NLin6Asym:res-2 MNI152NLin2009cAsym"   # e.g., two output spaces
     --force-bbr: ""
     #--cifti-output: 91k   # ADD THIS WHEN FULL RUN!
     -v: '-v'   # TODO: explain in docs: this is for double "-v". # as it's dict, cannot have identical keys... otherwise the latter key + value will overwrite the former one..# if triple `-v`: `-v: '-v -v'`
