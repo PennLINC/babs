@@ -26,7 +26,7 @@
                 * update `df_job_updated`
                 * resubmit if 'failed' in `flags_resubmit`, or request specifically: resubmit and update `df_job_updated`
                 * if did not resubmit:
-                    * if `--job-account` and no alert keywords in logs:
+                    * if `--job-account` and no alert messages in logs:
                         * do `qacct`, and update 'job_account' column.
 
     * for each job that marked as "is_done" in previous round:

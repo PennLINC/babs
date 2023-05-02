@@ -1599,7 +1599,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
                     # check if all selected are np.nan:
                     if all(pd.isna(pdseries)):
                         # if so, 'job_account' was not applied yet:
-                        print("\nFor the failed job(s) that don't have alert keyword in log files,"
+                        print("\nFor the failed job(s) that don't have alert message in log files,"
                               + " you may use `--job-account` to get more information"
                               + " about why they are failed."
                               + " Note that with `--job-account`, `babs-status` may take longer time.")
@@ -1611,7 +1611,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
                         # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
 
                         print("\nAmong job(s) that are failed"
-                              + " and don't have alert keyword in log files:")
+                              + " and don't have alert message in log files:")
                         for unique_job_account in unique_list_job_account:
                             # count:
                             temp_count = all_job_account.count(unique_job_account)
@@ -1820,7 +1820,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         if not None, `alert_message` will be a str.
             Examples:
             - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
-            - if found: ".o file: <keyword>"
+            - if found: ".o file: <message>"
     if_no_alert_in_log: bool
         There is no alert message in the log files.
         When `alert_message` is `msg_no_alert`,
@@ -1847,7 +1847,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         e_fn = log_fn.replace("*", 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):   # either exists:
-            found_keyword = False
+            found_message = False
             alert_message = msg_no_alert
 
             for key in config_msg_alert:  # as it's dict, keys cannot be duplicated
@@ -1861,19 +1861,19 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                             # Loop across lines, from the beginning of the file:
                             for line in f:
                                 # Loop across the messages for this kind of log file:
-                                for keyword in config_msg_alert[key]:
-                                    if keyword in line:   # found:
-                                        found_keyword = True
-                                        alert_message = "." + one_char + " file: " + keyword
-                                        # e.g., '.o file: <keyword>'
-                                        break  # no need to search next keyword
+                                for message in config_msg_alert[key]:
+                                    if message in line:   # found:
+                                        found_message = True
+                                        alert_message = "." + one_char + " file: " + message
+                                        # e.g., '.o file: <message>'
+                                        break  # no need to search next message
 
-                                if found_keyword:
+                                if found_message:
                                     break    # no need to go to next line
                     # if the log file does not exist, probably due to pending
                     #   not to do anything
 
-                if found_keyword:
+                if found_message:
                     break   # no need to go to next log file
 
         else:    # neither o_fn nor e_fn exists yet:

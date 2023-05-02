@@ -3,13 +3,14 @@
 Done:
 * `config_keywords_alert` --> `config_msg_alert`
 * `keywords_alert` --> `alert_log_messages`
-
-Doing:
+* `alerting keyword` --> `alert message`
+* `found_keyword` --> `found_message`
 * `keywords` --> `message` or `messages`
 
+Doing:
+
+
 TODO:
-* `alerting keywords` --> `alert message` or `alert messages`
-* `keyword` --> `message`
 * `o_file` --> `stdout`
 * `e_file` --> `stderr`
 * `*.o*` --> `___`

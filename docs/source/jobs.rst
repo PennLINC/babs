@@ -40,9 +40,9 @@ in short, it's a iteration between ``babs-submit`` and ``babs-status``:
 
     * You may submit several exemplar jobs with ``babs-submit``, then check job status
       with ``babs-status`` to see if they're failed, and in failed jobs' log files
-      (usually in ``*.o*`` and ``*.e*`` files), what could be alerting keywords for the failure.
+      (usually in ``*.o*`` and ``*.e*`` files), what could be alert messages for the failure.
     * You may also refer to the example YAML files we provide (link: ______________).
-    * No worry if you could not cover all alerting keywords at once;
+    * No worry if you could not cover all alert messages at once;
       you can add/change this section **alert_log_messages** in the YAML file anytime you want,
       and simply call::
         
@@ -50,7 +50,7 @@ in short, it's a iteration between ``babs-submit`` and ``babs-status``:
             --project-root /path/to/my_BABS_project \
             --container-config-yaml-file /path/to/updated_yaml_file.yaml
         
-      to ask BABS to find updated list of alerting keywords.
+      to ask BABS to find updated list of alert messages.
     * For more details about this section, please refer to :ref:`alert_log_messages`.
 
 #. You may start to iteratively call ``babs-submit`` and ``babs-status`` until all jobs are finished.
@@ -87,7 +87,7 @@ Tips of ``babs-status``
             --container-config-yaml-file /path/to/my_yaml_file.yaml \
             --job-account
             
-      This may take longer time (e.g., ~0.5h for ~250 failed jobs without alerting keywords;
+      This may take longer time (e.g., ~0.5h for ~250 failed jobs without alert messages;
       also depending on the speed of the cluster).
 * You can also resubmit jobs that are failed or pending.
   See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
@@ -124,12 +124,14 @@ Example job status summary from ``babs-status``
 
     Among all failed job(s):
     1 job(s) have alert message: '.o file: fMRIPrep failed';
-    2 job(s) have alert message: 'BABS: No alert keyword found in log files.';
+    2 job(s) have alert message: 'BABS: No alert message found in log files.';
 
-    Among job(s) that are failed and don't have alert keyword in log files:
+    Among job(s) that are failed and don't have alert message in log files:
     2 job(s) have job account of: 'qacct: failed: 37  : qmaster enforced h_rt, h_cpu, or h_vmem limit';
 
     All log files are located in folder: /path/to/my/BABS/project/analysis/logs
+
+TODO: change above with updated version of job auditing (after changing the YAML file section name to ``alert_log_messages``)
 
 
 As you can see, in the summary ``Job status``, there are multiple sections:
@@ -137,8 +139,8 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 #. Overall summary of number of jobs to complete, submitted, finished, pending, running, or failed;
 #. Summary of failed jobs, based on the provided section **alert_log_messages** in
    ``--container-config-yaml-file``, BABS tried to find any alert message
-   that includes the user-defined alerting keywords;
-#. If there are jobs that are failed but don't have defined alert keyword,
+   that includes the user-defined alert messages;
+#. If there are jobs that are failed but don't have defined alert message,
    and ``--job-account`` is requested, BABS will then run job account
    and try to extract more information and summarize.
    For each of these jobs, BABS runs job account command (e.g., ``qacct`` on SGE clusters).
@@ -230,10 +232,10 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 * ``last_line_o_file``: string or ``np.nan``, the last line of current ``*.o*`` file.
   Before a job is submitted, ``last_line_o_file = np.nan``.
 * ``alert_message``: string or ``np.nan``, a message from BABS that whether BABS found any
-  alerting keywords (defined in **alert_log_messages** in the YAML file) in the log files.
+  alert messages (defined in **alert_log_messages** in the YAML file) in the log files.
 
-    * Example ``alert_message``: ``'.o file: fMRIPrep failed'`` (alerting keywords found);
-      ``BABS: No alert keyword found in log files.`` (alerting keywords not found).
+    * Example ``alert_message``: ``'.o file: fMRIPrep failed'`` (alert messages found);
+      ``BABS: No alert message found in log files.`` (alert messages not found).
     * This column of all submitted jobs will be updated every time ``babs-status`` is called.
       It will be updated based on current ``--container-config-yaml-file`` (if provided).
       if ``--container-config-yaml-file`` is not provided,
