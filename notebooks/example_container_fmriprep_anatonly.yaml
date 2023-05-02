@@ -43,11 +43,10 @@ singularity_run:
     --anat-only: ''   # ADD THIS WHEN ONLY RUNNING FREESURFER!
     # --fs-no-reconall: ''   # ADD THIS WHEN TEST RUN!
 
-
-zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
-    # fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
-    freesurfer: "20-2-3"   # use the same as fmriprep
-    # ^^ # ADD THIS WHEN FULL RUN or --anat-only!
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   We use fMRIPrep's version string when zipping 'freesurfer' folder.
+zip_foldernames:
+    freesurfer: "20-2-3"   # folder 'freesurfer' will be zipped into 'sub-xx_ses-yy_freesurfer-20-2-3.zip'
 
 # environment_variable:
 #     SINGULARITYENV_TEMPLATEFLOW_HOME: '~/.cache/templateflow'   # no need, default in babs

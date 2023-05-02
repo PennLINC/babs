@@ -14,8 +14,9 @@ singularity_run:
     -w: "$BABS_TMPDIR"   # this is a placeholder.
     # --nthreads: 6
 
-zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
-    xcp_d: "0-3-0"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    xcp_d: "0-3-0"     # folder 'xcp_d' will be zipped into 'sub-xx_ses-yy_xcp_d-0-3-0.zip'
 
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic

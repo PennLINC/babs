@@ -15,8 +15,9 @@ singularity_run:
     --fs-subjects-dir: inputs/data/freesurfer/freesurfer
     --sloppy: ''      # ADD THIS WHEN TEST RUN!
 
-zip_foldernames:   # the foldername(s) to get zipped and the version string(s)
-    fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    fmriprep: "20-2-3"     # folder 'fmriprep' will be zipped into 'sub-xx_ses-yy_fmriprep-20-2-3.zip'
 
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
