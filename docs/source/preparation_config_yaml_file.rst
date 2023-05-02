@@ -333,6 +333,23 @@ Advanced - Manual of writing section ``singularity_run``
       
       where ``/path/to/templateflow_home`` is the value of environment variable ``$TEMPLATEFLOW_HOME``.
 
+* How to specify multiple spaces in argument ``--output-spaces`` (e.g., in fMRIPrep)?
+
+    * Just to follow the guidelines from fMRIPrep, using space to separate different output spaces.
+    * For
+      example::
+
+        --output-spaces: "MNI152NLin6Asym:res-2 MNI152NLin2009cAsym"
+    
+      Here, ``MNI152NLin6Asym:res-2`` and ``MNI152NLin2009cAsym`` are two example spaces.
+    
+    * We recommend quoting this value if there are multiple spaces (like this example).
+      This is because there is space in the value of this argument.
+      Quoting makes sure that BABS will take
+      the entire value string as a whole and pass it into ``singularity run``.
+
+.. developer's note:
+..  also tested without quoting when there is space; generated ``singularity run`` is also good.
 
 .. Go thru all YAML files for any missing notes: done 4/4/2023
 .. toybidsapp: done
