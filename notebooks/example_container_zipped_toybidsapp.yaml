@@ -26,6 +26,7 @@ cluster_resources:
 #   the commands should not be quoted!
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+    echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 # Where to run the jobs:
 job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
