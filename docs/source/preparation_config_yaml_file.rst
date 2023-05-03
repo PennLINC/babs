@@ -366,8 +366,8 @@ Advanced - Manual of writing section ``singularity_run``
 Section ``zip_foldernames``
 ================================
 
-This section defines the output folder name(s) that get saved and zipped.
-This also includes the version of the BIDS App you use.
+This section defines the name(s) of the expected output folder(s).
+BABS will zip those folder(s) into separate zip file(s).
 
 Example section **zip_foldernames** for ``fMRIPrep``::
 
@@ -377,9 +377,20 @@ Example section **zip_foldernames** for ``fMRIPrep``::
 
 As you can see in this example, we expect that fMRIPrep will generate two folders,
 one is called ``fmriprep``, the other is called ``freesurfer``.
-If there is only one folder that you hope BABS to save and zip, simply provide only one.
+If there is only one expected output folder, simply provide only one.
 
-In addition to the folder name(s), please also add the version of the BIDS App as the value:
+In addition to the folder name(s), please also add the version of the BIDS App as the value.
+
+Above example means that:
+
+* BABS will zip output folder ``fmriprep`` into zip file ``${sub-id}_${ses-id}_fmriprep-20-2-3.zip``;
+* BABS will zip output folder ``freesurfer`` into zip file ``${sub-id}_${ses-id}_freesurfer-20-2-3.zip``;
+
+Here, ``${sub-id}`` is the subject ID (e.g., ``sub-01``),
+and ``${ses-id}`` is the session ID (e.g., ``ses-A``).
+In other words, each subject (or session) will have their specific zip file(s).
+
+Other detailed instructions:
 
 * The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
   For this example, you probably use ``fmriprep-20-2-3`` for *image NAME*.
