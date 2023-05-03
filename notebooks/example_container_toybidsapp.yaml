@@ -39,20 +39,12 @@ script_preamble: |
 # Where to run the jobs:
 job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 
-# Below is to filter out subjects (or sessions)
-#   right now we only filter based on unzipped dataset
-# required_files:
-#     $INPUT_DATASET_#1:
-#         - ""
+# 'required_files' section is not needed for toy BIDS App.
 
 # Alert messages that might be found in log files of failed jobs:
 #   These messages may be helpful for debugging errors in failed jobs.
 alert_log_messages:
-    # some_other:  # Only used for testing purpose!
     stdout:
-        - "xxxx"
-        # - "did not provide --session_label"
+        - "xxxx"   # this is a dummy alert message.
     stderr:
-        - "xxx"
-        # - "[INFO] Cloning dataset"
-        # - "git remote add outputstore"
+        - "xxx"    # this is a dummy alert message.
