@@ -499,15 +499,17 @@ bash commands that are required by job running. An example would be to activate 
 however, different clusters may require different commands to do so. Therefore, BABS asks the user to
 provide it.
 
-Example section **cluster_resources** for a specific cluster::
+Example section **script_preamble** for a specific cluster::
 
     script_preamble: |
-        source ${CONDA_PREFIX}/bin/activate babs    # replace `babs` with your conda environment name for running jobs
+        source ${CONDA_PREFIX}/bin/activate babs    # Penn Med CUBIC cluster; replace 'babs' with your conda env name
+        echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 This will appear as below in the ``participant_job.sh``::
 
     # Script preambles:
-    source ${CONDA_PREFIX}/bin/activate babs
+    source ${CONDA_PREFIX}/bin/activate babs     # Penn Med CUBIC cluster; replace 'babs' with your conda env name
+    echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 .. warning::
     Above command may not apply to your cluster; check how to activate conda environment on your cluster and replace above command.
@@ -520,6 +522,10 @@ Notes:
 
 * Remember to add ``|`` after ``script_preamble:``;
 * You can also add more necessary commands by adding new lines.
+* You can delete the 2nd line ``echo "I am running BABS."`` as that's just a demostration of
+  how to add another line in the preamble.
+* As you can see, the comments after the commands also show up in the generated script preambles.
+  This is normal and fine.
 
 
 Section ``job_compute_space``
