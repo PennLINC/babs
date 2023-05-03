@@ -37,6 +37,9 @@ cluster_resources:
     number_of_cpus: "6"    # `#$ -pe threaded 6` on cubic
     customized_text: |
         #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`

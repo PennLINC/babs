@@ -30,7 +30,11 @@ cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
     hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
-# You can also add `customized_text` - see docs for more.
+    customized_text: |
+        #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`

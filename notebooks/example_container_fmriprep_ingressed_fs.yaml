@@ -26,6 +26,9 @@ cluster_resources:
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic
     customized_text: |
         #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`
