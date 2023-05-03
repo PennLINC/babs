@@ -522,7 +522,7 @@ Notes:
 
 * Remember to add ``|`` after ``script_preamble:``;
 * You can also add more necessary commands by adding new lines.
-* You can delete the 2nd line ``echo "I am running BABS."`` as that's just a demostration of
+* You can delete the 2nd line ``echo "I am running BABS."`` as that's just a demonstration of
   how to add another line in the preamble.
 * As you can see, the comments after the commands also show up in the generated script preambles.
   This is normal and fine.
