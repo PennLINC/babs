@@ -47,7 +47,7 @@ from babs.utils import (get_immediate_subdirectories,
                         request_all_job_status,
                         calcu_runtime,
                         get_last_line,
-                        get_config_keywords_alert,
+                        get_config_msg_alert,
                         get_alert_message_in_log_files,
                         get_username,
                         check_job_account,
@@ -943,7 +943,7 @@ class BABS():
                         flag_success_test_job = False
                         to_print += "Test job was not successfully finished"
                         to_print += " and is currently out of queue."
-                        to_print += " Last line of *.o* log file: '" + last_line + "'."
+                        to_print += " Last line of stdout log file: '" + last_line + "'."
                         to_print += " Path to the log file: " + log_fn
                 print(to_print)
 
@@ -1169,7 +1169,7 @@ class BABS():
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
-            It may include 'keywords_alert' section
+            It may include 'alert_log_messages' section
             to be used by babs-status.
         job_account: bool
             Whether to account failed jobs (e.g., using `qacct` for SGE),
@@ -1185,8 +1185,8 @@ class BABS():
         lock = FileLock(lock_path)
 
         # Prepare for checking alert messages in log files:
-        #   get the keywords of alert messages:
-        config_keywords_alert = get_config_keywords_alert(container_config_yaml_file)
+        #   get the pre-defined alert messages:
+        config_msg_alert = get_config_msg_alert(container_config_yaml_file)
 
         # Get username, if `--job-account` is requested:
         username_lowercase = get_username()
@@ -1249,17 +1249,17 @@ class BABS():
                             # print("debugging purpose: request to resubmit job: " + sub + ", " + ses)
                             # ^^ only for multi-ses!
 
-                    # Update the "last_line_o_file":
-                    df_job_updated.at[i_job, "last_line_o_file"] = \
+                    # Update the "last_line_stdout_file":
+                    df_job_updated.at[i_job, "last_line_stdout_file"] = \
                         get_last_line(o_fn)
 
-                    # Check if any alert keywords in log files for this job:
+                    # Check if any alert message in log files for this job:
                     # NOTE: in theory can skip failed jobs in previous round,
                     #       but making assigning variables hard; so not to skip
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
                     alert_message_in_log_files, if_no_alert_in_log = \
-                        get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                    # ^^ the function will handle even if `config_keywords_alert=None`
+                        get_alert_message_in_log_files(config_msg_alert, log_fn)
+                    # ^^ the function will handle even if `config_msg_alert=None`
                     df_job_updated.at[i_job, "alert_message"] = \
                         alert_message_in_log_files
 
@@ -1329,7 +1329,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
 
@@ -1372,7 +1372,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
 
@@ -1410,7 +1410,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
                                 else:   # not to resubmit:
@@ -1455,7 +1455,7 @@ class BABS():
                                 df_job_updated.at[i_job, "job_id"] = job_id_updated
                                 df_job_updated.at[i_job, "log_filename"] = log_filename
                                 df_job_updated.at[i_job, "is_failed"] = np.nan
-                                df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                 df_job_updated.at[i_job, "alert_message"] = np.nan
                                 df_job_updated.at[i_job, "job_account"] = np.nan
                                 # reset of `job_state_*` have been done - see above
@@ -1551,20 +1551,20 @@ class BABS():
                         df_job_updated.at[i_job, "duration"] = np.nan
                         df_job_updated.at[i_job, "is_done"] = False
                         df_job_updated.at[i_job, "is_failed"] = np.nan
-                        df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                        df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                         df_job_updated.at[i_job, "alert_message"] = np.nan
                         df_job_updated.at[i_job, "job_account"] = np.nan
 
                     else:    # did not request resubmit, or `--reckless` is None:
                         # just perform normal stuff for a successful job:
-                        # Update the "last_line_o_file":
-                        df_job_updated.at[i_job, "last_line_o_file"] = \
+                        # Update the "last_line_stdout_file":
+                        df_job_updated.at[i_job, "last_line_stdout_file"] = \
                             get_last_line(o_fn)
-                        # Check if any alert keywords in log files for this job:
+                        # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
                         alert_message_in_log_files, if_no_alert_in_log = \
-                            get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                        # ^^ the function will handle even if `config_keywords_alert=None`
+                            get_alert_message_in_log_files(config_msg_alert, log_fn)
+                        # ^^ the function will handle even if `config_msg_alert=None`
                         df_job_updated.at[i_job, "alert_message"] = \
                             alert_message_in_log_files
                 # Done: 'is_done' jobs.
@@ -1601,7 +1601,7 @@ class BABS():
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
 
                 # Report the job status:
-                report_job_status(df_job_updated, self.analysis_path, config_keywords_alert)
+                report_job_status(df_job_updated, self.analysis_path, config_msg_alert)
 
         except Timeout:   # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
@@ -2332,16 +2332,16 @@ class Container():
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
-        if "babs_singularity_run" not in self.config:
+        if "singularity_run" not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, \
-                "Section 'babs_singularity_run' is missing in the provided" \
+                "Section 'singularity_run' is missing in the provided" \
                 + " `container_config_yaml_file`. As there are more than one" \
                 + " input dataset, you must include this section to specify" \
                 + " to which argument that each input dataset will go."
             # if there is only one input ds, fine:
-            print("Section 'babs_singularity_run' was not included "
+            print("Section 'singularity_run' was not included "
                   "in the `container_config_yaml_file`. ")
             cmd_singularity_flags = ""   # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`

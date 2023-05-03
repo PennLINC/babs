@@ -19,24 +19,24 @@ Overview of the configuration YAML file structure
 Sections in the configuration YAML file
 -----------------------------------------
 
-* **babs_singularity_run**: the arguments for ``singularity run`` of the BIDS App;
-* **babs_zip_foldername**: the results foldername(s) to be zipped;
+* **singularity_run**: the arguments for ``singularity run`` of the BIDS App;
+* **zip_foldernames**: the results foldername(s) to be zipped;
 * **cluster_resources**: how much cluster resources are needed to run this BIDS App?
-* **script_preamble**: the preambles in the script to run a participant's job;
+* **script_preamble**: the preamble in the script to run a participant's job;
 * **job_compute_space**: where to run the jobs?
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
-* **keywords_alert**: keywords in alerting messages in the log files that may be helpful for debugging the error;
+* **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
 Among these sections, these sections are optional:
 
-* **babs_singularity_run**
+* **singularity_run**
 
   * Only if you are sure that besides arguments handled by BABS, you don't need any other argument,
     you may exclude this section from the YAML file.
   * You must include this section if there are more one input dataset.
 
 * **required_files**
-* **keywords_alert**
+* **alert_log_messages**
 
 
 
@@ -71,18 +71,18 @@ In a section, the string before ``:`` is called ``key``, the string after ``:`` 
 Below are the details for each section in this configuration YAML file.
 
 
-Section ``babs_singularity_run``
+Section ``singularity_run``
 ==================================
 Currently, BABS does not support using configurations of running a BIDS App
 that are defined in ``datalad containers-add --call-fmt``.
-Instead, users are expected to define these in this section, **babs_singularity_run**.
+Instead, users are expected to define these in this section, **singularity_run**.
 
-Example **babs_singularity_run**
+Example **singularity_run**
 -----------------------------------
 
-Below is example section **babs_singularity_run** for ``fMRIPrep``::
+Below is example section **singularity_run** for ``fMRIPrep``::
 
-    babs_singularity_run:
+    singularity_run:
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
         --n_cpus: '1'
         --stop-on-first-crash: ""   # argument without value
@@ -131,7 +131,7 @@ This section will be turned into commands (including a Singularity run command) 
       in the YAML file, some are automatically set up by BABS.
 
 
-Basics - Manual of writing section ``babs_singularity_run``
+Basics - Manual of writing section ``singularity_run``
 ------------------------------------------------------------
 
 * What arguments should I provide in this section? All arguments for running the BIDS App?
@@ -187,7 +187,7 @@ Basics - Manual of writing section ``babs_singularity_run``
 
 .. _advanced_manual_singularity_run:
 
-Advanced - Manual of writing section ``babs_singularity_run``
+Advanced - Manual of writing section ``singularity_run``
 -----------------------------------------------------------------
 
 * How to specify a number as a value?
@@ -198,6 +198,9 @@ Advanced - Manual of writing section ``babs_singularity_run``
         --output-resolution: "2.0"
     
     * This is especially encouraged when there are only numbers in the value (without letters).
+      Quoting will make sure that when BABS generates scripts, it will keep the string format of the value
+      and pass the value exactly as it is,
+      without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
 * How to specify "path where intermediate results should be stored" (e.g., ``-w`` in fMRIPrep or QSIPrep)?
 
@@ -219,7 +222,7 @@ Advanced - Manual of writing section ``babs_singularity_run``
         
         --fs-license-file: "/path/to/freesurfer/license.txt"
 
-    * When there is argument ``--fs-license-file`` in ``babs_singularity_run`` section,
+    * When there is argument ``--fs-license-file`` in ``singularity_run`` section,
       BABS will bind this provided license file path to container in ``singularity run`` command, so that
       the BIDS App container can directly use that file (which is outside the container, on "host machine").
     * Example generated ``singularity run`` by ``babs-init``::
@@ -255,7 +258,7 @@ Advanced - Manual of writing section ``babs_singularity_run``
   * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
     
     * ``$INPUT_PATH`` is a key placeholder recognized by BABS
-    * We recommend using ``$INPUT_PATH`` as the first key in this section **babs_singularity_run**, 
+    * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**, 
       i.e., before other arguments.
 
   * How to write the path to the input dataset? Here we use `example configuration YAML file of
@@ -333,6 +336,23 @@ Advanced - Manual of writing section ``babs_singularity_run``
       
       where ``/path/to/templateflow_home`` is the value of environment variable ``$TEMPLATEFLOW_HOME``.
 
+* How to specify multiple spaces in argument ``--output-spaces`` (e.g., in fMRIPrep)?
+
+    * Just to follow the guidelines from fMRIPrep, using space to separate different output spaces.
+    * For
+      example::
+
+        --output-spaces: "MNI152NLin6Asym:res-2 MNI152NLin2009cAsym"
+    
+      Here, ``MNI152NLin6Asym:res-2`` and ``MNI152NLin2009cAsym`` are two example spaces.
+    
+    * We recommend quoting this value if there are multiple spaces (like this example).
+      This is because there is space in the value of this argument.
+      Quoting makes sure that BABS will take
+      the entire value string as a whole and pass it into ``singularity run``.
+
+.. developer's note:
+..  also tested without quoting when there is space; generated ``singularity run`` is also good.
 
 .. Go thru all YAML files for any missing notes: done 4/4/2023
 .. toybidsapp: done
@@ -343,23 +363,34 @@ Advanced - Manual of writing section ``babs_singularity_run``
 .. `notebooks/inDev_*.yaml` in `babs_tests` repo: done
 
 
-Section ``babs_zip_foldername``
+Section ``zip_foldernames``
 ================================
 
-This section defines the output folder name(s) that get saved and zipped.
-This also includes the version of the BIDS App you use.
+This section defines the name(s) of the expected output folder(s).
+BABS will zip those folder(s) into separate zip file(s).
 
-Example section **babs_zip_foldername** for ``fMRIPrep``::
+Example section **zip_foldernames** for ``fMRIPrep``::
 
-    babs_zip_foldername:
+    zip_foldernames:
         fmriprep: "20-2-3"
         freesurfer: "20-2-3"
 
 As you can see in this example, we expect that fMRIPrep will generate two folders,
 one is called ``fmriprep``, the other is called ``freesurfer``.
-If there is only one folder that you hope BABS to save and zip, simply provide only one.
+If there is only one expected output folder, simply provide only one.
 
-In addition to the folder name(s), please also add the version of the BIDS App as the value:
+In addition to the folder name(s), please also add the version of the BIDS App as the value.
+
+Above example means that:
+
+* BABS will zip output folder ``fmriprep`` into zip file ``${sub-id}_${ses-id}_fmriprep-20-2-3.zip``;
+* BABS will zip output folder ``freesurfer`` into zip file ``${sub-id}_${ses-id}_freesurfer-20-2-3.zip``;
+
+Here, ``${sub-id}`` is the subject ID (e.g., ``sub-01``),
+and ``${ses-id}`` is the session ID (e.g., ``ses-A``).
+In other words, each subject (or session) will have their specific zip file(s).
+
+Other detailed instructions:
 
 * The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
   For this example, you probably use ``fmriprep-20-2-3`` for *image NAME*.
@@ -453,7 +484,9 @@ Note that:
 * Remember to add ``|`` after ``customized_text:``;
 * As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the option, e.g., ``#$`` for SGE clusters.
 * For values with numbers only (without letters), it's recommended to quote the value,
-  e.g., ``number_of_cpus: "6"``
+  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
+  and pass the value exactly as it is,
+  without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 
@@ -466,15 +499,17 @@ bash commands that are required by job running. An example would be to activate 
 however, different clusters may require different commands to do so. Therefore, BABS asks the user to
 provide it.
 
-Example section **cluster_resources** for a specific cluster::
+Example section **script_preamble** for a specific cluster::
 
     script_preamble: |
-        source ${CONDA_PREFIX}/bin/activate babs    # replace `babs` with your conda environment name for running jobs
+        source ${CONDA_PREFIX}/bin/activate babs    # Penn Med CUBIC cluster; replace 'babs' with your conda env name
+        echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 This will appear as below in the ``participant_job.sh``::
 
     # Script preambles:
-    source ${CONDA_PREFIX}/bin/activate babs
+    source ${CONDA_PREFIX}/bin/activate babs     # Penn Med CUBIC cluster; replace 'babs' with your conda env name
+    echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 .. warning::
     Above command may not apply to your cluster; check how to activate conda environment on your cluster and replace above command.
@@ -487,6 +522,10 @@ Notes:
 
 * Remember to add ``|`` after ``script_preamble:``;
 * You can also add more necessary commands by adding new lines.
+* You can delete the 2nd line ``echo "I am running BABS."`` as that's just a demonstration of
+  how to add another line in the preamble.
+* As you can see, the comments after the commands also show up in the generated script preambles.
+  This is normal and fine.
 
 
 Section ``job_compute_space``
@@ -580,43 +619,43 @@ Notes:
   in unzipped input dataset (e.g., raw BIDS dataset).
 
 
-.. _keywords_alert:
+.. _alert_log_messages:
 
-Section ``keywords_alert``
+Section ``alert_log_messages``
 ==============================
 This section is optional.
 
-This section is to define a list of alerting keywords to be searched in log files,
-and these keywords may indicates failure of a job.
+This section is to define a list of alert messages to be searched in log files,
+and these messages may indicates failure of a job.
 
-Example section **keywords_alert** for fMRIPrep::
+Example section **alert_log_messages** for fMRIPrep::
 
-    keywords_alert:
-        o_file:
+    alert_log_messages:
+        stdout:
             - "Exception: No T1w images found for"  # not needed if setting T1w in `required_files`
             - "Excessive topologic defect encountered"
             - "Cannot allocate memory"
             - "mris_curvature_stats: Could not open file"
             - "Numerical result out of range"
             - "fMRIPrep failed"
-        e_file:
-            - "xxxxx"    # change this to any keywords to be found in `*.e*` file; if there is no keywords for `*.e*` file, delete line `e_file:` and this line
+        stderr:
+            - "xxxxx"    # change this to any messages to be found in `stderr` file; if there is no messages for `stderr` file, delete line `stderr:` and this line
 
 
-Usually there are two log files that are useful for debugging purpose, ``*.o*`` and ``*.e*``,
+Usually there are two log files that are useful for debugging purpose, ``stdout`` and ``stderr``,
 for example, ``<jobname>.o<jobid>`` and ``<jobname>.e<jobid>``.
-You can define alerting keywords in either or both files, i.e., by filling out ``o_file`` section
-(for ``*.o*`` file) and/or ``e_file`` section (for ``*.e*`` file).
+You can define alert messages in either or both files, i.e., by filling out ``stdout`` section
+(for ``stdout`` file) and/or ``stderr`` section (for ``stderr`` file).
 
-Detection of the keyword is performed in the order provided by the user.
-If ``o_file`` is former (e.g., in example above), then detection of it will be performed earlier;
-if a keyword is former, then that will be checked earlier.
+Detection of the message is performed in the order provided by the user.
+If ``stdout`` is former (e.g., in example above), then detection of it will be performed earlier;
+if a message is former, then that will be checked earlier.
 BABS also follows "detect and break" rule, i.e., for each job:
 
-* If any keyword is detected, the detected keyword will be thrown into the ``job_status.csv``,
-  and BABS won't detect any further keyword down in the list in **keywords_alert**.
-* If a keyword has been detected in the first file (``o_file`` for above example),
-  then won't detect any keyword in the other log file (``e_file`` for above example).
+* If any message is detected, the detected message will be thrown into the ``job_status.csv``,
+  and BABS won't detect any further message down in the list in **alert_log_messages**.
+* If a message has been detected in the first file (``stdout`` for above example),
+  then won't detect any message in the other log file (``stderr`` for above example).
 
 .. warning::
-    Detecting the keywords in the log files by BABS is case-sensitive! So please make sure the cases of keywords are in the way you hope.
+    Detecting the messages in the log files by BABS is case-sensitive! So please make sure the cases of messages are in the way you hope.

@@ -486,7 +486,7 @@ def babs_status_cli():
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container. It may include 'keywords_alert' section"
+        " of how to run the BIDS App container. It may include 'alert_log_messages' section"
         " to be used by babs-status.")
     parser.add_argument(
         '--job_account', '--job-account',
@@ -528,7 +528,7 @@ def babs_status_main():
     container_config_yaml_file: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
-        It may include 'keywords_alert' section
+        It may include 'alert_log_messages' section
         to be used by babs-status.
     job_account: bool
         Whether to account failed jobs (e.g., using `qacct` for SGE),

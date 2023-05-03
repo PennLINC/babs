@@ -277,7 +277,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     ---------
     cmd: str
         It's part of the singularity run command; it is generated
-        based on section `babs_singularity_run` in the yaml file.
+        based on section `singularity_run` in the yaml file.
     flag_fs_license: True or False
         Whether FreeSurfer's license will be used.
         This is determined by checking if there is argument called `--fs-license-file`
@@ -288,7 +288,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         The positional argument of input dataset path in `singularity run`
     """
     # human readable: (just like appearance in a yaml file;
-    # print(yaml.dump(config["babs_singularity_run"], sort_keys=False))
+    # print(yaml.dump(config["singularity_run"], sort_keys=False))
 
     # not very human readable way, if nested structure:
     # for key, value in config.items():
@@ -305,24 +305,24 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # re: positional argu `$INPUT_PATH`:
     if input_ds.num_ds > 1:   # more than 1 input dataset:
         # check if `$INPUT_PATH` is one of the keys (must):
-        if "$INPUT_PATH" not in config["babs_singularity_run"]:
-            raise Exception("The key '$INPUT_PATH' is expected in section `babs_singularity_run`"
+        if "$INPUT_PATH" not in config["singularity_run"]:
+            raise Exception("The key '$INPUT_PATH' is expected in section `singularity_run`"
                             + " in `container_config_yaml_file`, because there are more than"
                             + " one input dataset!")
     else:   # only 1 input dataset:
         # check if the path is consistent with the name of the only input ds's name:
-        if "$INPUT_PATH" in config["babs_singularity_run"]:
+        if "$INPUT_PATH" in config["singularity_run"]:
             expected_temp = "inputs/data/" + input_ds.df["name"][0]
-            if config["babs_singularity_run"]["$INPUT_PATH"] != expected_temp:
+            if config["singularity_run"]["$INPUT_PATH"] != expected_temp:
                 raise Exception("As there is only one input dataset, the value of '$INPUT_PATH'"
-                                + " in section `babs_singularity_run`"
+                                + " in section `singularity_run`"
                                 + " in `container_config_yaml_file` should be"
                                 + " '" + expected_temp + "'; You can also choose"
                                 + " not to specify '$INPUT_PATH'.")
 
     # example key: "-w", "--n_cpus"
     # example value: "", "xxx", Null (placeholder)
-    for key, value in config["babs_singularity_run"].items():
+    for key, value in config["singularity_run"].items():
         # print(key + ": " + str(value))
 
         if key == "$INPUT_PATH":  # placeholder
@@ -333,7 +333,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             # sanity check that `value` should match with one of input ds's `path_data_rel`
             if value not in list(input_ds.df["path_data_rel"]):  # after unzip, if needed
                 warnings.warn("'" + value + "' specified after $INPUT_PATH"
-                              + " (in section `babs_singularity_run`"
+                              + " (in section `singularity_run`"
                               + " in `container_config_yaml_file`), does not"
                                 + " match with any dataset's current path."
                                 + " This may cause error when running the BIDS App.")
@@ -388,7 +388,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         # ^^ path to data (if zipped ds: after unzipping)
 
     # example of access one slot:
-    # config["babs_singularity_run"]["n_cpus"]
+    # config["singularity_run"]["n_cpus"]
 
     # print(cmd)
     return cmd, flag_fs_license, path_fs_license, singuRun_input_dir
@@ -464,7 +464,7 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     ---------
     cmd: str
         It's part of the `<containerName_zip.sh>`; it is generated
-        based on section `babs_zip_foldername` in the yaml file.
+        based on section `zip_foldernames` in the yaml file.
     """
 
     # cd to output folder:
@@ -476,16 +476,16 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     else:
         str_sesid = ""
 
-    if "babs_zip_foldername" in config:
+    if "zip_foldernames" in config:
         value_temp = ""
         temp = 0
 
-        for key, value in config["babs_zip_foldername"].items():
+        for key, value in config["zip_foldernames"].items():
             # each key is a foldername to be zipped;
             # each value is the version string;
             temp = temp + 1
             if (temp != 1) & (value_temp != value):    # not matching last value
-                warnings.warn("In section `babs_zip_foldername` in `container_config_yaml_file`: \n"
+                warnings.warn("In section `zip_foldernames` in `container_config_yaml_file`: \n"
                               "The version string of '" + key + "': '" + value + "'"
                               + " does not match with the last version string; "
                               + "we suggest using the same version string across all foldernames.")
@@ -495,9 +495,9 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
                 key + "-" + value + ".zip" + " " + key + "\n"
             # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
 
-    else:    # the yaml file does not have the section `babs_zip_foldername`:
+    else:    # the yaml file does not have the section `zip_foldernames`:
         raise Exception("The `container_config_yaml_file` does not contain"
-                        + " the section `babs_zip_foldername`. Please add this section!")
+                        + " the section `zip_foldernames`. Please add this section!")
 
     # return to original dir:
     cmd += "cd ..\n"
@@ -943,7 +943,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     if type_session == 'multi-ses':
         fixed_cmd += "${sesid}_"
 
-    for key, value in container.config["babs_zip_foldername"].items():
+    for key, value in container.config["zip_foldernames"].items():
         cmd += fixed_cmd + key + "-" + value + ".zip" + " \\" + "\n"
 
     # message:
@@ -1475,7 +1475,7 @@ def create_job_status_csv(babs):
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job["is_failed"] = np.nan
         df_job["log_filename"] = np.nan
-        df_job["last_line_o_file"] = np.nan
+        df_job["last_line_stdout_file"] = np.nan
         df_job["alert_message"] = np.nan
         df_job["job_account"] = np.nan
 
@@ -1518,7 +1518,7 @@ def read_job_status_csv(csv_path):
                             })
     return df
 
-def report_job_status(df, analysis_path, config_keywords_alert):
+def report_job_status(df, analysis_path, config_msg_alert):
     """
     This is to report the job status
     based on the dataframe loaded from `job_status.csv`.
@@ -1530,8 +1530,8 @@ def report_job_status(df, analysis_path, config_keywords_alert):
     analysis_path: str
         Path to the analysis folder.
         This is used to generate the folder of log files
-    config_keywords_alert: dict or None
-        From `get_config_keywords_alert()`
+    config_msg_alert: dict or None
+        From `get_config_msg_alert()`
         This is used to determine if to report `alert_message` column
     """
 
@@ -1567,7 +1567,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
 
             # if there is job failed: print more info by categorizing msg:
             if total_is_failed > 0:
-                if config_keywords_alert is not None:
+                if config_msg_alert is not None:
                     print("\nAmong all failed job(s):")
                 # get the list of jobs that 'is_failed=True':
                 list_index_job_failed = df.index[df["is_failed"] == True].tolist()
@@ -1580,7 +1580,7 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                 # unique_list_alert_message.sort()   # sort and update the list itself
                 # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
 
-                if config_keywords_alert is not None:
+                if config_msg_alert is not None:
                     for unique_alert_msg in unique_list_alert_message:
                         # count:
                         temp_count = all_alert_message.count(unique_alert_msg)
@@ -1599,19 +1599,19 @@ def report_job_status(df, analysis_path, config_keywords_alert):
                     # check if all selected are np.nan:
                     if all(pd.isna(pdseries)):
                         # if so, 'job_account' was not applied yet:
-                        print("\nFor the failed job(s) that don't have alert keyword in log files,"
+                        print("\nFor the failed job(s) that don't have alert message in log files,"
                               + " you may use `--job-account` to get more information"
                               + " about why they are failed."
                               + " Note that with `--job-account`, `babs-status` may take longer time.")
                     else:
                         all_job_account = pdseries.tolist()
-                        # ^^ only limit to jobs failed & no alert keywords in log files
+                        # ^^ only limit to jobs failed & no alert message in log files
                         unique_list_job_account = list(set(all_job_account))
                         # unique_list_job_account.sort()   # sort and update the list itself
                         # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
 
                         print("\nAmong job(s) that are failed"
-                              + " and don't have alert keyword in log files:")
+                              + " and don't have alert message in log files:")
                         for unique_job_account in unique_list_job_account:
                             # count:
                             temp_count = all_job_account.count(unique_job_account)
@@ -1719,7 +1719,7 @@ def calcu_runtime(start_time_str):
 
 def get_last_line(fn):
     """
-    This is to get the last line of a text file, e.g., `*.o*` file
+    This is to get the last line of a text file, e.g., `stdout` file
 
     Parameters:
     --------------------
@@ -1746,68 +1746,68 @@ def get_last_line(fn):
 
     return last_line
 
-def get_config_keywords_alert(container_config_yaml_file):
+def get_config_msg_alert(container_config_yaml_file):
     """
-    To extract the configs of keywords alert in log files.
+    To extract the configs of alert msgs in log files.
 
     Parameters:
     --------------
     container_config_yaml_file: str or None
         path to the config yaml file of containers, which might includes
-        a section of `keywords_alert`
+        a section of `alert_log_messages`
 
     Returns:
     ---------------
-    config_keywords_alert: dict or None
+    config_msg_alert: dict or None
     """
 
     if container_config_yaml_file is not None:  # yaml file is provided
         with open(container_config_yaml_file) as f:
             container_config = yaml.load(f, Loader=yaml.FullLoader)
 
-        # Check if there is section 'keywords_alert':
-        if "keywords_alert" in container_config:
-            config_keywords_alert = container_config["keywords_alert"]
-            # ^^ if it's empty under `keywords_alert`: config_keywords_alert=None
+        # Check if there is section 'alert_log_messages':
+        if "alert_log_messages" in container_config:
+            config_msg_alert = container_config["alert_log_messages"]
+            # ^^ if it's empty under `alert_log_messages`: config_msg_alert=None
 
-            # Check if there is either 'o_file' or 'e_file' in "keywords_alert":
-            if config_keywords_alert is not None:  # there is sth under "keywords_alert":
-                if ("o_file" not in config_keywords_alert) & \
-                   ("e_file" not in config_keywords_alert):
+            # Check if there is either 'stdout' or 'stderr' in "alert_log_messages":
+            if config_msg_alert is not None:  # there is sth under "alert_log_messages":
+                if ("stdout" not in config_msg_alert) & \
+                   ("stderr" not in config_msg_alert):
                     # neither is included:
                     warnings.warn(
-                        "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
-                        " neither 'o_file' nor 'e_file' is included in this section."
+                        "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
+                        " neither 'stdout' nor 'stderr' is included in this section."
                         " So BABS won't check if there is"
                         " any alerting message in log files.")
-                    config_keywords_alert = None   # not useful anymore, set to None then.
-            else:  # nothing under "keywords_alert":
+                    config_msg_alert = None   # not useful anymore, set to None then.
+            else:  # nothing under "alert_log_messages":
                 warnings.warn(
-                    "Section 'keywords_alert' is provided in `container_config_yaml_file`, but"
-                    " neither 'o_file' nor 'e_file' is included in this section."
+                    "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
+                    " neither 'stdout' nor 'stderr' is included in this section."
                     " So BABS won't check if there is"
                     " any alerting message in log files.")
-                # `config_keywords_alert` is already `None`, no need to set to None
+                # `config_msg_alert` is already `None`, no need to set to None
         else:
-            config_keywords_alert = None
+            config_msg_alert = None
             warnings.warn(
-                "There is no section called 'keywords_alert' in the provided"
+                "There is no section called 'alert_log_messages' in the provided"
                 " `container_config_yaml_file`. So BABS won't check if there is"
                 " any alerting message in log files.")
     else:
-        config_keywords_alert = None
+        config_msg_alert = None
 
-    return config_keywords_alert
+    return config_msg_alert
 
-def get_alert_message_in_log_files(config_keywords_alert, log_fn):
+def get_alert_message_in_log_files(config_msg_alert, log_fn):
     """
     This is to get any alert message in log files of a job.
 
     Parameters:
     -----------------
-    config_keywords_alert: dict or None
-        section 'keywords_alert' in container config yaml file
-        that includes what alert keywords to look for in log files.
+    config_msg_alert: dict or None
+        section 'alert_log_messages' in container config yaml file
+        that includes what alert messages to look for in log files.
     log_fn: str
         Absolute path to a job's log files. It should have `*` to be replaced with `o` or `e`
         Example: /path/to/analysis/logs/toy_sub-0000.*11111
@@ -1815,12 +1815,12 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     Returns:
     ----------------
     alert_message: str or np.nan
-        If config_keywords_alert is None, or log file does not exist yet,
+        If config_msg_alert is None, or log file does not exist yet,
             `alert_message` will be `np.nan`;
         if not None, `alert_message` will be a str.
             Examples:
             - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
-            - if found: ".o file: <keyword>"
+            - if found: "stdout file: <message>"
     if_no_alert_in_log: bool
         There is no alert message in the log files.
         When `alert_message` is `msg_no_alert`,
@@ -1829,9 +1829,9 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
 
     Notes:
     -----------------
-    An edge case (not a bug): On cubic cluster, some info will be printed to '.e'
-    before '.o' have any printed messages. So 'alert_message' column may say 'BABS: No alert'
-    but 'last_line_o_file' is still 'NaN'
+    An edge case (not a bug): On cubic cluster, some info will be printed to 'stderr' file
+    before 'stdout' file have any printed messages. So 'alert_message' column may say 'BABS: No alert'
+    but 'last_line_stdout_file' is still 'NaN'
     """
 
     from .constants import MSG_NO_ALERT_IN_LOGS
@@ -1839,7 +1839,7 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
     if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
 
-    if config_keywords_alert is None:
+    if config_msg_alert is None:
         alert_message = np.nan
         if_valid_alert_msg = False
     else:
@@ -1847,12 +1847,12 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
         e_fn = log_fn.replace("*", 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):   # either exists:
-            found_keyword = False
+            found_message = False
             alert_message = msg_no_alert
 
-            for key in config_keywords_alert:  # as it's dict, keys cannot be duplicated
-                if key == "o_file" or "e_file":
-                    one_char = key[0]   # 'o' or 'e'
+            for key in config_msg_alert:  # as it's dict, keys cannot be duplicated
+                if key == "stdout" or "stderr":
+                    one_char = key[3]   # 'o' or 'e'
                     # the log file to look into:
                     fn = log_fn.replace("*", one_char)
 
@@ -1860,20 +1860,20 @@ def get_alert_message_in_log_files(config_keywords_alert, log_fn):
                         with open(fn) as f:
                             # Loop across lines, from the beginning of the file:
                             for line in f:
-                                # Loop across the keywords for this kind of log file:
-                                for keyword in config_keywords_alert[key]:
-                                    if keyword in line:   # found:
-                                        found_keyword = True
-                                        alert_message = "." + one_char + " file: " + keyword
-                                        # e.g., '.o file: <keyword>'
-                                        break  # no need to search next keyword
+                                # Loop across the messages for this kind of log file:
+                                for message in config_msg_alert[key]:
+                                    if message in line:   # found:
+                                        found_message = True
+                                        alert_message = key + " file: " + message
+                                        # e.g., 'stdout file: <message>'
+                                        break  # no need to search next message
 
-                                if found_keyword:
+                                if found_message:
                                     break    # no need to go to next line
                     # if the log file does not exist, probably due to pending
                     #   not to do anything
 
-                if found_keyword:
+                if found_message:
                     break   # no need to go to next log file
 
         else:    # neither o_fn nor e_fn exists yet:
