@@ -17,7 +17,7 @@ __location__ = op.dirname(op.abspath(__file__))   # the path to the directory of
 
 # containers:
 LIST_WHICH_BIDSAPP = ["toybidsapp", "fmriprep", "qsiprep"]
-TOYBIDSAPP_VERSION = "0.0.6"   # +++++++++++++++++++++++
+TOYBIDSAPP_VERSION = "0.0.7"   # +++++++++++++++++++++++
 TOYBIDSAPP_VERSION_DASH = TOYBIDSAPP_VERSION.replace(".", "-")
 FN_TOYBIDSAPP_SIF_CIRCLECI = op.join("/singularity_images",
                                      "toybidsapp_" + TOYBIDSAPP_VERSION + ".sif")
@@ -180,7 +180,7 @@ def container_ds_path(where_now, tmp_path_factory):
             # datalad containers-add --url ${fn_sif} toybidsapp-${version_tag_dash}
             # API help: in python env: `help(dlapi.containers_add)`
             container_ds_handle.containers_add(
-                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-6"
+                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
                 url=fn_toybidsapp_sif)
             # # can remove the original sif file now:
             # os.remove(fn_toybidsapp_sif)
@@ -188,8 +188,8 @@ def container_ds_path(where_now, tmp_path_factory):
             # datalad containers-add --url dhub://pennlinc/toy_bids_app:${version_tag} \
             #   toybidsapp-${version_tag_dash}
             container_ds_handle.containers_add(
-                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-6"
-                url="dhub://"+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.6"
+                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
+                url="dhub://"+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.7"
             )
 
     return origin_container_ds
