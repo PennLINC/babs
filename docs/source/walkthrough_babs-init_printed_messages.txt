@@ -8,22 +8,22 @@ job scheduling system of this BABS project: sge
 Creating `analysis` folder (also a datalad dataset)...
 [INFO   ] Running procedure cfg_yoda 
 [INFO   ] == Command start (output follows) ===== 
-[INFO   ] == Command exit (modification check follows) =====                                                                                  
-run(ok): /cbica/projects/BABS/babs_demo/my_BABS_project/analysis (dataset) [/cbica/projects/BABS/miniconda3/envs/bab...]                      
+[INFO   ] == Command exit (modification check follows) =====                                                                                        
+run(ok): /cbica/projects/BABS/babs_demo/my_BABS_project/analysis (dataset) [/cbica/projects/BABS/miniconda3/envs/bab...]                       
 create(ok): /cbica/projects/BABS/babs_demo/my_BABS_project/analysis (dataset)
 action summary:
   create (ok: 1)
   run (ok: 1)
-add(ok): .gitignore (file)                                                                                                                    
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): .gitignore (file)                                                                                                                          
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 1)
   save (ok: 1)
 Save configurations of BABS project in a yaml file ...
 Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'
-add(ok): code/babs_proj_config.yaml (file)                                                                                                    
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): code/babs_proj_config.yaml (file)                                                                                                          
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 1)
   save (ok: 1)
 
@@ -52,14 +52,14 @@ action summary:
 
 Registering the input dataset(s)...
 Cloning input dataset #1: 'BIDS'
-[INFO   ] Remote origin uses a protocol not supported by git-annex; setting annex-ignore                                                      
+[INFO   ] Remote origin uses a protocol not supported by git-annex; setting annex-ignore                                                            
 install(ok): inputs/data/BIDS (dataset)
-add(ok): inputs/data/BIDS (dataset)                                                                                                           
-add(ok): .gitmodules (file)                                                                                                                   
-save(ok): . (dataset)                                                                                                                         
-add(ok): .gitmodules (file)                                                                                                                   
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): inputs/data/BIDS (dataset)                                                                                                                 
+add(ok): .gitmodules (file)                                                                                                                         
+save(ok): . (dataset)                                                                                                                               
+add(ok): .gitmodules (file)                                                                                                                         
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 3)
   install (ok: 1)
   save (ok: 2)
@@ -67,20 +67,20 @@ action summary:
 Checking whether each input dataset is a zipped or unzipped dataset...
 input dataset 'BIDS' is considered as an unzipped dataset.
 Performing sanity check for any unzipped input dataset...
-add(ok): code/babs_proj_config.yaml (file)                                                                                                    
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): code/babs_proj_config.yaml (file)                                                                                                          
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 1)
   save (ok: 1)
 
 Adding the container as a sub-dataset of `analysis` dataset...
-install(ok): containers (dataset)                                                                                                             
-add(ok): containers (dataset)                                                                                                                 
-add(ok): .gitmodules (file)                                                                                                                   
-save(ok): . (dataset)                                                                                                                         
-add(ok): .gitmodules (file)                                                                                                                   
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+install(ok): containers (dataset)                                                                                                                   
+add(ok): containers (dataset)                                                                                                                       
+add(ok): .gitmodules (file)                                                                                                                         
+save(ok): . (dataset)                                                                                                                               
+add(ok): .gitmodules (file)                                                                                                                         
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 3)
   install (ok: 1)
   save (ok: 2)
@@ -88,10 +88,11 @@ action summary:
 Generating a bash script for running container and zipping the outputs...
 This bash script will be named as `toybidsapp-0-0-7_zip.sh`
 
-/cbica/projects/BABS/miniconda3/envs/babs/lib/python3.9/site-packages/babs/utils.py:442: UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up. Therefore, BABS will not export it or bind its directory when running the container. This may cause errors.
+/cbica/projects/BABS/miniconda3/envs/babs/lib/python3.9/site-packages/babs/utils.py:440: UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up. Therefore, BABS will not bind its directory or inject this environment variable into the container when running the container. This may cause errors.
   warnings.warn("Usually BIDS App depends on TemplateFlow,"
 Below is the generated `singularity run` command:
-singularity run --cleanenv -B ${PWD} \
+singularity run --cleanenv \
+	-B ${PWD} \
 	containers/.datalad/environments/toybidsapp-0-0-7/image \
 	inputs/data/BIDS \
 	outputs \
@@ -100,19 +101,19 @@ singularity run --cleanenv -B ${PWD} \
 	--dummy 2 \
 	-v \
 	--participant-label "${subid}"
-add(ok): code/toybidsapp-0-0-7_zip.sh (file)                                                                                                  
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): code/toybidsapp-0-0-7_zip.sh (file)                                                                                                        
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 1)
   save (ok: 1)
 
 Generating a bash script for running jobs at participant (or session) level...
 This bash script will be named as `participant_job.sh`
-add(ok): code/check_setup/call_test_job.sh (file)                                                                                             
-add(ok): code/check_setup/test_job.py (file)                                                                                                  
-add(ok): code/participant_job.sh (file)                                                                                                       
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): code/check_setup/call_test_job.sh (file)                                                                                                   
+add(ok): code/check_setup/test_job.py (file)                                                                                                        
+add(ok): code/participant_job.sh (file)                                                                                                             
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 3)
   save (ok: 1)
 
@@ -120,33 +121,33 @@ Determining the list of subjects (and sessions) to analyze...
 Did not provide `list_sub_file`. Will look into the first input dataset to get the initial inclusion list.
 Did not provide `required files` in `container_config_yaml_file`. Not to filter subjects (or sessions)...
 The final list of included subjects and sessions has been saved to this CSV file: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/code/sub_ses_final_inclu.csv
-add(ok): code/sub_ses_final_inclu.csv (file)                                                                                                  
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): code/sub_ses_final_inclu.csv (file)                                                                                                        
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 1)
   save (ok: 1)
 
 Generating a template for job submission calls...
 The template text file will be named as `submit_job_template.yaml`.
-add(ok): code/check_setup/submit_test_job_template.yaml (file)                                                                                
-add(ok): code/submit_job_template.yaml (file)                                                                                                 
-save(ok): . (dataset)                                                                                                                         
-action summary:                                                                                                                               
+add(ok): code/check_setup/submit_test_job_template.yaml (file)                                                                                      
+add(ok): code/submit_job_template.yaml (file)                                                                                                       
+save(ok): . (dataset)                                                                                                                               
+action summary:                                                                                                                                     
   add (ok: 2)
   save (ok: 1)
-                                                                                                                                              
+                                                                                                                                                    
 Final steps...
 DataLad dropping input dataset's contents...
 action summary:
   drop (notneeded: 2)
 Updating input and output RIA...
-publish(ok): . (dataset) [refs/heads/master->input:refs/heads/master [new branch]]                                                            
-publish(ok): . (dataset) [refs/heads/git-annex->input:refs/heads/git-annex [new branch]]                                                      
-action summary:                                                                                                                               
+publish(ok): . (dataset) [refs/heads/master->input:refs/heads/master [new branch]]                                                                  
+publish(ok): . (dataset) [refs/heads/git-annex->input:refs/heads/git-annex [new branch]]                                                            
+action summary:                                                                                                                                     
   publish (ok: 2)
-publish(ok): . (dataset) [refs/heads/master->output:refs/heads/master [new branch]]                                                           
-publish(ok): . (dataset) [refs/heads/git-annex->output:refs/heads/git-annex [new branch]]                                                     
-                                                                                                                                             action summary:                                                                                                                                
+publish(ok): . (dataset) [refs/heads/master->output:refs/heads/master [new branch]]                                                                 
+publish(ok): . (dataset) [refs/heads/git-annex->output:refs/heads/git-annex [new branch]]                                                           
+                                                                                                                                                   action summary:                                                                                                                                      
   publish (ok: 2)
 Adding an alias 'data' to output RIA store...
 

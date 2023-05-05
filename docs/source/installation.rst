@@ -84,6 +84,9 @@ To install BABS from `PyPI <https://pypi.org/project/babs/>`_::
 
     pip install babs
 
+If you have already installed BABS but now hope to upgrade it::
+
+    pip install --upgrade babs
 
 Way 2: Install from GitHub
 -----------------------------
@@ -113,3 +116,13 @@ you may update the installation with::
 
 If you are a developer and you'd like to run ``pytest`` locally, please install BABS in the following way
 so that necessary packages for pytest will also be installed: ``pip install -e .[tests]``.
+
+Step 4. (Optional) Check BABS version
+======================================
+
+You can use command below to check the BABS version you installed::
+
+    pip show babs
+
+.. developer's note: above command works for both installation ways:
+..  install from pypi and install from github

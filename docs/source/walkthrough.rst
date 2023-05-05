@@ -4,6 +4,13 @@ Example walkthrough
 
 .. contents:: Table of Contents
 
+.. developer's note:
+.. This walkthru is prepared: 
+..  at: '/cbica/projects/BABS/babs_demo_prep'
+..  using conda env 'babs_demo'
+.. TODO before copying anything to this doc:
+..  1. replace 'babs_demo_prep' with 'babs_demo'
+
 In this example walkthrough, we will use toy BIDS data and toy BIDS App
 to demonstrate how to use BABS.
 
@@ -32,6 +39,16 @@ You don't need to get the exact versions as below, but please check if yours are
     datalad_container 1.1.9
     $ datalad osf-credentials --version
     datalad_osf 0.2.3.1
+
+We used ``BABS version 0.0.3`` for preparing this example walkthrough.
+You can check your BABS's version via command below:
+
+..  code-block:: console
+
+    $ pip show babs
+    Name: babs
+    Version: 0.0.3
+    ...
 
 Let's create a folder called ``babs_demo`` in root directory
 as the working directory in this example walkthrough:
@@ -213,7 +230,7 @@ Below is an example YAML file for toy BIDS App:
 
 As you can see, there are several sections in this YAML file.
 
-Here, in section ``babs_singularity_run``,
+Here, in section ``singularity_run``,
 both ``--dummy`` and ``-v`` are dummy arguments to this toy BIDS Apps:
 argument ``--dummy`` can take any value afterwards, whereas argument ``-v`` does not take values.
 Here we use these arguments to show examples of:
@@ -221,6 +238,10 @@ Here we use these arguments to show examples of:
 * how to add values after arguments: e.g., ``--dummy: "2"``;
 * how to add arguments without values: e.g., ``--no-zipped: ""`` and ``-v: ""``;
 * and it's totally fine to mix flags with prefix of ``--`` and ``-``.
+
+Section ``zip_foldernames`` tells BABS to zip the output folder named ``toybidsapp``
+as a zip file as ``${sub-id}_${ses-id}_toybidsapp-0-0-7.zip`` for each subject's each session,
+where ``${sub-id}`` is a subject ID, ``${ses-id}`` is a session ID.
 
 You can copy above content and save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
 
@@ -251,10 +272,10 @@ Before moving forward, there are several lines (highlighted above) requires cust
     * You might need to change the highlighted line #19 of ``source`` command
       for how to activate the conda environment ``babs``;
 
-        * In addition, if you wants to use a conda environment that has different name than ``babs``,
-          please replace ``babs`` with the name you're using.
+        * In addition, if you want to use a conda environment that has different name than ``babs``,
+          please replace ``babs`` with that name.
 
-    * You might need to add another line to ``module_load`` any necessary modules,
+    * You might need to add another line to ``module load`` any necessary modules,
       such as ``singularity``.
       This section will looks like this after you add it:
 
@@ -262,7 +283,7 @@ Before moving forward, there are several lines (highlighted above) requires cust
 
             script_preamble: |
                 source ${CONDA_PREFIX}/bin/activate babs
-                module_load xxxx
+                module load xxxx
     
     * For more, please see: :ref:`script-preamble`.
 
@@ -273,6 +294,9 @@ Before moving forward, there are several lines (highlighted above) requires cust
       Here ``"${CBICA_TMPDIR}"`` is for Penn Medicine CUBIC cluster only.
     * For more, please see: :ref:`job-compute-space`.
 
+.. developer's note:
+..  before proceeding, make sure you changed the env name in `script_preamble` in YAML file
+..  to `babs_demo`!
 
 By now, we have prepared these in the ``~/babs_demo`` folder:
 
@@ -334,14 +358,19 @@ If ``babs-init`` succeeded, you should see this message at the end:
     .. literalinclude:: walkthrough_babs-init_printed_messages.txt
        :language: console
 .. developer's note: cannot change the `language` to `bash` here...
-.. developer's note: check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
+.. TODO before copying:
+..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
+..  2. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
+..  3. annoying but not useful warning from git-annex 
+.. TODO after copying:
+..  1. check the tracked changes!
 
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
     You may receive this warning from ``babs-init`` if you did not set up environment variable ``$TEMPLATEFLOW_HOME``::
 
         UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up.
-        Therefore, BABS will not export it or bind its directory when running the container. This may cause errors.
+        Therefore, BABS will not bind its directory or inject this environment variable into the container when running the container. This may cause errors.
 
     This is totally fine to toy BIDS App, and it won't use TemplateFlow.
     However, a lot of BIDS Apps would use it. Make sure you set it up when you use those BIDS Apps.
@@ -351,7 +380,8 @@ It's very important to check if the generated ``singularity run`` command is wha
 
 ..  code-block:: console
 
-    singularity run --cleanenv -B ${PWD} \
+    singularity run --cleanenv \
+        -B ${PWD} \
         containers/.datalad/environments/toybidsapp-0-0-7/image \
         inputs/data/BIDS \
         outputs \
@@ -364,6 +394,8 @@ It's very important to check if the generated ``singularity run`` command is wha
 
 As you can see, BABS has automatically handled the positional arguments of BIDS App (i.e., input directory,
 output directory, and analysis level - 'participant'). ``--participant-label`` is also covered by BABS, too.
+
+.. developer's note: below is generated based on `tree -L 3 .`
 
 .. dropdown:: What's inside the created BABS project ``my_BABS_project``?
 
@@ -445,6 +477,14 @@ especially the version numbers:
     .. literalinclude:: walkthrough_babs-check-setup_printed_messages.txt
        :language: console
 
+.. developer's note:
+.. TODO before copying:
+..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
+..  2. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
+..  3. annoying but not useful warning from git-annex 
+.. TODO after copying:
+..  1. check the tracked changes!
+
 Now it's ready for job submissions.
 
 Step 3. Submit jobs and check job status
@@ -487,28 +527,44 @@ You'll see something like this (the job ID will probably be different):
 
 ..  code-block:: console
 
-    Job for sub-01, ses-A has been submitted (job ID: 4475292).
+    Job for sub-01, ses-A has been submitted (job ID: 4639278).
     sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done  is_failed   
-    0  sub-01  ses-A           True  4475292                 NaN             NaN       NaN    False        NaN  \
+    0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN    False        NaN  \
     1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN   
     2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN   
     3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False        NaN   
     4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN   
     5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN   
 
-                    log_filename  last_line_o_file  alert_message  job_account  
-    0  toy_sub-01_ses-A.*4475292               NaN            NaN          NaN  
-    1                        NaN               NaN            NaN          NaN  
-    2                        NaN               NaN            NaN          NaN  
-    3                        NaN               NaN            NaN          NaN  
-    4                        NaN               NaN            NaN          NaN  
-    5                        NaN               NaN            NaN          NaN  
+                    log_filename  last_line_stdout_file  alert_message  job_account  
+    0  toy_sub-01_ses-A.*4639278                    NaN            NaN          NaN  
+    1                        NaN                    NaN            NaN          NaN  
+    2                        NaN                    NaN            NaN          NaN  
+    3                        NaN                    NaN            NaN          NaN  
+    4                        NaN                    NaN            NaN          NaN  
+    5                        NaN                    NaN            NaN          NaN 
 
 We can check the job status via ``babs-status``:
 
 ..  code-block:: console
 
     $ babs-status --project-root $PWD
+
+..
+   when pending::
+
+        Did not request resubmit based on job states (no `--resubmit`).
+
+        Job status:
+        There are in total of 6 jobs to complete.
+        1 job(s) have been submitted; 5 job(s) haven't been submitted.
+        Among submitted jobs,
+        0 job(s) are successfully finished;
+        1 job(s) are pending;
+        0 job(s) are running;
+        0 job(s) are failed.
+
+        All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
 
 If it's successfully finished, you'll see:
 
@@ -533,6 +589,30 @@ Now, we can submit all other jobs by specifying ``--all``:
 .. code-block:: console
 
     $ babs-submit --project-root $PWD --all
+
+.. 
+    printed messages you'll see:
+
+    Job for sub-01, ses-B has been submitted (job ID: 4648997).
+    Job for sub-01, ses-C has been submitted (job ID: 4649000).
+    Job for sub-02, ses-A has been submitted (job ID: 4649003).
+    Job for sub-02, ses-B has been submitted (job ID: 4649006).
+    Job for sub-02, ses-D has been submitted (job ID: 4649009).
+    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed   
+    0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN     True     False  \
+    1  sub-01  ses-B           True  4648997                 NaN             NaN       NaN    False       NaN   
+    2  sub-01  ses-C           True  4649000                 NaN             NaN       NaN    False       NaN   
+    3  sub-02  ses-A           True  4649003                 NaN             NaN       NaN    False       NaN   
+    4  sub-02  ses-B           True  4649006                 NaN             NaN       NaN    False       NaN   
+    5  sub-02  ses-D           True  4649009                 NaN             NaN       NaN    False       NaN   
+
+                    log_filename last_line_stdout_file  alert_message  job_account  
+    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN          NaN  
+    1  toy_sub-01_ses-B.*4648997                   NaN            NaN          NaN  
+    2  toy_sub-01_ses-C.*4649000                   NaN            NaN          NaN  
+    3  toy_sub-02_ses-A.*4649003                   NaN            NaN          NaN  
+    4  toy_sub-02_ses-B.*4649006                   NaN            NaN          NaN  
+    5  toy_sub-02_ses-D.*4649009                   NaN            NaN          NaN 
 
 You can again call ``babs-status --project-root $PWD`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
@@ -572,6 +652,10 @@ If all jobs are successfully completed, you'll see:
 
     All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
 
+.. developer's note:
+.. TODO before copying:
+..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
+
 Step 4. After jobs are finished
 ===================================
 
@@ -600,6 +684,12 @@ If it was successful, you'll see this message at the end:
     .. literalinclude:: walkthrough_babs-merge_printed_messages.txt
        :language: console
 
+.. developer's note:
+.. TODO before copying:
+..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
+..  2. annoying but not useful warning from git-annex 
+.. TODO after copying:
+..  1. check the tracked changes!
 
 Now we're ready to consume the results.
 
@@ -613,7 +703,7 @@ outside the original BABS project:
 
 ..  code-block:: console
 
-    $ cd ~/babs_demo    # outside of `my_BABS_project`
+    $ cd ..   # Now, you should be in folder `babs_demo`, where `my_BABS_project` locates
     $ datalad clone \
         ria+file://${PWD}/my_BABS_project/output_ria#~data \
         my_BABS_project_outputs
@@ -622,7 +712,7 @@ You'll see:
 
 ..  code-block:: console
 
-    [INFO   ] Configure additional publication dependency on "output-storage"                                                                     
+    [INFO   ] Configure additional publication dependency on "output-storage"                                                                           
     configure-sibling(ok): . (sibling)
     install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project_outputs (dataset)
     action summary:
