@@ -9,6 +9,10 @@ After you've prepared the three things BABS requires (details see here: :doc:`pr
 now you can initialize a BABS project using ``babs-init``. Please follow documentation :doc:`babs-init`
 for how to use ``babs-init``.
 
+If the BIDS App you'll use depend on Templateflow, please make sure you've set up
+environment variable ``TEMPLATEFLOW_HOME`` before running ``babs-init``. See
+:ref:`advanced_manual_singularity_run` --> the bullet point regarding "Templateflow" for more.
+
 If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project.
 What you need to do is to read the error messages and fix the problem (e.g., any problem
 in ``babs-init`` command call, in your input dataset(s), in your container DataLad dataset,

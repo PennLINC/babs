@@ -73,7 +73,7 @@ def babs_init_cli():
         + " to make sure the bootstrap scripts are set up correctly;"
         + " Also, the version number should be added, too."
         + " ``babs-init`` is not case sensitive to this ``--container_name``."
-        + " Example: ``toybidsapp-0-0-6`` for toy BIDS App version 0.0.6.",
+        + " Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.",
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True)
     parser.add_argument(
@@ -486,7 +486,7 @@ def babs_status_cli():
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container. It may include 'keywords_alert' section"
+        " of how to run the BIDS App container. It may include 'alert_log_messages' section"
         " to be used by babs-status.")
     parser.add_argument(
         '--job_account', '--job-account',
@@ -528,7 +528,7 @@ def babs_status_main():
     container_config_yaml_file: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
-        It may include 'keywords_alert' section
+        It may include 'alert_log_messages' section
         to be used by babs-status.
     job_account: bool
         Whether to account failed jobs (e.g., using `qacct` for SGE),

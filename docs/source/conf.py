@@ -24,7 +24,7 @@ from os.path import (
 )
 from os import pardir
 
-sys.path.append("../../")
+sys.path.append("../..")
 import babs
 
 # If extensions (or modules to document with autodoc) are in another directory,

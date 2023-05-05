@@ -1,12 +1,12 @@
 # Below is example config yaml file for fMRIPrep ingressed freesurfer:
 
 
-babs_singularity_run:
+singularity_run:
     $INPUT_PATH: inputs/data/BIDS   # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: '1'
     --stop-on-first-crash: ""
-    --fs-license-file: "$FREESURFER_LICENSE"  # placeholder
+    --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # path to FS license file
     --skip-bids-validation: ""
     --output-spaces: MNI152NLin6Asym:res-2
     --force-bbr: ""
@@ -15,8 +15,9 @@ babs_singularity_run:
     --fs-subjects-dir: inputs/data/freesurfer/freesurfer
     --sloppy: ''      # ADD THIS WHEN TEST RUN!
 
-babs_zip_foldername:   # the foldername(s) to get zipped and the version string(s)
-    fmriprep: "20-2-3"     # should be the same as in `babs-init`'s argument `container_name`; better using "-" instead of "."
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    fmriprep: "20-2-3"     # folder 'fmriprep' will be zipped into 'sub-xx_ses-yy_fmriprep-20-2-3.zip'
 
 cluster_resources:
     interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
@@ -25,12 +26,16 @@ cluster_resources:
     temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic
     customized_text: |
         #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`
 #   the commands should not be quoted!
 script_preamble: |
     source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+    echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 # Where to run the jobs:
 job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space

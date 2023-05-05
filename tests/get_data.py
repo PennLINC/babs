@@ -17,7 +17,7 @@ __location__ = op.dirname(op.abspath(__file__))   # the path to the directory of
 
 # containers:
 LIST_WHICH_BIDSAPP = ["toybidsapp", "fmriprep", "qsiprep"]
-TOYBIDSAPP_VERSION = "0.0.6"   # +++++++++++++++++++++++
+TOYBIDSAPP_VERSION = "0.0.7"   # +++++++++++++++++++++++
 TOYBIDSAPP_VERSION_DASH = TOYBIDSAPP_VERSION.replace(".", "-")
 FN_TOYBIDSAPP_SIF_CIRCLECI = op.join("/singularity_images",
                                      "toybidsapp_" + TOYBIDSAPP_VERSION + ".sif")
@@ -180,7 +180,7 @@ def container_ds_path(where_now, tmp_path_factory):
             # datalad containers-add --url ${fn_sif} toybidsapp-${version_tag_dash}
             # API help: in python env: `help(dlapi.containers_add)`
             container_ds_handle.containers_add(
-                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-6"
+                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
                 url=fn_toybidsapp_sif)
             # # can remove the original sif file now:
             # os.remove(fn_toybidsapp_sif)
@@ -188,37 +188,11 @@ def container_ds_path(where_now, tmp_path_factory):
             # datalad containers-add --url dhub://pennlinc/toy_bids_app:${version_tag} \
             #   toybidsapp-${version_tag_dash}
             container_ds_handle.containers_add(
-                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-6"
-                url="dhub://"+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.6"
+                name=which_bidsapp+"-"+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
+                url="dhub://"+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.7"
             )
 
     return origin_container_ds
-
-def mk_freesurfer_home(tmp_path):
-    """
-    Create a temporary directory for `FREESURFER_HOME` environment variable,
-    and create a FreeSurfer license (fake one) in it.
-
-    Parameters:
-    ---------------
-    tmp_path: fixture
-
-    Returns:
-    -----------
-    freesurfer_home: str
-        path to freesurfer home
-    """
-    freesurfer_home = tmp_path.absolute().as_posix()   # turn into a string
-    # create a fake license file:
-    fn_license = op.join(freesurfer_home, "license.txt")
-    f = open(fn_license, "w")
-    f.write("This is a fake freesurfer license. For testing purpose only.")
-    f.close()
-
-    # export env variable:
-    os.environ["FREESURFER_HOME"] = freesurfer_home
-
-    return freesurfer_home
 
 
 def if_command_installed(cmd):

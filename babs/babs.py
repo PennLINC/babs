@@ -24,7 +24,7 @@ from datalad_container.find_container import find_container_
 from babs.utils import (get_immediate_subdirectories,
                         check_validity_unzipped_input_dataset,
                         if_input_ds_from_osf,
-                        generate_cmd_envvar,
+                        generate_cmd_set_envvar,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
                         generate_cmd_zipping_from_config,
@@ -47,7 +47,7 @@ from babs.utils import (get_immediate_subdirectories,
                         request_all_job_status,
                         calcu_runtime,
                         get_last_line,
-                        get_config_keywords_alert,
+                        get_config_msg_alert,
                         get_alert_message_in_log_files,
                         get_username,
                         check_job_account,
@@ -943,7 +943,7 @@ class BABS():
                         flag_success_test_job = False
                         to_print += "Test job was not successfully finished"
                         to_print += " and is currently out of queue."
-                        to_print += " Last line of *.o* log file: '" + last_line + "'."
+                        to_print += " Last line of stdout log file: '" + last_line + "'."
                         to_print += " Path to the log file: " + log_fn
                 print(to_print)
 
@@ -1169,7 +1169,7 @@ class BABS():
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
-            It may include 'keywords_alert' section
+            It may include 'alert_log_messages' section
             to be used by babs-status.
         job_account: bool
             Whether to account failed jobs (e.g., using `qacct` for SGE),
@@ -1185,8 +1185,8 @@ class BABS():
         lock = FileLock(lock_path)
 
         # Prepare for checking alert messages in log files:
-        #   get the keywords of alert messages:
-        config_keywords_alert = get_config_keywords_alert(container_config_yaml_file)
+        #   get the pre-defined alert messages:
+        config_msg_alert = get_config_msg_alert(container_config_yaml_file)
 
         # Get username, if `--job-account` is requested:
         username_lowercase = get_username()
@@ -1249,17 +1249,17 @@ class BABS():
                             # print("debugging purpose: request to resubmit job: " + sub + ", " + ses)
                             # ^^ only for multi-ses!
 
-                    # Update the "last_line_o_file":
-                    df_job_updated.at[i_job, "last_line_o_file"] = \
+                    # Update the "last_line_stdout_file":
+                    df_job_updated.at[i_job, "last_line_stdout_file"] = \
                         get_last_line(o_fn)
 
-                    # Check if any alert keywords in log files for this job:
+                    # Check if any alert message in log files for this job:
                     # NOTE: in theory can skip failed jobs in previous round,
                     #       but making assigning variables hard; so not to skip
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
                     alert_message_in_log_files, if_no_alert_in_log = \
-                        get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                    # ^^ the function will handle even if `config_keywords_alert=None`
+                        get_alert_message_in_log_files(config_msg_alert, log_fn)
+                    # ^^ the function will handle even if `config_msg_alert=None`
                     df_job_updated.at[i_job, "alert_message"] = \
                         alert_message_in_log_files
 
@@ -1329,7 +1329,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
 
@@ -1372,7 +1372,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
 
@@ -1410,7 +1410,7 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = np.nan
                                     df_job_updated.at[i_job, "duration"] = np.nan
                                     df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                     df_job_updated.at[i_job, "alert_message"] = np.nan
                                     df_job_updated.at[i_job, "job_account"] = np.nan
                                 else:   # not to resubmit:
@@ -1455,7 +1455,7 @@ class BABS():
                                 df_job_updated.at[i_job, "job_id"] = job_id_updated
                                 df_job_updated.at[i_job, "log_filename"] = log_filename
                                 df_job_updated.at[i_job, "is_failed"] = np.nan
-                                df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                                df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                                 df_job_updated.at[i_job, "alert_message"] = np.nan
                                 df_job_updated.at[i_job, "job_account"] = np.nan
                                 # reset of `job_state_*` have been done - see above
@@ -1551,20 +1551,20 @@ class BABS():
                         df_job_updated.at[i_job, "duration"] = np.nan
                         df_job_updated.at[i_job, "is_done"] = False
                         df_job_updated.at[i_job, "is_failed"] = np.nan
-                        df_job_updated.at[i_job, "last_line_o_file"] = np.nan
+                        df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
                         df_job_updated.at[i_job, "alert_message"] = np.nan
                         df_job_updated.at[i_job, "job_account"] = np.nan
 
                     else:    # did not request resubmit, or `--reckless` is None:
                         # just perform normal stuff for a successful job:
-                        # Update the "last_line_o_file":
-                        df_job_updated.at[i_job, "last_line_o_file"] = \
+                        # Update the "last_line_stdout_file":
+                        df_job_updated.at[i_job, "last_line_stdout_file"] = \
                             get_last_line(o_fn)
-                        # Check if any alert keywords in log files for this job:
+                        # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
                         alert_message_in_log_files, if_no_alert_in_log = \
-                            get_alert_message_in_log_files(config_keywords_alert, log_fn)
-                        # ^^ the function will handle even if `config_keywords_alert=None`
+                            get_alert_message_in_log_files(config_msg_alert, log_fn)
+                        # ^^ the function will handle even if `config_msg_alert=None`
                         df_job_updated.at[i_job, "alert_message"] = \
                             alert_message_in_log_files
                 # Done: 'is_done' jobs.
@@ -1601,7 +1601,7 @@ class BABS():
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
 
                 # Report the job status:
-                report_job_status(df_job_updated, self.analysis_path, config_keywords_alert)
+                report_job_status(df_job_updated, self.analysis_path, config_msg_alert)
 
         except Timeout:   # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
@@ -2321,6 +2321,7 @@ class Container():
         When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
         meaning, starting with space, a backward slash, a return, and a tab.
         """
+        from .constants import PATH_FS_LICENSE_IN_CONTAINER
 
         type_session = validate_type_session(type_session)
         output_foldername = "outputs"    # folername of BIDS App outputs
@@ -2331,22 +2332,23 @@ class Container():
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
-        if "babs_singularity_run" not in self.config:
+        if "singularity_run" not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, \
-                "Section 'babs_singularity_run' is missing in the provided" \
+                "Section 'singularity_run' is missing in the provided" \
                 + " `container_config_yaml_file`. As there are more than one" \
                 + " input dataset, you must include this section to specify" \
                 + " to which argument that each input dataset will go."
             # if there is only one input ds, fine:
-            print("Section 'babs_singularity_run' was not included "
+            print("Section 'singularity_run' was not included "
                   "in the `container_config_yaml_file`. ")
             cmd_singularity_flags = ""   # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
-            # as "--fs-license-file" or "$FREESURFER_LICENSE" is not provided:
-            flag_fs_license = None
+            # as "--fs-license-file" was not one of the value in `singularity_run` section:
+            flag_fs_license = False
+            path_fs_license = None
             # copied from `generate_cmd_singularityRun_from_config`:
             singuRun_input_dir = input_ds.df["path_data_rel"][0]
         else:
@@ -2354,7 +2356,7 @@ class Container():
             # # contain \ for each key-value
 
             # read config from the yaml file:
-            cmd_singularity_flags, flag_fs_license, singuRun_input_dir = \
+            cmd_singularity_flags, flag_fs_license, path_fs_license, singuRun_input_dir = \
                 generate_cmd_singularityRun_from_config(self.config, input_ds)
 
         print()
@@ -2410,20 +2412,38 @@ class Container():
         # Other necessary commands for preparation:
         bash_file.write("\n")
 
-        # Export environment variable:
-        cmd_envvar, templateflow_home, singularityenv_templateflow_home = generate_cmd_envvar(
-            self.config, self.container_name)
-        bash_file.write(cmd_envvar)
+        # Environment variables in container:
+        # get environment variables to be injected into container and whose value to be bound:
+        cmd_env_templateflow, templateflow_home, templateflow_in_container = \
+            generate_cmd_set_envvar("TEMPLATEFLOW_HOME")
 
         # Write the head of the command `singularity run`:
         bash_file.write("mkdir -p ${PWD}/.git/tmp/wkdir\n")
-        cmd_head_singularityRun = "singularity run --cleanenv -B ${PWD}"
+        cmd_head_singularityRun = "singularity run --cleanenv"
+        # binding:
+        cmd_head_singularityRun += " \\" + "\n\t" + "-B ${PWD}"
 
-        # check if `templateflow_home` needs to be bind:
+        # check if `templateflow_home` needs to be bound:
         if templateflow_home is not None:
-            cmd_head_singularityRun += "," + templateflow_home + ":"
-            cmd_head_singularityRun += singularityenv_templateflow_home
+            # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
+            # for multiple bindings: multiple `-B` or separate path with comma (too long)
+            cmd_head_singularityRun += " \\" + "\n\t" + "-B "
+            cmd_head_singularityRun += templateflow_home + ":"
+            cmd_head_singularityRun += templateflow_in_container
             # ^^ bind to dir in container
+
+        # check if `freesurfer_home` needs to be bound:
+        if flag_fs_license is True:
+            # add `-B /path/to/license.txt:/SGLR/FREESURFER_HOME/license.txt`:
+            cmd_head_singularityRun += " \\" + "\n\t" + "-B "
+            cmd_head_singularityRun += path_fs_license + ":"
+            cmd_head_singularityRun += PATH_FS_LICENSE_IN_CONTAINER
+
+        # inject env variable into container:
+        if templateflow_home is not None:
+            # add `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`:
+            cmd_head_singularityRun += " \\" + "\n\t"
+            cmd_head_singularityRun += cmd_env_templateflow
 
         cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += self.container_path_relToAnalysis
@@ -2433,9 +2453,6 @@ class Container():
         cmd_head_singularityRun += output_foldername   # output folder
 
         # currently all BIDS App support `participant` positional argu:
-        # if any(ele in self.container_name.lower() for ele in ["xcp"]):
-        #     pass
-        # else:
         cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += "participant"  # at participant-level
 
@@ -2483,30 +2500,6 @@ class Container():
             stdout=subprocess.PIPE
             )
         proc_chmod_bashfile.check_returncode()
-
-        # if needed, copy Freesurfer license:
-        if flag_fs_license is True:
-            # check if `${FREESURFER_HOME}/license.txt` exists: if not, error
-            freesurfer_home = os.getenv('FREESURFER_HOME')  # get env variable
-            if freesurfer_home is None:    # did not set
-                raise Exception(
-                    "FreeSurfer's license will be used"
-                    + " but `$FREESURFER_HOME` was not set."
-                    + " Therefore, BABS cannot copy and paste FreeSurfer's license..."
-                    )
-            fs_license_path_from = op.join(freesurfer_home, "license.txt")
-            if op.exists(fs_license_path_from) is False:
-                raise Exception("There is no `license.txt` file in $FREESURFER_HOME to be copied!")
-
-            fs_license_path_to = op.join(bash_dir, "license.txt")  # `bash_dir` is `analysis/code`
-            proc_copy_fs_license = subprocess.run(
-                # e.g., cp ${FREESURFER_HOME}/license.txt code/license.txt
-                ["cp", fs_license_path_from, fs_license_path_to],
-                stdout=subprocess.PIPE
-            )
-            proc_copy_fs_license.check_returncode()
-
-        # print()
 
     def generate_bash_participant_job(self, bash_path, input_ds, type_session,
                                       system):

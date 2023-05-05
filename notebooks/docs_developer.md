@@ -2,7 +2,7 @@
 ## Logic flow of method `datalad_status()` of class BABS
 
 * create `job_status.csv` if it does not exist yet
-* get 'keywords_alert' configs
+* get 'alert_log_messages' configs
 * get username (to be used by `qacct` job accounting)
 * get list of branches in output RIA with `git branch -a` (NOTE: this is quick, even for tons of branches)
 * with `job_status.csv` file opened:
@@ -11,8 +11,8 @@
     * request `qstat` for **all** jobs: `df_all_job_status`
     * for each job that has been submitted but not `is_done`:
         * get basic information of this job
-        * get last line of `.o` file
-        * check if any alert message in the log files (based on 'keywords_alert')
+        * get last line of `stdout` file
+        * check if any alert message in the log files (based on 'alert_log_messages')
         * if there is a branch of current job in output RIA, the job is done, and update `df_job_updated`
         * if not, the job is pending/running/failed/eqw:
             * if the job is in the queue `df_all_job_status`, i.e., is pending/running/eqw:
@@ -26,14 +26,14 @@
                 * update `df_job_updated`
                 * resubmit if 'failed' in `flags_resubmit`, or request specifically: resubmit and update `df_job_updated`
                 * if did not resubmit:
-                    * if `--job-account` and no alert keywords in logs:
+                    * if `--job-account` and no alert messages in logs:
                         * do `qacct`, and update 'job_account' column.
 
     * for each job that marked as "is_done" in previous round:
         * if `--resubmit-job` for this job & `--reckless`: resubmit
         * else:
-            * get last line of `.o` file. Purpose: when marked as 'is_done' (got branch in output RIA), the job hasn't been finished yet, and needs to do `datalad drop` etc before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_o_file' for 'is_done' jobs.
-            * check if any alert message in the log files (based on 'keywords_alert'); Purpose: update it for successful jobs too in case user updates the configs in yaml file
+            * get last line of `stdout` file. Purpose: when marked as 'is_done' (got branch in output RIA), the job hasn't been finished yet, and needs to do `datalad drop` etc before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_stdout_file' for 'is_done' jobs.
+            * check if any alert message in the log files (based on 'alert_log_messages'); Purpose: update it for successful jobs too in case user updates the configs in yaml file
 
     * for jobs that haven't been submitted yet:
         * if `--resubmit-job` is requested, check if any requested jobs are not submitted yet; if so, throw out a warning
@@ -42,7 +42,7 @@
     * summarize the job status and report
 
 Summary:
-- 'keywords_alert' is detected in all submitted jobs, no matter 'is_done' in previous round or not
+- 'alert_log_messages' is detected in all submitted jobs, no matter 'is_done' in previous round or not
 
 ## Resubmit based on job's status:
 | job status | what to do if resubmit is requested | progress | tested? |
@@ -58,7 +58,7 @@ Summary:
 # Example `job_status.csv`
 ## When just initialized:
 ```
-sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_o_file,alert_message,job_account
+sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message,job_account
 sub-01,ses-A,False,-1,,,,False,,,,,
 ```
 when `print(df)` by python:
@@ -66,7 +66,7 @@ when `print(df)` by python:
    sub_id ses_id  has_submitted  job_id  job_state_category  job_state_code  \
 0  sub-01  ses-A          False      -1                 NaN             NaN
 
-   duration  is_done  is_failed  log_filename  last_line_o_file  alert_message  job_account
+   duration  is_done  is_failed  log_filename  last_line_stdout_file  alert_message  job_account
 0       NaN    False        NaN           NaN               NaN            NaN          NaN
 ```
 (`0` at the beginning: index of pd.DataFrame)
