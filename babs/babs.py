@@ -1336,8 +1336,13 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
                                     # get the duration:
                                     if "duration" in df_all_job_status:
+                                        # e.g., slurm `squeue` automatically returns the duration,
+                                        #   so no need to calcu again.
                                         duration = df_all_job_status.at[job_id_str, "duration"]
                                     else:
+                                        # This duration time may be slightly longer than actual
+                                        # time, as this is using current time, instead of
+                                        # the time when `qstat`/requesting job queue.
                                         duration = calcu_runtime(
                                             df_all_job_status.at[job_id_str, "JAT_start_time"])
                                     df_job_updated.at[i_job, "duration"] = duration
