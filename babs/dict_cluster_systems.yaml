@@ -15,6 +15,6 @@ slurm:
   interpreting_shell: ""
   hard_memory_limit: "--mem=$VALUE"
   soft_memory_limit: ""
-  temporary_disk_space: ""
+  temporary_disk_space: "--tmp=$VALUE"   # "--tmp=20g" on MSI
   number_of_cpus: "--cpus-per-task=$VALUE"
   hard_runtime_limit: "--time=$VALUE"

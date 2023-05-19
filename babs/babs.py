@@ -883,7 +883,7 @@ class BABS():
                   " in the designated environment"
                   " and will make sure jobs can finish successfully on current cluster.")
 
-            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
+            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.type_system)
             log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
             o_fn = log_fn.replace(".*", ".o")
             # write this information in a YAML file:
@@ -2808,7 +2808,8 @@ class Container():
     def generate_job_submit_template(self, yaml_path, babs, system, test=False):
         """
         This is to generate a YAML file that serves as a template
-        of job submission of one participant (or session) or test job submission.
+        of job submission of one participant (or session),
+        or test job submission in `babs-check-setup`.
 
         Parameters:
         -------------
@@ -2821,6 +2822,7 @@ class Container():
             information on cluster management system
         test: bool
             flag to set to True if generating the test job submit template
+            for `babs-check-setup`.
         """
 
         # Section 1: Command for submitting the job: ---------------------------
@@ -2828,14 +2830,9 @@ class Container():
         if system.type == "sge":
             submit_head = "qsub -cwd"
             env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
-            eo_args = "-e " + babs.analysis_path + "/logs " \
-                + "-o " + babs.analysis_path + "/logs"
         elif system.type == "slurm":
             submit_head = "sbatch"
-            env_flags = "--export=DSLOCKFILE=" + babs.analysis_path + f"/.SLURM_datalad_lock,CBICA_TMPDIR={self.config['job_compute_space']}"
-            job_nm = self.container_name[0:3] + "_" + "${sub_id}"
-            eo_args = "-e " + babs.analysis_path + f"/logs/{job_nm}.e%A " \
-                    + "-o " + babs.analysis_path + f"/logs/{job_nm}.o%A "
+            env_flags = "--export=DSLOCKFILE=" + babs.analysis_path + "/.SLURM_datalad_lock"
         else:
             warnings.warn("not supporting systems other than sge...")
 
@@ -2854,13 +2851,14 @@ class Container():
             pushgitremote = babs.output_ria_data_dir
 
         # Generate the command:
-        # todo: adding to yaml file?
+        # TODO: TBD: adding below to `dict_cluster_systems.yaml` or another YAML file?
         if system.type == "sge":
             name_flag_str = " -N "
         if system.type == "slurm":
             name_flag_str = " --job-name "
 
         # Section 2: Job name: ---------------------------
+        # Job name:
         if test:
             job_name = self.container_name[0:3] + "_" + "test_job"
         else:
@@ -2868,75 +2866,31 @@ class Container():
             if babs.type_session == "multi-ses":
                 job_name += "_${ses_id}"
 
+        # Now, we can define stdout and stderr file names/paths:
+        if system.type == "sge":
+            # sge clusters only need logs folder path; filename is not needed:
+            eo_args = "-e " + babs.analysis_path + "/logs " \
+                + "-o " + babs.analysis_path + "/logs"
+        elif system.type == "slurm":
+            # slurm clusters also need exact filenames:
+            eo_args = "-e " + babs.analysis_path + f"/logs/{job_name}.e%A " \
+                + "-o " + babs.analysis_path + f"/logs/{job_name}.o%A"
 
-        #   several rows in the text file; in between, to insert sub and ses id.
+        # Generate the job submission command, with sub ID and ses ID as placeholders:
         cmd = submit_head + " " + env_flags + name_flag_str + job_name + " " + eo_args + " "
         if test:
             cmd += babs.analysis_path + "/code/check_setup/call_test_job.sh"
-        # if test is False, the type of session will be checked
-        elif babs.type_session == "single-ses":
-            cmd += babs.analysis_path + "/code/participant_job.sh" + " " \
-                + dssource + " " \
-                + pushgitremote + " " + "${sub_id}"
-        elif babs.type_session == "multi-ses":
-            cmd += babs.analysis_path + "/code/participant_job.sh" + " " \
-                + dssource + " " \
-                + pushgitremote + " " + "${sub_id} ${ses_id}"
+        else:
+            # if test is False, the type of session will be checked
+            if babs.type_session == "single-ses":
+                cmd += babs.analysis_path + "/code/participant_job.sh" + " " \
+                    + dssource + " " \
+                    + pushgitremote + " " + "${sub_id}"
+            elif babs.type_session == "multi-ses":
+                cmd += babs.analysis_path + "/code/participant_job.sh" + " " \
+                    + dssource + " " \
+                    + pushgitremote + " " + "${sub_id} ${ses_id}"
 
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
         yaml_file.write("job_name_template: '" + job_name + "'\n")
         yaml_file.close()
-
-    # todo: I merged this function with generate_job_submit_template,
-    #  since it was a lot of repetition
-    # def generate_test_job_submit_template(self, yaml_path, babs, system):
-    #     """
-    #     This is to generate a YAML file that serves as a template
-    #     of *test* job submission, which will be used in `babs-check-setup`.
-    #
-    #     Parameters:
-    #     ------------
-    #     yaml_path: str
-    #         The path to the yaml file to be generated.
-    #         It should be in the `analysis/code/check_setup` folder.
-    #         It has several fields: 1) cmd_template; 2) job_name_template
-    #     babs: class `BABS`
-    #         information about the BABS project
-    #     system: class `System`
-    #         information on cluster management system
-    #     """
-    #
-    #     # Section 1: Command for submitting the job: ---------------------------
-    #     # Flags when submitting the job:
-    #     if system.type == "sge":
-    #         submit_head = "qsub -cwd"
-    #         env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
-    #         eo_args = "-e " + babs.analysis_path + "/logs " \
-    #             + "-o " + babs.analysis_path + "/logs"
-    #     else:
-    #         warnings.warn("not supporting systems other than sge...")
-    #
-    #     # Check if the bash file already exist:
-    #     if op.exists(yaml_path):
-    #         os.remove(yaml_path)  # remove it
-    #
-    #     # Write into the bash file:
-    #     yaml_file = open(yaml_path, "a")   # open in append mode
-    #
-    #     # Generate the command:
-    #     cmd = submit_head + " " + env_flags \
-    #         + " -N " + self.container_name[0:3] + "_" + "test_job"
-    #     cmd += " " \
-    #         + eo_args + " " \
-    #         + babs.analysis_path + "/code/check_setup/call_test_job.sh"
-    #
-    #     yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
-    #
-    #     # TODO: currently only support SGE.
-    #
-    #     # Section 2: Job name: ---------------------------
-    #     job_name = self.container_name[0:3] + "_" + "test_job"
-    #
-    #     yaml_file.write("job_name_template: '" + job_name + "'\n")
-    #
-    #     yaml_file.close()

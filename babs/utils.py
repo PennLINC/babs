@@ -656,8 +656,9 @@ def generate_one_bashhead_resources(system, key, value):
     """
     cmd = "#"
     if system.type == "sge":
-        cmd += "$ "
-    # TODO: add slurm's
+        cmd += "$ "    # e.g., `#$ -l h_vmem=xxx`
+    elif system.type == "slurm":
+        cmd += "SBATCH "   # e.g., `#SBATCH --xxx=yyy`
 
     # find the key in the `system.dict`:
     if key not in system.dict:
@@ -1371,11 +1372,14 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
                               stdout=subprocess.PIPE)
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
-    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+
     if type_system == "sge":
         job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
     elif type_system == "slurm":
         job_id_str = msg.split()[-1]
+        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
+        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
     else:
         raise Exception("type system can be slurm or sge")
     job_id = int(job_id_str)
@@ -1390,7 +1394,7 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
     return job_id, job_id_str, log_filename
 
 
-def submit_one_test_job(analysis_path, flag_print_message=True):
+def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     """
     This is to submit one *test* job.
     This is used by `babs-check-setup`.
@@ -1399,6 +1403,8 @@ def submit_one_test_job(analysis_path, flag_print_message=True):
     ----------------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
+    type_system: str
+        the type of job scheduling system, "sge" or "slurm"
     flag_print_message: bool
         to print a message (True) or not (False)
 
@@ -1437,8 +1443,16 @@ def submit_one_test_job(analysis_path, flag_print_message=True):
 
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
-    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+
+    if type_system == "sge":
+        job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    elif type_system == "slurm":
+        job_id_str = msg.split()[-1]
+        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
+        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
+    else:
+        raise Exception("type system can be slurm or sge")
     job_id = int(job_id_str)
 
     # log filename:
