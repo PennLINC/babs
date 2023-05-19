@@ -2052,28 +2052,80 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
     """
     get information for a finished job in Slurm by calling `sacct`
     """
-    proc_qacct = subprocess.run(
+    msg_no_sacct = "BABS: sacct doesn't provide information about the job."
+    if_no_sacct = False
+    msg_more_than_one = "BABS: sacct detects more than one job for this job ID."
+
+    len_char_jobid = 20
+    len_char_jobname = 50
+
+    proc_sacct = subprocess.run(
         ["sacct", "-u", username_lowercase,
-         "-j", job_id_str],
+         "-j", job_id_str,
+         "--format=JobID%" + str(len_char_jobid)
+         + "JobName%" + str(len_char_jobname) + ",State%30,ExitCode%15"],
+        # ^^ specific format: column names and the number of chars
+        # e.g., '--format=JobID%20,JobName%50,State%30,ExitCode%15'
         stdout=subprocess.PIPE
     )
 
-    proc_qacct.check_returncode()
-    msg_l = proc_qacct.stdout.decode('utf-8').split("\n")
-    msg_head = msg_l[0].split()
+    proc_sacct.check_returncode()
+    # even if the job does not exist, there will still be printed msg from sacct,
+    #   at least a header. So `check_returncode()` should always succeed.
+    msg_l = proc_sacct.stdout.decode('utf-8').split("\n")
+    msg_head = msg_l[0].split()   # list of column names
+
+    # Check if there is any problem when calling `sacct` for this job:
     if "State" not in msg_head or "JobID" not in msg_head or "JobName" not in msg_head:
-        return "sacct doesn't provide information about the job"
+        if_no_sacct = True
+    if len(msg_l) <= 2 or msg_l[2] == '':
+        # if there is only header (len <= 2 or the 3rd element is empty):
+        if_no_sacct = True
 
-    st_ind = msg_head.index("State")
-    jobid_ind = msg_head.index("JobID")
-    jobnm_ind = msg_head.index("JobName")
-    job_saact = msg_l[2].split() # the 2nd row should have the main job
+    if if_no_sacct:   # there is no information about this job in sacct:
+        warnings.warn("`sacct` did not provide information about job " + job_id_str
+                      + ", " + job_name)
+        print("Hint: check if the job is still in the queue,"
+              " e.g., in state of pending, running, etc")
+        print("Hint: check if the username used for submitting this job"
+              + " was not current username '" + username_lowercase + "'")
+        msg_toreturn = msg_no_sacct
+    else:
+        # create a pd.DataFrame for printed messages from `sacct`:
+        df = pd.DataFrame(data=[], columns=msg_head)
+        msg_l_jobs = msg_l[2:]   # only keeps rows for jobs
+        for i_row in range(0, len(msg_l_jobs)):
+            if msg_l_jobs[i_row] == '':   # empty
+                pass
+            else:
+                # add to df:
+                df.loc[len(df)] = msg_l_jobs[i_row].split()
 
-    if job_saact[jobid_ind] != job_id_str or job_saact[jobnm_ind] != job_name:
-        return "sacct doesn't have the info for the specific job or the format is different"
+        # find the row that matches the job id and job name
+        #   i.e., without '.batch' or '.extern'; usually is the first line:
+        temp = df.index[(df["JobID"] == job_id_str)
+                        & (df["JobName"] == job_name)].tolist()
+        if temp == 0:   # did not find the job:
+            warnings.warn("`sacct` did not provide information about job " + job_id_str
+                          + ", " + job_name)
+            print("Hint: check if the job is still in the queue,"
+                  " e.g., in state of pending, running, etc")
+            print("Hint: check if the username used for submitting this job"
+                  + " was not current username '" + username_lowercase + "'")
+            print("Hint: check if the job ID is more than " + str(len_char_jobid) + " chars,"
+                  " or job name is more than " + str(len_char_jobname) + " chars.")
+            msg_toreturn = msg_no_sacct
+        elif temp > 1:   # more than one matched:
+            warnings.warn("`sacct` detects more than one job for this job "
+                          + job_id_str
+                          + ", " + job_name)
+            print("Hint: check if the job ID is more than " + str(len_char_jobid) + " chars,"
+                  " or job name is more than " + str(len_char_jobname) + " chars.")
+            msg_toreturn = msg_more_than_one
+        else:   # expected, only one:
+            msg_toreturn = "sacct: state: " + df.loc[temp, "State"]
 
-    return "sacct state: " + job_saact[st_ind]
-
+    return msg_toreturn
 
 def _check_job_account_sge(job_id_str, job_name, username_lowercase):
     """

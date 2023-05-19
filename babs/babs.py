@@ -290,8 +290,10 @@ class BABS():
         if system.type == "sge":
             gitignore_file.write("\n.SGE_datalad_lock")
         elif system.type == "slurm":
-            # TODO: add command for `slurm`!!!
-            print("Not supported yet... To work on...")
+            gitignore_file.write("\n.SLURM_datalad_lock")
+        else:
+            warnings.warn("Not supporting systems other than SGE or Slurm"
+                          + " for '.gitignore'.")
         # not to track lock file:
         gitignore_file.write("\n" + "code/babs_proj_config.yaml.lock")
         # not to track `job_status.csv`:
