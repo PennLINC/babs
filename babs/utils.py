@@ -1729,7 +1729,6 @@ def _parsing_squeue_out(squeue_std):
         df = pd.DataFrame(data=[])   # empty dataframe
     else:   # there are job(s) in queue (e.g., pending or running)
         header_l = squeue_std.splitlines()[0].split()
-        # TODO: depend on whether there is job in queue!!!
         datarows = squeue_std.splitlines()[1:]
 
         # column index of these column names:
