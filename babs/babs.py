@@ -2542,7 +2542,9 @@ class Container():
         # Write into the bash file:
         bash_file = open(bash_path, "a")   # open in append mode
 
-        bash_file.write("#!/bin/bash\n")
+        # NOTE: not to automatically generate the interpreting shell;
+        #   instead, let users specify it in the container config yaml file
+        #   using `interpreting_shell`
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)

@@ -653,12 +653,19 @@ def generate_one_bashhead_resources(system, key, value):
         This does not include "\n" at the end.
         e.g., "#$ -S /bin/bash".
 
+    Notes:
+    ---------
+    For interpreting shell, regardless of system type,
+    it will be '#!' + the value user provided.
     """
-    cmd = "#"
-    if system.type == "sge":
-        cmd += "$ "    # e.g., `#$ -l h_vmem=xxx`
-    elif system.type == "slurm":
-        cmd += "SBATCH "   # e.g., `#SBATCH --xxx=yyy`
+    if key == "interpreting_shell":
+        cmd = ""   # directly use the format provided in the dict
+    else:
+        cmd = "#"
+        if system.type == "sge":
+            cmd += "$ "    # e.g., `#$ -l h_vmem=xxx`
+        elif system.type == "slurm":
+            cmd += "SBATCH "   # e.g., `#SBATCH --xxx=yyy`
 
     # find the key in the `system.dict`:
     if key not in system.dict:
@@ -700,10 +707,25 @@ def generate_bashhead_resources(system, config):
         raise Exception("There is no section `cluster_resources`"
                         + " in `container_config_yaml_file`!")
 
-    # loop: for each key, call `generate_one_bashhead_resources()`:
+    # generate the command for interpreting shell first:
+    if "interpreting_shell" not in config["cluster_resources"]:
+        warnings.warn("The interpreting shell was not specified for 'participant_job.sh'."
+                      + " This should be specified using 'interpreting_shell'"
+                      + " under section 'cluster_resources' in container's"
+                      + " configuration YAML file.")
+    else:
+        key = "interpreting_shell"
+        value = config["cluster_resources"][key]
+        one_cmd = generate_one_bashhead_resources(system, key, value)
+        cmd += one_cmd + "\n"
+
+    # loop for other keys:
+    #   for each key, call `generate_one_bashhead_resources()`:
     for key, value in config["cluster_resources"].items():
         if key == "customized_text":
             pass   # handle this below
+        elif key == "interpreting_shell":
+            pass   # has been handled - see above
         else:
             one_cmd = generate_one_bashhead_resources(system, key, value)
             cmd += one_cmd + "\n"
