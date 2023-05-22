@@ -1478,7 +1478,8 @@ class BABS():
                                     #   message found in log files:
                                     job_name = log_filename.split(".*")[0]
                                     msg_job_account = \
-                                        check_job_account(job_id_str, job_name, username_lowercase, self.type_system)
+                                        check_job_account(job_id_str, job_name,
+                                                          username_lowercase, self.type_system)
                                     df_job_updated.at[i_job, "job_account"] = msg_job_account
                 # Done: submitted jobs that not 'is_done'
 

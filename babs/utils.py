@@ -2059,21 +2059,27 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
     len_char_jobid = 20
     len_char_jobname = 50
 
+    the_delimiter = "!"   # use a special delimiter for easy parsing
+    # ^^ if parsing with default e.g., space:
+    #   will have problem when State is "CANCELLED by 78382" - it will also be parsed out...
     proc_sacct = subprocess.run(
         ["sacct", "-u", username_lowercase,
          "-j", job_id_str,
-         "--format=JobID%" + str(len_char_jobid)
-         + "JobName%" + str(len_char_jobname) + ",State%30,ExitCode%15"],
-        # ^^ specific format: column names and the number of chars
-        # e.g., '--format=JobID%20,JobName%50,State%30,ExitCode%15'
+         "--format=JobID%" + str(len_char_jobid) + ","
+         + "JobName%" + str(len_char_jobname) + ",State%30,ExitCode%15",
+         # ^^ specific format: column names and the number of chars
+         # e.g., '--format=JobID%20,JobName%50,State%30,ExitCode%15'
+         "--parsable2",   # Output will be delimited without a delimiter at the end.
+         "--delimiter=" + the_delimiter],
         stdout=subprocess.PIPE
     )
+    # ref: https://slurm.schedmd.com/sacct.html
 
     proc_sacct.check_returncode()
     # even if the job does not exist, there will still be printed msg from sacct,
     #   at least a header. So `check_returncode()` should always succeed.
     msg_l = proc_sacct.stdout.decode('utf-8').split("\n")
-    msg_head = msg_l[0].split()   # list of column names
+    msg_head = msg_l[0].split(the_delimiter)   # list of column names
 
     # Check if there is any problem when calling `sacct` for this job:
     if "State" not in msg_head or "JobID" not in msg_head or "JobName" not in msg_head:
@@ -2093,19 +2099,20 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
     else:
         # create a pd.DataFrame for printed messages from `sacct`:
         df = pd.DataFrame(data=[], columns=msg_head)
-        msg_l_jobs = msg_l[2:]   # only keeps rows for jobs
+        msg_l_jobs = msg_l[1:]   # only keeps rows for jobs
+        # ^^ NOTE: if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
         for i_row in range(0, len(msg_l_jobs)):
             if msg_l_jobs[i_row] == '':   # empty
                 pass
             else:
                 # add to df:
-                df.loc[len(df)] = msg_l_jobs[i_row].split()
+                df.loc[len(df)] = msg_l_jobs[i_row].split(the_delimiter)
 
         # find the row that matches the job id and job name
         #   i.e., without '.batch' or '.extern'; usually is the first line:
         temp = df.index[(df["JobID"] == job_id_str)
                         & (df["JobName"] == job_name)].tolist()
-        if temp == 0:   # did not find the job:
+        if len(temp) == 0:   # did not find the job:
             warnings.warn("`sacct` did not provide information about job " + job_id_str
                           + ", " + job_name)
             print("Hint: check if the job is still in the queue,"
@@ -2115,7 +2122,7 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
             print("Hint: check if the job ID is more than " + str(len_char_jobid) + " chars,"
                   " or job name is more than " + str(len_char_jobname) + " chars.")
             msg_toreturn = msg_no_sacct
-        elif temp > 1:   # more than one matched:
+        elif len(temp) > 1:   # more than one matched:
             warnings.warn("`sacct` detects more than one job for this job "
                           + job_id_str
                           + ", " + job_name)
@@ -2123,7 +2130,8 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
                   " or job name is more than " + str(len_char_jobname) + " chars.")
             msg_toreturn = msg_more_than_one
         else:   # expected, only one:
-            msg_toreturn = "sacct: state: " + df.loc[temp, "State"]
+            msg_toreturn = "sacct: state: " \
+                + df.loc[temp[0], "State"]   # `temp[0]`: first and the only element from list `temp`
 
     return msg_toreturn
 
