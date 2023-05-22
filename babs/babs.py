@@ -290,8 +290,10 @@ class BABS():
         if system.type == "sge":
             gitignore_file.write("\n.SGE_datalad_lock")
         elif system.type == "slurm":
-            # TODO: add command for `slurm`!!!
-            print("Not supported yet... To work on...")
+            gitignore_file.write("\n.SLURM_datalad_lock")
+        else:
+            warnings.warn("Not supporting systems other than SGE or Slurm"
+                          + " for '.gitignore'.")
         # not to track lock file:
         gitignore_file.write("\n" + "code/babs_proj_config.yaml.lock")
         # not to track `job_status.csv`:
@@ -1336,8 +1338,13 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
                                     # get the duration:
                                     if "duration" in df_all_job_status:
+                                        # e.g., slurm `squeue` automatically returns the duration,
+                                        #   so no need to calcu again.
                                         duration = df_all_job_status.at[job_id_str, "duration"]
                                     else:
+                                        # This duration time may be slightly longer than actual
+                                        # time, as this is using current time, instead of
+                                        # the time when `qstat`/requesting job queue.
                                         duration = calcu_runtime(
                                             df_all_job_status.at[job_id_str, "JAT_start_time"])
                                     df_job_updated.at[i_job, "duration"] = duration
@@ -1471,7 +1478,8 @@ class BABS():
                                     #   message found in log files:
                                     job_name = log_filename.split(".*")[0]
                                     msg_job_account = \
-                                        check_job_account(job_id_str, job_name, username_lowercase, self.type_system)
+                                        check_job_account(job_id_str, job_name,
+                                                          username_lowercase, self.type_system)
                                     df_job_updated.at[i_job, "job_account"] = msg_job_account
                 # Done: submitted jobs that not 'is_done'
 

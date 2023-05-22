@@ -11,10 +11,10 @@ sys.path.append(op.dirname(__location__))   # print(sys.path)
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 flag_instance = "toybidsapp"
-type_session = "single-ses"
+type_session = "multi-ses"
 count = 1
 
-flag_where = "cubic"   # "cubic" or "local"
+flag_where = "msi"   # "cubic" or "local" or "msi"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # where:
@@ -22,6 +22,8 @@ if flag_where == "cubic":
     where_project = "/cbica/projects/BABS/data"
 elif flag_where == "local":
     where_project = "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data"
+elif flag_where == "msi":
+    where_project = "/home/faird/zhaoc/data"
 else:
     raise Exception("not valid `flag_where`!")
 
@@ -35,6 +37,11 @@ elif flag_instance == "fmriprep_ingressed_fs":
     project_name = "test_babs_" + type_session + "_fpfsin"
 else:
     raise Exception("not valid `flag_instance`!")
+
+project_root = op.join(where_project, project_name)
+
+print("--project-root:")
+print(project_root)
 
 babs_project = op.join(where_project, project_name)
 
