@@ -682,8 +682,8 @@ def generate_one_bashhead_resources(system, key, value):
 
 def generate_bashhead_resources(system, config):
     """
-    This is to generate the head of the bash file
-    for requesting cluster resources.
+    This is to generate the directives ("head of the bash file")
+    for requesting cluster resources, specifying interpreting shell, etc.
 
     Parameters:
     ------------

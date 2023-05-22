@@ -25,17 +25,18 @@ zip_foldernames:
     toybidsapp: "0-0-7"   # folder 'toybidsapp' will be zipped into 'sub-xx_ses-yy_toybidsapp-0-0-7.zip'
 
 cluster_resources:
-    number_of_cpus: '1'     # "--cpus-per-task=$VALUE"
-    temporary_disk_space: 20g
-    hard_memory_limit: 2g    # on MSI, use 'g' for GB
+    interpreting_shell: "/bin/bash -l"   # --> "#!/bin/bash -l"
+    number_of_cpus: "1"     # --> "#SBATCH --cpus-per-task=1"
+    temporary_disk_space: 20G    # --> "#SBATCH --tmp=20G"
+    hard_memory_limit: 2G   # --> "#SBATCH --mem=2G"
     customized_text: |
         #SBATCH --time=20
-        #SBATCH --ntasks=2
-        #SBATCH -p amd2tb,ram256g,v100,k40 
-# interpreting_shell: /bin/bash -l   # Slurm: better to add `-l`    # needs fix in `interpreting_shell` - issue #94
+        #SBATCH -p ram256g
 # Notes: Above `customized_text` is MSI Slurm cluster specific.
 #   So it may not be relevant for other clusters
-
+# Other things to test:
+# #SBATCH --ntasks=1
+# #SBATCH -p amd2tb,ram256g,v100,k40
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`
