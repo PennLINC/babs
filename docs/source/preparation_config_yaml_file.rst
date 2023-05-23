@@ -449,6 +449,7 @@ The second row in each cell, which is also in (), is an example.
 ..       - ``-S /bin/bash``
 
 .. developer's note: actually the width is not working here....
+..  tried `||` and `| |` for each row's beginning but did not help...
 .. table::
     :widths: 60 40 40
 
