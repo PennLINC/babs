@@ -417,7 +417,7 @@ Example section **cluster_resources** for ``QSIPrep``::
         temporary_disk_space: 200G
         number_of_cpus: "6" 
 
-These will be turned into options in the preambles of ``participant_job.sh`` on an SGE cluster
+These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` on an SGE cluster
 (this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown as below::
 
     #!/bin/bash
@@ -448,28 +448,32 @@ The second row in each cell, which is also in (), is an example.
 ..       - ``interpreting_shell: /bin/bash``
 ..       - ``-S /bin/bash``
 
-+------------------------------------------+---------------------------------------+
-| | Section ``cluster_resources`` in YAML  | | Generated preamble for SGE clusters |
-| |         (example key-value)            | |           (example outcome)         |
-+==========================================+=======================================+
-| | ``interpreting_shell: $VALUE``         | | ``-S $VALUE``                       |
-| | (``interpreting_shell: /bin/bash``)    | | (``-S /bin/bash``)                  |
-+------------------------------------------+---------------------------------------+
-| | ``hard_memory_limit: $VALUE``          | | ``-l h_vmem=$VALUE``                |
-| | (``hard_memory_limit: 25G``)           | | (``-l h_vmem=25G``)                 |
-+------------------------------------------+---------------------------------------+
-| | ``soft_memory_limit: $VALUE``          | | ``-l s_vmem=$VALUE``                |
-| | (``soft_memory_limit: 23.5G``)         | | (``-l s_vmem=23.5G``)               |
-+------------------------------------------+---------------------------------------+
-| | ``temporary_disk_space: $VALUE``       | | ``-l tmpfree=$VALUE``               |
-| | (``temporary_disk_space: 200G``)       | | (``-l tmpfree=200G``)               |
-+------------------------------------------+---------------------------------------+
-| | ``number_of_cpus: "$VALUE"``           | | ``-pe threaded $VALUE``             |
-| | (``number_of_cpus: "6"``)              | | (``-pe threaded 6``)                |
-+------------------------------------------+---------------------------------------+
-| | ``hard_runtime_limit: "$VALUE"``       | | ``-l h_rt=$VALUE``                  |
-| | (``hard_runtime_limit: "24:00:00"``)   | | (``-l h_rt=24:00:00``)              |
-+------------------------------------------+---------------------------------------+
+.. developer's note: actually the width is not working here....
+.. table::
+    :widths: 60 40 40
+
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | Section ``cluster_resources`` in YAML  | | Generated directives for SGE clusters  | | Generated directives for Slurm clusters |
+    | |         (example key-value)            | |           (example outcome)            | |           (example outcome)             |
+    +==========================================+==========================================+===========================================+
+    | | ``interpreting_shell: $VALUE``         | | ``#!$VALUE``                           | | ``#!$VALUE``                            |
+    | | (``interpreting_shell: /bin/bash``)    | | (``#!/bin/bash``)                      | | (``#!/bin/bash``)                       |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``hard_memory_limit: $VALUE``          | | ``#$ -l h_vmem=$VALUE``                | | ``#SBATCH --mem=$VALUE``                |
+    | | (``hard_memory_limit: 25G``)           | | (``#$ -l h_vmem=25G``)                 | | (``#SBATCH --mem=25G``)                 |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``soft_memory_limit: $VALUE``          | | ``#$ -l s_vmem=$VALUE``                | Not applicable.                           |
+    | | (``soft_memory_limit: 23.5G``)         | | (``#$ -l s_vmem=23.5G``)               |                                           |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``temporary_disk_space: $VALUE``       | | ``#$ -l tmpfree=$VALUE``               | | ``#SBATCH --tmp=$VALUE``                |
+    | | (``temporary_disk_space: 200G``)       | | (``#$ -l tmpfree=200G``)               | | (``#SBATCH --tmp=200G``)                |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``number_of_cpus: "$VALUE"``           | | ``#$ -pe threaded $VALUE``             | | ``#SBATCH --cpus-per-task=$VALUE``      |
+    | | (``number_of_cpus: "6"``)              | | (``#$ -pe threaded 6``)                | | (``#SBATCH --cpus-per-task=6``)         |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``hard_runtime_limit: "$VALUE"``       | | ``#$ -l h_rt=$VALUE``                  | | ``#SBATCH --time=$VALUE``               |
+    | | (``hard_runtime_limit: "24:00:00"``)   | | (``#$ -l h_rt=24:00:00``)              | | (``#SBATCH --time=24:00:00``)           |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
 
 If you cannot find the one you want in the above table, you can still add it by ``customized_text``.
 Below is an example for SGE cluster::
