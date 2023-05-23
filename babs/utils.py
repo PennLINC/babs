@@ -2095,6 +2095,7 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
         stdout=subprocess.PIPE
     )
     # ref: https://slurm.schedmd.com/sacct.html
+    # also based on ref: https://github.com/ComputeCanada/slurm_utils/blob/master/sacct-all.py
 
     proc_sacct.check_returncode()
     # even if the job does not exist, there will still be printed msg from sacct,

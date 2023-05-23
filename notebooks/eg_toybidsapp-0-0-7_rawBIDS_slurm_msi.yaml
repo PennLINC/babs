@@ -12,7 +12,7 @@
 # Warning!!!
 #   This is only an example, which may not necessarily fit your purpose,
 #   or be an optimized solution for your case,
-#   or be compatible to the toy BIDS App version you're using.
+#   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
 singularity_run:
@@ -42,11 +42,11 @@ cluster_resources:
 #   they will be used as preambles in `participant_job.sh`
 #   the commands should not be quoted!
 script_preamble: |
-    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # MSI cluster faird group. Replace filepath with yours.
-    conda activate babs   # replace 'babs' with your env variable name
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
 
 # Where to run the jobs:
-job_compute_space: "/tmp"   # MSI cluster
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
 
 # 'required_files' section is not needed for toy BIDS App.
 
