@@ -18,7 +18,7 @@
 
 # Arguments when executing the BIDS App using `singularity run`:
 singularity_run:
-    -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
+    -w: "$BABS_TMPDIR"   # this is a placeholder. BABS will replace it with `${PWD}/.git/tmp/wkdir`
     --n_cpus: '1'
     --stop-on-first-crash: ""
     --fs-license-file: "/home/faird/zhaoc/software/FreeSurfer/license.txt"  # [FIX ME] path to FS license file
@@ -39,7 +39,7 @@ cluster_resources:
     # number_of_cpus: "1"     # --> "#SBATCH --cpus-per-task=1"
     hard_memory_limit: 25G   # --> "#SBATCH --mem=25G"
     temporary_disk_space: 200G    # --> "#SBATCH --tmp=200G"
-    hard_runtime_limit: "5-0"    # --> "--time=5-0", i.e., 5 days
+    hard_runtime_limit: "72:00:00"    # --> "--time=72:00:00", i.e., 3 days.  Should NOT large than partition's time limit!
     customized_text: |
         #SBATCH -p k40
 # Other choices of job partitions on MSI: amd2tb,ram256g,v100,k40

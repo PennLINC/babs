@@ -239,18 +239,19 @@ Advanced - Manual of writing section ``singularity_run``
 
 * Can I use a job environment variable, e.g., number of CPUs?
 
-    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep), for *SGE* clusters,
-      you can use environment variable ``$NSLOTS``, and you can specify it as::
+    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep), 
+      if you also use ``number_of_cpus`` in **cluster_resources** section (see below),
+      then you can use environment variable for this Singularity run argument.
+    * For *SGE* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
         --n_cpus: "$NSLOTS"
       
-      as long as you also set ``number_of_cpus`` in **cluster_resources** section (see below).
-    
-    * :octicon:`alert-fill` :bdg-warning:`warning` However *Slurm* clusters probably have different environment variable name
-      for this - please check out its manual!
+    * For *Slurm* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
-.. developer's note: for Slurm it might be ``$SLURM_NTASKS`` (below ref), however did not find for MSI cluster..
-.. ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
+        --n_cpus: "$SLURM_CPUS_PER_TASK"
+    
+.. developer's note: for Slurm: ref: https://login.scg.stanford.edu/faqs/cores/
+..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
 * When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument 
   ``input_dataset`` in the BIDS App, which dataset goes to another named argument.
