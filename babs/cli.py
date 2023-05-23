@@ -493,8 +493,10 @@ def babs_status_cli():
         action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
         help="Whether to account failed jobs, which may take some time."
-             " If `--resubmit failed` or `--resubmit-job` for this failed job is also requested,"
-             " this `--job-account` will be skipped.")
+             " When using ``--job-account``, please also add ``--container_config_yaml_file``."
+             " If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)"
+             " is also requested,"
+             " this ``--job-account`` will be skipped.")
 
     return parser
 
