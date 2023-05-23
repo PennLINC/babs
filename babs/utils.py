@@ -1948,6 +1948,9 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         When `alert_message` is `msg_no_alert`,
         or is `np.nan` (`if_valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
+    if_found_log_files: bool or np.nan
+        np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
+        Otherwise, True or False based on if any log files were found
 
     Notes:
     -----------------
@@ -1960,15 +1963,18 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     msg_no_alert = MSG_NO_ALERT_IN_LOGS
     if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
+    if_found_log_files = np.nan
 
     if config_msg_alert is None:
         alert_message = np.nan
         if_valid_alert_msg = False
+        if_found_log_files = np.nan   # unknown if log files exist or not
     else:
         o_fn = log_fn.replace("*", 'o')
         e_fn = log_fn.replace("*", 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):   # either exists:
+            if_found_log_files = True
             found_message = False
             alert_message = msg_no_alert
 
@@ -1999,6 +2005,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                     break   # no need to go to next log file
 
         else:    # neither o_fn nor e_fn exists yet:
+            if_found_log_files = False
             alert_message = np.nan
             if_valid_alert_msg = False
 
@@ -2008,7 +2015,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     else:   # `alert_message`: np.nan or any other message:
         if_no_alert_in_log = False
 
-    return alert_message, if_no_alert_in_log
+    return alert_message, if_no_alert_in_log, if_found_log_files
 
 def get_username():
     """
@@ -2100,14 +2107,19 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
     proc_sacct.check_returncode()
     # even if the job does not exist, there will still be printed msg from sacct,
     #   at least a header. So `check_returncode()` should always succeed.
-    msg_l = proc_sacct.stdout.decode('utf-8').split("\n")
+    msg_l = proc_sacct.stdout.decode('utf-8').split("\n")   # all lines from `sacct`
+    # 1st line: column names
+    # 2nd and forward lines: job information
+    #   ^^ if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
+    #   Usually there are more than one job lines;
+    #   However if the job was manually killed when pending, then there will only be one job line.
     msg_head = msg_l[0].split(the_delimiter)   # list of column names
 
     # Check if there is any problem when calling `sacct` for this job:
     if "State" not in msg_head or "JobID" not in msg_head or "JobName" not in msg_head:
         if_no_sacct = True
-    if len(msg_l) <= 2 or msg_l[2] == '':
-        # if there is only header (len <= 2 or the 3rd element is empty):
+    if len(msg_l) <= 1 or msg_l[1] == '':
+        # if there is only header (len <= 1 or the 2nd element is empty):
         if_no_sacct = True
 
     if if_no_sacct:   # there is no information about this job in sacct:

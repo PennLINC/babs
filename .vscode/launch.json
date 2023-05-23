@@ -56,10 +56,16 @@
             //     "--type_session", "multi-ses",
             //     "--type_system", "sge"
             // ]
+            // "args": [
+            //     "--project-root",
+            //     "/home/faird/zhaoc/data/test_babs_multi-ses_toybidsapp",
+            //     "--container-config-yaml-file",
+            //     "/home/faird/zhaoc/babs_tests/notebooks/bidsapp-toybidsapp-0-0-7_task-rawBIDS_system-slurm_cluster-MSI_egConfig.yaml",
+            //     "--job-account"
+            // ]
             "args": [
                 "--project-root",
-                "/home/faird/zhaoc/data/test_babs_multi-ses_toybidsapp""--container-config-yaml-file",
-                "/home/faird/zhaoc/babs_tests/notebooks/bidsapp-toybidsapp-0-0-7_task-rawBIDS_system-slurm_cluster-MSI_egConfig.yaml",
+                "/home/faird/zhaoc/data/test_babs_single-ses_PNC_fmriprep_sloppy",
                 "--job-account"
             ]
             // "args": [
