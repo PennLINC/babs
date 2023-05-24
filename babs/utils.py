@@ -1394,6 +1394,54 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
     return job_id, job_id_str, log_filename
 
 
+def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done=None, debug=False):
+    """
+    This is to update one job in the dataframe `df_jobs`, mostly used after job submission.
+
+    Parameters:
+    ----------------
+    df_jobs: pd.DataFrame
+        dataframe of jobs and their status
+    i_job: int
+        index of the job to be updated
+    job_id: int
+        job id
+    log_filename: str
+        log filename of this job.
+    submitted: bool or None
+        whether the has_submitted field has to be updated
+    done: bool or None
+        whether the is_done field has to be updated
+    debug: bool
+        wheter the testing fields have to be updated
+
+    Returns:
+    ------------------
+    df_jobs: pd.DataFrame
+        dataframe of jobs, updated
+    """
+    # assign into `df_job_updated`:
+    df_jobs.at[i_job, "job_id"] = job_id
+    df_jobs.at[i_job, "log_filename"] = log_filename
+    # reset fields:
+    df_jobs.at[i_job, "is_failed"] = np.nan
+    # probably not necessary to reset (comment taken from the submit section)
+    df_jobs.at[i_job, "job_state_category"] = np.nan
+    df_jobs.at[i_job, "job_state_code"] = np.nan
+    df_jobs.at[i_job, "duration"] = np.nan
+    if submitted is not None:
+        # update the status:
+        df_jobs.at[i_job, "has_submitted"] = submitted
+    if done is not None:
+        # update the status:
+        df_jobs.at[i_job, "is_done"] = done
+    if debug:
+        df_jobs.at[i_job, "last_line_stdout_file"] = np.nan
+        df_jobs.at[i_job, "alert_message"] = np.nan
+        df_jobs.at[i_job, "job_account"] = np.nan
+    return df_jobs
+
+
 def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     """
     This is to submit one *test* job.

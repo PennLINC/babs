@@ -37,6 +37,7 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
                         submit_one_job,
+                        df_update_one_job,
                         submit_one_test_job,
                         read_job_status_csv,
                         report_job_status,
@@ -1020,7 +1021,7 @@ class BABS():
                 df_job_updated = df_job.copy()
 
                 # See if user has specified list of jobs to submit:
-                if df_job_specified is not None:
+                if df_job_specified:
                     print("Will only submit specified jobs...")
                     for j_job in range(0, df_job_specified.shape[0]):
                         # find the index in the full `df_job`:
@@ -1050,19 +1051,9 @@ class BABS():
                                                                      self.type_session,
                                                                      self.type_system,
                                                                      sub, ses)
-
-                            # assign into `df_job_updated`:
-                            df_job_updated.at[i_job, "job_id"] = job_id
-                            df_job_updated.at[i_job, "log_filename"] = log_filename
-
-                            # update the status:
-                            df_job_updated.at[i_job, "has_submitted"] = True
-                            # reset fields:
-                            df_job_updated.at[i_job, "is_failed"] = np.nan
-                            # probably not necessary to reset:
-                            df_job_updated.at[i_job, "job_state_category"] = np.nan
-                            df_job_updated.at[i_job, "job_state_code"] = np.nan
-                            df_job_updated.at[i_job, "duration"] = np.nan
+                            # update `df_job_updated`:
+                            df_job_updated = df_update_one_job(df_job_updated, i_job, job_id,
+                                                               log_filename, submitted=True)
                         else:
                             to_print = "The job for " + sub
                             if self.type_session == "multi-ses":
@@ -1100,21 +1091,8 @@ class BABS():
                                                    self.type_session,
                                                    self.type_system,
                                                    sub, ses)
-
-                                # assign into `df_job_updated`:
-                                df_job_updated.at[i_job, "job_id"] = job_id
-                                df_job_updated.at[i_job, "log_filename"] = log_filename
-
-                                # update the status:
-                                df_job_updated.at[i_job, "has_submitted"] = True
-                                # reset fields:
-                                df_job_updated.at[i_job, "is_failed"] = np.nan
-                                # probably not necessary to reset:
-                                df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                df_job_updated.at[i_job, "duration"] = np.nan
-
-                                # print(df_job_updated)
+                                df_job_updated = df_update_one_job(df_job_updated, i_job, job_id,
+                                                                   log_filename, submitted=True)
 
                                 j_count += 1
                                 # if it's several times of `count_report_progress`:
@@ -1323,16 +1301,8 @@ class BABS():
                                                        self.type_system,
                                                        sub, ses)
                                     # update fields:
-                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                    df_job_updated.at[i_job, "log_filename"] = log_filename
-                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "duration"] = np.nan
-                                    df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                    df_job_updated.at[i_job, "alert_message"] = np.nan
-                                    df_job_updated.at[i_job, "job_account"] = np.nan
-
+                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                       log_filename, debug=True)
                                 else:   # just let it run:
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
@@ -1375,16 +1345,8 @@ class BABS():
                                                        self.type_system,
                                                        sub, ses)
                                     # update fields:
-                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                    df_job_updated.at[i_job, "log_filename"] = log_filename
-                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "duration"] = np.nan
-                                    df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                    df_job_updated.at[i_job, "alert_message"] = np.nan
-                                    df_job_updated.at[i_job, "job_account"] = np.nan
-
+                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                       log_filename, debug=True)
                                 else:   # not to resubmit:
                                     # update fields:
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
@@ -1414,15 +1376,8 @@ class BABS():
                                                        self.type_system,
                                                        sub, ses)
                                     # update fields:
-                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                    df_job_updated.at[i_job, "log_filename"] = log_filename
-                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "duration"] = np.nan
-                                    df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                    df_job_updated.at[i_job, "alert_message"] = np.nan
-                                    df_job_updated.at[i_job, "job_account"] = np.nan
+                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                       log_filename, debug=True)
                                 else:   # not to resubmit:
                                     # update fields:
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
@@ -1431,11 +1386,6 @@ class BABS():
                         else:   # did not find in `df_all_job_status`, i.e., job queue
                             # probably error
                             df_job_updated.at[i_job, "is_failed"] = True
-                            # reset:
-                            df_job_updated.at[i_job, "job_state_category"] = np.nan
-                            df_job_updated.at[i_job, "job_state_code"] = np.nan
-                            df_job_updated.at[i_job, "duration"] = np.nan
-                            # ROADMAP: ^^ get duration via `qacct`
 
                             # check the log file:
                             # TODO ^^
@@ -1463,15 +1413,15 @@ class BABS():
                                                    sub, ses)
 
                                 # update fields:
-                                df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                df_job_updated.at[i_job, "log_filename"] = log_filename
-                                df_job_updated.at[i_job, "is_failed"] = np.nan
-                                df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                df_job_updated.at[i_job, "alert_message"] = np.nan
-                                df_job_updated.at[i_job, "job_account"] = np.nan
-                                # reset of `job_state_*` have been done - see above
-
+                                df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                   log_filename, debug=True)
                             else:  # resubmit 'error' was not requested:
+                                # reset:
+                                df_job_updated.at[i_job, "job_state_category"] = np.nan
+                                df_job_updated.at[i_job, "job_state_code"] = np.nan
+                                df_job_updated.at[i_job, "duration"] = np.nan
+                                # ROADMAP: ^^ get duration via `qacct`
+
                                 # If `--job-account` is requested:
                                 if job_account & if_no_alert_in_log:
                                     # if `--job-account` is requested, and there is no alert
@@ -1557,17 +1507,8 @@ class BABS():
                                            self.type_system,
                                            sub, ses)
                         # update fields:
-                        df_job_updated.at[i_job, "job_id"] = job_id_updated
-                        df_job_updated.at[i_job, "log_filename"] = log_filename
-                        df_job_updated.at[i_job, "job_state_category"] = np.nan
-                        df_job_updated.at[i_job, "job_state_code"] = np.nan
-                        df_job_updated.at[i_job, "duration"] = np.nan
-                        df_job_updated.at[i_job, "is_done"] = False
-                        df_job_updated.at[i_job, "is_failed"] = np.nan
-                        df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                        df_job_updated.at[i_job, "alert_message"] = np.nan
-                        df_job_updated.at[i_job, "job_account"] = np.nan
-
+                        df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                           log_filename, done=False, debug=True)
                     else:    # did not request resubmit, or `--reckless` is None:
                         # just perform normal stuff for a successful job:
                         # Update the "last_line_stdout_file":
