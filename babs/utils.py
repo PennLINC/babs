@@ -1413,7 +1413,7 @@ def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done
     done: bool or None
         whether the is_done field has to be updated
     debug: bool
-        wheter the testing fields have to be updated
+        whether the testing fields have to be updated
 
     Returns:
     ------------------
