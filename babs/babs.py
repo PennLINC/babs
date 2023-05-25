@@ -1179,6 +1179,8 @@ class BABS():
         # `create_job_status_csv(self)` has been called in `babs_status()`
         #   in `cli.py`
 
+        from .constants import MSG_NO_ALERT_IN_LOGS
+
         # Load the csv file
         lock_path = self.job_status_path_abs + ".lock"
         lock = FileLock(lock_path)
@@ -1256,7 +1258,7 @@ class BABS():
                     # NOTE: in theory can skip failed jobs in previous round,
                     #       but making assigning variables hard; so not to skip
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
-                    alert_message_in_log_files, if_no_alert_in_log = \
+                    alert_message_in_log_files, if_no_alert_in_log, if_found_log_files = \
                         get_alert_message_in_log_files(config_msg_alert, log_fn)
                     # ^^ the function will handle even if `config_msg_alert=None`
                     df_job_updated.at[i_job, "alert_message"] = \
@@ -1436,6 +1438,15 @@ class BABS():
                             df_job_updated.at[i_job, "job_state_code"] = np.nan
                             df_job_updated.at[i_job, "duration"] = np.nan
                             # ROADMAP: ^^ get duration via `qacct`
+                            if if_found_log_files == False:   # bool or np.nan
+                                # If there is no log files, the alert message would be 'np.nan';
+                                # however this is a failed job, so it should have log files,
+                                #   unless it was killed by the user when pending.
+                                # change the 'alert_message' to no alert in logs,
+                                #   so that when reporting job status,
+                                #   info from job accounting will be reported
+                                df_job_updated.at[i_job, "alert_message"] = \
+                                    MSG_NO_ALERT_IN_LOGS
 
                             # check the log file:
                             # TODO ^^
@@ -1575,7 +1586,7 @@ class BABS():
                             get_last_line(o_fn)
                         # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
-                        alert_message_in_log_files, if_no_alert_in_log = \
+                        alert_message_in_log_files, if_no_alert_in_log, _ = \
                             get_alert_message_in_log_files(config_msg_alert, log_fn)
                         # ^^ the function will handle even if `config_msg_alert=None`
                         df_job_updated.at[i_job, "alert_message"] = \
@@ -2542,7 +2553,9 @@ class Container():
         # Write into the bash file:
         bash_file = open(bash_path, "a")   # open in append mode
 
-        bash_file.write("#!/bin/bash\n")
+        # NOTE: not to automatically generate the interpreting shell;
+        #   instead, let users specify it in the container config yaml file
+        #   using `interpreting_shell`
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
@@ -2745,7 +2758,9 @@ class Container():
         # Write into the bash file:
         bash_file = open(fn_call_test_job, "a")   # open in append mode
 
-        bash_file.write("#!/bin/bash\n")
+        # NOTE: not to automatically generate the interpreting shell;
+        #   instead, let users specify it in the container config yaml file
+        #   using `interpreting_shell`
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)

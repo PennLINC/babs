@@ -239,18 +239,19 @@ Advanced - Manual of writing section ``singularity_run``
 
 * Can I use a job environment variable, e.g., number of CPUs?
 
-    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep), for *SGE* clusters,
-      you can use environment variable ``$NSLOTS``, and you can specify it as::
+    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep), 
+      if you also use ``number_of_cpus`` in **cluster_resources** section (see below),
+      then you can use environment variable for this Singularity run argument.
+    * For *SGE* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
         --n_cpus: "$NSLOTS"
       
-      as long as you also set ``number_of_cpus`` in **cluster_resources** section (see below).
-    
-    * :octicon:`alert-fill` :bdg-warning:`warning` However *Slurm* clusters probably have different environment variable name
-      for this - please check out its manual!
+    * For *Slurm* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
-.. developer's note: for Slurm it might be ``$SLURM_NTASKS`` (below ref), however did not find for MSI cluster..
-.. ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
+        --n_cpus: "$SLURM_CPUS_PER_TASK"
+    
+.. developer's note: for Slurm: ref: https://login.scg.stanford.edu/faqs/cores/
+..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
 * When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument 
   ``input_dataset`` in the BIDS App, which dataset goes to another named argument.
@@ -416,11 +417,10 @@ Example section **cluster_resources** for ``QSIPrep``::
         temporary_disk_space: 200G
         number_of_cpus: "6" 
 
-These will be turned into options in the preambles of ``participant_job.sh`` on an SGE cluster
+These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` on an SGE cluster
 (this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown as below::
 
     #!/bin/bash
-    #$ -S /bin/bash
     #$ -l h_vmem=32G
     #$ -l tmpfree=200G
     #$ -pe threaded 6
@@ -428,6 +428,13 @@ These will be turned into options in the preambles of ``participant_job.sh`` on 
 For example, a job requires no more than 32 GB of memory,
 i.e., on SGE clusters, ``-l h_vmem=32G``.
 You may simply specify: ``hard_memory_limit: 32G``.
+
+.. warning::
+    Make sure you add ``interpreting_shell``!
+    It is very important.
+    For SGE, you might need: ``interpreting_shell: /bin/bash``;
+    For Slurm, you might need: ``interpreting_shell: /bin/bash -l``.
+    Check what it should be like in the manual of your cluster!
 
 The table below lists all the named cluster resources requests that BABS supports.
 You may not need all of them.
@@ -447,28 +454,33 @@ The second row in each cell, which is also in (), is an example.
 ..       - ``interpreting_shell: /bin/bash``
 ..       - ``-S /bin/bash``
 
-+------------------------------------------+---------------------------------------+
-| | Section ``cluster_resources`` in YAML  | | Generated preamble for SGE clusters |
-| |         (example key-value)            | |           (example outcome)         |
-+==========================================+=======================================+
-| | ``interpreting_shell: $VALUE``         | | ``-S $VALUE``                       |
-| | (``interpreting_shell: /bin/bash``)    | | (``-S /bin/bash``)                  |
-+------------------------------------------+---------------------------------------+
-| | ``hard_memory_limit: $VALUE``          | | ``-l h_vmem=$VALUE``                |
-| | (``hard_memory_limit: 25G``)           | | (``-l h_vmem=25G``)                 |
-+------------------------------------------+---------------------------------------+
-| | ``soft_memory_limit: $VALUE``          | | ``-l s_vmem=$VALUE``                |
-| | (``soft_memory_limit: 23.5G``)         | | (``-l s_vmem=23.5G``)               |
-+------------------------------------------+---------------------------------------+
-| | ``temporary_disk_space: $VALUE``       | | ``-l tmpfree=$VALUE``               |
-| | (``temporary_disk_space: 200G``)       | | (``-l tmpfree=200G``)               |
-+------------------------------------------+---------------------------------------+
-| | ``number_of_cpus: "$VALUE"``           | | ``-pe threaded $VALUE``             |
-| | (``number_of_cpus: "6"``)              | | (``-pe threaded 6``)                |
-+------------------------------------------+---------------------------------------+
-| | ``hard_runtime_limit: "$VALUE"``       | | ``-l h_rt=$VALUE``                  |
-| | (``hard_runtime_limit: "24:00:00"``)   | | (``-l h_rt=24:00:00``)              |
-+------------------------------------------+---------------------------------------+
+.. developer's note: actually the width is not working here....
+..  tried `||` and `| |` for each row's beginning but did not help...
+.. table::
+    :widths: 60 40 40
+
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | Section ``cluster_resources`` in YAML  | | Generated directives for SGE clusters  | | Generated directives for Slurm clusters |
+    | |         (example key-value)            | |           (example outcome)            | |           (example outcome)             |
+    +==========================================+==========================================+===========================================+
+    | | ``interpreting_shell: $VALUE``         | | ``#!$VALUE``                           | | ``#!$VALUE``                            |
+    | | (``interpreting_shell: /bin/bash``)    | | (``#!/bin/bash``)                      | | (``#!/bin/bash``)                       |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``hard_memory_limit: $VALUE``          | | ``#$ -l h_vmem=$VALUE``                | | ``#SBATCH --mem=$VALUE``                |
+    | | (``hard_memory_limit: 25G``)           | | (``#$ -l h_vmem=25G``)                 | | (``#SBATCH --mem=25G``)                 |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``soft_memory_limit: $VALUE``          | | ``#$ -l s_vmem=$VALUE``                | Not applicable.                           |
+    | | (``soft_memory_limit: 23.5G``)         | | (``#$ -l s_vmem=23.5G``)               |                                           |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``temporary_disk_space: $VALUE``       | | ``#$ -l tmpfree=$VALUE``               | | ``#SBATCH --tmp=$VALUE``                |
+    | | (``temporary_disk_space: 200G``)       | | (``#$ -l tmpfree=200G``)               | | (``#SBATCH --tmp=200G``)                |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``number_of_cpus: "$VALUE"``           | | ``#$ -pe threaded $VALUE``             | | ``#SBATCH --cpus-per-task=$VALUE``      |
+    | | (``number_of_cpus: "6"``)              | | (``#$ -pe threaded 6``)                | | (``#SBATCH --cpus-per-task=6``)         |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
+    | | ``hard_runtime_limit: "$VALUE"``       | | ``#$ -l h_rt=$VALUE``                  | | ``#SBATCH --time=$VALUE``               |
+    | | (``hard_runtime_limit: "24:00:00"``)   | | (``#$ -l h_rt=24:00:00``)              | | (``#SBATCH --time=24:00:00``)           |
+    +------------------------------------------+------------------------------------------+-------------------------------------------+
 
 If you cannot find the one you want in the above table, you can still add it by ``customized_text``.
 Below is an example for SGE cluster::

@@ -16,6 +16,7 @@ from get_data import (   # noqa
     container_ds_path,
     where_now,
     if_circleci,
+    get_container_config_yaml_filename,
     __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
@@ -71,6 +72,8 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         Path to the container datalad dataset
     if_circleci: fixture; bool
         Whether currently in CircleCI
+
+    TODO: add `type_system` and to test out Slurm version!
     """
     # Sanity checks:
     assert which_bidsapp in LIST_WHICH_BIDSAPP
@@ -94,12 +97,12 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
 
     # Preparation of freesurfer: for fmriprep and qsiprep:
     # check if `--fs-license-file` is included in YAML file:
-    container_config_yaml_filename = "example_container_" + which_bidsapp + ".yaml"
-    if (which_bidsapp == "fmriprep") & if_two_input:
-        container_config_yaml_filename = \
-            "example_container_" + which_bidsapp + "_ingressed_fs.yaml"
+    container_config_yaml_filename = \
+        get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
+                                           type_system="sge")  # TODO: also test slurm!
     container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
                                          container_config_yaml_filename)
+    assert op.exists(container_config_yaml_file)
     container_config_yaml = read_yaml(container_config_yaml_file)
 
     if "--fs-license-file" in container_config_yaml["singularity_run"]:

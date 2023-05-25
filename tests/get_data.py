@@ -194,6 +194,59 @@ def container_ds_path(where_now, tmp_path_factory):
 
     return origin_container_ds
 
+def get_container_config_yaml_filename(which_bidsapp,
+                                       which_input, if_two_input,
+                                       type_system):
+    """
+    This is to get the container's config YAML file name,
+    depending on the BIDS App and if there are two inputs (for fMRIPrep)
+
+    Parameters:
+    -------------
+    which_bidsapp: str
+        name of the bidsapp
+    which_input: str
+        "BIDS" for raw BIDS
+        "fmriprep" for zipped BIDS derivates
+    if_two_input: bool
+        whether there are two input BIDS datasets
+    type_system: str
+        "sge" or "slurm"
+
+    Returns:
+    -----------
+    container_config_yaml_filename: str
+        the filename, without the path.
+    """
+    dict_cluster_name = {'sge': 'cubic',
+                         'slurm': 'msi'}
+    dict_bidsapp_version = {"qsiprep": "0-16-0RC3",
+                            "fmriprep": "20-2-3",
+                            "toybidsapp": "0-0-7"}
+    dict_task_name = {"qsiprep": 'sloppy',
+                      "fmriprep": "full",
+                      "toybidsapp": "rawBIDS"}
+
+    # bidsapp and its version:
+    container_config_yaml_filename = "eg_" + which_bidsapp + "-" \
+        + dict_bidsapp_version[which_bidsapp]
+
+    # task:
+    container_config_yaml_filename += "_"
+    if (which_bidsapp == "fmriprep") & if_two_input:
+        container_config_yaml_filename += "ingressed-fs"
+    elif (which_bidsapp == "toybidsapp") & (which_input == "fmriprep"):
+        # the input is zipped BIDS derivatives:
+        container_config_yaml_filename += "zipped"
+    else:
+        container_config_yaml_filename += dict_task_name[which_bidsapp]
+
+    # cluster system type and example name:
+    container_config_yaml_filename += "_" + type_system + "_" \
+        + dict_cluster_name[type_system] + ".yaml"
+
+    return container_config_yaml_filename
+
 
 def if_command_installed(cmd):
     """

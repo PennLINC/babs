@@ -1,0 +1,59 @@
+# This is an example config yaml file for:
+#   BIDS App:         toy BIDS App ("toy_bids_app")
+#   BIDS App version: 0.0.7
+#   Task:             for raw BIDS dataset ("unzipped")
+#   Which system:     Slurm
+#   Tested on which cluster:  MSI cluster
+# Toy BIDS App's Docker image is publicly available at: https://hub.docker.com/r/pennlinc/toy_bids_app
+# This BIDS App counts number of non-hidden files in a subject's (or a session's) folder;
+#     More details please see: https://github.com/PennLINC/babs_tests/blob/main/docker/README.md#toy-bids-app-toy_bids_app
+# How to prepare a container DataLad dataset of this toy BIDS App? See docs here: https://pennlinc-babs.readthedocs.io/en/latest/preparation_container.html
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+singularity_run:
+    --no-zipped: ""  # for raw BIDS dataset
+    --dummy: "2"   # this is a dummy variable, accepting values
+    -v: ""    # this is also a dummy variable, not accepting values
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    toybidsapp: "0-0-7"   # folder 'toybidsapp' will be zipped into 'sub-xx_ses-yy_toybidsapp-0-0-7.zip'
+
+cluster_resources:
+    interpreting_shell: "/bin/bash -l"   # --> "#!/bin/bash -l"
+    number_of_cpus: "1"     # --> "#SBATCH --cpus-per-task=1"
+    temporary_disk_space: 20G    # --> "#SBATCH --tmp=20G"
+    hard_memory_limit: 2G   # --> "#SBATCH --mem=2G"
+    hard_runtime_limit: "20"    # --> "--time=20", i.e., 20min. Should NOT large than partition's time limit!
+    customized_text: |
+        #SBATCH -p ram256g
+# Notes: Above `customized_text` is MSI Slurm cluster specific.
+#   So it may not be relevant for other clusters
+# Other things to test:
+# #SBATCH --ntasks=1
+# #SBATCH -p amd2tb,ram256g,v100,k40
+
+# Users need to add their customized bash command below,
+#   they will be used as preambles in `participant_job.sh`
+#   the commands should not be quoted!
+script_preamble: |
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
+
+# Where to run the jobs:
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
+
+# 'required_files' section is not needed for toy BIDS App.
+
+# Alert messages that might be found in log files of failed jobs:
+#   These messages may be helpful for debugging errors in failed jobs.
+alert_log_messages:
+    stdout:
+        - "xxxx"   # this is a dummy alert message.
+    stderr:
+        - "xxx"    # this is a dummy alert message.
