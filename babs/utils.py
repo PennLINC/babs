@@ -1464,11 +1464,11 @@ def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
     """
     job_ind_list = []
     # Check if there is still jobs to submit:
-    #total_has_submitted = int(df_job["has_submitted"].sum())
-    #if total_has_submitted == df_job.shape[0]:  # all submitted
-    #    print("All jobs have already been submitted. "
-    #          + "Use `babs-status` to check job status.")
-    #    return job_ind_list
+    total_has_submitted = int(df_job["has_submitted"].sum())
+    if total_has_submitted == df_job.shape[0]:  # all submitted
+       print("All jobs have already been submitted. "
+             + "Use `babs-status` to check job status.")
+       return job_ind_list
 
     # See if user has specified list of jobs to submit:
     if df_job_specified:
