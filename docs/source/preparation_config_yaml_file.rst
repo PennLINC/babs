@@ -421,7 +421,6 @@ These will be turned into options in the directives (at the beginning) of ``part
 (this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown as below::
 
     #!/bin/bash
-    #$ -S /bin/bash
     #$ -l h_vmem=32G
     #$ -l tmpfree=200G
     #$ -pe threaded 6
@@ -429,6 +428,13 @@ These will be turned into options in the directives (at the beginning) of ``part
 For example, a job requires no more than 32 GB of memory,
 i.e., on SGE clusters, ``-l h_vmem=32G``.
 You may simply specify: ``hard_memory_limit: 32G``.
+
+.. warning::
+    Make sure you add ``interpreting_shell``!
+    It is very important.
+    For SGE, you might need: ``interpreting_shell: /bin/bash``;
+    For Slurm, you might need: ``interpreting_shell: /bin/bash -l``.
+    Check what it should be like in the manual of your cluster!
 
 The table below lists all the named cluster resources requests that BABS supports.
 You may not need all of them.
