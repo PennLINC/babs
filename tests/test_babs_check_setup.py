@@ -16,6 +16,7 @@ from get_data import (   # noqa
     container_ds_path,
     where_now,
     if_circleci,
+    get_container_config_yaml_filename,
     __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
@@ -80,8 +81,12 @@ def test_babs_check_setup(
     project_root = op.join(where_project, project_name)
     container_name = which_bidsapp + "-" + TOYBIDSAPP_VERSION_DASH
     container_config_yaml_filename = "example_container_" + which_bidsapp + ".yaml"
+    container_config_yaml_filename = \
+        get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input=False,
+                                           type_system="sge")  # TODO: also test slurm!
     container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
                                          container_config_yaml_filename)
+    assert op.exists(container_config_yaml_file)
 
     # below are all correct options:
     babs_init_opts = argparse.Namespace(
