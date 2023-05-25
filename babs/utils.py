@@ -2224,6 +2224,9 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
         print("Hint: check if the job is still in the queue, e.g., in state of qw, r, etc")
         print("Hint: check if the username used for submitting this job"
               + " was not current username '" + username_lowercase + "'")
+        print("Hint: check if the job was killed during pending state")
+        # ^^ for SGE cluster: job manually killed during pending: `qacct` will fail:
+        #   "error: job id xxx not found"
         msg_toreturn = msg_failed_to_call_qacct
 
     return msg_toreturn

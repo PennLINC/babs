@@ -74,11 +74,28 @@ when `print(df)` by python:
 # Testing
 ## Create pending, failed, or stalled jobs
 Change/Add these in `participant_job.sh`:
-- failed: add `-l h_rt=0:0:20` (hard runtime limit is 20 sec)
+- failed: see next section
 - pending: increase `-l h_vmem` and `-l s_vmem`; increase `-pe threaded N`
 - stalled (`eqw`): see Bergman email 12/20/22
 
 After these changes, `datalad save -m "message"` and `datalad push --to input`
+
+## Create failed cases for testing `babs-status` failed job auditing
+* Add `sleep 3600` to `container_zip.sh`; make sure you `datalad save` the changes
+* Change hard runtime limit to 20min (on SGE: `-l h_rt=0:20:00`)
+* Create failed cases:
+    * when the job is pending, manually kill it
+        * For Slurm cluster: you'll see normal msg from `State` column of `sacct` msg when `--job-account`
+        * For SGE cluster: you'll see warning that `qacct` failed for this job - this is normal. See PR #98 for more details.
+    * when the job is running, manually kill it
+    * wait until the job is running out of time, killed by the cluster
+        * if you don't want to wait for that long, just set the hard runtime limit to very low value, e.g., 20 sec
+* Perform job auditing using `--container-config-yaml-file`:
+    * add some msg into the `alert_log_messages`, which can be seen in the "failed" jobs - for testing purpose
+        * although they can be normal msg seen in successful jobs
+* Perform job auditing using `--job-account` (and `--container-config-yaml-file`):
+    * delete the `alert_log_messages` from the yaml file;
+    * Now, you should see job account for these failed jobs
 
 # Terminology
 
