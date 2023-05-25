@@ -38,6 +38,7 @@ from babs.utils import (get_immediate_subdirectories,
                         get_list_sub_ses,
                         submit_one_job,
                         df_update_one_job,
+                        prepare_job_ind_list,
                         submit_one_test_job,
                         read_job_status_csv,
                         report_job_status,
@@ -1013,96 +1014,32 @@ class BABS():
         lock_path = self.job_status_path_abs + ".lock"
         lock = FileLock(lock_path)
 
-        j_count = 0
-
         try:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
                 df_job = read_job_status_csv(self.job_status_path_abs)
+                # getting list of jobs indices to submit (based either on df_job_specified or count):
+                job_ind_list = prepare_job_ind_list(df_job, df_job_specified, count, self.type_session)
                 df_job_updated = df_job.copy()
+                for i_progress, i_job in enumerate(job_ind_list):
+                    # Submit a job:
+                    if self.type_session == "single-ses":
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = None
+                    else:  # multi-ses
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = df_job.at[i_job, "ses_id"]
 
-                # See if user has specified list of jobs to submit:
-                if df_job_specified:
-                    print("Will only submit specified jobs...")
-                    for j_job in range(0, df_job_specified.shape[0]):
-                        # find the index in the full `df_job`:
-                        if self.type_session == "single-ses":
-                            sub = df_job_specified.at[j_job, 'sub_id']
-                            ses = None
-                            temp = df_job['sub_id'] == sub
-                        elif self.type_session == "multi-ses":
-                            sub = df_job_specified.at[j_job, 'sub_id']
-                            ses = df_job_specified.at[j_job, 'ses_id']
-                            temp = (df_job['sub_id'] == sub) & \
-                                (df_job['ses_id'] == ses)
+                    job_id, _, log_filename = \
+                        submit_one_job(self.analysis_path,
+                                       self.type_session,
+                                       self.type_system,
+                                       sub, ses)
+                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id,
+                                                       log_filename, submitted=True)
 
-                        i_job = df_job.index[temp].to_list()
-                        # # sanity check: there should only be one `i_job`:
-                        # #   ^^ can be removed as done in `core_functions.py`
-                        # assert_msg = "There are duplications in `job_status.csv`" \
-                        #     + " for " + sub
-                        # if self.type_session == "multi-ses":
-                        #     assert_msg += ", " + ses
-                        # assert len(i_job) == 1, assert_msg + "!"
-                        i_job = i_job[0]   # take the element out of the list
-
-                        # check if the job has already been submitted:
-                        if not df_job["has_submitted"][i_job]:  # to run
-                            job_id, _, log_filename = submit_one_job(self.analysis_path,
-                                                                     self.type_session,
-                                                                     self.type_system,
-                                                                     sub, ses)
-                            # update `df_job_updated`:
-                            df_job_updated = df_update_one_job(df_job_updated, i_job, job_id,
-                                                               log_filename, submitted=True)
-                        else:
-                            to_print = "The job for " + sub
-                            if self.type_session == "multi-ses":
-                                to_print += ", " + ses
-                            to_print += " has already been submitted," \
-                                + " so it won't be submitted again." \
-                                + " If you want to resubmit it," \
-                                + " please use `babs-status --resubmit`"
-                            print(to_print)
-
-                else:    # did not specify jobs to submit,
-                    #   so submit by order in full list `df_job`, max = `count`:
-                    # Check if there is still jobs to submit:
-                    total_has_submitted = int(df_job["has_submitted"].sum())
-                    if total_has_submitted == df_job.shape[0]:   # all submitted
-                        print("All jobs have already been submitted. "
-                              + "Use `babs-status` to check job status.")
-                    else:
-                        # Check which row has not been submitted:
-                        for i_job in range(0, df_job.shape[0]):
-                            if not df_job["has_submitted"][i_job]:  # to run
-                                # ^^ type is bool (`numpy.bool_`), so use `if a:` or `if not a:`
-                                # print(df_job["sub_id"][i_job] + "_" + df_job["ses_id"][i_job])
-
-                                # Submit a job:
-                                if self.type_session == "single-ses":
-                                    sub = df_job.at[i_job, "sub_id"]
-                                    ses = None
-                                else:   # multi-ses
-                                    sub = df_job.at[i_job, "sub_id"]
-                                    ses = df_job.at[i_job, "ses_id"]
-
-                                job_id, _, log_filename = \
-                                    submit_one_job(self.analysis_path,
-                                                   self.type_session,
-                                                   self.type_system,
-                                                   sub, ses)
-                                df_job_updated = df_update_one_job(df_job_updated, i_job, job_id,
-                                                                   log_filename, submitted=True)
-
-                                j_count += 1
-                                # if it's several times of `count_report_progress`:
-                                if j_count % count_report_progress == 0:
-                                    print('So far ' + str(j_count) + ' jobs have been submitted.')
-
-                                if j_count == count:
-                                    break
-
-                        # babs-submit is only responsible for submitting jobs that haven't run yet
+                    # if it's several times of `count_report_progress`:
+                    if i_progress % count_report_progress == 0:
+                        print('So far ' + str(i_progress) + ' jobs have been submitted.')
 
                 with pd.option_context('display.max_rows', None,
                                        'display.max_columns', None,
