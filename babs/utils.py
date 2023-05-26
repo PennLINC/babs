@@ -1471,7 +1471,7 @@ def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
        return job_ind_list
 
     # See if user has specified list of jobs to submit:
-    if df_job_specified:
+    if df_job_specified is not None:
         print("Will only submit specified jobs...")
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
