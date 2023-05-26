@@ -11,7 +11,7 @@ Example walkthrough
 .. TODO before copying anything to this doc:
 ..  1. replace 'babs_demo_prep' with 'babs_demo'
 
-In this example walkthrough, we will use toy BIDS data and toy BIDS App
+In this example walkthrough, we will use toy BIDS data and a toy BIDS App
 to demonstrate how to use BABS.
 
 By following the :doc:`the installation page <installation>`, 
@@ -21,7 +21,7 @@ in a conda environment called ``babs``. In addition, because the toy BIDS data
 we'll use is on OSF, you also need to install ``datalad-osf``.
 
 Here is the list of software versions we used to prepare this walkthrough.
-You don't need to get the exact versions as below, but please check if yours are too old:
+It is a good idea to use the versions at or above the versions listed:
 
 .. developer's note: these were installed on 4/19/2023.
 
@@ -40,7 +40,7 @@ You don't need to get the exact versions as below, but please check if yours are
     $ datalad osf-credentials --version
     datalad_osf 0.2.3.1
 
-We used ``BABS version 0.0.3`` for preparing this example walkthrough.
+We used ``BABS version 0.0.3`` in this example walkthrough.
 You can check your BABS's version via command below:
 
 ..  code-block:: console
@@ -60,7 +60,7 @@ as the working directory in this example walkthrough:
     $ cd babs_demo
 
 Before we start, to test if you have all the dependencies
-(including ``datalad-osf``) installed properly, let's try if you can install
+(including ``datalad-osf``) installed properly, let's try installing
 the toy, multi-session BIDS dataset we'll use in this example walkthrough:
 
 ..  code-block:: console
@@ -84,7 +84,7 @@ would probably be different from yours due to different clusters, which is fine:
         [INFO   ] Remote origin uses a protocol not supported by git-annex; setting annex-ignore
 
 
-There are two subjects (``sub-01`` and ``sub-02``), in total of six sessions in this toy dataset.
+There are two subjects (``sub-01`` and ``sub-02``) and six sessions in this toy dataset.
 Now let's try getting a file's content:
 
 ..  code-block:: console
@@ -140,13 +140,13 @@ so no extra work needs to be done here.
 
 Step 1.2. Prepare DataLad dataset of containerized BIDS App
 -------------------------------------------------------------
-For BIDS App, we have prepared a `toy BIDS App <https://hub.docker.com/r/pennlinc/toy_bids_app>`_
+For the BIDS App, we have prepared a `toy BIDS App <https://hub.docker.com/r/pennlinc/toy_bids_app>`_
 that performs a simple task: if the input dataset is a raw BIDS dataset (unzipped),
-toy BIDS App will count non-hidden files in a subject's folder. Note that
+the toy BIDS App will count non-hidden files in a subject's folder. Note that
 even if the input dataset is multi-session dataset, it will still count at subject-level
 (instead of session-level).
 
-We now need to pull it as a Singularity image (the current latest version is ``0.0.7``):
+We now need to pull our toy BIDS App as a Singularity image (the latest version is ``0.0.7``):
 
 ..  code-block:: console
 
@@ -197,7 +197,7 @@ Then create a DataLad dataset of this container (i.e., let DataLad track this Si
           containers_add (ok: 1)
           save (ok: 1)
 
-Now, the DataLad dataset of toy BIDS App container ``toybidsapp-container`` is ready to use.
+Now, the DataLad dataset containing the toy BIDS App container ``toybidsapp-container`` is ready to use.
 
 .. developer's note: no need:
 ..  Please get its full path for later use by calling ``echo $PWD``.
@@ -243,7 +243,7 @@ Section ``zip_foldernames`` tells BABS to zip the output folder named ``toybidsa
 as a zip file as ``${sub-id}_${ses-id}_toybidsapp-0-0-7.zip`` for each subject's each session,
 where ``${sub-id}`` is a subject ID, ``${ses-id}`` is a session ID.
 
-You can copy above content and save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
+You can copy the above content and save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
 
 .. dropdown:: How to copy above content using ``Vim`` with correct indent?
 
@@ -260,7 +260,7 @@ You can copy above content and save it as file ``config_toybidsapp_demo.yaml`` i
     and hit ``Enter`` key to turn off pasting.
     You now can save this file by typing ``:w``. Close the file by entering ``:q`` and hitting ``Enter`` key.
 
-Before moving forward, there are several lines (highlighted above) requires customization for your cluster:
+There are several lines (highlighted above) that require customization based on the cluster you are using:
 
 * Section ``cluster_resources``:
 
@@ -269,11 +269,8 @@ Before moving forward, there are several lines (highlighted above) requires cust
 
 * Section ``script_preamble``:
 
-    * You might need to change the highlighted line #19 of ``source`` command
-      for how to activate the conda environment ``babs``;
-
-        * In addition, if you want to use a conda environment that has different name than ``babs``,
-          please replace ``babs`` with that name.
+    * You might need to adjust the highlighted line #19 of the ``source`` command
+      based on your cluster and conda environment name.
 
     * You might need to add another line to ``module load`` any necessary modules,
       such as ``singularity``.
@@ -289,7 +286,8 @@ Before moving forward, there are several lines (highlighted above) requires cust
 
 * Section ``job_compute_space``:
 
-    * You need to change ``"${CBICA_TMPDIR}"`` to temporary compute space available on your cluster,
+    * You need to change ``"${CBICA_TMPDIR}"`` to the temporary compute space available on your cluster
+      where you will be running jobs,
       e.g., ``"/path/to/some_temporary_compute_space"``.
       Here ``"${CBICA_TMPDIR}"`` is for Penn Medicine CUBIC cluster only.
     * For more, please see: :ref:`job-compute-space`.
@@ -422,9 +420,10 @@ output directory, and analysis level - 'participant'). ``--participant-label`` i
         └── output_ria
     
     Here, ``analysis`` is a DataLad dataset that includes generated scripts in ``code/``,
-    cloned container DataLad dataset ``containers/``, and cloned input dataset in ``inputs/data``.
-    Input and output RIA stores (``input_ria`` and ``output_ria``) are DataLad siblings of ``analysis``.
-    When job running, inputs are cloned from input RIA store,
+    a cloned container DataLad dataset ``containers/``, and a cloned input dataset in ``inputs/data``.
+    Input and output RIA stores (``input_ria`` and ``output_ria``) are
+    DataLad siblings of the ``analysis`` dataset.
+    When running jobs, inputs are cloned from input RIA store,
     and results and provenance will be pushed to output RIA store. 
 
 
