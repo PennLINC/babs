@@ -59,9 +59,9 @@ as the working directory in this example walkthrough:
     $ mkdir -p ~/babs_demo
     $ cd babs_demo
 
-Before we start, to test if you have all the dependencies
+Before you start, to test if you have all the dependencies
 (including ``datalad-osf``) installed properly, let's try installing
-the toy, multi-session BIDS dataset we'll use in this example walkthrough:
+the toy, multi-session BIDS dataset you'll use in this example walkthrough:
 
 ..  code-block:: console
 
@@ -102,9 +102,9 @@ You can now view this image in image viewers.
 Note that the intensities of images in this dataset have been zero-ed out, so it's normal to
 see all-black images in image viewers.
 
-By now, we have made sure we can successfully install this dataset and get the file contents.
-Now we can drop the file content and remove this local copy of this dataset,
-as we can directly use its OSF link for input dataset for BABS:
+By now, you have made sure you can successfully install this dataset and get the file contents.
+Now you can drop the file content and remove this local copy of this dataset,
+as you can directly use its OSF link for input dataset for BABS:
 
 ..  code-block:: console
 
@@ -134,8 +134,8 @@ There are three things required by BABS as input:
 Step 1.1. Prepare DataLad dataset(s) of BIDS dataset(s)
 ---------------------------------------------------------
 As mentioned above,
-we will use a toy, multi-session BIDS dataset available on OSF:
-https://osf.io/w2nu3/. We'll directly copy this link as the path to the input dataset,
+you will use a toy, multi-session BIDS dataset available on OSF:
+https://osf.io/w2nu3/. You'll directly copy this link as the path to the input dataset,
 so no extra work needs to be done here.
 
 Step 1.2. Prepare DataLad dataset of containerized BIDS App
@@ -146,7 +146,7 @@ the toy BIDS App will count non-hidden files in a subject's folder. Note that
 even if the input dataset is multi-session dataset, it will still count at subject-level
 (instead of session-level).
 
-We now need to pull our toy BIDS App as a Singularity image (the latest version is ``0.0.7``):
+You now need to pull our toy BIDS App as a Singularity image (the latest version is ``0.0.7``):
 
 ..  code-block:: console
 
@@ -215,7 +215,7 @@ you can remove the original ``sif`` file:
 Step 1.3. Prepare a YAML file for the BIDS App
 -------------------------------------------------------------
 
-Finally, we'll prepare a YAML file that instructs BABS for how to run the BIDS App.
+Finally, you'll prepare a YAML file that instructs BABS for how to run the BIDS App.
 Below is an example YAML file for toy BIDS App:
 
 .. developer's note: ref below: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-literalinclude
@@ -315,7 +315,7 @@ There are several lines (highlighted above) that require customization based on 
 ..  before proceeding, make sure you changed the env name in `script_preamble` in YAML file
 ..  to `babs_demo`!
 
-By now, we have prepared these in the ``~/babs_demo`` folder:
+By now, you have prepared these in the ``~/babs_demo`` folder:
 
 .. code-block:: console
 
@@ -326,7 +326,7 @@ By now, we have prepared these in the ``~/babs_demo`` folder:
 ..  It's optional to have cloned dataset ``raw_BIDS_multi-ses`` locally, as we can directly use its OSF link
 ..  for input dataset for BABS.
 
-We now start to use BABS for data analysis.
+Now you can start to use BABS for data analysis.
 
 Step 2. Create a BABS project
 =================================
@@ -353,13 +353,13 @@ and results and provenance are saved. An example command of ``babs-init`` is as 
         --type_session multi-ses \
         --type_system sge
 
-Here we will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
-The input dataset will be called ``BIDS``, and we can just provide the OSF link as its path (line #5).
-For container, we will use the DataLad-tracked ``toybidsapp-container`` and the YAML file we just prepared (line #6-8).
+Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
+The input dataset will be called ``BIDS``, and you can just provide the OSF link as its path (line #5).
+For container, you will use the DataLad-tracked ``toybidsapp-container`` and the YAML file you just prepared (line #6-8).
 It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--container_name`` (line #7)
-is consistent with the image name we specified when preparing
+is consistent with the image name you specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
-As this input dataset is a multi-session dataset, we specify this as ``--type_session multi-ses`` (line #9).
+As this input dataset is a multi-session dataset, you should specify this as ``--type_session multi-ses`` (line #9).
 Finally, please change the cluster system type ``--type_system`` (highlighted line #10) to yours;
 currently BABS supports ``sge`` and ``slurm``.
 
@@ -455,7 +455,7 @@ that the environment and cluster resources specified in the YAML file are workab
 Note that starting from this step in this example walkthrough, without further instructions,
 all BABS functions will be called from where the BABS project
 is located: ``~/babs_demo/my_BABS_project``.
-This is to make sure we can directly use ``${PWD}`` for argument ``--project-root``.
+This is to make sure you can directly use ``${PWD}`` for argument ``--project-root``.
 Therefore, please make sure you switch to this directory before calling them.
 
 ..  code-block:: console
@@ -467,7 +467,7 @@ Therefore, please make sure you switch to this directory before calling them.
 
 It might take a bit time to finish, depending on how busy your cluster is,
 and how much resources you requested in the YAML file - in this example,
-we only requested very minimal amount of resources.
+you only requested very minimal amount of resources.
 
 You'll see this message at the end if ``babs-check-setup`` was successful:
 
@@ -560,7 +560,7 @@ You'll see something like this (the job ID will probably be different):
     4                        NaN                    NaN            NaN          NaN  
     5                        NaN                    NaN            NaN          NaN 
 
-We can check the job status via ``babs-status``:
+You can check the job status via ``babs-status``:
 
 ..  code-block:: console
 
@@ -600,7 +600,7 @@ If it's successfully finished, you'll see:
 
     All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
 
-Now, we can submit all other jobs by specifying ``--all``:
+Now, you can submit all other jobs by specifying ``--all``:
 
 .. code-block:: console
 
@@ -707,14 +707,14 @@ If it was successful, you'll see this message at the end:
 .. TODO after copying:
 ..  1. check the tracked changes!
 
-Now we're ready to consume the results.
+Now you're ready to consume the results.
 
 Step 4.2. Consume results
 ------------------------------
 
-To consume the results, we should not access the output RIA store
+To consume the results, you should not access the output RIA store
 or ``merge_ds`` directories inside the BABS project.
-Instead, we should clone the output RIA as another folder (e.g., called ``my_BABS_project_outputs``)
+Instead, clone the output RIA as another folder (e.g., called ``my_BABS_project_outputs``)
 to a location external to the BABS project:
 
 ..  code-block:: console
@@ -756,7 +756,7 @@ You'll see:
 .. developer's note: do NOT change the indents above! In the html the 2nd column is aligned...
 
 As you can see, each session's results have been saved in a zip file.
-Before unzipping a zip file, we need to get its content first:
+Before unzipping a zip file, you need to get its content first:
 
 ..  code-block:: console
 
@@ -775,7 +775,7 @@ You'll see printed messages like this:
        creating: toybidsapp/
      extracting: toybidsapp/num_nonhidden_files.txt 
 
-From the zip file, we got a folder called ``toybidsapp``.
+From the zip file, you got a folder called ``toybidsapp``.
 
 ..  code-block:: console
 
@@ -792,6 +792,6 @@ current dataset is a multi-session dataset.
     $ cat num_nonhidden_files.txt
     67
 
-Here, ``67`` is the expected number for ``sub-01`` (which we're looking at),
+Here, ``67`` is the expected number for ``sub-01`` (which you're looking at),
 ``56`` is the expected number for ``sub-02``.
 This means that toy BIDS App and BABS ran as expected :).
