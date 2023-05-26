@@ -1460,7 +1460,8 @@ def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
     Returns:
     ------------------
     job_ind_list: list
-        list of job indices to be submitted
+        list of job indices to be submitted,
+        these are indices from the full job status dataframe `df_job`
     """
     job_ind_list = []
     # Check if there is still jobs to submit:
