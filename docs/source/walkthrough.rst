@@ -266,6 +266,25 @@ There are several lines (highlighted above) that require customization based on 
 
     * If needed, you may add requests for other resources. See :ref:`cluster-resources`
       for how to do so.
+    * .. dropdown:: For Penn Medicine CUBIC cluster only:
+        
+        You may need to add line #5-6 highlighted in the block below
+        to avoid some compute nodes
+        that currently have issues in file locks:
+
+        ..  code-block:: yaml
+            :linenos:
+            :emphasize-lines: 5,6
+
+            cluster_resources:
+                interpreting_shell: /bin/bash
+                hard_memory_limit: 2G
+                temporary_disk_space: 20G
+                customized_text: |
+                    #$ -l hostname=!compute-fed*
+
+.. developer's note: if YAML file of walkthrough was changed:
+..  also need to change above copied section "cluster_resources"!
 
 * Section ``script_preamble``:
 
@@ -429,9 +448,9 @@ output directory, and analysis level - 'participant'). ``--participant-label`` i
 
 Step 2.2. Use ``babs-check-setup`` to make sure it's good to go
 --------------------------------------------------------------------
-It's important to let BABS checks if everything has been correctly set up. In addition,
-it's a good idea to run a toy, test job to make sure the environment you specified in the YAML file
-is working as expected.
+It's important to let BABS check to be sure that the project has been initialized correctly. In addition,
+it's often a good idea to run a test job to make sure
+that the environment and cluster resources specified in the YAML file are workable.
 
 Note that starting from this step in this example walkthrough, without further instructions,
 all BABS functions will be called from where the BABS project
@@ -490,12 +509,11 @@ Step 3. Submit jobs and check job status
 ==========================================
 We'll iteratively use ``babs-submit`` and ``babs-status`` to submit jobs and check job status.
 
-We first use ``babs-status`` to check how many jobs to complete.
-The list of jobs to complete was determined during ``babs-init``:
-As no initial list was provided, BABS dived into the input BIDS dataset,
-and got the list of subjects and sessions to process. As we did not specify
-required files in the container's configuration YAML file, BABS would not
-perform extra filtering.
+We first use ``babs-status`` to check the number of jobs we initially expect to finish successfully.
+In this example walkthrough, as no initial list was provided,
+BABS determines this number based on the number of subject/session pairs in the input BIDS dataset.
+We did not request extra filtering (based on required files) in our YAML file either,
+so BABS will submit one job per subject/session pair.
 
 ..  code-block:: console
 
@@ -513,10 +531,9 @@ You'll see:
     There are in total of 6 jobs to complete.
     0 job(s) have been submitted; 6 job(s) haven't been submitted.
 
-Let's use ``babs-submit`` submit one job to see if it will successfully finish.
-If only argument ``--project-root`` is provided (as we're doing right now),
-``babs-submit`` will only submit
-one job to avoid all jobs getting submitted by mistake:
+Let's use ``babs-submit`` to submit one job and see if it will finish successfully.
+By default, ``babs-submit`` will only submit one job.
+If you would like to submit all jobs, you can use the ``--all`` argument.
 
 .. code-block:: console
 
@@ -633,9 +650,9 @@ If those 5 jobs are pending (submitted but not yet run by the cluster), you'll s
 
     All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
 
-If some jobs are running or failed, you'll see non-zero numbers in line #9 or #10.
+If some jobs are running or have failed, you'll see non-zero numbers in line #9 or #10.
 
-If all jobs are successfully completed, you'll see:
+If all jobs have finished successfully, you'll see:
 
 ..  code-block:: console
     :emphasize-lines: 7,8
@@ -660,10 +677,10 @@ Step 4. After jobs are finished
 
 Step 4.1. Use ``babs-merge`` to merge all results and provenance
 --------------------------------------------------------------------
-After all jobs are successfully finished,
-we will first merge all the results and provenance.
-This is because each job was executed on a different branch.
-We need to merge them together onto the default branch.
+After all jobs have finished successfully,
+we will merge all the results and provenance.
+Each job was executed on a different branch, so we must
+merge them together into the mainline branch.
 
 We now run ``babs-merge`` in the root directory of ``my_BABS_project``:
 
@@ -695,10 +712,10 @@ Now we're ready to consume the results.
 Step 4.2. Consume results
 ------------------------------
 
-To consume the results, we should not directly go into output RIA 
-or ``merge_ds`` folder (created by ``babs-merge``) to check results there;
-instead, we should clone the output RIA as another folder (e.g., called ``my_BABS_project_outputs``)
-outside the original BABS project:
+To consume the results, we should not access the output RIA store
+or ``merge_ds`` directories inside the BABS project.
+Instead, we should clone the output RIA as another folder (e.g., called ``my_BABS_project_outputs``)
+to a location external to the BABS project:
 
 ..  code-block:: console
 
