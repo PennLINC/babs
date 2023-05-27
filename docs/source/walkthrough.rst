@@ -44,7 +44,7 @@ It is a good idea to use the versions at or above the versions listed:
 We used ``BABS version 0.0.3`` in this example walkthrough.
 It's encouraged to use up-to-date BABS versions released on PyPI,
 and the instructions are consistent for the newer BABS version.
-With newer versinos, you might see minor differences in the printed messages and code.
+With newer versions, you might see minor differences in the printed messages and code.
 You can check your BABS's version via command below:
 
 ..  code-block:: console
