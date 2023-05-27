@@ -6,18 +6,24 @@ Initialize a BABS project using ``babs-init``
 ===============================================
 
 After you've prepared the three things BABS requires (details see here: :doc:`preparation`), 
-now you can initialize a BABS project using ``babs-init``. Please follow documentation :doc:`babs-init`
-for how to use ``babs-init``.
+you can initialize a BABS project using ``babs-init``. Please follow our documentation
+:doc:`babs-init` describing how to use ``babs-init``.
 
-If the BIDS App you'll use depend on Templateflow, please make sure you've set up
+If the BIDS App you'll use requires TemplateFlow, please make sure you've set up the
 environment variable ``TEMPLATEFLOW_HOME`` before running ``babs-init``. See
-:ref:`advanced_manual_singularity_run` --> the bullet point regarding "Templateflow" for more.
+:ref:`advanced_manual_singularity_run` --> the bullet point regarding "TemplateFlow" for more.
 
-If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project.
-What you need to do is to read the error messages and fix the problem (e.g., any problem
-in ``babs-init`` command call, in your input dataset(s), in your container DataLad dataset,
-or in the container's YAML file, etc). Then rerun ``babs-init`` until it finishes without error,
-i.e., printing the message as below at the end:
+If ``babs-init`` fails, by default BABS will remove ("clean up") the partially created BABS project.
+To fix the problem, please read the error messages from ``babs-init``.
+After identifying where the problem is (potential places are listed below),
+please fix the problem and rerun ``babs-init``.
+
+* Problems in ``babs-init`` command?
+* Problems in input BIDS dataset(s)?
+* Problems in container DataLad dataset?
+* Problems in container configuration YAML file?
+
+If ``babs-init`` finishes without error, you'll see this message at the end:
 
 .. code-block:: console
 

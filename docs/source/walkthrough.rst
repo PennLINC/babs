@@ -13,12 +13,13 @@ Example walkthrough
 
 In this example walkthrough, we will use toy BIDS data and a toy BIDS App
 to demonstrate how to use BABS.
+We use SGE clusters as examples here; adaptations to Slurm clusters will also be covered.
 
 By following the :doc:`the installation page <installation>`, 
 on the cluster, you should have successfully installed BABS and its dependent software
 (``DataLad``, ``Git``, ``git-annex``, ``datalad-container``)
 in a conda environment called ``babs``. In addition, because the toy BIDS data
-we'll use is on OSF, you also need to install ``datalad-osf``.
+you'll use is on OSF, you also need to install ``datalad-osf``.
 
 Here is the list of software versions we used to prepare this walkthrough.
 It is a good idea to use the versions at or above the versions listed:
@@ -41,6 +42,9 @@ It is a good idea to use the versions at or above the versions listed:
     datalad_osf 0.2.3.1
 
 We used ``BABS version 0.0.3`` in this example walkthrough.
+It's encouraged to use up-to-date BABS versions released on PyPI,
+and the instructions are consistent for the newer BABS version.
+With newer versinos, you might see minor differences in the printed messages and code.
 You can check your BABS's version via command below:
 
 ..  code-block:: console
@@ -672,7 +676,7 @@ If all jobs have finished successfully, you'll see:
 .. TODO before copying:
 ..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
 
-Step 4. After jobs are finished
+Step 4. After jobs have finished
 ===================================
 
 Step 4.1. Use ``babs-merge`` to merge all results and provenance
