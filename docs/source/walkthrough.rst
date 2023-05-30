@@ -230,7 +230,7 @@ Below is an example YAML file for toy BIDS App:
    :language: yaml
    :lines: 21-
    :linenos:
-   :emphasize-lines: 12,18,19,22
+   :emphasize-lines: 12,13,18,19,22
 
 As you can see, there are several sections in this YAML file.
 
@@ -268,8 +268,15 @@ There are several lines (highlighted above) that require customization based on 
 
 * Section ``cluster_resources``:
 
-    * If needed, you may add requests for other resources. See :ref:`cluster-resources`
-      for how to do so.
+    * Check out if line #13 ``interpreting_shell`` looks appropriate for your cluster.
+      Some Slurm clusters may recommend adding ``-l`` at the end,
+      i.e.,::
+        
+        interpreting_shell: "/bin/bash -l"
+
+      See :ref:`cluster-resources` for more explanations about this line.
+    * If needed, you may add requests for other resources, e.g., runtime limit of 20min.
+      See :ref:`cluster-resources` for how to do so.
     * .. dropdown:: For Penn Medicine CUBIC cluster only:
         
         You may need to add line #5-6 highlighted in the block below
@@ -289,6 +296,9 @@ There are several lines (highlighted above) that require customization based on 
 
 .. developer's note: if YAML file of walkthrough was changed:
 ..  also need to change above copied section "cluster_resources"!
+.. developer's note: for MSI Slurm cluster: need to add `hard_runtime_limit: "20"`
+..  without it, when using e.g. `k40` partition, one job was success (branch pushed to output RIA)
+..  but "TIMEOUT" in `sacct`, leaving last 2 lines of stdout message of "deleting branch:\n job-xx-xx-xx"
 
 * Section ``script_preamble``:
 
