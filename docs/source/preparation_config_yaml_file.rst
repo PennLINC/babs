@@ -408,7 +408,8 @@ Other detailed instructions:
 
 Section ``cluster_resources``
 =================================
-This section defines how much cluster resources each participant's job will use.
+This section defines the cluster resources each job will use,
+and the interpreting shell for executing the job script.
 
 Example section **cluster_resources** for ``QSIPrep``::
 

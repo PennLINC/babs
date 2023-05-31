@@ -312,7 +312,7 @@ class BABS():
                           message="Save .gitignore file")
 
         # Create `babs_proj_config.yaml` file: ----------------------
-        print("Save configurations of BABS project in a yaml file ...")
+        print("Save BABS project configurations in a YAML file ...")
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
         babs_proj_config_file = open(self.config_path, "w")
         babs_proj_config_file.write("type_session: '"
@@ -554,7 +554,10 @@ class BABS():
         #   it should point to /full/path/output_ria/xxx/xxx-xxx-xxx-xxx
 
         # SUCCESS!
-        print("\n`babs-init` was successful!")
+        print("\n")
+        print("BABS project has been initialized!"
+              " Path to this BABS project: '" + self.project_root + "'")
+        print("`babs-init` was successful!")
 
     def clean_up(self, input_ds):
         """
@@ -882,11 +885,12 @@ class BABS():
             print("\n`babs-check-setup` was successful! ")
         else:
             print("\nSubmitting a test job, will take a while to finish...")
-            print("Although the script will be submitted to the cluster to run,"
-                  " this job will not run the BIDS App;"
+            print("Although the script will be submitted to a compute node,"
+                  " this test job will not run the BIDS App;"
                   " instead, this test job will gather setup information"
                   " in the designated environment"
-                  " and will make sure jobs can finish successfully on current cluster.")
+                  " and make sure future BABS jobs with current setups"
+                  " will be able to finish successfully on current cluster.")
 
             _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
             log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
