@@ -881,7 +881,8 @@ class BABS():
             print("\nNot to submit a test job as it's not requested."
                   + " We recommend running a test job with `--job-test` if you haven't done so;"
                   + " It will gather setup information in the designated environment"
-                  + " and will make sure jobs can finish successfully on current cluster.")
+                  + " and make sure future BABS jobs with current setups"
+                  + " will be able to finish successfully.")
             print("\n`babs-check-setup` was successful! ")
         else:
             print("\nSubmitting a test job, will take a while to finish...")
@@ -890,7 +891,7 @@ class BABS():
                   " instead, this test job will gather setup information"
                   " in the designated environment"
                   " and make sure future BABS jobs with current setups"
-                  " will be able to finish successfully on current cluster.")
+                  " will be able to finish successfully.")
 
             _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
             log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
