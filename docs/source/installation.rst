@@ -7,7 +7,8 @@ Installation
 Step 1. Prepare a conda environment for BABS
 =============================================
 
-After installing conda, let's initiate a conda environment (e.g., named ``babs``) for running BABS::
+After installing conda, let's initialize a new environment (e.g., named ``babs``)
+where we can install BABS:: 
 
     conda create -n babs python=3.9.16
     conda activate babs
@@ -37,7 +38,7 @@ Besides required software listed above, you also need to install ``datalad-osf``
 
     * e.g., when you follow :doc:`the example walkthrough <walkthrough>`;
 
-* or if you're a developer and you will run ``pytest``;
+* or if you're a developer and you will be running our ``pytest``;
 
 How to install ``datalad-osf``::
 
@@ -114,8 +115,8 @@ you may update the installation with::
     # Suppose you are in root directory of babs source code:
     pip install -e .    # for developer to update
 
-If you are a developer and you'd like to run ``pytest`` locally, please install BABS in the following way
-so that necessary packages for pytest will also be installed: ``pip install -e .[tests]``.
+If you are a developer and you'd like to run our ``pytest`` locally, please install BABS in the following way
+so that necessary packages for our testing infrastructure will also be installed: ``pip install -e .[tests]``.
 
 Step 4. (Optional) Check BABS version
 ======================================
