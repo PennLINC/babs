@@ -1038,8 +1038,8 @@ class BABS():
                                                        log_filename, submitted=True)
 
                     # if it's several times of `count_report_progress`:
-                    if i_progress % count_report_progress == 0:
-                        print('So far ' + str(i_progress) + ' jobs have been submitted.')
+                    if (i_progress + 1) % count_report_progress == 0:
+                        print('So far ' + str(i_progress + 1) + ' jobs have been submitted.')
 
                 with pd.option_context('display.max_rows', None,
                                        'display.max_columns', None,

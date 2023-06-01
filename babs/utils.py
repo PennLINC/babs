@@ -1396,7 +1396,10 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
 
 def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done=None, debug=False):
     """
-    This is to update one job in the dataframe `df_jobs`, mostly used after job submission.
+    This is to update one job's status and information in the dataframe df_jobs,
+    mostly used after job submission or resubmission. Therefore, a lot of fields will be reset.
+    For other cases (e.g., to update job status to running state / successfully finished state, etc.),
+    you may directly update df_jobs without using this function.
 
     Parameters:
     ----------------
@@ -1413,7 +1416,8 @@ def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done
     done: bool or None
         whether the is_done field has to be updated
     debug: bool
-        whether the testing fields have to be updated
+        whether the job auditing fields need to be reset to np.nan
+        (fields include last_line_stdout_file, alert_message, and job_account).
 
     Returns:
     ------------------
@@ -1425,7 +1429,6 @@ def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done
     df_jobs.at[i_job, "log_filename"] = log_filename
     # reset fields:
     df_jobs.at[i_job, "is_failed"] = np.nan
-    # probably not necessary to reset (comment taken from the submit section)
     df_jobs.at[i_job, "job_state_category"] = np.nan
     df_jobs.at[i_job, "job_state_code"] = np.nan
     df_jobs.at[i_job, "duration"] = np.nan
