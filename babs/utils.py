@@ -1416,6 +1416,135 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
     return job_id, job_id_str, log_filename
 
 
+def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done=None, debug=False):
+    """
+    This is to update one job's status and information in the dataframe df_jobs,
+    mostly used after job submission or resubmission. Therefore, a lot of fields will be reset.
+    For other cases (e.g., to update job status to running state / successfully finished state, etc.),
+    you may directly update df_jobs without using this function.
+
+    Parameters:
+    ----------------
+    df_jobs: pd.DataFrame
+        dataframe of jobs and their status
+    i_job: int
+        index of the job to be updated
+    job_id: int
+        job id
+    log_filename: str
+        log filename of this job.
+    submitted: bool or None
+        whether the has_submitted field has to be updated
+    done: bool or None
+        whether the is_done field has to be updated
+    debug: bool
+        whether the job auditing fields need to be reset to np.nan
+        (fields include last_line_stdout_file, alert_message, and job_account).
+
+    Returns:
+    ------------------
+    df_jobs: pd.DataFrame
+        dataframe of jobs, updated
+    """
+    # assign into `df_job_updated`:
+    df_jobs.at[i_job, "job_id"] = job_id
+    df_jobs.at[i_job, "log_filename"] = log_filename
+    # reset fields:
+    df_jobs.at[i_job, "is_failed"] = np.nan
+    df_jobs.at[i_job, "job_state_category"] = np.nan
+    df_jobs.at[i_job, "job_state_code"] = np.nan
+    df_jobs.at[i_job, "duration"] = np.nan
+    if submitted is not None:
+        # update the status:
+        df_jobs.at[i_job, "has_submitted"] = submitted
+    if done is not None:
+        # update the status:
+        df_jobs.at[i_job, "is_done"] = done
+    if debug:
+        df_jobs.at[i_job, "last_line_stdout_file"] = np.nan
+        df_jobs.at[i_job, "alert_message"] = np.nan
+        df_jobs.at[i_job, "job_account"] = np.nan
+    return df_jobs
+
+
+def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
+    """
+    This is to prepare the list of job indices to be submitted.
+
+    Parameters:
+    ----------------
+    df_job: pd.DataFrame
+        dataframe of jobs and their status
+    df_job_specified: pd.DataFrame
+        dataframe of jobs to be submitted (specified by user)
+    count: int
+        number of jobs to be submitted
+    type_session: str
+        type of session, can be "single-ses" or "multi-ses"
+
+    Returns:
+    ------------------
+    job_ind_list: list
+        list of job indices to be submitted,
+        these are indices from the full job status dataframe `df_job`
+    """
+    job_ind_list = []
+    # Check if there is still jobs to submit:
+    total_has_submitted = int(df_job["has_submitted"].sum())
+    if total_has_submitted == df_job.shape[0]:  # all submitted
+       print("All jobs have already been submitted. "
+             + "Use `babs-status` to check job status.")
+       return job_ind_list
+
+    # See if user has specified list of jobs to submit:
+    if df_job_specified is not None:
+        print("Will only submit specified jobs...")
+        for j_job in range(0, df_job_specified.shape[0]):
+            # find the index in the full `df_job`:
+            if type_session == "single-ses":
+                sub = df_job_specified.at[j_job, 'sub_id']
+                ses = None
+                temp = df_job['sub_id'] == sub
+            elif type_session == "multi-ses":
+                sub = df_job_specified.at[j_job, 'sub_id']
+                ses = df_job_specified.at[j_job, 'ses_id']
+                temp = (df_job['sub_id'] == sub) & \
+                       (df_job['ses_id'] == ses)
+
+            # dj: should we keep this part?
+            i_job = df_job.index[temp].to_list()
+            # # sanity check: there should only be one `i_job`:
+            # #   ^^ can be removed as done in `core_functions.py`
+            # assert_msg = "There are duplications in `job_status.csv`" \
+            #     + " for " + sub
+            # if self.type_session == "multi-ses":
+            #     assert_msg += ", " + ses
+            # assert len(i_job) == 1, assert_msg + "!"
+            i_job = i_job[0]  # take the element out of the list
+
+            # check if the job has already been submitted:
+            if not df_job["has_submitted"][i_job]:  # to run
+                job_ind_list.append(i_job)
+            else:
+                to_print = "The job for " + sub
+                if type_session == "multi-ses":
+                    to_print += ", " + ses
+                to_print += " has already been submitted," \
+                            + " so it won't be submitted again." \
+                            + " If you want to resubmit it," \
+                            + " please use `babs-status --resubmit`"
+                print(to_print)
+    else: # taking into account the `count` argument
+        j_count = 0
+        for i_job in range(0, df_job.shape[0]):
+            if not df_job["has_submitted"][i_job]:  # to run
+                job_ind_list.append(i_job)
+                j_count += 1
+                if j_count == count:
+                    break
+    return job_ind_list
+
+
 def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     """
     This is to submit one *test* job.
