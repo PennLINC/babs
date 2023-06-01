@@ -653,12 +653,19 @@ def generate_one_bashhead_resources(system, key, value):
         This does not include "\n" at the end.
         e.g., "#$ -S /bin/bash".
 
+    Notes:
+    ---------
+    For interpreting shell, regardless of system type,
+    it will be '#!' + the value user provided.
     """
-    cmd = "#"
-    if system.type == "sge":
-        cmd += "$ "    # e.g., `#$ -l h_vmem=xxx`
-    elif system.type == "slurm":
-        cmd += "SBATCH "   # e.g., `#SBATCH --xxx=yyy`
+    if key == "interpreting_shell":
+        cmd = ""   # directly use the format provided in the dict
+    else:
+        cmd = "#"
+        if system.type == "sge":
+            cmd += "$ "    # e.g., `#$ -l h_vmem=xxx`
+        elif system.type == "slurm":
+            cmd += "SBATCH "   # e.g., `#SBATCH --xxx=yyy`
 
     # find the key in the `system.dict`:
     if key not in system.dict:
@@ -675,8 +682,8 @@ def generate_one_bashhead_resources(system, key, value):
 
 def generate_bashhead_resources(system, config):
     """
-    This is to generate the head of the bash file
-    for requesting cluster resources.
+    This is to generate the directives ("head of the bash file")
+    for requesting cluster resources, specifying interpreting shell, etc.
 
     Parameters:
     ------------
@@ -700,10 +707,25 @@ def generate_bashhead_resources(system, config):
         raise Exception("There is no section `cluster_resources`"
                         + " in `container_config_yaml_file`!")
 
-    # loop: for each key, call `generate_one_bashhead_resources()`:
+    # generate the command for interpreting shell first:
+    if "interpreting_shell" not in config["cluster_resources"]:
+        warnings.warn("The interpreting shell was not specified for 'participant_job.sh'."
+                      + " This should be specified using 'interpreting_shell'"
+                      + " under section 'cluster_resources' in container's"
+                      + " configuration YAML file.")
+    else:
+        key = "interpreting_shell"
+        value = config["cluster_resources"][key]
+        one_cmd = generate_one_bashhead_resources(system, key, value)
+        cmd += one_cmd + "\n"
+
+    # loop for other keys:
+    #   for each key, call `generate_one_bashhead_resources()`:
     for key, value in config["cluster_resources"].items():
         if key == "customized_text":
             pass   # handle this below
+        elif key == "interpreting_shell":
+            pass   # has been handled - see above
         else:
             one_cmd = generate_one_bashhead_resources(system, key, value)
             cmd += one_cmd + "\n"
@@ -2055,6 +2077,9 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         When `alert_message` is `msg_no_alert`,
         or is `np.nan` (`if_valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
+    if_found_log_files: bool or np.nan
+        np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
+        Otherwise, True or False based on if any log files were found
 
     Notes:
     -----------------
@@ -2067,15 +2092,18 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     msg_no_alert = MSG_NO_ALERT_IN_LOGS
     if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
+    if_found_log_files = np.nan
 
     if config_msg_alert is None:
         alert_message = np.nan
         if_valid_alert_msg = False
+        if_found_log_files = np.nan   # unknown if log files exist or not
     else:
         o_fn = log_fn.replace("*", 'o')
         e_fn = log_fn.replace("*", 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):   # either exists:
+            if_found_log_files = True
             found_message = False
             alert_message = msg_no_alert
 
@@ -2106,6 +2134,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                     break   # no need to go to next log file
 
         else:    # neither o_fn nor e_fn exists yet:
+            if_found_log_files = False
             alert_message = np.nan
             if_valid_alert_msg = False
 
@@ -2115,7 +2144,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     else:   # `alert_message`: np.nan or any other message:
         if_no_alert_in_log = False
 
-    return alert_message, if_no_alert_in_log
+    return alert_message, if_no_alert_in_log, if_found_log_files
 
 def get_username():
     """
@@ -2202,18 +2231,24 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
         stdout=subprocess.PIPE
     )
     # ref: https://slurm.schedmd.com/sacct.html
+    # also based on ref: https://github.com/ComputeCanada/slurm_utils/blob/master/sacct-all.py
 
     proc_sacct.check_returncode()
     # even if the job does not exist, there will still be printed msg from sacct,
     #   at least a header. So `check_returncode()` should always succeed.
-    msg_l = proc_sacct.stdout.decode('utf-8').split("\n")
+    msg_l = proc_sacct.stdout.decode('utf-8').split("\n")   # all lines from `sacct`
+    # 1st line: column names
+    # 2nd and forward lines: job information
+    #   ^^ if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
+    #   Usually there are more than one job lines;
+    #   However if the job was manually killed when pending, then there will only be one job line.
     msg_head = msg_l[0].split(the_delimiter)   # list of column names
 
     # Check if there is any problem when calling `sacct` for this job:
     if "State" not in msg_head or "JobID" not in msg_head or "JobName" not in msg_head:
         if_no_sacct = True
-    if len(msg_l) <= 2 or msg_l[2] == '':
-        # if there is only header (len <= 2 or the 3rd element is empty):
+    if len(msg_l) <= 1 or msg_l[1] == '':
+        # if there is only header (len <= 1 or the 2nd element is empty):
         if_no_sacct = True
 
     if if_no_sacct:   # there is no information about this job in sacct:
@@ -2318,6 +2353,9 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
         print("Hint: check if the job is still in the queue, e.g., in state of qw, r, etc")
         print("Hint: check if the username used for submitting this job"
               + " was not current username '" + username_lowercase + "'")
+        print("Hint: check if the job was killed during pending state")
+        # ^^ for SGE cluster: job manually killed during pending: `qacct` will fail:
+        #   "error: job id xxx not found"
         msg_toreturn = msg_failed_to_call_qacct
 
     return msg_toreturn
