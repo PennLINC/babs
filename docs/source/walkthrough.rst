@@ -407,7 +407,8 @@ If ``babs-init`` succeeded, you should see this message at the end:
     However, a lot of BIDS Apps would use it. Make sure you set it up when you use those BIDS Apps.
 
 
-It's very important to check if the generated ``singularity run`` command is what you desire:
+It's very important to check if the generated ``singularity run`` command is what you desire.
+The command below can be found in the printed messages from ``babs-init``:
 
 ..  code-block:: console
 
@@ -425,6 +426,39 @@ It's very important to check if the generated ``singularity run`` command is wha
 
 As you can see, BABS has automatically handled the positional arguments of BIDS App (i.e., input directory,
 output directory, and analysis level - 'participant'). ``--participant-label`` is also covered by BABS, too.
+
+It's also important to check if the generated directives for job submission are what you desire.
+You can get them via:
+
+..  code-block:: console
+
+    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
+    $ head analysis/code/participant_job.sh
+
+The first several lines starting with ``#`` and before the line ``# Script preambles:``
+are directives for job submissions.
+Depending on the BABS version you are using, you'll see slightly different directives:
+
+.. developer's note: below: not all the 10 lines from `head participant_job.sh`, but only lines of directives.
+
+.. dropdown:: If you used the YAML file above + BABS version 0.0.3, you'll see:
+
+    ..  code-block:: console
+
+        #!/bin/bash
+        #$ -S /bin/bash
+        #$ -l h_vmem=2G
+        #$ -l tmpfree=20G
+
+.. dropdown:: If you used the YAML file above + BABS version >0.0.3, you'll see:
+
+    ..  code-block:: console
+
+        #!/bin/bash
+        #$ -l h_vmem=2G
+        #$ -l tmpfree=20G
+
+.. developer's note: above was got via BABS 0.0.4.
 
 .. developer's note: below is generated based on `tree -L 3 .`
 
