@@ -302,16 +302,16 @@ Advanced - Manual of writing section ``singularity_run``
       BABS will also automatically generate a filter file (JSON format) when running each session's data,
       so that only data from a specific session will be included for analysis.   
 
-* Will BABS handle `Templateflow <https://www.templateflow.org/>`_ environment variable? 
+* Will BABS handle `TemplateFlow <https://www.templateflow.org/>`_ environment variable? 
 
-    * Yes, BABS assumes all BIDS Apps use Templateflow, and will handle its environment variable ``$TEMPLATEFLOW_HOME``
+    * Yes, BABS assumes all BIDS Apps use TemplateFlow, and will handle its environment variable ``$TEMPLATEFLOW_HOME``
       *if* this environmental variable exists in the terminal environment where ``babs-init`` will be run.
-    * For BIDS Apps that truly depend on Templateflow (e.g., fMRIPrep, QSIPrep, XCP-D),
+    * For BIDS Apps that truly depend on TemplateFlow (e.g., fMRIPrep, QSIPrep, XCP-D),
       before you run ``babs-init``, please make sure you:
       
-        #. Find a directory for holding Templateflow's templates.
+        #. Find a directory for holding TemplateFlow's templates.
     
-            * If no (or not all necessary) Templateflow's templates has been downloaded
+            * If no (or not all necessary) TemplateFlow's templates has been downloaded
               in this directory, then this directory must be writable, so that when running the BIDS App,
               necessary templates can be downloaded in this directory;
             * if all necessary templates have been downloaded in this directory,
