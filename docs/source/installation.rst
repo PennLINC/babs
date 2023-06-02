@@ -29,6 +29,23 @@ Below is an example way of installing dependent software on Linux system::
 
 If commands above do not work out, please refer to `Installation reference`_ for alternative and updated ways.
 
+Before proceeding, make sure your ``Git`` identity has been configured.
+You can check whether this has already been done via::
+
+    git config --get user.name
+    git config --get user.email
+
+If this returns nothing, you need to configure your ``Git`` identity::
+
+    git config --global user.name "John Doe"
+    git config --global user.email johndoe@example.com
+
+Please replace ``"John Doe"`` and ``johndoe@example.com`` with your name and your email.
+You only need to do this step once on a given system.
+
+.. developer's note: 
+..  ref: https://psychoinformatics-de.github.io/rdm-course/01-content-tracking-with-datalad/index.html#setting-up
+..  ref: https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup
 
 Optional dependencies
 -------------------------------
