@@ -2,7 +2,6 @@
 
 import os
 import os.path as op
-# from re import L
 import subprocess
 import warnings
 import pandas as pd
@@ -23,7 +22,6 @@ from datalad_container.find_container import find_container_
 
 from babs.utils import (get_immediate_subdirectories,
                         check_validity_unzipped_input_dataset,
-                        if_input_ds_from_osf,
                         generate_cmd_set_envvar,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
@@ -39,11 +37,11 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_determine_zipfilename,
                         get_list_sub_ses,
                         submit_one_job,
+                        df_update_one_job,
+                        prepare_job_ind_list,
                         submit_one_test_job,
-                        create_job_status_csv,
                         read_job_status_csv,
                         report_job_status,
-                        request_job_status,
                         request_all_job_status,
                         calcu_runtime,
                         get_last_line,
@@ -55,7 +53,6 @@ from babs.utils import (get_immediate_subdirectories,
                         get_git_show_ref_shasum,
                         ceildiv)
 
-# import pandas as pd
 
 # @build_doc
 class BABS():
@@ -295,8 +292,10 @@ class BABS():
         if system.type == "sge":
             gitignore_file.write("\n.SGE_datalad_lock")
         elif system.type == "slurm":
-            # TODO: add command for `slurm`!!!
-            print("Not supported yet... To work on...")
+            gitignore_file.write("\n.SLURM_datalad_lock")
+        else:
+            warnings.warn("Not supporting systems other than SGE or Slurm"
+                          + " for '.gitignore'.")
         # not to track lock file:
         gitignore_file.write("\n" + "code/babs_proj_config.yaml.lock")
         # not to track `job_status.csv`:
@@ -483,11 +482,11 @@ class BABS():
         print("\nGenerating a template for job submission calls...")
         print("The template text file will be named as `submit_job_template.yaml`.")
         yaml_path = op.join(self.analysis_path, "code", "submit_job_template.yaml")
-        container.generate_job_submit_template(yaml_path, input_ds, self, system)
+        container.generate_job_submit_template(yaml_path, self, system)
 
         # also, generate template for testing job used by `babs-check-setup`:
         yaml_test_path = op.join(self.analysis_path, "code/check_setup", "submit_test_job_template.yaml")
-        container.generate_test_job_submit_template(yaml_test_path, self, system)
+        container.generate_job_submit_template(yaml_test_path, self, system, test=True)
 
         # datalad save:
         self.datalad_save(path=["code/submit_job_template.yaml",
@@ -893,7 +892,7 @@ class BABS():
                   " and make sure future BABS jobs with current setups"
                   " will be able to finish successfully.")
 
-            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path)
+            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.type_system)
             log_fn = op.join(self.analysis_path, "logs", log_filename)  # abs path
             o_fn = log_fn.replace(".*", ".o")
             # write this information in a YAML file:
@@ -918,7 +917,7 @@ class BABS():
                 time.sleep(60)   # Sleep for 60 seconds
 
                 # check the job status
-                df_all_job_status = request_all_job_status()
+                df_all_job_status = request_all_job_status(self.type_system)
                 d_now_str = str(datetime.now())
                 to_print = d_now_str + ": "
                 if job_id_str in df_all_job_status.index.to_list():
@@ -1020,117 +1019,32 @@ class BABS():
         lock_path = self.job_status_path_abs + ".lock"
         lock = FileLock(lock_path)
 
-        j_count = 0
-
         try:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
                 df_job = read_job_status_csv(self.job_status_path_abs)
+                # getting list of jobs indices to submit (based either on df_job_specified or count):
+                job_ind_list = prepare_job_ind_list(df_job, df_job_specified, count, self.type_session)
                 df_job_updated = df_job.copy()
+                for i_progress, i_job in enumerate(job_ind_list):
+                    # Submit a job:
+                    if self.type_session == "single-ses":
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = None
+                    else:  # multi-ses
+                        sub = df_job.at[i_job, "sub_id"]
+                        ses = df_job.at[i_job, "ses_id"]
 
-                # See if user has specified list of jobs to submit:
-                if df_job_specified is not None:
-                    print("Will only submit specified jobs...")
-                    for j_job in range(0, df_job_specified.shape[0]):
-                        # find the index in the full `df_job`:
-                        if self.type_session == "single-ses":
-                            sub = df_job_specified.at[j_job, 'sub_id']
-                            ses = None
-                            temp = df_job['sub_id'] == sub
-                        elif self.type_session == "multi-ses":
-                            sub = df_job_specified.at[j_job, 'sub_id']
-                            ses = df_job_specified.at[j_job, 'ses_id']
-                            temp = (df_job['sub_id'] == sub) & \
-                                (df_job['ses_id'] == ses)
+                    job_id, _, log_filename = \
+                        submit_one_job(self.analysis_path,
+                                       self.type_session,
+                                       self.type_system,
+                                       sub, ses)
+                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id,
+                                                       log_filename, submitted=True)
 
-                        i_job = df_job.index[temp].to_list()
-                        # # sanity check: there should only be one `i_job`:
-                        # #   ^^ can be removed as done in `core_functions.py`
-                        # assert_msg = "There are duplications in `job_status.csv`" \
-                        #     + " for " + sub
-                        # if self.type_session == "multi-ses":
-                        #     assert_msg += ", " + ses
-                        # assert len(i_job) == 1, assert_msg + "!"
-                        i_job = i_job[0]   # take the element out of the list
-
-                        # check if the job has already been submitted:
-                        if not df_job["has_submitted"][i_job]:  # to run
-                            job_id, _, log_filename = submit_one_job(self.analysis_path,
-                                                                     self.type_session,
-                                                                     sub, ses)
-
-                            # assign into `df_job_updated`:
-                            df_job_updated.at[i_job, "job_id"] = job_id
-                            df_job_updated.at[i_job, "log_filename"] = log_filename
-
-                            # update the status:
-                            df_job_updated.at[i_job, "has_submitted"] = True
-                            # reset fields:
-                            df_job_updated.at[i_job, "is_failed"] = np.nan
-                            # probably not necessary to reset:
-                            df_job_updated.at[i_job, "job_state_category"] = np.nan
-                            df_job_updated.at[i_job, "job_state_code"] = np.nan
-                            df_job_updated.at[i_job, "duration"] = np.nan
-                        else:
-                            to_print = "The job for " + sub
-                            if self.type_session == "multi-ses":
-                                to_print += ", " + ses
-                            to_print += " has already been submitted," \
-                                + " so it won't be submitted again." \
-                                + " If you want to resubmit it," \
-                                + " please use `babs-status --resubmit`"
-                            print(to_print)
-
-                else:    # did not specify jobs to submit,
-                    #   so submit by order in full list `df_job`, max = `count`:
-                    # Check if there is still jobs to submit:
-                    total_has_submitted = int(df_job["has_submitted"].sum())
-                    if total_has_submitted == df_job.shape[0]:   # all submitted
-                        print("All jobs have already been submitted. "
-                              + "Use `babs-status` to check job status.")
-                    else:
-                        # Check which row has not been submitted:
-                        for i_job in range(0, df_job.shape[0]):
-                            if not df_job["has_submitted"][i_job]:  # to run
-                                # ^^ type is bool (`numpy.bool_`), so use `if a:` or `if not a:`
-                                # print(df_job["sub_id"][i_job] + "_" + df_job["ses_id"][i_job])
-
-                                # Submit a job:
-                                if self.type_session == "single-ses":
-                                    sub = df_job.at[i_job, "sub_id"]
-                                    ses = None
-                                else:   # multi-ses
-                                    sub = df_job.at[i_job, "sub_id"]
-                                    ses = df_job.at[i_job, "ses_id"]
-
-                                job_id, _, log_filename = \
-                                    submit_one_job(self.analysis_path,
-                                                   self.type_session,
-                                                   sub, ses)
-
-                                # assign into `df_job_updated`:
-                                df_job_updated.at[i_job, "job_id"] = job_id
-                                df_job_updated.at[i_job, "log_filename"] = log_filename
-
-                                # update the status:
-                                df_job_updated.at[i_job, "has_submitted"] = True
-                                # reset fields:
-                                df_job_updated.at[i_job, "is_failed"] = np.nan
-                                # probably not necessary to reset:
-                                df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                df_job_updated.at[i_job, "duration"] = np.nan
-
-                                # print(df_job_updated)
-
-                                j_count += 1
-                                # if it's several times of `count_report_progress`:
-                                if j_count % count_report_progress == 0:
-                                    print('So far ' + str(j_count) + ' jobs have been submitted.')
-
-                                if j_count == count:
-                                    break
-
-                        # babs-submit is only responsible for submitting jobs that haven't run yet
+                    # if it's several times of `count_report_progress`:
+                    if (i_progress + 1) % count_report_progress == 0:
+                        print('So far ' + str(i_progress + 1) + ' jobs have been submitted.')
 
                 with pd.option_context('display.max_rows', None,
                                        'display.max_columns', None,
@@ -1185,6 +1099,8 @@ class BABS():
         # `create_job_status_csv(self)` has been called in `babs_status()`
         #   in `cli.py`
 
+        from .constants import MSG_NO_ALERT_IN_LOGS
+
         # Load the csv file
         lock_path = self.job_status_path_abs + ".lock"
         lock = FileLock(lock_path)
@@ -1212,7 +1128,7 @@ class BABS():
                 df_job_updated = df_job.copy()
 
                 # Get all jobs' status:
-                df_all_job_status = request_all_job_status()
+                df_all_job_status = request_all_job_status(self.type_system)
 
                 # For jobs that have been submitted but not successful yet:
                 # Update job status, and resubmit if requested:
@@ -1262,7 +1178,7 @@ class BABS():
                     # NOTE: in theory can skip failed jobs in previous round,
                     #       but making assigning variables hard; so not to skip
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
-                    alert_message_in_log_files, if_no_alert_in_log = \
+                    alert_message_in_log_files, if_no_alert_in_log, if_found_log_files = \
                         get_alert_message_in_log_files(config_msg_alert, log_fn)
                     # ^^ the function will handle even if `config_msg_alert=None`
                     df_job_updated.at[i_job, "alert_message"] = \
@@ -1326,24 +1242,25 @@ class BABS():
                                     job_id_updated, _, log_filename = \
                                         submit_one_job(self.analysis_path,
                                                        self.type_session,
+                                                       self.type_system,
                                                        sub, ses)
                                     # update fields:
-                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                    df_job_updated.at[i_job, "log_filename"] = log_filename
-                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "duration"] = np.nan
-                                    df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                    df_job_updated.at[i_job, "alert_message"] = np.nan
-                                    df_job_updated.at[i_job, "job_account"] = np.nan
-
+                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                       log_filename, debug=True)
                                 else:   # just let it run:
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
                                     # get the duration:
-                                    duration = calcu_runtime(
-                                        df_all_job_status.at[job_id_str, "JAT_start_time"])
+                                    if "duration" in df_all_job_status:
+                                        # e.g., slurm `squeue` automatically returns the duration,
+                                        #   so no need to calcu again.
+                                        duration = df_all_job_status.at[job_id_str, "duration"]
+                                    else:
+                                        # This duration time may be slightly longer than actual
+                                        # time, as this is using current time, instead of
+                                        # the time when `qstat`/requesting job queue.
+                                        duration = calcu_runtime(
+                                            df_all_job_status.at[job_id_str, "JAT_start_time"])
                                     df_job_updated.at[i_job, "duration"] = duration
 
                                     # do nothing else, just wait
@@ -1369,18 +1286,11 @@ class BABS():
                                     job_id_updated, _, log_filename = \
                                         submit_one_job(self.analysis_path,
                                                        self.type_session,
+                                                       self.type_system,
                                                        sub, ses)
                                     # update fields:
-                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                    df_job_updated.at[i_job, "log_filename"] = log_filename
-                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "duration"] = np.nan
-                                    df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                    df_job_updated.at[i_job, "alert_message"] = np.nan
-                                    df_job_updated.at[i_job, "job_account"] = np.nan
-
+                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                       log_filename, debug=True)
                                 else:   # not to resubmit:
                                     # update fields:
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
@@ -1407,17 +1317,11 @@ class BABS():
                                     job_id_updated, _, log_filename = \
                                         submit_one_job(self.analysis_path,
                                                        self.type_session,
+                                                       self.type_system,
                                                        sub, ses)
                                     # update fields:
-                                    df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                    df_job_updated.at[i_job, "log_filename"] = log_filename
-                                    df_job_updated.at[i_job, "job_state_category"] = np.nan
-                                    df_job_updated.at[i_job, "job_state_code"] = np.nan
-                                    df_job_updated.at[i_job, "duration"] = np.nan
-                                    df_job_updated.at[i_job, "is_failed"] = np.nan
-                                    df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                    df_job_updated.at[i_job, "alert_message"] = np.nan
-                                    df_job_updated.at[i_job, "job_account"] = np.nan
+                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                       log_filename, debug=True)
                                 else:   # not to resubmit:
                                     # update fields:
                                     df_job_updated.at[i_job, "job_state_category"] = state_category
@@ -1431,6 +1335,15 @@ class BABS():
                             df_job_updated.at[i_job, "job_state_code"] = np.nan
                             df_job_updated.at[i_job, "duration"] = np.nan
                             # ROADMAP: ^^ get duration via `qacct`
+                            if if_found_log_files == False:   # bool or np.nan
+                                # If there is no log files, the alert message would be 'np.nan';
+                                # however this is a failed job, so it should have log files,
+                                #   unless it was killed by the user when pending.
+                                # change the 'alert_message' to no alert in logs,
+                                #   so that when reporting job status,
+                                #   info from job accounting will be reported
+                                df_job_updated.at[i_job, "alert_message"] = \
+                                    MSG_NO_ALERT_IN_LOGS
 
                             # check the log file:
                             # TODO ^^
@@ -1454,25 +1367,27 @@ class BABS():
                                 job_id_updated, _, log_filename = \
                                     submit_one_job(self.analysis_path,
                                                    self.type_session,
+                                                   self.type_system,
                                                    sub, ses)
 
                                 # update fields:
-                                df_job_updated.at[i_job, "job_id"] = job_id_updated
-                                df_job_updated.at[i_job, "log_filename"] = log_filename
-                                df_job_updated.at[i_job, "is_failed"] = np.nan
-                                df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                                df_job_updated.at[i_job, "alert_message"] = np.nan
-                                df_job_updated.at[i_job, "job_account"] = np.nan
-                                # reset of `job_state_*` have been done - see above
-
+                                df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                                   log_filename, debug=True)
                             else:  # resubmit 'error' was not requested:
+                                # reset:
+                                df_job_updated.at[i_job, "job_state_category"] = np.nan
+                                df_job_updated.at[i_job, "job_state_code"] = np.nan
+                                df_job_updated.at[i_job, "duration"] = np.nan
+                                # ROADMAP: ^^ get duration via `qacct`
+
                                 # If `--job-account` is requested:
                                 if job_account & if_no_alert_in_log:
                                     # if `--job-account` is requested, and there is no alert
                                     #   message found in log files:
                                     job_name = log_filename.split(".*")[0]
                                     msg_job_account = \
-                                        check_job_account(job_id_str, job_name, username_lowercase)
+                                        check_job_account(job_id_str, job_name,
+                                                          username_lowercase, self.type_system)
                                     df_job_updated.at[i_job, "job_account"] = msg_job_account
                 # Done: submitted jobs that not 'is_done'
 
@@ -1547,19 +1462,11 @@ class BABS():
                         job_id_updated, _, log_filename = \
                             submit_one_job(self.analysis_path,
                                            self.type_session,
+                                           self.type_system,
                                            sub, ses)
                         # update fields:
-                        df_job_updated.at[i_job, "job_id"] = job_id_updated
-                        df_job_updated.at[i_job, "log_filename"] = log_filename
-                        df_job_updated.at[i_job, "job_state_category"] = np.nan
-                        df_job_updated.at[i_job, "job_state_code"] = np.nan
-                        df_job_updated.at[i_job, "duration"] = np.nan
-                        df_job_updated.at[i_job, "is_done"] = False
-                        df_job_updated.at[i_job, "is_failed"] = np.nan
-                        df_job_updated.at[i_job, "last_line_stdout_file"] = np.nan
-                        df_job_updated.at[i_job, "alert_message"] = np.nan
-                        df_job_updated.at[i_job, "job_account"] = np.nan
-
+                        df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                                           log_filename, done=False, debug=True)
                     else:    # did not request resubmit, or `--reckless` is None:
                         # just perform normal stuff for a successful job:
                         # Update the "last_line_stdout_file":
@@ -1567,7 +1474,7 @@ class BABS():
                             get_last_line(o_fn)
                         # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
-                        alert_message_in_log_files, if_no_alert_in_log = \
+                        alert_message_in_log_files, if_no_alert_in_log, _ = \
                             get_alert_message_in_log_files(config_msg_alert, log_fn)
                         # ^^ the function will handle even if `config_msg_alert=None`
                         df_job_updated.at[i_job, "alert_message"] = \
@@ -2534,7 +2441,9 @@ class Container():
         # Write into the bash file:
         bash_file = open(bash_path, "a")   # open in append mode
 
-        bash_file.write("#!/bin/bash\n")
+        # NOTE: not to automatically generate the interpreting shell;
+        #   instead, let users specify it in the container config yaml file
+        #   using `interpreting_shell`
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
@@ -2737,7 +2646,9 @@ class Container():
         # Write into the bash file:
         bash_file = open(fn_call_test_job, "a")   # open in append mode
 
-        bash_file.write("#!/bin/bash\n")
+        # NOTE: not to automatically generate the interpreting shell;
+        #   instead, let users specify it in the container config yaml file
+        #   using `interpreting_shell`
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
@@ -2805,22 +2716,24 @@ class Container():
             )
         proc_chmod_pyfile.check_returncode()
 
-    def generate_job_submit_template(self, yaml_path, input_ds, babs, system):
+    def generate_job_submit_template(self, yaml_path, babs, system, test=False):
         """
         This is to generate a YAML file that serves as a template
-        of job submission of one participant (or session).
+        of job submission of one participant (or session),
+        or test job submission in `babs-check-setup`.
 
         Parameters:
         -------------
         yaml_path: str
             The path to the yaml file to be generated. It should be in the `analysis/code` folder.
             It has several fields: 1) cmd_template; 2) job_name_template
-        input_ds: class `Input_ds`
-            input dataset(s) information
         babs: class `BABS`
             information about the BABS project
         system: class `System`
             information on cluster management system
+        test: bool
+            flag to set to True if generating the test job submit template
+            for `babs-check-setup`.
         """
 
         # Section 1: Command for submitting the job: ---------------------------
@@ -2828,8 +2741,9 @@ class Container():
         if system.type == "sge":
             submit_head = "qsub -cwd"
             env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
-            eo_args = "-e " + babs.analysis_path + "/logs " \
-                + "-o " + babs.analysis_path + "/logs"
+        elif system.type == "slurm":
+            submit_head = "sbatch"
+            env_flags = "--export=DSLOCKFILE=" + babs.analysis_path + "/.SLURM_datalad_lock"
         else:
             warnings.warn("not supporting systems other than sge...")
 
@@ -2839,95 +2753,55 @@ class Container():
 
         # Write into the bash file:
         yaml_file = open(yaml_path, "a")   # open in append mode
-        yaml_file.write("# '${sub_id}' and '${ses_id}' are placeholders." + "\n")
-
-        # Variables to use:
-        # `dssource`: Input RIA:
-        dssource = babs.input_ria_url + "#" + babs.analysis_dataset_id
-        # `pushgitremote`: Output RIA:
-        pushgitremote = babs.output_ria_data_dir
+        if not test:
+            yaml_file.write("# '${sub_id}' and '${ses_id}' are placeholders." + "\n")
+            # Variables to use:
+            # `dssource`: Input RIA:
+            dssource = babs.input_ria_url + "#" + babs.analysis_dataset_id
+            # `pushgitremote`: Output RIA:
+            pushgitremote = babs.output_ria_data_dir
 
         # Generate the command:
-        #   several rows in the text file; in between, to insert sub and ses id.
-        if babs.type_session == "single-ses":
-            cmd = submit_head + " " + env_flags \
-                + " -N " + self.container_name[0:3] + "_" + "${sub_id}"
-            cmd += " " \
-                + eo_args + " " \
-                + babs.analysis_path + "/code/participant_job.sh" + " " \
-                + dssource + " " \
-                + pushgitremote + " " + "${sub_id}"
-
-        elif babs.type_session == "multi-ses":
-            cmd = submit_head + " " + env_flags \
-                + " -N " + self.container_name[0:3] + "_" + "${sub_id}_${ses_id}"
-            cmd += " " \
-                + eo_args + " " \
-                + babs.analysis_path + "/code/participant_job.sh" + " " \
-                + dssource + " " \
-                + pushgitremote + " " + "${sub_id} ${ses_id}"
-
-        yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
-
-        # TODO: currently only support SGE.
+        # TODO: TBD: adding below to `dict_cluster_systems.yaml` or another YAML file?
+        if system.type == "sge":
+            name_flag_str = " -N "
+        if system.type == "slurm":
+            name_flag_str = " --job-name "
 
         # Section 2: Job name: ---------------------------
-        job_name = self.container_name[0:3] + "_" + "${sub_id}"
-        if babs.type_session == "multi-ses":
-            job_name += "_${ses_id}"
+        # Job name:
+        if test:
+            job_name = self.container_name[0:3] + "_" + "test_job"
+        else:
+            job_name = self.container_name[0:3] + "_" + "${sub_id}"
+            if babs.type_session == "multi-ses":
+                job_name += "_${ses_id}"
 
-        yaml_file.write("job_name_template: '" + job_name + "'\n")
-
-        yaml_file.close()
-
-    def generate_test_job_submit_template(self, yaml_path, babs, system):
-        """
-        This is to generate a YAML file that serves as a template
-        of *test* job submission, which will be used in `babs-check-setup`.
-
-        Parameters:
-        ------------
-        yaml_path: str
-            The path to the yaml file to be generated.
-            It should be in the `analysis/code/check_setup` folder.
-            It has several fields: 1) cmd_template; 2) job_name_template
-        babs: class `BABS`
-            information about the BABS project
-        system: class `System`
-            information on cluster management system
-        """
-
-        # Section 1: Command for submitting the job: ---------------------------
-        # Flags when submitting the job:
+        # Now, we can define stdout and stderr file names/paths:
         if system.type == "sge":
-            submit_head = "qsub -cwd"
-            env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
+            # sge clusters only need logs folder path; filename is not needed:
             eo_args = "-e " + babs.analysis_path + "/logs " \
                 + "-o " + babs.analysis_path + "/logs"
+        elif system.type == "slurm":
+            # slurm clusters also need exact filenames:
+            eo_args = "-e " + babs.analysis_path + f"/logs/{job_name}.e%A " \
+                + "-o " + babs.analysis_path + f"/logs/{job_name}.o%A"
+
+        # Generate the job submission command, with sub ID and ses ID as placeholders:
+        cmd = submit_head + " " + env_flags + name_flag_str + job_name + " " + eo_args + " "
+        if test:
+            cmd += babs.analysis_path + "/code/check_setup/call_test_job.sh"
         else:
-            warnings.warn("not supporting systems other than sge...")
-
-        # Check if the bash file already exist:
-        if op.exists(yaml_path):
-            os.remove(yaml_path)  # remove it
-
-        # Write into the bash file:
-        yaml_file = open(yaml_path, "a")   # open in append mode
-
-        # Generate the command:
-        cmd = submit_head + " " + env_flags \
-            + " -N " + self.container_name[0:3] + "_" + "test_job"
-        cmd += " " \
-            + eo_args + " " \
-            + babs.analysis_path + "/code/check_setup/call_test_job.sh"
+            # if test is False, the type of session will be checked
+            if babs.type_session == "single-ses":
+                cmd += babs.analysis_path + "/code/participant_job.sh" + " " \
+                    + dssource + " " \
+                    + pushgitremote + " " + "${sub_id}"
+            elif babs.type_session == "multi-ses":
+                cmd += babs.analysis_path + "/code/participant_job.sh" + " " \
+                    + dssource + " " \
+                    + pushgitremote + " " + "${sub_id} ${ses_id}"
 
         yaml_file.write("cmd_template: '" + cmd + "'" + "\n")
-
-        # TODO: currently only support SGE.
-
-        # Section 2: Job name: ---------------------------
-        job_name = self.container_name[0:3] + "_" + "test_job"
-
         yaml_file.write("job_name_template: '" + job_name + "'\n")
-
         yaml_file.close()

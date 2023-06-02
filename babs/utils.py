@@ -5,11 +5,8 @@ import os.path as op
 import sys
 import warnings   # built-in, no need to install
 import pkg_resources
-# from ruamel.yaml import YAML
 import yaml
-import pprint
 import glob
-import regex
 import copy
 import pandas as pd
 import numpy as np
@@ -158,7 +155,7 @@ def validate_type_system(type_system):
     For valid ones, the type string will be changed to lower case.
     If not valid, raise error message.
     """
-    list_supported = ['sge']  # TODO: add 'slurm'
+    list_supported = ['sge', 'slurm']
     if type_system.lower() in list_supported:
         type_system = type_system.lower()   # change to lower case, if needed
     else:
@@ -656,11 +653,19 @@ def generate_one_bashhead_resources(system, key, value):
         This does not include "\n" at the end.
         e.g., "#$ -S /bin/bash".
 
+    Notes:
+    ---------
+    For interpreting shell, regardless of system type,
+    it will be '#!' + the value user provided.
     """
-    cmd = "#"
-    if system.type == "sge":
-        cmd += "$ "
-    # TODO: add slurm's
+    if key == "interpreting_shell":
+        cmd = ""   # directly use the format provided in the dict
+    else:
+        cmd = "#"
+        if system.type == "sge":
+            cmd += "$ "    # e.g., `#$ -l h_vmem=xxx`
+        elif system.type == "slurm":
+            cmd += "SBATCH "   # e.g., `#SBATCH --xxx=yyy`
 
     # find the key in the `system.dict`:
     if key not in system.dict:
@@ -677,8 +682,8 @@ def generate_one_bashhead_resources(system, key, value):
 
 def generate_bashhead_resources(system, config):
     """
-    This is to generate the head of the bash file
-    for requesting cluster resources.
+    This is to generate the directives ("head of the bash file")
+    for requesting cluster resources, specifying interpreting shell, etc.
 
     Parameters:
     ------------
@@ -702,10 +707,25 @@ def generate_bashhead_resources(system, config):
         raise Exception("There is no section `cluster_resources`"
                         + " in `container_config_yaml_file`!")
 
-    # loop: for each key, call `generate_one_bashhead_resources()`:
+    # generate the command for interpreting shell first:
+    if "interpreting_shell" not in config["cluster_resources"]:
+        warnings.warn("The interpreting shell was not specified for 'participant_job.sh'."
+                      + " This should be specified using 'interpreting_shell'"
+                      + " under section 'cluster_resources' in container's"
+                      + " configuration YAML file.")
+    else:
+        key = "interpreting_shell"
+        value = config["cluster_resources"][key]
+        one_cmd = generate_one_bashhead_resources(system, key, value)
+        cmd += one_cmd + "\n"
+
+    # loop for other keys:
+    #   for each key, call `generate_one_bashhead_resources()`:
     for key, value in config["cluster_resources"].items():
         if key == "customized_text":
             pass   # handle this below
+        elif key == "interpreting_shell":
+            pass   # has been handled - see above
         else:
             one_cmd = generate_one_bashhead_resources(system, key, value)
             cmd += one_cmd + "\n"
@@ -1312,7 +1332,7 @@ def get_list_sub_ses(input_ds, config, babs):
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
 
-def submit_one_job(analysis_path, type_session, sub, ses=None,
+def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
                    flag_print_message=True):
     """
     This is to submit one job.
@@ -1323,6 +1343,8 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
         path to the `analysis` folder. One attribute in class `BABS`
     type_session: str
         multi-ses or single-ses
+    type_system: str
+        the type of job scheduling system, "sge" or "slurm"
     sub: str
         subject id
     ses: str or None
@@ -1372,8 +1394,16 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
                               stdout=subprocess.PIPE)
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
-    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+
+    if type_system == "sge":
+        job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    elif type_system == "slurm":
+        job_id_str = msg.split()[-1]
+        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
+        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
+    else:
+        raise Exception("type system can be slurm or sge")
     job_id = int(job_id_str)
 
     # log filename:
@@ -1386,7 +1416,136 @@ def submit_one_job(analysis_path, type_session, sub, ses=None,
     return job_id, job_id_str, log_filename
 
 
-def submit_one_test_job(analysis_path, flag_print_message=True):
+def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done=None, debug=False):
+    """
+    This is to update one job's status and information in the dataframe df_jobs,
+    mostly used after job submission or resubmission. Therefore, a lot of fields will be reset.
+    For other cases (e.g., to update job status to running state / successfully finished state, etc.),
+    you may directly update df_jobs without using this function.
+
+    Parameters:
+    ----------------
+    df_jobs: pd.DataFrame
+        dataframe of jobs and their status
+    i_job: int
+        index of the job to be updated
+    job_id: int
+        job id
+    log_filename: str
+        log filename of this job.
+    submitted: bool or None
+        whether the has_submitted field has to be updated
+    done: bool or None
+        whether the is_done field has to be updated
+    debug: bool
+        whether the job auditing fields need to be reset to np.nan
+        (fields include last_line_stdout_file, alert_message, and job_account).
+
+    Returns:
+    ------------------
+    df_jobs: pd.DataFrame
+        dataframe of jobs, updated
+    """
+    # assign into `df_job_updated`:
+    df_jobs.at[i_job, "job_id"] = job_id
+    df_jobs.at[i_job, "log_filename"] = log_filename
+    # reset fields:
+    df_jobs.at[i_job, "is_failed"] = np.nan
+    df_jobs.at[i_job, "job_state_category"] = np.nan
+    df_jobs.at[i_job, "job_state_code"] = np.nan
+    df_jobs.at[i_job, "duration"] = np.nan
+    if submitted is not None:
+        # update the status:
+        df_jobs.at[i_job, "has_submitted"] = submitted
+    if done is not None:
+        # update the status:
+        df_jobs.at[i_job, "is_done"] = done
+    if debug:
+        df_jobs.at[i_job, "last_line_stdout_file"] = np.nan
+        df_jobs.at[i_job, "alert_message"] = np.nan
+        df_jobs.at[i_job, "job_account"] = np.nan
+    return df_jobs
+
+
+def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
+    """
+    This is to prepare the list of job indices to be submitted.
+
+    Parameters:
+    ----------------
+    df_job: pd.DataFrame
+        dataframe of jobs and their status
+    df_job_specified: pd.DataFrame
+        dataframe of jobs to be submitted (specified by user)
+    count: int
+        number of jobs to be submitted
+    type_session: str
+        type of session, can be "single-ses" or "multi-ses"
+
+    Returns:
+    ------------------
+    job_ind_list: list
+        list of job indices to be submitted,
+        these are indices from the full job status dataframe `df_job`
+    """
+    job_ind_list = []
+    # Check if there is still jobs to submit:
+    total_has_submitted = int(df_job["has_submitted"].sum())
+    if total_has_submitted == df_job.shape[0]:  # all submitted
+       print("All jobs have already been submitted. "
+             + "Use `babs-status` to check job status.")
+       return job_ind_list
+
+    # See if user has specified list of jobs to submit:
+    if df_job_specified is not None:
+        print("Will only submit specified jobs...")
+        for j_job in range(0, df_job_specified.shape[0]):
+            # find the index in the full `df_job`:
+            if type_session == "single-ses":
+                sub = df_job_specified.at[j_job, 'sub_id']
+                ses = None
+                temp = df_job['sub_id'] == sub
+            elif type_session == "multi-ses":
+                sub = df_job_specified.at[j_job, 'sub_id']
+                ses = df_job_specified.at[j_job, 'ses_id']
+                temp = (df_job['sub_id'] == sub) & \
+                       (df_job['ses_id'] == ses)
+
+            # dj: should we keep this part?
+            i_job = df_job.index[temp].to_list()
+            # # sanity check: there should only be one `i_job`:
+            # #   ^^ can be removed as done in `core_functions.py`
+            # assert_msg = "There are duplications in `job_status.csv`" \
+            #     + " for " + sub
+            # if self.type_session == "multi-ses":
+            #     assert_msg += ", " + ses
+            # assert len(i_job) == 1, assert_msg + "!"
+            i_job = i_job[0]  # take the element out of the list
+
+            # check if the job has already been submitted:
+            if not df_job["has_submitted"][i_job]:  # to run
+                job_ind_list.append(i_job)
+            else:
+                to_print = "The job for " + sub
+                if type_session == "multi-ses":
+                    to_print += ", " + ses
+                to_print += " has already been submitted," \
+                            + " so it won't be submitted again." \
+                            + " If you want to resubmit it," \
+                            + " please use `babs-status --resubmit`"
+                print(to_print)
+    else: # taking into account the `count` argument
+        j_count = 0
+        for i_job in range(0, df_job.shape[0]):
+            if not df_job["has_submitted"][i_job]:  # to run
+                job_ind_list.append(i_job)
+                j_count += 1
+                if j_count == count:
+                    break
+    return job_ind_list
+
+
+def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     """
     This is to submit one *test* job.
     This is used by `babs-check-setup`.
@@ -1395,6 +1554,8 @@ def submit_one_test_job(analysis_path, flag_print_message=True):
     ----------------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
+    type_system: str
+        the type of job scheduling system, "sge" or "slurm"
     flag_print_message: bool
         to print a message (True) or not (False)
 
@@ -1433,8 +1594,16 @@ def submit_one_test_job(analysis_path, flag_print_message=True):
 
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
-    # ^^ e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+
+    if type_system == "sge":
+        job_id_str = msg.split()[2]   # <- NOTE: this is HARD-CODED!
+        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
+    elif type_system == "slurm":
+        job_id_str = msg.split()[-1]
+        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
+        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
+    else:
+        raise Exception("type system can be slurm or sge")
     job_id = int(job_id_str)
 
     # log filename:
@@ -1554,10 +1723,10 @@ def report_job_status(df, analysis_path, config_msg_alert):
         if total_is_done == total_jobs:
             print("All jobs are completed!")
         else:
-            total_pending = int((df['job_state_category'] == 'pending').sum())
+            total_pending = int((df['job_state_code'] == 'qw').sum())
             print(str(total_pending) + ' job(s) are pending;')
 
-            total_pending = int((df['job_state_category'] == 'running').sum())
+            total_pending = int((df['job_state_code'] == 'r').sum())
             print(str(total_pending) + ' job(s) are running;')
 
             # TODO: add stalled one
@@ -1623,14 +1792,15 @@ def report_job_status(df, analysis_path, config_msg_alert):
         print("\nAll log files are located in folder: "
               + op.join(analysis_path, "logs"))
 
-def request_all_job_status():
+def request_all_job_status(type_system):
     """
     This is to get all jobs' status
-    using e.g., `qstat` (for SGE clusters)
+    using `qstat` for SGE clusters and `squeue` for Slurm
 
     Parameters:
     --------------
-    TODO: add type_system!
+    type_system: str
+        the type of job scheduling system, "sge" or "slurm"
 
     Returns:
     --------------
@@ -1638,10 +1808,17 @@ def request_all_job_status():
         All jobs' status, including running and pending (waiting) jobs'.
         If there is no job in the queue, df will be an empty DataFrame
         (i.e., Columns: [], Index: [])
+    """
+    if type_system == "sge":
+        return _request_all_job_status_sge()
+    elif type_system == "slurm":
+        return _request_all_job_status_slurm()
 
-    Notes:
-    ----------------
-    SGE: using package [`qstat`](https://github.com/relleums/qstat)
+
+def _request_all_job_status_sge():
+    """
+    This is to get all jobs' status for SGE
+    using package [`qstat`](https://github.com/relleums/qstat)
     """
     queue_info, job_info = qstat()
     # ^^ queue_info: dict of jobs that are running
@@ -1663,26 +1840,90 @@ def request_all_job_status():
 
     return df
 
-def request_job_status(job_id):
-    """
-    This is to determine the job status
-    using e.g., `qstat` (for SGE clusters)
-    THIS IS DEPRECATED.
 
-    Parameters:
-    --------------
-    job_id: int
-        The job ID.
-        The data type is fixed when reading in the pd.dataframe of job status.
-    TODO: add type_system!
+def _request_all_job_status_slurm():
     """
-    proc_qstat = subprocess.run(
-        ["qstat", "-xml"],
+    This is to get all jobs' status for Slurm
+    by calling `squeue`.
+    """
+    username = get_username()
+    squeue_proc = subprocess.run(
+        ["squeue", "-u", username, "-o", "%.18i %.9P %.8j %.8u %.2t %T %.10M"],
         stdout=subprocess.PIPE
     )
-    proc_qstat.check_returncode()
-    msg = proc_qstat.stdout.decode('utf-8')
-    print(msg)
+    std = squeue_proc.stdout.decode('utf-8')
+
+    squeue_out_df = _parsing_squeue_out(std)
+    return squeue_out_df
+
+
+def _parsing_squeue_out(squeue_std):
+    """
+    This is to parse printed messages from `squeue` on Slurm clusters
+    and to convert Slurm codes to SGE codes
+
+    Parameters
+    -------------
+    squeue_std: str
+        Standard output from running command `squeue` in terminal
+
+    Returns
+    -----------
+    df: pd.DataFrame
+        Job status based on `squeue` printed messages.
+        If there is no job in the queue, df will be an empty DataFrame
+        (i.e., Columns: [], Index: [])
+    """
+    # Sanity check: if there is no job in queue:
+    if len(squeue_std.splitlines()) <= 1:
+        # there is only a header, no job is in queue:
+        df = pd.DataFrame(data=[])   # empty dataframe
+    else:   # there are job(s) in queue (e.g., pending or running)
+        header_l = squeue_std.splitlines()[0].split()
+        datarows = squeue_std.splitlines()[1:]
+
+        # column index of these column names:
+        # NOTE: this is hard coded! Please check out `_request_all_job_status_slurm()`
+        #   for the format of printed messages from `squeue`
+        dict_ind = {"jobid": 0, "st": 4, "state": 5, "time": 6}
+        # initialize a dict for holding the values from all jobs:
+        # ROADMAP: pd.DataFrame is probably more memory efficient than dicts
+        dict_val = dict((key, []) for key in dict_ind)
+
+        # sanity check: these fields show up in the header we got:
+        for fld in ["jobid", "st", "state", "time"]:
+            if header_l[dict_ind[fld]].lower() != fld:
+                raise Exception("error in the `squeue` output,"
+                                + f" expected {fld} and got {header_l[dict_ind[fld]].lower()}")
+
+        for row in datarows:
+            if "." not in row.split()[0]:
+                for key, ind in dict_ind.items():
+                    dict_val[key].append(row.split()[ind])
+        # e.g.: dict_val: {'jobid': ['157414586', '157414584'],
+        #   'st': ['PD', 'R'], 'state': ['PENDING', 'RUNNING'], 'time': ['0:00', '0:52']}
+
+        # Renaming the keys, to be consistent with results got from SGE clusters:
+        dict_val["JB_job_number"] = dict_val.pop("jobid")
+        # change to lowercase, and rename the key:
+        dict_val["@state"] = [x.lower() for x in dict_val.pop("state")]
+        dict_val["duration"] = dict_val.pop("time")
+        # e.g.,: dict_val: {'st': ['PD', 'R'], 'JB_job_number': ['157414586', '157414584'],
+        #   '@state': ['pending', 'running'], 'duration': ['0:00', '0:52']}
+        # NOTE: the 'duration' format might be slightly different from results from
+        #   function `calcu_runtime()` used by SGE clusters.
+
+        # job state mapping from slurm to sge:
+        state_slurm2sge = {"R": "r", "PD": "qw"}
+        dict_val["state"] = [state_slurm2sge.get(sl_st, "NA") for sl_st in dict_val.pop("st")]
+        # e.g.,: dict_val: {'JB_job_number': ['157414586', '157414584'],
+        #   '@state': ['pending', 'running'], 'duration': ['0:00', '0:52'], 'state': ['qw', 'r']}
+
+        df = pd.DataFrame(data=dict_val)
+        df = df.set_index('JB_job_number')
+
+    return df
+
 
 def calcu_runtime(start_time_str):
     """
@@ -1695,13 +1936,23 @@ def calcu_runtime(start_time_str):
         Can be got via `df.at['2820901', 'JAT_start_time']`
         Example on CUBIC: ''
 
-    TODO: add type_system
-
     Returns:
     -----------------
     duration_time_str: str
         Duration time of running.
         Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
+
+    Notes:
+    ---------
+    TODO: add type_system if needed
+    Currently we don't need to add `type_system`. Whether 'duration' has been returned
+    is checked before current function is called.
+    However the format of the duration that got from Slurm cluster might be a bit different from
+    what we get here. See examples in function `_parsing_squeue_out()` for Slurm clusters.
+
+    This duration time may be slightly longer than actual
+    time, as this is using current time, instead of
+    the time when `qstat`/requesting job queue.
     """
     # format of time in the job status requested:
     format_job_status = '%Y-%m-%dT%H:%M:%S'  # format in `qstat`
@@ -1826,6 +2077,9 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         When `alert_message` is `msg_no_alert`,
         or is `np.nan` (`if_valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
+    if_found_log_files: bool or np.nan
+        np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
+        Otherwise, True or False based on if any log files were found
 
     Notes:
     -----------------
@@ -1838,15 +2092,18 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     msg_no_alert = MSG_NO_ALERT_IN_LOGS
     if_valid_alert_msg = True    # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
+    if_found_log_files = np.nan
 
     if config_msg_alert is None:
         alert_message = np.nan
         if_valid_alert_msg = False
+        if_found_log_files = np.nan   # unknown if log files exist or not
     else:
         o_fn = log_fn.replace("*", 'o')
         e_fn = log_fn.replace("*", 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):   # either exists:
+            if_found_log_files = True
             found_message = False
             alert_message = msg_no_alert
 
@@ -1877,6 +2134,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                     break   # no need to go to next log file
 
         else:    # neither o_fn nor e_fn exists yet:
+            if_found_log_files = False
             alert_message = np.nan
             if_valid_alert_msg = False
 
@@ -1886,7 +2144,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     else:   # `alert_message`: np.nan or any other message:
         if_no_alert_in_log = False
 
-    return alert_message, if_no_alert_in_log
+    return alert_message, if_no_alert_in_log, if_found_log_files
 
 def get_username():
     """
@@ -1909,10 +2167,10 @@ def get_username():
 
     return username_lowercase
 
-def check_job_account(job_id_str, job_name, username_lowercase):
+def check_job_account(job_id_str, job_name, username_lowercase, type_system):
     """
     This is to get information for a finished job
-    by calling job account command, e.g., `qacct` for SGE
+    by calling job account command, e.g., `qacct` for SGE, `sacct` for Slurm
 
     Parameters:
     ------------
@@ -1922,6 +2180,8 @@ def check_job_account(job_id_str, job_name, username_lowercase):
         Name of the job
     username_lowercase: str
         username that this job was requested to run
+    type_system: str
+        the type of job scheduling system, "sge" or "slurm"
 
     Returns:
     ------------
@@ -1938,6 +2198,109 @@ def check_job_account(job_id_str, job_name, username_lowercase):
     This can only apply to jobs that are out of the queue; but not
     jobs under qw, r, etc, or does not exist (not submitted);
     Also, the current username should be the same one as that used for job submission.
+    """
+    if type_system == "sge":
+        return _check_job_account_sge(job_id_str, job_name, username_lowercase)
+    elif type_system == "slurm":
+        return _check_job_account_slurm(job_id_str, job_name, username_lowercase)
+
+
+def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
+    """
+    get information for a finished job in Slurm by calling `sacct`
+    """
+    msg_no_sacct = "BABS: sacct doesn't provide information about the job."
+    if_no_sacct = False
+    msg_more_than_one = "BABS: sacct detects more than one job for this job ID."
+
+    len_char_jobid = 20
+    len_char_jobname = 50
+
+    the_delimiter = "!"   # use a special delimiter for easy parsing
+    # ^^ if parsing with default e.g., space:
+    #   will have problem when State is "CANCELLED by 78382" - it will also be parsed out...
+    proc_sacct = subprocess.run(
+        ["sacct", "-u", username_lowercase,
+         "-j", job_id_str,
+         "--format=JobID%" + str(len_char_jobid) + ","
+         + "JobName%" + str(len_char_jobname) + ",State%30,ExitCode%15",
+         # ^^ specific format: column names and the number of chars
+         # e.g., '--format=JobID%20,JobName%50,State%30,ExitCode%15'
+         "--parsable2",   # Output will be delimited without a delimiter at the end.
+         "--delimiter=" + the_delimiter],
+        stdout=subprocess.PIPE
+    )
+    # ref: https://slurm.schedmd.com/sacct.html
+    # also based on ref: https://github.com/ComputeCanada/slurm_utils/blob/master/sacct-all.py
+
+    proc_sacct.check_returncode()
+    # even if the job does not exist, there will still be printed msg from sacct,
+    #   at least a header. So `check_returncode()` should always succeed.
+    msg_l = proc_sacct.stdout.decode('utf-8').split("\n")   # all lines from `sacct`
+    # 1st line: column names
+    # 2nd and forward lines: job information
+    #   ^^ if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
+    #   Usually there are more than one job lines;
+    #   However if the job was manually killed when pending, then there will only be one job line.
+    msg_head = msg_l[0].split(the_delimiter)   # list of column names
+
+    # Check if there is any problem when calling `sacct` for this job:
+    if "State" not in msg_head or "JobID" not in msg_head or "JobName" not in msg_head:
+        if_no_sacct = True
+    if len(msg_l) <= 1 or msg_l[1] == '':
+        # if there is only header (len <= 1 or the 2nd element is empty):
+        if_no_sacct = True
+
+    if if_no_sacct:   # there is no information about this job in sacct:
+        warnings.warn("`sacct` did not provide information about job " + job_id_str
+                      + ", " + job_name)
+        print("Hint: check if the job is still in the queue,"
+              " e.g., in state of pending, running, etc")
+        print("Hint: check if the username used for submitting this job"
+              + " was not current username '" + username_lowercase + "'")
+        msg_toreturn = msg_no_sacct
+    else:
+        # create a pd.DataFrame for printed messages from `sacct`:
+        df = pd.DataFrame(data=[], columns=msg_head)
+        msg_l_jobs = msg_l[1:]   # only keeps rows for jobs
+        # ^^ NOTE: if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
+        for i_row in range(0, len(msg_l_jobs)):
+            if msg_l_jobs[i_row] == '':   # empty
+                pass
+            else:
+                # add to df:
+                df.loc[len(df)] = msg_l_jobs[i_row].split(the_delimiter)
+
+        # find the row that matches the job id and job name
+        #   i.e., without '.batch' or '.extern'; usually is the first line:
+        temp = df.index[(df["JobID"] == job_id_str)
+                        & (df["JobName"] == job_name)].tolist()
+        if len(temp) == 0:   # did not find the job:
+            warnings.warn("`sacct` did not provide information about job " + job_id_str
+                          + ", " + job_name)
+            print("Hint: check if the job is still in the queue,"
+                  " e.g., in state of pending, running, etc")
+            print("Hint: check if the username used for submitting this job"
+                  + " was not current username '" + username_lowercase + "'")
+            print("Hint: check if the job ID is more than " + str(len_char_jobid) + " chars,"
+                  " or job name is more than " + str(len_char_jobname) + " chars.")
+            msg_toreturn = msg_no_sacct
+        elif len(temp) > 1:   # more than one matched:
+            warnings.warn("`sacct` detects more than one job for this job "
+                          + job_id_str
+                          + ", " + job_name)
+            print("Hint: check if the job ID is more than " + str(len_char_jobid) + " chars,"
+                  " or job name is more than " + str(len_char_jobname) + " chars.")
+            msg_toreturn = msg_more_than_one
+        else:   # expected, only one:
+            msg_toreturn = "sacct: state: " \
+                + df.loc[temp[0], "State"]   # `temp[0]`: first and the only element from list `temp`
+
+    return msg_toreturn
+
+def _check_job_account_sge(job_id_str, job_name, username_lowercase):
+    """
+    get information for a finished job in SGE by calling `qacct`
     """
     msg_no_alert_qacct_failed = "qacct: no alert message in field 'failed'"
     msg_failed_to_call_qacct = "BABS: failed to call 'qacct'"
@@ -1990,6 +2353,9 @@ def check_job_account(job_id_str, job_name, username_lowercase):
         print("Hint: check if the job is still in the queue, e.g., in state of qw, r, etc")
         print("Hint: check if the username used for submitting this job"
               + " was not current username '" + username_lowercase + "'")
+        print("Hint: check if the job was killed during pending state")
+        # ^^ for SGE cluster: job manually killed during pending: `qacct` will fail:
+        #   "error: job id xxx not found"
         msg_toreturn = msg_failed_to_call_qacct
 
     return msg_toreturn
