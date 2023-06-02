@@ -41,8 +41,8 @@ It is a good idea to use the versions at or above the versions listed:
     $ datalad osf-credentials --version
     datalad_osf 0.2.3.1
 
-We prepared this example walkthrough with ``BABS version 0.0.3``.
-We encourage you to use the latest version available on PyPI.
+We used ``BABS version 0.0.3`` to prepare this example walkthrough.
+We encourage you to use the **latest BABS version available on PyPI**.
 There might be minor differences in the printed messages or generated code,
 however you can still follow the same steps instructed here.
 To check your BABS's version, you can run this command:
