@@ -1,5 +1,5 @@
 ***************************************
-Step II: Job submission and job status
+Step III: Job submission and job status
 ***************************************
 
 .. contents:: Table of Contents
@@ -53,7 +53,7 @@ in short, it's a iteration between ``babs-submit`` and ``babs-status``:
       to ask BABS to find updated list of alert messages.
     * For more details about this section, please refer to :ref:`alert_log_messages`.
 
-#. You may start to iteratively call ``babs-submit`` and ``babs-status`` until all jobs are finished.
+#. You may start to iteratively call ``babs-submit`` and ``babs-status`` until all jobs finish.
    See below for tips of each function.
 
 Tips of ``babs-submit``
@@ -64,7 +64,7 @@ You have several choices when running ``babs-submit``:
 * Submit N jobs (from the top of the list, jobs haven't been submitted yet) by ``--count N``;
 * If your clusters allow, and you're confident to run BIDS App on all remaining subjects (and sessions),
   you may submit all remaining jobs by ``--all``.
-  After then, only thing you need to do is to run ``babs-status`` once a while until all jobs are finished.
+  After then, only thing you need to do is to run ``babs-status`` once a while until all jobs finish.
 
 Tips of ``babs-status``
 ------------------------------

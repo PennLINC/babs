@@ -1,11 +1,8 @@
 ---
 name: Codespell
 
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+on: [push, pull_request]
+# ref: https://docs.github.com/en/actions/using-workflows/triggering-a-workflow
 
 jobs:
   codespell:

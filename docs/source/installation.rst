@@ -2,16 +2,19 @@
 Installation
 **********************
 
-Prepare a conda environment for BABS
-=====================================
+.. contents:: Table of Contents
 
-After installing conda, let's initiate a conda environment (e.g., named ``babs``) for running BABS::
+Step 1. Prepare a conda environment for BABS
+=============================================
 
-    conda create -n babs python=3.9.12
+After installing conda, let's initialize a new environment (e.g., named ``babs``)
+where we can install BABS:: 
+
+    conda create -n babs python=3.9.16
     conda activate babs
 
-Install dependent software
-================================
+Step 2. Install dependent software
+=====================================
 
 Required dependencies
 ------------------------------
@@ -26,13 +29,33 @@ Below is an example way of installing dependent software on Linux system::
 
 If commands above do not work out, please refer to `Installation reference`_ for alternative and updated ways.
 
+Before proceeding, make sure your ``Git`` identity has been configured.
+You can check whether this has already been done via::
+
+    git config --get user.name
+    git config --get user.email
+
+If this returns nothing, you need to configure your ``Git`` identity::
+
+    git config --global user.name "John Doe"
+    git config --global user.email johndoe@example.com
+
+Please replace ``"John Doe"`` and ``johndoe@example.com`` with your name and your email.
+You only need to do this step once on a given system.
+
+.. developer's note: 
+..  ref: https://psychoinformatics-de.github.io/rdm-course/01-content-tracking-with-datalad/index.html#setting-up
+..  ref: https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup
 
 Optional dependencies
 -------------------------------
 Besides required software listed above, you also need to install ``datalad-osf`` only if:
 
 * if you're an end user and your input DataLad dataset is on OSF;
-* or if you're a developer and you will run ``pytest``;
+
+    * e.g., when you follow :doc:`the example walkthrough <walkthrough>`;
+
+* or if you're a developer and you will be running our ``pytest``;
 
 How to install ``datalad-osf``::
 
@@ -63,15 +86,37 @@ Check dependencies' versions using commands below::
     datalad --version
     git --version
     git-annex version
+    datalad containers-add --version
 
     # optional dependencies:
     datalad osf-credentials --version
 
 
-Install BABS
+Step 3. Install BABS
 ============================
 
-Currently we only support installing BABS from GitHub::
+Way 1: Install from PyPI (recommended way for end users)
+-------------------------------------------------------------
+
+To install BABS from `PyPI <https://pypi.org/project/babs/>`_::
+
+    pip install babs
+
+If you have already installed BABS but now hope to upgrade it::
+
+    pip install --upgrade babs
+
+Way 2: Install from GitHub
+-----------------------------
+
+.. warning::
+
+    The version you will install from GitHub might be an unstable version.
+    Therefore installing from GitHub is not the recommended way for **end users**,
+    unless you're specifically looking for an unstable version
+    that's not available on PyPI.
+
+To install BABS from `GitHub <https://github.com/PennLINC/babs>`_::
 
     git clone https://github.com/PennLINC/babs.git
     cd babs
@@ -87,5 +132,15 @@ you may update the installation with::
     # Suppose you are in root directory of babs source code:
     pip install -e .    # for developer to update
 
-If you are a developer and you'd like to run ``pytest`` locally, please install BABS in the following way
-so that necessary packages for pytest will also be installed: ``pip install -e .[tests]``.
+If you are a developer and you'd like to run our ``pytest`` locally, please install BABS in the following way
+so that necessary packages for our testing infrastructure will also be installed: ``pip install -e .[tests]``.
+
+Step 4. (Optional) Check BABS version
+======================================
+
+You can use command below to check the BABS version you installed::
+
+    pip show babs
+
+.. developer's note: above command works for both installation ways:
+..  install from pypi and install from github

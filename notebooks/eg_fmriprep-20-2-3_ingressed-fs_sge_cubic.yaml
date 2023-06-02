@@ -4,7 +4,7 @@
 singularity_run:
     $INPUT_PATH: inputs/data/BIDS   # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
-    --n_cpus: 1
+    --n_cpus: '1'
     --stop-on-first-crash: ""
     --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # path to FS license file
     --skip-bids-validation: ""

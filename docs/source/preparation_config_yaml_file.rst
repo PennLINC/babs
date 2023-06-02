@@ -265,14 +265,14 @@ Advanced - Manual of writing section ``singularity_run``
   * How to write the path to the input dataset? Here we use `example configuration YAML file of
     fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_:
 
-    * For the positional argument ``input_dataset``, sawy we want to use (unzipped) raw BIDS dataset called ``BIDS``;
+    * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
         * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS`` 
           which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
         * Note that you need to add ``inputs/data/`` before the dataset's name, and what you'll use for
           ``<name>`` when calling ``babs-init --input <name> /path/to/BIDS`` should also be ``BIDS``.
 
-    * For the named argument ``--fs-subjects-dir``, sawy we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
+    * For the named argument ``--fs-subjects-dir``, say we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
 
         * Then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
         * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
@@ -303,16 +303,16 @@ Advanced - Manual of writing section ``singularity_run``
       BABS will also automatically generate a filter file (JSON format) when running each session's data,
       so that only data from a specific session will be included for analysis.   
 
-* Will BABS handle `Templateflow <https://www.templateflow.org/>`_ environment variable? 
+* Will BABS handle `TemplateFlow <https://www.templateflow.org/>`_ environment variable? 
 
-    * Yes, BABS assumes all BIDS Apps use Templateflow, and will handle its environment variable ``$TEMPLATEFLOW_HOME``
+    * Yes, BABS assumes all BIDS Apps use TemplateFlow, and will handle its environment variable ``$TEMPLATEFLOW_HOME``
       *if* this environmental variable exists in the terminal environment where ``babs-init`` will be run.
-    * For BIDS Apps that truly depend on Templateflow (e.g., fMRIPrep, QSIPrep, XCP-D),
+    * For BIDS Apps that truly depend on TemplateFlow (e.g., fMRIPrep, QSIPrep, XCP-D),
       before you run ``babs-init``, please make sure you:
       
-        #. Find a directory for holding Templateflow's templates.
+        #. Find a directory for holding TemplateFlow's templates.
     
-            * If no (or not all necessary) Templateflow's templates has been downloaded
+            * If no (or not all necessary) TemplateFlow's templates has been downloaded
               in this directory, then this directory must be writable, so that when running the BIDS App,
               necessary templates can be downloaded in this directory;
             * if all necessary templates have been downloaded in this directory,
@@ -405,9 +405,12 @@ Other detailed instructions:
   although the version of ``FreeSurfer`` included in this ``fMRIPrep`` may not be ``20.2.3``.
 
 
+.. _cluster-resources:
+
 Section ``cluster_resources``
 =================================
-This section defines how much cluster resources each participant's job will use.
+This section defines the cluster resources each job will use,
+and the interpreting shell for executing the job script.
 
 Example section **cluster_resources** for ``QSIPrep``::
 
@@ -502,6 +505,8 @@ Note that:
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 
+.. _script-preamble:
+
 Section ``script_preamble``
 =============================
 This part also goes to the preamble of the script ``participant_job.sh``
@@ -539,6 +544,7 @@ Notes:
 * As you can see, the comments after the commands also show up in the generated script preambles.
   This is normal and fine.
 
+.. _job-compute-space:
 
 Section ``job_compute_space``
 ================================
