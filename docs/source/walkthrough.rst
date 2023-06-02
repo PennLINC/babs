@@ -41,17 +41,17 @@ It is a good idea to use the versions at or above the versions listed:
     $ datalad osf-credentials --version
     datalad_osf 0.2.3.1
 
-We used ``BABS version 0.0.3`` in this example walkthrough.
-It's encouraged to use up-to-date BABS versions released on PyPI,
-and the instructions are consistent for the newer BABS version.
-With newer versions, you might see minor differences in the printed messages and code.
-You can check your BABS's version via command below:
+We prepared this example walkthrough with ``BABS version 0.0.3``.
+We encourage you to use the latest version available on PyPI.
+There might be minor differences in the printed messages or generated code,
+however you can still follow the same steps instructed here.
+To check your BABS's version, you can run this command:
 
 ..  code-block:: console
 
     $ pip show babs
     Name: babs
-    Version: 0.0.3
+    Version: x.x.x   # e.g., 0.0.3
     ...
 
 Let's create a folder called ``babs_demo`` in root directory
@@ -226,7 +226,7 @@ Below is an example YAML file for toy BIDS App:
 ..  `:lines:` is the line ranges in the original file
 ..  `:emphasize-lines:`: line # in the selected lines defined in `:lines:`
 
-.. literalinclude:: ../../notebooks/example_container_toybidsapp_walkthrough.yaml
+.. literalinclude:: ../../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough_sge_cubic.yaml
    :language: yaml
    :lines: 21-
    :linenos:
