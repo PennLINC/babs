@@ -1076,7 +1076,8 @@ class BABS():
         -------------
         flags_resubmit: list
             Under what condition to perform job resubmit.
-            Element choices are: 'failed', 'pending', 'stalled'.
+            Element choices are: 'failed', 'pending'.
+            CLI does not support 'stalled' right now, as it's not tested.
         df_resubmit_job_specific: pd.DataFrame or None
             list of specified job(s) to resubmit, requested by `--resubmit-job`
             columns: 'sub_id' (and 'ses_id', if multi-ses)
@@ -1297,35 +1298,51 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
 
                             elif state_code == "eqw":
+                                # NOTE: comment out resubmission of `eqw` jobs
+                                #   as this was not tested out;
+                                #   also, equivalent `eqw` code on Slurm was not mapped either.
+
                                 if ('stalled' in flags_resubmit) or (if_request_resubmit_this_job):
-                                    # Resubmit:
-                                    # did_resubmit = True
-                                    # print a message:
-                                    to_print = "Resubmit job for " + sub
+                                    # requested resubmit,
+                                    #   but currently not support resubmitting stalled jobs:
+                                    #   print warning msg:
+                                    to_print = "Although resubmit for job: " + sub
                                     if self.type_session == "multi-ses":
                                         to_print += ", " + ses
-                                    to_print += ", as it was stalled and resubmit was requested."
-                                    print(to_print)
+                                    to_print += " was requested, as this job is stalled" \
+                                        + " (e.g., state code 'eqw' on SGE)," \
+                                        + " BABS won't resubmit this job."
+                                    warnings.warn(to_print)
 
-                                    # kill original one
-                                    proc_kill = subprocess.run(
-                                        ["qdel", job_id_str],
-                                        stdout=subprocess.PIPE
-                                    )
-                                    proc_kill.check_returncode()
-                                    # submit new one:
-                                    job_id_updated, _, log_filename = \
-                                        submit_one_job(self.analysis_path,
-                                                       self.type_session,
-                                                       self.type_system,
-                                                       sub, ses)
-                                    # update fields:
-                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
-                                                                       log_filename, debug=True)
-                                else:   # not to resubmit:
-                                    # update fields:
-                                    df_job_updated.at[i_job, "job_state_category"] = state_category
-                                    df_job_updated.at[i_job, "job_state_code"] = state_code
+                                #     # Resubmit:
+                                #     # did_resubmit = True
+                                #     # print a message:
+                                #     to_print = "Resubmit job for " + sub
+                                #     if self.type_session == "multi-ses":
+                                #         to_print += ", " + ses
+                                #     to_print += ", as it was stalled and resubmit was requested."
+                                #     print(to_print)
+
+                                #     # kill original one
+                                #     proc_kill = subprocess.run(
+                                #         ["qdel", job_id_str],
+                                #         stdout=subprocess.PIPE
+                                #     )
+                                #     proc_kill.check_returncode()
+                                #     # submit new one:
+                                #     job_id_updated, _, log_filename = \
+                                #         submit_one_job(self.analysis_path,
+                                #                        self.type_session,
+                                #                        self.type_system,
+                                #                        sub, ses)
+                                #     # update fields:
+                                #     df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                #                                        log_filename, debug=True)
+                                # else:   # not to resubmit:
+
+                                # only update fields:
+                                df_job_updated.at[i_job, "job_state_category"] = state_category
+                                df_job_updated.at[i_job, "job_state_code"] = state_code
 
                         else:   # did not find in `df_all_job_status`, i.e., job queue
                             # probably error

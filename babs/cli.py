@@ -458,24 +458,29 @@ def babs_status_cli():
         action='append',   # append each `--resubmit` as a list;
         # ref: https://docs.python.org/3/library/argparse.html
         nargs=1,   # expect 1 argument per `--resubmit` from the command line;
-        choices=['failed', 'pending', 'stalled'],
+        choices=['failed', 'pending'],
+        # NOTE: ^^ not to include 'stalled' as it has not been tested yet.
         metavar=('condition to resubmit'),
-        help="Under what condition to perform job resubmit. "
-             "'failed': the previous submitted job failed "
-             "('is_failed' = True in 'job_status.csv'); "
-             "'pending': the previous submitted job is pending (without error) in the queue "
-             "(example qstat code: 'qw'); "
-             "'stalled': the previous submitted job is pending with error in the queue "
-             "(example qstat code: 'eqw')."
+        help="Resubmit jobs with what kind of status."
+             " ``failed``: Jobs that failed, i.e.,"
+             " jobs that are out of queue but do not have results pushed to output RIA."
+             " The list of failed jobs can also be found by filtering jobs with"
+             " ``'is_failed' = True`` in ``job_status.csv``;"
+             " ``pending``: Jobs that are pending (without error) in the queue."
+             " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm."
         )
+    # "'stalled': the previous submitted job is pending with error in the queue "
+    # "(example qstat code: 'eqw')."
+
     parser.add_argument(
         '--resubmit-job',
         action="append",   # append each `--resubmit-job` as a list;
         nargs="+",
         help="The subject ID (and session ID) whose job to be resubmitted."
-        " Can repeat to submit more than one job."
-        " Currently, this can only resubmit pending, failed, or stalled jobs.")
-    # ^^ NOTE: ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
+        " You can repeat this argument several times to resubmit more than one job."
+        " Currently, you can only resubmit pending or failed jobs.")
+    # ^^ NOTE: not to include 'stalled' jobs here;
+    # ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
     #                   but fix the issue - Bergman 12/20/22 email
     parser.add_argument(
         '--reckless',
@@ -521,7 +526,7 @@ def babs_status_main():
     project_root: str
         absolute path to the directory of BABS project
     resubmit: nested list or None
-        each sub-list: one of 'failed', 'pending', 'stalled'
+        each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
     reckless: bool
@@ -635,7 +640,7 @@ def babs_status_main():
                       + " even if they're done or running.")
             else:
                 print("Will resubmit the job(s) listed in `--resubmit-job`,"
-                      + " if they're pending, failed or stalled.")
+                      + " if they're pending or failed.")   # not to include 'stalled'
         else:    # in theory should not happen, but just in case:
             raise Exception("There is no valid job in --resubmit-job!")
 

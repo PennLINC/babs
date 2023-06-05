@@ -21,7 +21,8 @@
                     * else: update `df_job_updated`
                 * if `qw`:
                     * resubmit if 'pending' in `flags_resubmit`, or request specifically: resubmit and update `df_job_updated`
-                * if `eqw`: **TODO**
+                * if `eqw`: just update the job state code/category in `df_job_updated`
+                    * currently does not support resubmission, until this is tested
             * else, i.e., not in the queue, so failed:
                 * update `df_job_updated`
                 * resubmit if 'failed' in `flags_resubmit`, or request specifically: resubmit and update `df_job_updated`
@@ -50,7 +51,7 @@ Summary:
 | not submitted | warning: `babs-submit` first | added | edge case, not tested yet |
 | submitted, qw | resubmit | added | tested with multi-ses data |
 | submitted, running | with `--reckless`, resubmit; else, warning, not to resubmit | added | edge case, not tested yet |
-| submitted, eqw | resubmit | added | not tested yet, as cannot enter eqw... |
+| submitted, eqw | 1) CLI does not allow `resubmit stalled`; 2) if `--resubmit-job` of a stalled job, warning, not to resubmit | added | not tested yet, as cannot enter eqw... |
 | submitted, failed | resubmit | added | tested with multi-ses data |
 | submitted, is_done | with `--reckless`, resubmit; else, warning, not to resubmit | added, one TODO | not tested yet |
 
@@ -76,7 +77,7 @@ when `print(df)` by python:
 Change/Add these in `participant_job.sh`:
 - failed: see next section
 - pending: increase `-l h_vmem` and `-l s_vmem`; increase `-pe threaded N`
-- stalled (`eqw`): see Bergman email 12/20/22
+- stalled (`eqw`): skip this for now. See Bergman email 12/20/22
 
 After these changes, `datalad save -m "message"` and `datalad push --to input`
 
