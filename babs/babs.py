@@ -1085,7 +1085,9 @@ class BABS():
         reckless: bool
             Whether to resubmit jobs listed in `df_resubmit_job_specific`,
             even they're done or running.
-            This is used when `--resubmit-job`
+            This is used when `--resubmit-job`.
+            NOTE: currently this argument has not been tested;
+            NOTE: `--reckless` has been removed from `babs-status` CLI
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.

@@ -92,8 +92,6 @@ Tips of ``babs-status``
 * You can also resubmit jobs that are failed or pending.
   See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 
-TODO: remove ``stalled``; remove ``--reckless`` until it's tested.
-
 .. warning::
     Do NOT kill ``babs-submit`` or ``babs-status`` (especially with ``--resubmit*``)
     when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!

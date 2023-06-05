@@ -305,9 +305,6 @@ def babs_submit_cli():
     --job sub-id ses-id   # can repeat
 
     If none of these flags are specified, will only submit one job.
-
-    Example command:
-    # TODO: to add an example command here!
     """
 
     parser = argparse.ArgumentParser(
@@ -441,9 +438,6 @@ def babs_submit_main():
 def babs_status_cli():
     """
     Check job status.
-
-    Example command:
-    # TODO: to add an example command here!
     """
 
     parser = argparse.ArgumentParser(
@@ -477,17 +471,18 @@ def babs_status_cli():
         action="append",   # append each `--resubmit-job` as a list;
         nargs="+",
         help="The subject ID (and session ID) whose job to be resubmitted."
-        " You can repeat this argument several times to resubmit more than one job."
-        " Currently, you can only resubmit pending or failed jobs.")
+        " You can repeat this argument many times to request resubmissions of more than one job."
+        " Currently, only pending or failed jobs in the request will be resubmitted.")
     # ^^ NOTE: not to include 'stalled' jobs here;
     # ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
     #                   but fix the issue - Bergman 12/20/22 email
-    parser.add_argument(
-        '--reckless',
-        action='store_true',
-        # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
-        help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
-        " WARNING: This hasn't been tested yet!!!")
+    # NOTE: not to add `--reckless` (below), as it has not been tested yet.
+    # parser.add_argument(
+    #     '--reckless',
+    #     action='store_true',
+    #     # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
+    #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
+    #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
@@ -505,19 +500,8 @@ def babs_status_cli():
 
     return parser
 
-    # args = parser.parse_args()
-
-    # babs_status(args.project_root,
-    #             args.resubmit,
-    #             args.resubmit_job, args.reckless,
-    #             args.container_config_yaml_file,
-    #             args.job_account)
 
 def babs_status_main():
-    # def babs_status(project_root, resubmit=None,
-    #                 resubmit_job=None, reckless=False,
-    #                 container_config_yaml_file=None,
-    #                 job_account=False):
     """
     This is the core function of `babs-status`.
 
@@ -529,9 +513,6 @@ def babs_status_main():
         each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
-    reckless: bool
-        Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
-        This is used when `--resubmit-job`
     container_config_yaml_file: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
@@ -540,10 +521,21 @@ def babs_status_main():
     job_account: bool
         Whether to account failed jobs (e.g., using `qacct` for SGE),
         which may take some time.
+
+    Notes:
+    -----------
+    NOTE: Not to include `reckless` in `babs-status` CLI for now.
+    If `reckless` is added in the future,
+        please make sure you remove command `args.reckless = False` below!
+    Below are commented:
+    reckless: bool
+            Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
+            This is used when `--resubmit-job`
     """
 
     # Get arguments:
     args = babs_status_cli().parse_args()
+    args.reckless = False    # WARNING: NOTE: hard-coded, as not supporting `--reckless` right now
 
     project_root = args.project_root
     resubmit = args.resubmit

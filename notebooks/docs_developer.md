@@ -46,6 +46,8 @@ Summary:
 - 'alert_log_messages' is detected in all submitted jobs, no matter 'is_done' in previous round or not
 
 ## Resubmit based on job's status:
+Note: currently, `babs-status` CLI does not support `--reckless`
+
 | job status | what to do if resubmit is requested | progress | tested? |
 | :-- | :--|:-- | :-- |
 | not submitted | warning: `babs-submit` first | added | edge case, not tested yet |

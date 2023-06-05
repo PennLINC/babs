@@ -52,3 +52,4 @@ When using ``--job-account``, you should also use ``--container-config-yaml-file
 ..  This is probably because the "alert_message" was cleared up, so no job has "BABS: No alert message found in log files."
 
 .. TODO: add example commands for `babs-status --resubmit` or `--resubmit-job`
+..  including multi-ses and single-ses cases
