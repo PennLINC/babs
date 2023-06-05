@@ -1087,7 +1087,7 @@ class BABS():
             even they're done or running.
             This is used when `--resubmit-job`.
             NOTE: currently this argument has not been tested;
-            NOTE: `--reckless` has been removed from `babs-status` CLI
+            NOTE: `--reckless` has been removed from `babs-status` CLI. Always: `reckless=False`
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.

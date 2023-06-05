@@ -1,20 +1,19 @@
 # This is a temporary file to test out `babs-submit` and `babs-status`
-
-from babs.cli import babs_submit_main, babs_status_main
 import sys
 import os
 import os.path as op
 
-__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-sys.path.append(op.dirname(__location__))   # print(sys.path)
-# from babs.cli import babs_submit_main, babs_status_main
+__location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))   # noqa
+sys.path.append(op.dirname(__location__))   # print(sys.path)   # noqa
+
+from babs.cli import babs_submit_main, babs_status_main
 
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 flag_instance = "toybidsapp"
 type_session = "multi-ses"
 count = 1
 
-flag_where = "msi"   # "cubic" or "local" or "msi"
+flag_where = "local"   # "cubic" or "local" or "msi"
 # ++++++++++++++++++++++++++++++++++++++++++++++++
 
 # where:
