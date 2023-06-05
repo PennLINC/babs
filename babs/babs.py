@@ -1215,12 +1215,13 @@ class BABS():
                                 # Check if resubmit is requested:
                                 if if_request_resubmit_this_job & (not reckless):
                                     # requested resubmit, but without `reckless`: print msg
-                                    to_print = "Although resubmit for job: " + sub
+                                    to_print = "Although resubmission for job: " + sub
                                     if self.type_session == "multi-ses":
                                         to_print += ", " + ses
                                     to_print += " was requested, as this job is running," \
-                                        + " and `--reckless` was not specified, BABS won't" \
-                                        + " resubmit this job."
+                                        + " BABS won't resubmit this job."
+                                    # NOTE: removed "and `--reckless` was not specified, "
+                                    #   can add this ^^ back after supporting `--reckless` in CLI
                                     warnings.warn(to_print)
 
                                 if if_request_resubmit_this_job & reckless:  # force to resubmit:
@@ -1308,11 +1309,11 @@ class BABS():
                                     # requested resubmit,
                                     #   but currently not support resubmitting stalled jobs:
                                     #   print warning msg:
-                                    to_print = "Although resubmit for job: " + sub
+                                    to_print = "Although resubmission for job: " + sub
                                     if self.type_session == "multi-ses":
                                         to_print += ", " + ses
                                     to_print += " was requested, as this job is stalled" \
-                                        + " (e.g., state code 'eqw' on SGE)," \
+                                        + " (e.g., job state code 'eqw' on SGE)," \
                                         + " BABS won't resubmit this job."
                                     warnings.warn(to_print)
 
@@ -1448,12 +1449,13 @@ class BABS():
 
                     # if want to resubmit, but `--reckless` is NOT specified: print msg:
                     if if_request_resubmit_this_job & (not reckless):
-                        to_print = "Although resubmit for job: " + sub
+                        to_print = "Although resubmission for job: " + sub
                         if self.type_session == "multi-ses":
                             to_print += ", " + ses
                         to_print += " was requested, as this job is done," \
-                            + " and `--reckless` was not specified, BABS won't" \
-                            + " resubmit this job."
+                            + " BABS won't resubmit this job."
+                        # NOTE: removed "and `--reckless` was not specified, "
+                        #   can add this ^^ back after supporting `--reckless` in CLI
                         warnings.warn(to_print)
 
                     # if resubmit is requested, and `--reckless` is specified:
