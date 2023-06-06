@@ -43,20 +43,17 @@ Among these sections, these sections are optional:
 Example/prepopulated configuration YAML files
 -----------------------------------------------
 
-* One, unzipped input dataset:
+Example/prepopulated configuration YAML files can be found in ``notebooks/`` folder of BABS GitHub repository.
+See `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_ for a full list and descriptions.
 
-    * `example configuration YAML file for toy BIDS App <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_toybidsapp.yaml>`_
-    * `example configuration YAML file for fMRIPrep (version xxxx) <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep.yaml>`_
-    * `example configuration YAML file for QSIPrep (version xxxx) <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_qsiprep.yaml>`_
-    * `example configuration YAML file for XCP-D (version xxxx)  <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_xcpd.yaml>`_
+These include example YAML files for:
 
-* One, zipped input dataset: 
+* Different BIDS Apps: fMRIPrep, QSIPrep, XCP-D, as well as toy BIDS App, etc.
+* Cases with different input BIDS dataset, including one raw BIDS dataset, one zipped BIDS derivates dataset,
+  and the combination of these two.
+* Different cluster systems, including SGE and Slurm.
 
-    * `example configuration YAML file toy BIDS App for zipped input dataset <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_zipped_toybidsapp.yaml>`_
-
-* Two input datasets (one unzipped, one zipped):
-
-    * `example configuration YAML file for fMRIPrep (version xxx) with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_
+.. developer's note: ^^ using main branch on github.
 
 
 Terminology when describing a YAML file: 
@@ -262,8 +259,9 @@ Advanced - Manual of writing section ``singularity_run``
     * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**, 
       i.e., before other arguments.
 
-  * How to write the path to the input dataset? Here we use `example configuration YAML file of
-    fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_:
+  * How to write the path to the input dataset? Here we use an example configuration YAML file of
+    fMRIPrep with FreeSurfer results ingressed - you can find this example YAML file
+    `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
 
     * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
