@@ -140,10 +140,11 @@ See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 Example job status summary from ``babs-status``
 *******************************************************
 
-.. code-block:: console
+..  code-block:: console
+    :linenos:
 
     $ babs-status \
-        --project_root /path/to/my/BABS/project \
+        --project_root /path/to/my_BABS_project \
         --container_config_yaml_file /path/to/config.yaml \
         --job-account
 
@@ -154,39 +155,44 @@ Example job status summary from ``babs-status``
     There are in total of 2565 jobs to complete.
     2565 job(s) have been submitted; 0 job(s) haven't been submitted.
     Among submitted jobs,
-    376 job(s) are successfully finished;
-    1900 job(s) are pending;
-    286 job(s) are running;
-    3 job(s) are failed.
+    697 job(s) are successfully finished;
+    1543 job(s) are pending;
+    260 job(s) are running;
+    65 job(s) are failed.
 
     Among all failed job(s):
+    1 job(s) have alert message: 'stdout file: Numerical result out of range';
+    56 job(s) have alert message: 'BABS: No alert message found in log files.';
     1 job(s) have alert message: 'stdout file: fMRIPrep failed';
-    2 job(s) have alert message: 'BABS: No alert message found in log files.';
+    7 job(s) have alert message: 'stdout file: Excessive topologic defect encountered';
 
     Among job(s) that are failed and don't have alert message in log files:
-    2 job(s) have job account of: 'qacct: failed: 37  : qmaster enforced h_rt, h_cpu, or h_vmem limit';
+    56 job(s) have job account of: 'qacct: failed: 37  : qmaster enforced h_rt, h_cpu, or h_vmem limit';
 
-    All log files are located in folder: /path/to/my/BABS/project/analysis/logs
-
-TODO: change above with updated version of job auditing (after changing the YAML file section name to ``alert_log_messages``)
+    All log files are located in folder: /path/to/my_BABS_project/analysis/logs
 
 
 As you can see, in the summary ``Job status``, there are multiple sections:
 
-#. Overall summary of number of jobs to complete, submitted, finished, pending, running, or failed;
-#. Summary of failed jobs, based on the provided section **alert_log_messages** in
-   ``--container-config-yaml-file``, BABS tried to find any alert message
-   that includes the user-defined alert messages;
-#. If there are jobs that are failed but don't have defined alert message,
+#. Line #9-16: Overall summary of number of jobs to complete,
+   as well as their breakdowns: number of jobs submitted/finished/pending/running/failed;
+#. Line 18-22: Summary of failed jobs, based on the provided section **alert_log_messages** in
+   ``--container-config-yaml-file``, BABS tried to find user-defined alert messages in failed jobs' log files;
+#. Line 24-25: If there are jobs that failed but don't have defined alert message,
    and ``--job-account`` is requested, BABS will then run job account
    and try to extract more information and summarize.
-   For each of these jobs, BABS runs job account command (e.g., ``qacct`` on SGE clusters).
-   BABS pulls out the code and message from ``failed`` section in ``qacct``.
-   In above case, the 2 jobs are failed due to runtime exceeding the user-defined one,
-   ``hard_runtime_limit: "48:00:00"``, i.e., ``-l h_rt:48:00:00``.
+   For each of these jobs, BABS runs job account command and extract messages from it.
+
+    * In above case, as ``hard_runtime_limit: "48:00:00"`` was set,
+      those 56 failed jobs without alert messages failed probably due to exceeding this runtime limit
+      (``h_rt limit`` in the line #25).
+    * For SGE clusters: BABS uses command ``qacct`` for job account,
+      and pulls out the code and message from ``failed`` section in ``qacct``.
+    * For Slurm clusters: BABS uses command ``sacct`` for job account,
+      and pulls out message from the ``State`` column.
 
 Finally, you can find the log files (``stdout``, ``stderr``) in the path provided
-in the last line of the printed message.
+in the last line of the printed message (line #27).
 
 
 *******************************************************

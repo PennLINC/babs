@@ -14,6 +14,10 @@ Command-Line Arguments
    :nodefault:
    :nodefaultconst:
 
+.. warning::
+    Do NOT kill ``babs-submit``
+    when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
+
 
 **********************
 Example commands
@@ -72,8 +76,6 @@ For multi-session dataset, say you'd like to submit jobs for ``sub-01, ses-A`` a
         --job sub-01 ses-A \
         --job sub-02 ses-B
 
-
-.. TODO: test out example commands!
 
 **********************
 See also
