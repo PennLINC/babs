@@ -107,9 +107,12 @@ def where_now(if_circleci):
     elif if_singularity_installed:
         where_now = "on_cluster"
     elif if_docker_installed:
-        where_now = "on_local"
+        if subprocess.call(["docker", "info"]) == 0:
+            where_now = "on_local"
+        else:
+            raise Exception("Docker is installed, but not running!"
+                            + " Pytest cannot proceed.")
     else:
-        where_now = ""
         raise Exception("Not on CircleCI, and neither singularity nor docker is installed!"
                         + " Pytest cannot proceed.")
     return where_now
@@ -192,6 +195,11 @@ def container_ds_path(where_now, tmp_path_factory):
                 url="dhub://"+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.7"
             )
 
+    # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
+    # TODO: when this could happen??? perhaps this should be also as pytest.skipif()?
+    assert op.exists(origin_container_ds)
+    assert op.exists(op.join(origin_container_ds, ".datalad/config"))
+
     return origin_container_ds
 
 def get_container_config_yaml_filename(which_bidsapp,
@@ -245,7 +253,13 @@ def get_container_config_yaml_filename(which_bidsapp,
     container_config_yaml_filename += "_" + type_system + "_" \
         + dict_cluster_name[type_system] + ".yaml"
 
-    return container_config_yaml_filename
+    notebooks_dir = op.join(op.dirname(__location__), "notebooks")
+    container_config_yaml_file = op.join(notebooks_dir, container_config_yaml_filename)
+
+    if not op.exists(container_config_yaml_file):
+        pytest.skip(f"container config yaml file doesn't exist in {notebooks_dir}")
+
+    return container_config_yaml_file
 
 
 def if_command_installed(cmd):

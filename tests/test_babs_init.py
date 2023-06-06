@@ -7,7 +7,7 @@ import pytest
 from unittest import mock
 sys.path.append("..")
 sys.path.append("../babs")
-from babs.utils import (read_yaml)   # noqa
+from babs.utils import (read_yaml, TYPE_SYSTEM_SUPPORTED)   # noqa
 from babs.cli import (    # noqa
     babs_init_main,
     babs_check_setup_main)
@@ -25,11 +25,13 @@ from get_data import (   # noqa
 )
 
 @pytest.mark.order(index=1)
+@pytest.mark.parametrize("type_system", ["sge", "slurm"])
 @pytest.mark.parametrize(
-    "which_bidsapp,which_input,type_session,if_input_local,if_two_input",
+    "which_bidsapp, which_input, type_session, if_input_local, if_two_input",
     #  test toybidsapp: BIDS/zipped x single/multi-ses:
     #    the input data will also be remote by default:
-    [("toybidsapp", "BIDS", "single-ses", False, False),
+    [
+     ("toybidsapp", "BIDS", "single-ses", False, False),
      ("toybidsapp", "BIDS", "multi-ses", False, False),
      ("toybidsapp", "fmriprep", "single-ses", False, False),
      ("toybidsapp", "fmriprep", "multi-ses", False, False),
@@ -44,9 +46,11 @@ from get_data import (   # noqa
      ("fmriprep", "BIDS", "single-ses", False, True),
      ("fmriprep", "BIDS", "multi-ses", False, True),
      ])
-def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_two_input,
+def test_babs_init(which_bidsapp, which_input, type_session,
+                   if_input_local, if_two_input,
                    tmp_path, tmp_path_factory,
                    container_ds_path, if_circleci,
+                   type_system
                    ):
     """
     This is to test `babs-init` in different cases.
@@ -72,11 +76,14 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         Path to the container datalad dataset
     if_circleci: fixture; bool
         Whether currently in CircleCI
-
-    TODO: add `type_system` and to test out Slurm version!
+    type_system: str
+         the type of job scheduling system, "sge" or "slurm"
     """
     # Sanity checks:
-    assert which_bidsapp in LIST_WHICH_BIDSAPP
+    if which_bidsapp not in LIST_WHICH_BIDSAPP:
+        pytest.skip(f"which_bidsapp must be one of {LIST_WHICH_BIDSAPP}, test can't be run")
+    if type_system not in TYPE_SYSTEM_SUPPORTED:
+        pytest.skip(f"type_system must be one of {TYPE_SYSTEM_SUPPORTED}, test can't be run")
 
     # Get the path to input dataset:
     path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
@@ -91,20 +98,14 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
             tmp_path_factory)
         input_ds_cli.append([INFO_2ND_INPUT_DATA["which_input"], path_in_2nd])
 
-    # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
-    assert op.exists(container_ds_path)
-    assert op.exists(op.join(container_ds_path, ".datalad/config"))
 
     # Preparation of freesurfer: for fmriprep and qsiprep:
-    # check if `--fs-license-file` is included in YAML file:
-    container_config_yaml_filename = \
+    container_config_yaml_file = \
         get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
-                                           type_system="sge")  # TODO: also test slurm!
-    container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
-                                         container_config_yaml_filename)
-    assert op.exists(container_config_yaml_file)
+                                           type_system=type_system)
     container_config_yaml = read_yaml(container_config_yaml_file)
 
+    # check if `--fs-license-file` is included in YAML file:
     if "--fs-license-file" in container_config_yaml["singularity_run"]:
         # ^^ this way is consistent with BABS re: how to determine if fs license is needed;
         flag_requested_fs_license = True
@@ -112,7 +113,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
     else:
         flag_requested_fs_license = False
         str_fs_license_file = ""
-
+    # TODO: should we just point to a dir in tmp_path? the assert should not be needed
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
     os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
     assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set
@@ -133,7 +134,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
-        type_system="sge",
+        type_system=type_system,
         keep_if_failed=False
     )
 
@@ -162,11 +163,11 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
     # 3) for freesurfer: flag `--fs-license-file`
 
     # first, read in `<container_name>-0-0-0_zip.sh`:
-    fn_bash_container_zip = op.join(project_root, "analysis/code", container_name + "_zip.sh")
-    file_bash_container_zip = open(fn_bash_container_zip, 'r')
-    lines_bash_container_zip = file_bash_container_zip.readlines()
-    file_bash_container_zip.close()
-    # check:
+    with open(op.join(project_root, "analysis/code", container_name + "_zip.sh")) as f:
+        bash_container_zip = f.read()
+
+    # checking the content of files created by BABS init
+    # setting initial values for flags:
     if_bind_templateflow = False   # `singularity run -B` to bind a path to container
     if_bind_freesurfer = False
     str_bind_freesurfer = "-B " + str_fs_license_file \
@@ -178,21 +179,22 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
     if_flag_bidsfilterfile = False
     if_flag_fs_license = False
     flag_fs_license = '--fs-license-file /SGLR/FREESURFER_HOME/license.txt'
-    for line in lines_bash_container_zip:
-        if "--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME" in line:
-            if_set_singu_templateflow = True
-        if all(ele in line for ele in ["-B",
-                                       TEMPLATEFLOW_HOME + ":/SGLR/TEMPLATEFLOW_HOME"]):
-            # e.g., `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
-            if_bind_templateflow = True
-        if str_bind_freesurfer in line:
-            if_bind_freesurfer = True
-        if "filterfile=${PWD}/${sesid}_filter.json" in line:
-            if_generate_bidsfilterfile = True
-        if '--bids-filter-file "${filterfile}"' in line:
-            if_flag_bidsfilterfile = True
-        if flag_fs_license in line:
-            if_flag_fs_license = True
+
+    if "--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME" in bash_container_zip:
+        if_set_singu_templateflow = True
+    if all(ele in bash_container_zip for ele in ["-B",
+                                   TEMPLATEFLOW_HOME + ":/SGLR/TEMPLATEFLOW_HOME"]):
+        # e.g., `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
+        if_bind_templateflow = True
+    if str_bind_freesurfer in bash_container_zip:
+        if_bind_freesurfer = True
+    if "filterfile=${PWD}/${sesid}_filter.json" in bash_container_zip:
+        if_generate_bidsfilterfile = True
+    if '--bids-filter-file "${filterfile}"' in bash_container_zip:
+        if_flag_bidsfilterfile = True
+    if flag_fs_license in bash_container_zip:
+        if_flag_fs_license = True
+
     # assert they are found:
     # 1) TemplateFlow: should be found in all cases:
     assert if_bind_templateflow, \

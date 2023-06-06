@@ -16,6 +16,9 @@ from qstat import qstat  # https://github.com/relleums/qstat
 from datetime import datetime
 import re
 
+
+TYPE_SYSTEM_SUPPORTED = ['sge', 'slurm']
+
 # Disable the behavior of printing messages:
 def blockPrint():
     sys.stdout = open(os.devnull, 'w')
@@ -155,13 +158,12 @@ def validate_type_system(type_system):
     For valid ones, the type string will be changed to lower case.
     If not valid, raise error message.
     """
-    list_supported = ['sge', 'slurm']
-    if type_system.lower() in list_supported:
+    if type_system.lower() in TYPE_SYSTEM_SUPPORTED:
         type_system = type_system.lower()   # change to lower case, if needed
     else:
         raise Exception("Invalid cluster system type: '" + type_system + "'!"
                         + " Currently BABS only support one of these: "
-                        + ', '.join(list_supported))   # names separated by ', '
+                        + ', '.join(TYPE_SYSTEM_SUPPORTED))   # names separated by ', '
     return type_system
 
 
