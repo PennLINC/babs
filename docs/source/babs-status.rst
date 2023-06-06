@@ -93,5 +93,7 @@ and you hope to resubmit them:
         --resubmit-job sub-02 ses-B
 
 
-.. TODO: add example commands for `babs-status --resubmit` or `--resubmit-job`
-..  including multi-ses and single-ses cases
+**********************
+See also
+**********************
+:doc:`jobs`

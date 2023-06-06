@@ -486,8 +486,10 @@ def babs_status_cli():
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container. It may include 'alert_log_messages' section"
-        " to be used by babs-status.")
+        " of how to run the BIDS App container. It may include ``alert_log_messages`` section."
+        " ``babs-status`` will use this section for failed job auditing,"
+        " by checking if any defined alert messages"
+        " can be found in failed jobs' log files.")
     parser.add_argument(
         '--job_account', '--job-account',
         action='store_true',
