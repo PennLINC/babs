@@ -1046,11 +1046,14 @@ class BABS():
                     if (i_progress + 1) % count_report_progress == 0:
                         print('So far ' + str(i_progress + 1) + ' jobs have been submitted.')
 
+                num_rows_to_print = 6
+                print("\nFirst " + str(num_rows_to_print)
+                      + " rows of 'analysis/code/job_status.csv':")
                 with pd.option_context('display.max_rows', None,
                                        'display.max_columns', None,
                                        'display.width', 120):   # default is 80 characters...
                     # ^^ print all the columns and rows (with returns)
-                    print(df_job_updated.head(6))   # only first several rows
+                    print(df_job_updated.head(num_rows_to_print))   # only first several rows
 
                 # save updated df:
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
