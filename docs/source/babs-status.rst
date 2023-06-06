@@ -22,7 +22,7 @@ Example commands
 Basic use
 -------------
 
-When only providing the required ``--project-root``,
+When only providing the required argument ``--project-root``,
 you'll only get job status summary (i.e., number of jobs finished/pending/running/failed):
 
 .. code-block:: bash
@@ -92,6 +92,12 @@ and you hope to resubmit them:
         --resubmit-job sub-01 ses-A \
         --resubmit-job sub-02 ses-B
 
+**********************
+Notes
+**********************
+
+For argument ``--resubmit-job``, please provide the subject ID (and session ID) whose job you'd like to resubmit.
+You should not provide the job ID. See examples above.
 
 **********************
 See also
