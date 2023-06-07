@@ -48,4 +48,6 @@ See also
 
 * New users? Check out :doc:`docs of how to install BABS <installation>`
   and :doc:`example walkthrough <walkthrough>`!
+* Having issues when using BABS? Please check out :ref:`BABS GitHub Issues page <https://github.com/PennLINC/babs/issues>`
+  to see if your questions have been covered. If not, please create a new issue.
 * Want to contribute to BABS? Check out :doc:`docs for developers <developer>`!

@@ -9,7 +9,7 @@
 * YAML files that have section **alert_log_messages** (not a full list):
     * [eg_fmriprep-20-2-3_anatonly_sge_cubic.yaml](eg_fmriprep-20-2-3_anatonly_sge_cubic.yaml)
 
-List of example container configuration YAML file:
+### List of example container configuration YAML file:
 
 | example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | cluster system | Notes | 
 | :-- | :--|:-- | :-- |:-- | :-- | :-- |
