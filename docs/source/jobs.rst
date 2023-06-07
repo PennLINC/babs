@@ -114,7 +114,6 @@ section **alert_log_messages** in the container's configuration YAML file.
 
 * You may also refer to the example YAML files we provide
   in `folder "notebooks/" <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
-  Trying relative path: `here <../../../notebooks/README.md>`_.
 * No worry if you could not cover all alert messages at once;
   you can add/change this section **alert_log_messages** in the YAML file anytime you want,
   and simply call::
@@ -125,6 +124,10 @@ section **alert_log_messages** in the container's configuration YAML file.
     
   to ask BABS to find updated list of alert messages.
 * For more details about this section, please refer to :ref:`alert_log_messages`.
+
+.. developer's note: cannot use relative path like: `here <../../../notebooks/README.md>`_
+..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path 
+..  making it a broken link. Although the rendered path looks fine when building the docs *locally*
 
 Job resubmission
 -----------------------
