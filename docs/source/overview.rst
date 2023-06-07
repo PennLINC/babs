@@ -10,8 +10,7 @@ BABS facilitates the reproducible application of BIDS Apps to large-scale datase
 BABS features several command-line interface programs (highlighted in blue):
 
 .. image:: _static/babs_cli.png
-.. .. image:: https://github.com/PennLINC/babs/raw/main/docs/source/_static/babs_cli.png
-.. Note: this image is taken from the main branch, so it's normal that docs built from branches is not up-to-date.
+.. Note: we can use relative path here, as this rst file is in the docs/ folder.
 
 :bdg-success:`Step I.` BABS requires three stuff as inputs:
 
