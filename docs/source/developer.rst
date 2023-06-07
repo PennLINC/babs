@@ -7,7 +7,7 @@ For potential contributors
 ============================
 We welcome and appreciate any contributions to ``BABS``!
 If you hope to contribute to ``BABS``, please make a pull request to
-our :ref:`GitHub repository <https://github.com/PennLINC/babs>`.
+our `GitHub repository <https://github.com/PennLINC/babs>`_.
 It will be great to your commits pass all the checks,
 including the Circle CI tests, spelling checks, and docs building.
 

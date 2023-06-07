@@ -113,7 +113,7 @@ section **alert_log_messages** in the container's configuration YAML file.
   This is helpful for debugging.
 
 * You may also refer to the example YAML files we provide
-  (See `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_).
+  in `folder "notebooks/" <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
 * No worry if you could not cover all alert messages at once;
   you can add/change this section **alert_log_messages** in the YAML file anytime you want,
   and simply call::
