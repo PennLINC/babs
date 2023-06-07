@@ -1,8 +1,15 @@
 *****************************
-Documentation for developers
+Developers and contributors
 *****************************
 
-
+============================
+For potential contributors
+============================
+We welcome and appreciate any contributions to ``BABS``!
+If you hope to contribute to ``BABS``, please make a pull request to
+our :ref:`GitHub repository <https://github.com/PennLINC/babs>`.
+It will be great to your commits pass all the checks,
+including the Circle CI tests, spelling checks, and docs building.
 
 ===================================
 Container configuration YAML file

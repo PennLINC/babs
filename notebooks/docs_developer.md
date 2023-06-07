@@ -1,4 +1,4 @@
-# `datalad-status`
+# `babs-status`
 ## Logic flow of method `datalad_status()` of class BABS
 
 * create `job_status.csv` if it does not exist yet
