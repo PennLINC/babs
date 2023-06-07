@@ -38,9 +38,9 @@ Please see document :ref:`preparation` for how to prepare these inputs.
 
 .. _how-to-define-name-of-input-dataset:
 
-----------------------------------------------------------------
-How to define input dataset's name ``<name>`` in ``--input``?
-----------------------------------------------------------------
+---------------------------------------------------------------------------
+How to define input dataset's name ``<name>`` in ``babs-init --input``?
+---------------------------------------------------------------------------
 
 **General guideline**: a string you think that's informative, and you don't need to choose
 from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
@@ -59,7 +59,8 @@ from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
        ``freesurfer`` results zip files into current BABS project, then you should name this input
        dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
        is not a pattern found in these zip files, ``babs-init`` will fail.
-    #. In addition, the zip files that have such pattern (e.g., ``*freesurfer*``) should include a folder named
+    #. In addition, the zip files named with such pattern (e.g., ``*freesurfer*.zip``)
+       should include a folder named
        as the same name too (e.g., a folder called ``freesurfer``).
     #. For example,
        in multi-session, zipped fMRIPrep derivatives data (e.g., https://osf.io/k9zw2/)::

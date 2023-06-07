@@ -410,6 +410,9 @@ Section ``cluster_resources``
 This section defines the cluster resources each job will use,
 and the interpreting shell for executing the job script.
 
+Example section **cluster_resources**
+----------------------------------------
+
 Example section **cluster_resources** for ``QSIPrep``::
 
     cluster_resources:
@@ -418,8 +421,12 @@ Example section **cluster_resources** for ``QSIPrep``::
         temporary_disk_space: 200G
         number_of_cpus: "6" 
 
-These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` on an SGE cluster
-(this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown as below::
+These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` shown as below.
+This script could be found at: ``/path/to/my_BABS_project/analysis/code``.
+Note that these directives were generated for an **SGE** cluster,
+and generated directives for Slurm clusters would be different.
+
+.. code-block::
 
     #!/bin/bash
     #$ -l h_vmem=32G
@@ -436,6 +443,10 @@ You may simply specify: ``hard_memory_limit: 32G``.
     For SGE, you might need: ``interpreting_shell: /bin/bash``;
     For Slurm, you might need: ``interpreting_shell: /bin/bash -l``.
     Check what it should be like in the manual of your cluster!
+
+
+Named cluster resources readily available
+------------------------------------------
 
 The table below lists all the named cluster resources requests that BABS supports.
 You may not need all of them.
@@ -483,8 +494,20 @@ The second row in each cell, which is also in (), is an example.
     | | (``hard_runtime_limit: "24:00:00"``)   | | (``#$ -l h_rt=24:00:00``)              | | (``#SBATCH --time=24:00:00``)           |
     +------------------------------------------+------------------------------------------+-------------------------------------------+
 
+
+Note that:
+
+* For values with numbers only (without letters), it's recommended to quote the value,
+  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
+  and pass the value exactly as it is,
+  without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
+
+
+Customized cluster resources request
+--------------------------------------
+
 If you cannot find the one you want in the above table, you can still add it by ``customized_text``.
-Below is an example for SGE cluster::
+Below is an example for **SGE** clusters::
 
     cluster_resources:
         <here goes keys defined in above table>: <$VALUE>
@@ -494,12 +517,21 @@ Below is an example for SGE cluster::
 
 Note that:
 
-* Remember to add ``|`` after ``customized_text:``;
-* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the option, e.g., ``#$`` for SGE clusters.
-* For values with numbers only (without letters), it's recommended to quote the value,
-  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
-  and pass the value exactly as it is,
-  without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
+* Remember to add ``|`` after ``customized_text:``. This is to make sure
+  BABS can read in multiple lines under ``customized_text``.
+ 
+* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation),
+  please remember to add any necessary prefix before the option:
+  
+    * ``#$`` for SGE clusters
+    * ``#SBATCH`` for Slurm clusters
+
+.. developer's note: With this sign ``|``, the lines between ``customized_text`` and next section
+      will all be read into BABS if the lines are aligned with ``customized_text``, so be careful when you add comments there.
+.. developer's note: If there is only one line, you could also write in this way (not suggested):
+..  customized_text: "#$ -R y"
+
+
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 
