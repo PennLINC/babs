@@ -32,6 +32,8 @@ Raw (unzipped) BIDS dataset, or zipped BIDS dataset?
 When running ``babs-init``, you will see printed messages describing each input BIDS dataset
 was categorized as a raw (unzipped) dataset or a zipped dataset.
 
+.. _requirements_for_zipped_BIDS_derivatives_dataset:
+
 =====================================================
 Requirements for zipped BIDS derivatives dataset
 =====================================================
@@ -40,7 +42,7 @@ There are several requirements for zipped BIDS derivatives dataset:
 Note: an input dataset's name is defined when ``babs-init --name``.
 
 -------------------------
-Naming of the zip files
+Naming zip files
 -------------------------
 
 * For single-session dataset, the zip filename should follow the pattern of
@@ -93,8 +95,12 @@ as input dataset for your current BABS project ("BABS project B"), you may:
     * For more details and/or other RIA scenarios, please refer to `datalad clone's documentation <https://docs.datalad.org/en/stable/generated/man/datalad-clone.html>`_ and `DataLad Handbook about cloning from RIA stores <https://handbook.datalad.org/en/latest/beyond_basics/101-147-riastores.html#cloning-and-updating-from-ria-stores>`_
 #. Then use the path to the cloned dataset as the input dataset directory.
 #. :octicon:`alert-fill` :bdg-warning:`warning`
-   Please refer to :ref:`how-to-define-name-of-input-dataset` for restrictions in data organizing
-   and naming for a zipped dataset.
+   Please refer to docs listed below for detailed requirements before you run ``babs-init``:
+
+    * :ref:`how-to-define-name-of-input-dataset`:
+      for restrictions in naming a zipped dataset as input.
+    * :ref:`requirements_for_zipped_BIDS_derivatives_dataset`:
+      for requirements in zip files naming and their contents.
 
 .. Developer's Notes: In theory the user could directly provide ``ria+file://xxx/output_ria#~data`` as the path to the input dataset in ``babs-init``,
 ..      but we hope they could test if this string is correct by letting them clone once.

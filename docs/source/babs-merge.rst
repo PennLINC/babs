@@ -77,3 +77,8 @@ However if you are concerned that ``babs-merge`` takes a long time, you can:
 * Either use `screen <https://www.gnu.org/software/screen/>`_
   so that even you are disconnected from the cluster login node, ``babs-merge`` command keeps running;
 * Or submit ``babs-merge`` as a job.
+
+**********************
+See also
+**********************
+:doc:`after_jobs`

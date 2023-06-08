@@ -256,7 +256,7 @@ def babs_check_setup_cli():
     """
 
     parser = argparse.ArgumentParser(
-        description="``babs-check-setup`` validates setups by `babs-init`.",
+        description="``babs-check-setup`` validates setups by ``babs-init``.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--project_root", "--project-root",
@@ -308,7 +308,7 @@ def babs_submit_cli():
     """
 
     parser = argparse.ArgumentParser(
-        description="Submit jobs that will be run on cluster compute nodes.")
+        description="Submit jobs to cluster compute nodes.")
     parser.add_argument(
         "--project_root", "--project-root",
         help="Absolute path to the root of BABS project."

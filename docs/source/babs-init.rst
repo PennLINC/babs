@@ -173,3 +173,10 @@ there is no DataLad dataset there.
 How to solve the problem: Fix this path. To confirm the updated path is valid, you can try cloning
 it to a temporary directory with ``datalad clone /updated/path/to/input_dataset``. If it is successful,
 you can go ahead rerun ``babs-init``.
+
+**********************
+See also
+**********************
+
+* :doc:`preparation`
+* :doc:`create_babs_project`
