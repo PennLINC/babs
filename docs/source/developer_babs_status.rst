@@ -75,7 +75,7 @@ Resubmissions based on job's status
 
 Note: currently, ``babs-status`` CLI does not support ``--reckless``.
 
-.. list-table:: Current BABS's reponses when resubmission is requested
+.. list-table:: Current BABS's responses when resubmission is requested
    :header-rows: 1
 
    * - job status
