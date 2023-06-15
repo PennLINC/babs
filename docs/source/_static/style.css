@@ -1,0 +1,4 @@
+.wy-nav-content {
+    max-width: 900px !important;
+    /* control width. ref: https://stackoverflow.com/questions/23211695/modifying-content-width-of-the-sphinx-theme-read-the-docs */
+}
