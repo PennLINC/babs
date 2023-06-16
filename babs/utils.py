@@ -16,8 +16,8 @@ from qstat import qstat  # https://github.com/relleums/qstat
 from datetime import datetime
 import re
 
+from babs.constants import TYPE_SYSTEM_SUPPORTED
 
-TYPE_SYSTEM_SUPPORTED = ['sge', 'slurm']
 
 # Disable the behavior of printing messages:
 def blockPrint():

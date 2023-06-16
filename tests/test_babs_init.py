@@ -7,7 +7,8 @@ import pytest
 from unittest import mock
 sys.path.append("..")
 sys.path.append("../babs")
-from babs.utils import (read_yaml, TYPE_SYSTEM_SUPPORTED)   # noqa
+from babs.utils import (read_yaml)   # noqa
+from babs.constants import (TYPE_SYSTEM_SUPPORTED)   # noqa
 from babs.cli import (    # noqa
     babs_init_main,
     babs_check_setup_main)

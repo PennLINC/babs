@@ -55,6 +55,10 @@ def test_babs_check_setup(
         All cases have something going wrong, leading to `babs-init` failure;
         Only in case `not_to_keep_failed`, flag `--keep-if-failed` in `babs-init` won't turn on,
         so expected error will be: BABS project does not exist.
+    error_type: Exception
+        The type of expected error raised by `babs-check-setup`
+    error_msg: str
+        The expected error message raised by `babs-check-setup`
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
     container_ds_path: fixture; str

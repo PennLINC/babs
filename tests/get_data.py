@@ -196,7 +196,6 @@ def container_ds_path(where_now, tmp_path_factory):
             )
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
-    # TODO: when this could happen??? perhaps this should be also as pytest.skipif()?
     assert op.exists(origin_container_ds)
     assert op.exists(op.join(origin_container_ds, ".datalad/config"))
 
