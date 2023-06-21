@@ -275,7 +275,25 @@ There are several lines (highlighted above) that require customization based on 
         interpreting_shell: "/bin/bash -l"
 
       See :ref:`cluster-resources` for more explanations about this line.
-    * If needed, you may add requests for other resources, e.g., runtime limit of 20min.
+    * For Slurm clusters, if you would like to use specific partition(s),
+      as requesting partition is currently not a pre-defined key in BABS,
+      you can use ``customized_text`` instead, and add line #3-4 highlighted in the block below:
+
+        ..  code-block:: yaml
+            :linenos:
+            :emphasize-lines: 3,4
+
+            cluster_resources:
+                ...
+                customized_text: |
+                    #SBATCH -p <partition_names>
+
+      Please replace ``<partition_names>`` with the partition name(s) you would like to use.
+      And please replace ``...`` with other lines with pre-defined keys from BABS,
+      such as ``interpreting_shell``, ``hard_memory_limit``, ``temporary_disk_space``. 
+
+    * If needed, you may add more requests for other resources, e.g., runtime limit of 20min,
+      Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
     * .. dropdown:: For Penn Medicine CUBIC cluster only:
         
