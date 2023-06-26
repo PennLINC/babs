@@ -27,7 +27,7 @@ Submit jobs and check job status
    babs-submit
    babs-status
 
-After jobs are finished
+After jobs have finished
 ===========================
 
 .. toctree::

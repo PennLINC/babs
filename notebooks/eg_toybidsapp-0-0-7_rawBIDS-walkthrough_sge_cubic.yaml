@@ -1,0 +1,42 @@
+# =========================================================================
+# WARNING: Be careful when changing this file!!!
+#   as this file is used in `example walkthrough` docs
+#   and the line numbers there are fixed!
+#   please make sure you also update `docs/source/walkthrough.rst` too!!!
+# =========================================================================
+
+# This is an example config yaml file for toy BIDS App "toy_bids_app"
+#   whose version: 0.0.7
+# Toy BIDS App's Docker image is publicly available at: https://hub.docker.com/r/pennlinc/toy_bids_app
+# This BIDS App counts number of non-hidden files in a subject's (or a session's) folder;
+#     More details please see: https://github.com/PennLINC/babs_tests/blob/main/docker/README.md#toy-bids-app-toy_bids_app
+# How to prepare a container DataLad dataset of this toy BIDS App? See docs here: https://pennlinc-babs.readthedocs.io/en/latest/preparation_container.html
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the toy BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    --no-zipped: ""
+    --dummy: "2"
+    -v: ""
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    toybidsapp: "0-0-7"
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: /bin/bash
+    hard_memory_limit: 2G
+    temporary_disk_space: 20G
+
+# Necessary commands to be run first:
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate babs    # for Penn Med CUBIC cluster
+
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # for Penn Med CUBIC cluster tmp space

@@ -12,9 +12,9 @@ BABS features several command-line interface programs (highlighted in blue):
 
 BABS requires three stuff as inputs (please refer to :doc:`preparation` for details):
 
-1. DataLad dataset of BIDS dataset(s). This could be raw BIDS data, or zipped results from another BABS project.
+1. DataLad dataset(s) of BIDS dataset(s). This could be raw BIDS data, or zipped results from another BABS project.
 2. DataLad dataset of containerized BIDS App.
-3. A YAML file of parameters for executing the BIDS App etc.
+3. A YAML file regarding how the BIDS App should be executed.
 
 The first step is to set up a BABS project.
 With these three inputs, ``babs-init`` initializes a BABS project.

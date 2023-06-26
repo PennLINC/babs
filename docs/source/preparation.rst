@@ -1,7 +1,7 @@
 .. _preparation:
 
 **********************
-Get prepared
+Step I: Get prepared
 **********************
 
 BABS requires three items:
