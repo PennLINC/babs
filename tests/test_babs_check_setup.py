@@ -29,7 +29,7 @@ from get_data import (   # noqa
     "which_case, error_type, error_msg",[
         # container_ds` has wrong path; not to `--keep-if-failed`
         ("not_to_keep_failed", Exception, "`--project-root` does not exist!"),
-        # container_ds` has wrong path #todo: perhaps it should be changed to RuntimeError?
+        # container_ds` has wrong path
         ("wrong_container_ds", AssertionError, "There is no containers DataLad dataset in folder:"),
         # `input ds` has wrong path
         ("wrong_input_ds", FileNotFoundError, "No such file or directory:")
@@ -77,7 +77,6 @@ def test_babs_check_setup(
     path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
     input_ds_cli = [[which_input, path_in]]
 
-    # TODO: should we just point to a dir in tmp_path? the assert should not be needed
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
     os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
     assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set

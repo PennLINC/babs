@@ -114,7 +114,7 @@ def test_babs_init(which_bidsapp, which_input, type_session,
     else:
         flag_requested_fs_license = False
         str_fs_license_file = ""
-    # TODO: should we just point to a dir in tmp_path? the assert should not be needed
+
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
     os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
     assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set
