@@ -160,6 +160,8 @@ You now need to pull our toy BIDS App as a Singularity image (the latest version
         docker://pennlinc/toy_bids_app:0.0.7
 
 Now you should see the file ``toybidsapp-0.0.7.sif`` in the current directory.
+If you have any issues when creating the Singularity image, check if you are not using an old version
+of the software (we testet it for Singularity 3.9.5).
 Then create a DataLad dataset of this container (i.e., let DataLad track this Singularity image):
 
 .. dropdown:: I'm confused - Why the container is another DataLad `dataset`?
@@ -275,6 +277,9 @@ There are several lines (highlighted above) that require customization based on 
         interpreting_shell: "/bin/bash -l"
 
       See :ref:`cluster-resources` for more explanations about this line.
+
+    * Some Slurm clusters do not allow for `temporary_disk_space` and you might have to remove this line.
+
     * For Slurm clusters, if you would like to use specific partition(s),
       as requesting partition is currently not a pre-defined key in BABS,
       you can use ``customized_text`` instead, and add line #3-4 highlighted in the block below:
