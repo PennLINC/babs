@@ -160,8 +160,15 @@ You now need to pull our toy BIDS App as a Singularity image (the latest version
         docker://pennlinc/toy_bids_app:0.0.7
 
 Now you should see the file ``toybidsapp-0.0.7.sif`` in the current directory.
-If you have any issues when creating the Singularity image, check if you are not using an old version
-of the software (we testet it for Singularity 3.9.5).
+
+.. dropdown:: Having trouble building this Singularity image?
+
+    It might be because the Singularity software's version you're using is too old.
+    You can check your Singularity's version via ``singularity --version``.
+    We've tested that these versions work fine:
+    ``singularity-ce version 3.9.5`` and ``apptainer version 1.1.8-1.el7``.
+
+
 Then create a DataLad dataset of this container (i.e., let DataLad track this Singularity image):
 
 .. dropdown:: I'm confused - Why the container is another DataLad `dataset`?
