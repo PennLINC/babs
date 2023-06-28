@@ -10,7 +10,7 @@ Step 1. Prepare a conda environment for BABS
 After installing conda, let's initialize a new environment (e.g., named ``babs``)
 where we can install BABS:: 
 
-    conda create -n babs python=3.9
+    conda create -n babs python=3.9.16
     conda activate babs
 
 Step 2. Install dependent software
