@@ -496,9 +496,10 @@ Below is an example for SGE cluster::
 
 Note that:
 
-* Some clusters might not allow for specific settings (e.g. `temporary_disk_space`), if you get an error that the setting is not allowed, 
+* Some clusters might not allow for specific settings (e.g. ``temporary_disk_space``).
+  If you get an error that the setting is not allowed, 
   simply remove the line that causes the issue.
-* Remember to add ``|`` after ``customized_text:``;
+* Remember to add ``|`` after ``customized_text:``.
 * As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the option, e.g., ``#$`` for SGE clusters.
 * For values with numbers only (without letters), it's recommended to quote the value,
   e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
