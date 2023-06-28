@@ -32,7 +32,6 @@ zip_foldernames:
 cluster_resources:
     interpreting_shell: /bin/bash
     hard_memory_limit: 2G
-    temporary_disk_space: 20G
 
 # Necessary commands to be run first:
 script_preamble: |
