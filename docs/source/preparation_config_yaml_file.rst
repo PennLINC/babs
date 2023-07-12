@@ -43,20 +43,17 @@ Among these sections, these sections are optional:
 Example/prepopulated configuration YAML files
 -----------------------------------------------
 
-* One, unzipped input dataset:
+Example/prepopulated configuration YAML files can be found in ``notebooks/`` folder of BABS GitHub repository.
+See `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_ for a full list and descriptions.
 
-    * `example configuration YAML file for toy BIDS App <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_toybidsapp.yaml>`_
-    * `example configuration YAML file for fMRIPrep (version xxxx) <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep.yaml>`_
-    * `example configuration YAML file for QSIPrep (version xxxx) <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_qsiprep.yaml>`_
-    * `example configuration YAML file for XCP-D (version xxxx)  <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_xcpd.yaml>`_
+These include example YAML files for:
 
-* One, zipped input dataset: 
+* Different BIDS Apps: fMRIPrep, QSIPrep, XCP-D, as well as toy BIDS App, etc.
+* Cases with different input BIDS datasets, including one raw BIDS dataset, one zipped BIDS derivates dataset,
+  and the combination of these two.
+* Different cluster systems, including SGE and Slurm.
 
-    * `example configuration YAML file toy BIDS App for zipped input dataset <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_zipped_toybidsapp.yaml>`_
-
-* Two input datasets (one unzipped, one zipped):
-
-    * `example configuration YAML file for fMRIPrep (version xxx) with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_
+.. developer's note: ^^ using main branch on github.
 
 
 Terminology when describing a YAML file: 
@@ -262,8 +259,9 @@ Advanced - Manual of writing section ``singularity_run``
     * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**, 
       i.e., before other arguments.
 
-  * How to write the path to the input dataset? Here we use `example configuration YAML file of
-    fMRIPrep with FreeSurfer results ingressed <https://github.com/PennLINC/babs/blob/main/notebooks/example_container_fmriprep_ingressed_fs.yaml>`_:
+  * How do you write the path to the input dataset? Here we use an example configuration YAML file of
+    fMRIPrep with existing FreeSurfer results ingressed - you can find this example YAML file
+    `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
 
     * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
@@ -412,6 +410,9 @@ Section ``cluster_resources``
 This section defines the cluster resources each job will use,
 and the interpreting shell for executing the job script.
 
+Example section **cluster_resources**
+----------------------------------------
+
 Example section **cluster_resources** for ``QSIPrep``::
 
     cluster_resources:
@@ -420,8 +421,12 @@ Example section **cluster_resources** for ``QSIPrep``::
         temporary_disk_space: 200G
         number_of_cpus: "6" 
 
-These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` on an SGE cluster
-(this script could be found at: ``/path/to/my_BABS_project/analysis/code``) shown as below::
+These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` shown as below.
+This script could be found at: ``/path/to/my_BABS_project/analysis/code``.
+Note that these directives were generated for an **SGE** cluster,
+and generated directives for Slurm clusters would be different.
+
+.. code-block::
 
     #!/bin/bash
     #$ -l h_vmem=32G
@@ -438,6 +443,10 @@ You may simply specify: ``hard_memory_limit: 32G``.
     For SGE, you might need: ``interpreting_shell: /bin/bash``;
     For Slurm, you might need: ``interpreting_shell: /bin/bash -l``.
     Check what it should be like in the manual of your cluster!
+
+
+Named cluster resources readily available
+------------------------------------------
 
 The table below lists all the named cluster resources requests that BABS supports.
 You may not need all of them.
@@ -485,8 +494,20 @@ The second row in each cell, which is also in (), is an example.
     | | (``hard_runtime_limit: "24:00:00"``)   | | (``#$ -l h_rt=24:00:00``)              | | (``#SBATCH --time=24:00:00``)           |
     +------------------------------------------+------------------------------------------+-------------------------------------------+
 
+
+Note the following:
+
+* For values with numbers only (without letters), it's recommended to quote the value,
+  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
+  and pass the value exactly as is,
+  without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
+
+
+Customized cluster resource requests
+--------------------------------------
+
 If you cannot find the one you want in the above table, you can still add it by ``customized_text``.
-Below is an example for SGE cluster::
+Below is an example for **SGE** clusters::
 
     cluster_resources:
         <here goes keys defined in above table>: <$VALUE>
@@ -499,12 +520,25 @@ Note that:
 * Some clusters might not allow for specific settings (e.g. ``temporary_disk_space``).
   If you get an error that the setting is not allowed, 
   simply remove the line that causes the issue.
-* Remember to add ``|`` after ``customized_text:``.
-* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation), please remember to add any necessary prefix before the option, e.g., ``#$`` for SGE clusters.
+
+* Remember to add ``|`` after ``customized_text:``. This is to make sure
+  BABS can read in multiple lines under ``customized_text``.
+
+* As customized texts will be directly copied to the script ``participant_job.sh`` (without translation),
+  please remember to add any necessary prefix before the option:
+  
+    * ``#$`` for SGE clusters
+    * ``#SBATCH`` for Slurm clusters
+
 * For values with numbers only (without letters), it's recommended to quote the value,
   e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
   and pass the value exactly as it is,
   without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
+
+.. developer's note: With this sign ``|``, the lines between ``customized_text`` and next section
+      will all be read into BABS if the lines are aligned with ``customized_text``, so be careful when you add comments there.
+.. developer's note: If there is only one line, you could also write in this way (not suggested):
+..  customized_text: "#$ -R y"
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 

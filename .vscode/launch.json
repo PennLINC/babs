@@ -65,7 +65,7 @@
             // ]
             "args": [
                 "--project-root",
-                "/home/faird/zhaoc/data/test_babs_single-ses_PNC_fmriprep_sloppy",
+                "/Users/chenyzh/Desktop/Research/Satterthwaite_Lab/datalad_wrapper/data/test_babs_multi-ses_qsiprep",
                 "--job-account"
             ]
             // "args": [

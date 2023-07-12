@@ -1046,11 +1046,14 @@ class BABS():
                     if (i_progress + 1) % count_report_progress == 0:
                         print('So far ' + str(i_progress + 1) + ' jobs have been submitted.')
 
+                num_rows_to_print = 6
+                print("\nFirst " + str(num_rows_to_print)
+                      + " rows of 'analysis/code/job_status.csv':")
                 with pd.option_context('display.max_rows', None,
                                        'display.max_columns', None,
                                        'display.width', 120):   # default is 80 characters...
                     # ^^ print all the columns and rows (with returns)
-                    print(df_job_updated.head(6))   # only first several rows
+                    print(df_job_updated.head(num_rows_to_print))   # only first several rows
 
                 # save updated df:
                 df_job_updated.to_csv(self.job_status_path_abs, index=False)
@@ -1076,7 +1079,8 @@ class BABS():
         -------------
         flags_resubmit: list
             Under what condition to perform job resubmit.
-            Element choices are: 'failed', 'pending', 'stalled'.
+            Element choices are: 'failed', 'pending'.
+            CLI does not support 'stalled' right now, as it's not tested.
         df_resubmit_job_specific: pd.DataFrame or None
             list of specified job(s) to resubmit, requested by `--resubmit-job`
             columns: 'sub_id' (and 'ses_id', if multi-ses)
@@ -1084,7 +1088,9 @@ class BABS():
         reckless: bool
             Whether to resubmit jobs listed in `df_resubmit_job_specific`,
             even they're done or running.
-            This is used when `--resubmit-job`
+            This is used when `--resubmit-job`.
+            NOTE: currently this argument has not been tested;
+            NOTE: `--reckless` has been removed from `babs-status` CLI. Always: `reckless=False`
         container_config_yaml_file: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
@@ -1212,12 +1218,13 @@ class BABS():
                                 # Check if resubmit is requested:
                                 if if_request_resubmit_this_job & (not reckless):
                                     # requested resubmit, but without `reckless`: print msg
-                                    to_print = "Although resubmit for job: " + sub
+                                    to_print = "Although resubmission for job: " + sub
                                     if self.type_session == "multi-ses":
                                         to_print += ", " + ses
                                     to_print += " was requested, as this job is running," \
-                                        + " and `--reckless` was not specified, BABS won't" \
-                                        + " resubmit this job."
+                                        + " BABS won't resubmit this job."
+                                    # NOTE: removed "and `--reckless` was not specified, "
+                                    #   can add this ^^ back after supporting `--reckless` in CLI
                                     warnings.warn(to_print)
 
                                 if if_request_resubmit_this_job & reckless:  # force to resubmit:
@@ -1297,35 +1304,51 @@ class BABS():
                                     df_job_updated.at[i_job, "job_state_code"] = state_code
 
                             elif state_code == "eqw":
+                                # NOTE: comment out resubmission of `eqw` jobs
+                                #   as this was not tested out;
+                                #   also, equivalent `eqw` code on Slurm was not mapped either.
+
                                 if ('stalled' in flags_resubmit) or (if_request_resubmit_this_job):
-                                    # Resubmit:
-                                    # did_resubmit = True
-                                    # print a message:
-                                    to_print = "Resubmit job for " + sub
+                                    # requested resubmit,
+                                    #   but currently not support resubmitting stalled jobs:
+                                    #   print warning msg:
+                                    to_print = "Although resubmission for job: " + sub
                                     if self.type_session == "multi-ses":
                                         to_print += ", " + ses
-                                    to_print += ", as it was stalled and resubmit was requested."
-                                    print(to_print)
+                                    to_print += " was requested, as this job is stalled" \
+                                        + " (e.g., job state code 'eqw' on SGE)," \
+                                        + " BABS won't resubmit this job."
+                                    warnings.warn(to_print)
 
-                                    # kill original one
-                                    proc_kill = subprocess.run(
-                                        ["qdel", job_id_str],
-                                        stdout=subprocess.PIPE
-                                    )
-                                    proc_kill.check_returncode()
-                                    # submit new one:
-                                    job_id_updated, _, log_filename = \
-                                        submit_one_job(self.analysis_path,
-                                                       self.type_session,
-                                                       self.type_system,
-                                                       sub, ses)
-                                    # update fields:
-                                    df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
-                                                                       log_filename, debug=True)
-                                else:   # not to resubmit:
-                                    # update fields:
-                                    df_job_updated.at[i_job, "job_state_category"] = state_category
-                                    df_job_updated.at[i_job, "job_state_code"] = state_code
+                                #     # Resubmit:
+                                #     # did_resubmit = True
+                                #     # print a message:
+                                #     to_print = "Resubmit job for " + sub
+                                #     if self.type_session == "multi-ses":
+                                #         to_print += ", " + ses
+                                #     to_print += ", as it was stalled and resubmit was requested."
+                                #     print(to_print)
+
+                                #     # kill original one
+                                #     proc_kill = subprocess.run(
+                                #         ["qdel", job_id_str],
+                                #         stdout=subprocess.PIPE
+                                #     )
+                                #     proc_kill.check_returncode()
+                                #     # submit new one:
+                                #     job_id_updated, _, log_filename = \
+                                #         submit_one_job(self.analysis_path,
+                                #                        self.type_session,
+                                #                        self.type_system,
+                                #                        sub, ses)
+                                #     # update fields:
+                                #     df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
+                                #                                        log_filename, debug=True)
+                                # else:   # not to resubmit:
+
+                                # only update fields:
+                                df_job_updated.at[i_job, "job_state_category"] = state_category
+                                df_job_updated.at[i_job, "job_state_code"] = state_code
 
                         else:   # did not find in `df_all_job_status`, i.e., job queue
                             # probably error
@@ -1429,12 +1452,13 @@ class BABS():
 
                     # if want to resubmit, but `--reckless` is NOT specified: print msg:
                     if if_request_resubmit_this_job & (not reckless):
-                        to_print = "Although resubmit for job: " + sub
+                        to_print = "Although resubmission for job: " + sub
                         if self.type_session == "multi-ses":
                             to_print += ", " + ses
                         to_print += " was requested, as this job is done," \
-                            + " and `--reckless` was not specified, BABS won't" \
-                            + " resubmit this job."
+                            + " BABS won't resubmit this job."
+                        # NOTE: removed "and `--reckless` was not specified, "
+                        #   can add this ^^ back after supporting `--reckless` in CLI
                         warnings.warn(to_print)
 
                     # if resubmit is requested, and `--reckless` is specified:

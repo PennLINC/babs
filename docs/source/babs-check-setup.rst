@@ -37,3 +37,9 @@ We highly recommend running ``babs-check-setup`` with a test job::
 Otherwise, you could run without a test job::
 
     babs-check-setup --project-root /path/to/my_BABS_project
+
+**********************
+See also
+**********************
+
+* :doc:`create_babs_project`
