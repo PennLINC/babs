@@ -20,10 +20,12 @@ Currently it is compatible with SGE and Slurm clusters.
 
 BABS functions
 ---------------------
-.. image:: https://github.com/PennLINC/babs/raw/enh/docs/docs/source/_static/babs_cli.png
-.. ^^ change `enh/docs` to `main` after merging the branch into main!
+
+.. image:: https://github.com/PennLINC/babs/raw/main/docs/source/_static/babs_cli.png
+.. Note: this image is taken from the main branch, so it's normal that docs built from branches is not up-to-date.
+..  If using relative path, e.g., `_static/babs_cli.png`, although readthedocs front page would look good, GitHub front page cannot find that image!!! 
 
 Schematic of BABS workflow
 ----------------------------
-.. image:: https://github.com/PennLINC/babs/raw/enh/docs/docs/source/_static/babs_workflow.png
-.. ^^ change `enh/docs` to `main` after merging the branch into main!
+.. image:: https://github.com/PennLINC/babs/raw/main/docs/source/_static/babs_workflow.png
+.. Note: this image is taken from the main branch, so it's normal that docs built from branches is not up-to-date.

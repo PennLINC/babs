@@ -256,7 +256,7 @@ def babs_check_setup_cli():
     """
 
     parser = argparse.ArgumentParser(
-        description="``babs-check-setup`` validates setups by `babs-init`.",
+        description="``babs-check-setup`` validates setups by ``babs-init``.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         "--project_root", "--project-root",
@@ -305,13 +305,10 @@ def babs_submit_cli():
     --job sub-id ses-id   # can repeat
 
     If none of these flags are specified, will only submit one job.
-
-    Example command:
-    # TODO: to add an example command here!
     """
 
     parser = argparse.ArgumentParser(
-        description="Submit jobs that will be run on cluster compute nodes.")
+        description="Submit jobs to cluster compute nodes.")
     parser.add_argument(
         "--project_root", "--project-root",
         help="Absolute path to the root of BABS project."
@@ -441,9 +438,6 @@ def babs_submit_main():
 def babs_status_cli():
     """
     Check job status.
-
-    Example command:
-    # TODO: to add an example command here!
     """
 
     parser = argparse.ArgumentParser(
@@ -458,36 +452,44 @@ def babs_status_cli():
         action='append',   # append each `--resubmit` as a list;
         # ref: https://docs.python.org/3/library/argparse.html
         nargs=1,   # expect 1 argument per `--resubmit` from the command line;
-        choices=['failed', 'pending', 'stalled'],
+        choices=['failed', 'pending'],
+        # NOTE: ^^ not to include 'stalled' as it has not been tested yet.
         metavar=('condition to resubmit'),
-        help="Under what condition to perform job resubmit. "
-             "'failed': the previous submitted job failed "
-             "('is_failed' = True in 'job_status.csv'); "
-             "'pending': the previous submitted job is pending (without error) in the queue "
-             "(example qstat code: 'qw'); "
-             "'stalled': the previous submitted job is pending with error in the queue "
-             "(example qstat code: 'eqw')."
+        help="Resubmit jobs with what kind of status."
+             " ``failed``: Jobs that failed, i.e.,"
+             " jobs that are out of queue but do not have results pushed to output RIA."
+             " The list of failed jobs can also be found by filtering jobs with"
+             " ``'is_failed' = True`` in ``job_status.csv``;"
+             " ``pending``: Jobs that are pending (without error) in the queue."
+             " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm."
         )
+    # "'stalled': the previous submitted job is pending with error in the queue "
+    # "(example qstat code: 'eqw')."
+
     parser.add_argument(
         '--resubmit-job',
         action="append",   # append each `--resubmit-job` as a list;
         nargs="+",
         help="The subject ID (and session ID) whose job to be resubmitted."
-        " Can repeat to submit more than one job."
-        " Currently, this can only resubmit pending, failed, or stalled jobs.")
-    # ^^ NOTE: ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
+        " You can repeat this argument many times to request resubmissions of more than one job."
+        " Currently, only pending or failed jobs in the request will be resubmitted.")
+    # ^^ NOTE: not to include 'stalled' jobs here;
+    # ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
     #                   but fix the issue - Bergman 12/20/22 email
-    parser.add_argument(
-        '--reckless',
-        action='store_true',
-        # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
-        help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
-        " WARNING: This hasn't been tested yet!!!")
+    # NOTE: not to add `--reckless` (below), as it has not been tested yet.
+    # parser.add_argument(
+    #     '--reckless',
+    #     action='store_true',
+    #     # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
+    #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
+    #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container. It may include 'alert_log_messages' section"
-        " to be used by babs-status.")
+        " of how to run the BIDS App container. It may include ``alert_log_messages`` section."
+        " ``babs-status`` will use this section for failed job auditing,"
+        " by checking if any defined alert messages"
+        " can be found in failed jobs' log files.")
     parser.add_argument(
         '--job_account', '--job-account',
         action='store_true',
@@ -500,19 +502,8 @@ def babs_status_cli():
 
     return parser
 
-    # args = parser.parse_args()
-
-    # babs_status(args.project_root,
-    #             args.resubmit,
-    #             args.resubmit_job, args.reckless,
-    #             args.container_config_yaml_file,
-    #             args.job_account)
 
 def babs_status_main():
-    # def babs_status(project_root, resubmit=None,
-    #                 resubmit_job=None, reckless=False,
-    #                 container_config_yaml_file=None,
-    #                 job_account=False):
     """
     This is the core function of `babs-status`.
 
@@ -521,12 +512,9 @@ def babs_status_main():
     project_root: str
         absolute path to the directory of BABS project
     resubmit: nested list or None
-        each sub-list: one of 'failed', 'pending', 'stalled'
+        each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
-    reckless: bool
-        Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
-        This is used when `--resubmit-job`
     container_config_yaml_file: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
@@ -535,10 +523,21 @@ def babs_status_main():
     job_account: bool
         Whether to account failed jobs (e.g., using `qacct` for SGE),
         which may take some time.
+
+    Notes:
+    -----------
+    NOTE: Not to include `reckless` in `babs-status` CLI for now.
+    If `reckless` is added in the future,
+        please make sure you remove command `args.reckless = False` below!
+    Below are commented:
+    reckless: bool
+            Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
+            This is used when `--resubmit-job`
     """
 
     # Get arguments:
     args = babs_status_cli().parse_args()
+    args.reckless = False    # WARNING: NOTE: hard-coded, as not supporting `--reckless` right now
 
     project_root = args.project_root
     resubmit = args.resubmit
@@ -635,7 +634,7 @@ def babs_status_main():
                       + " even if they're done or running.")
             else:
                 print("Will resubmit the job(s) listed in `--resubmit-job`,"
-                      + " if they're pending, failed or stalled.")
+                      + " if they're pending or failed.")   # not to include 'stalled'
         else:    # in theory should not happen, but just in case:
             raise Exception("There is no valid job in --resubmit-job!")
 
