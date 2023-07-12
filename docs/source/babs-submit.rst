@@ -34,7 +34,7 @@ If users only provide the required argument ``--project-root``,
         --project-root /path/to/my_BABS_project
 
 Submitting a certain amount of jobs
-----------------------------------
+-------------------------------------
 
 .. code-block:: bash
 

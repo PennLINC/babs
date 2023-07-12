@@ -34,9 +34,9 @@ was categorized as a raw (unzipped) dataset or a zipped dataset.
 
 .. _requirements_for_zipped_BIDS_derivatives_dataset:
 
-=====================================================
+==========================================================
 Requirements for a zipped BIDS derivatives input dataset
-=====================================================
+==========================================================
 There are several requirements for zipped BIDS derivatives dataset:
 
 Note: an input dataset's name is defined when ``babs-init --name``.
