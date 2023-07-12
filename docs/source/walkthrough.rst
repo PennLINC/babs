@@ -160,6 +160,15 @@ You now need to pull our toy BIDS App as a Singularity image (the latest version
         docker://pennlinc/toy_bids_app:0.0.7
 
 Now you should see the file ``toybidsapp-0.0.7.sif`` in the current directory.
+
+.. dropdown:: Having trouble building this Singularity image?
+
+    It might be because the Singularity software's version you're using is too old.
+    You can check your Singularity's version via ``singularity --version``.
+    We've tested that these versions work fine:
+    ``singularity-ce version 3.9.5`` and ``apptainer version 1.1.8-1.el7``.
+
+
 Then create a DataLad dataset of this container (i.e., let DataLad track this Singularity image):
 
 .. dropdown:: I'm confused - Why the container is another DataLad `dataset`?
@@ -230,7 +239,7 @@ Below is an example YAML file for toy BIDS App:
    :language: yaml
    :lines: 21-
    :linenos:
-   :emphasize-lines: 12,13,18,19,22
+   :emphasize-lines: 12,13,17,18,21
 
 As you can see, there are several sections in this YAML file.
 
@@ -275,22 +284,41 @@ There are several lines (highlighted above) that require customization based on 
         interpreting_shell: "/bin/bash -l"
 
       See :ref:`cluster-resources` for more explanations about this line.
-    * If needed, you may add requests for other resources, e.g., runtime limit of 20min.
+
+    * For Slurm clusters, if you would like to use specific partition(s),
+      as requesting partition is currently not a pre-defined key in BABS,
+      you can use ``customized_text`` instead, and add line #3-4 highlighted in the block below:
+
+        ..  code-block:: yaml
+            :linenos:
+            :emphasize-lines: 3,4
+
+            cluster_resources:
+                ...
+                customized_text: |
+                    #SBATCH -p <partition_names>
+
+      Please replace ``<partition_names>`` with the partition name(s) you would like to use.
+      And please replace ``...`` with other lines with pre-defined keys from BABS,
+      such as ``interpreting_shell`` and ``hard_memory_limit``. 
+
+    * If needed, you may add more requests for other resources, e.g., runtime limit of 20min,
+      temporary disk space of 20GB,
+      Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
     * .. dropdown:: For Penn Medicine CUBIC cluster only:
         
-        You may need to add line #5-6 highlighted in the block below
+        You may need to add line #4-5 highlighted in the block below
         to avoid some compute nodes
         that currently have issues in file locks:
 
         ..  code-block:: yaml
             :linenos:
-            :emphasize-lines: 5,6
+            :emphasize-lines: 4,5
 
             cluster_resources:
                 interpreting_shell: /bin/bash
                 hard_memory_limit: 2G
-                temporary_disk_space: 20G
                 customized_text: |
                     #$ -l hostname=!compute-fed*
 
@@ -302,7 +330,7 @@ There are several lines (highlighted above) that require customization based on 
 
 * Section ``script_preamble``:
 
-    * You might need to adjust the highlighted line #19 of the ``source`` command
+    * You might need to adjust the highlighted line #18 of the ``source`` command
       based on your cluster and conda environment name.
 
     * You might need to add another line to ``module load`` any necessary modules,
@@ -437,28 +465,40 @@ You can get them via:
 
 The first several lines starting with ``#`` and before the line ``# Script preambles:``
 are directives for job submissions.
-Depending on the BABS version you are using, you'll see slightly different directives:
+It should be noted that, when using different types of cluster system (e.g., SGE, Slurm),
+you will see different generated directives.
+In addition, depending on the BABS version, you'll see slightly different directives, too.
+If you used YAML file above *without further modification*,
+the generated directives would be:
 
 .. developer's note: below: not all the 10 lines from `head participant_job.sh`, but only lines of directives.
 
-.. dropdown:: If you used the YAML file above + BABS version 0.0.3, you'll see:
+.. dropdown:: If on a Slurm cluster + using BABS version >0.0.3, you'll see:
+
+    ..  code-block:: console
+
+        #!/bin/bash
+        #SBATCH --mem=2G
+
+.. developer's note: above was got via BABS 0.0.4+47.g33b9419 on MSI Slurm cluster.
+
+.. dropdown:: If on an SGE cluster + using BABS version >0.0.3, you'll see:
+
+    ..  code-block:: console
+
+        #!/bin/bash
+        #$ -l h_vmem=2G
+
+.. developer's note: above was got via BABS 0.0.4.
+
+.. dropdown:: If on an SGE cluster + using BABS version 0.0.3, you'll see:
 
     ..  code-block:: console
 
         #!/bin/bash
         #$ -S /bin/bash
         #$ -l h_vmem=2G
-        #$ -l tmpfree=20G
 
-.. dropdown:: If you used the YAML file above + BABS version >0.0.3, you'll see:
-
-    ..  code-block:: console
-
-        #!/bin/bash
-        #$ -l h_vmem=2G
-        #$ -l tmpfree=20G
-
-.. developer's note: above was got via BABS 0.0.4.
 
 .. developer's note: below is generated based on `tree -L 3 .`
 

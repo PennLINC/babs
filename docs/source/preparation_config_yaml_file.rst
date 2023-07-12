@@ -517,21 +517,28 @@ Below is an example for **SGE** clusters::
 
 Note that:
 
+* Some clusters might not allow for specific settings (e.g. ``temporary_disk_space``).
+  If you get an error that the setting is not allowed, 
+  simply remove the line that causes the issue.
+
 * Remember to add ``|`` after ``customized_text:``. This is to make sure
   BABS can read in multiple lines under ``customized_text``.
- 
+
 * As customized texts will be directly copied to the script ``participant_job.sh`` (without translation),
   please remember to add any necessary prefix before the option:
   
     * ``#$`` for SGE clusters
     * ``#SBATCH`` for Slurm clusters
 
+* For values with numbers only (without letters), it's recommended to quote the value,
+  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
+  and pass the value exactly as it is,
+  without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
+
 .. developer's note: With this sign ``|``, the lines between ``customized_text`` and next section
       will all be read into BABS if the lines are aligned with ``customized_text``, so be careful when you add comments there.
 .. developer's note: If there is only one line, you could also write in this way (not suggested):
 ..  customized_text: "#$ -R y"
-
-
 
 .. checked all example YAML file i have for this section ``cluster_resources``. CZ 4/4/2023.
 
