@@ -49,7 +49,7 @@ See `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_ for
 These include example YAML files for:
 
 * Different BIDS Apps: fMRIPrep, QSIPrep, XCP-D, as well as toy BIDS App, etc.
-* Cases with different input BIDS dataset, including one raw BIDS dataset, one zipped BIDS derivates dataset,
+* Cases with different input BIDS datasets, including one raw BIDS dataset, one zipped BIDS derivates dataset,
   and the combination of these two.
 * Different cluster systems, including SGE and Slurm.
 
@@ -259,8 +259,8 @@ Advanced - Manual of writing section ``singularity_run``
     * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**, 
       i.e., before other arguments.
 
-  * How to write the path to the input dataset? Here we use an example configuration YAML file of
-    fMRIPrep with FreeSurfer results ingressed - you can find this example YAML file
+  * How do you write the path to the input dataset? Here we use an example configuration YAML file of
+    fMRIPrep with existing FreeSurfer results ingressed - you can find this example YAML file
     `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
 
     * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
@@ -495,15 +495,15 @@ The second row in each cell, which is also in (), is an example.
     +------------------------------------------+------------------------------------------+-------------------------------------------+
 
 
-Note that:
+Note the following:
 
 * For values with numbers only (without letters), it's recommended to quote the value,
   e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
-  and pass the value exactly as it is,
+  and pass the value exactly as is,
   without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
 
-Customized cluster resources request
+Customized cluster resource requests
 --------------------------------------
 
 If you cannot find the one you want in the above table, you can still add it by ``customized_text``.

@@ -17,7 +17,7 @@ Command-Line Arguments
 
 .. warning::
     Do NOT kill ``babs-status`` (especially with ``--resubmit*``)
-    when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
+    while it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
 
 
 **********************
@@ -64,7 +64,7 @@ When using ``--job-account``, you should also use ``--container-config-yaml-file
 
 Job resubmission
 ------------------
-By using commands like above, you might know there are some jobs pending or failed,
+By using commands such as those above, you might see that some jobs are pending or failed,
 and you'd like to resubmit them.
 
 Resubmit all the failed jobs:
@@ -77,7 +77,7 @@ Resubmit all the failed jobs:
 
 Resubmit specific jobs that failed or are pending:
 
-For single-session dataset, assume jobs of ``sub-01`` and ``sub-02`` failed,
+For a single-session dataset, assume the jobs running ``sub-01`` and ``sub-02`` failed,
 and you hope to resubmit them:
 
 .. code-block:: bash
@@ -87,7 +87,7 @@ and you hope to resubmit them:
         --resubmit-job sub-01 \
         --resubmit-job sub-02
 
-For multi-session dataset, assume jobs of ``sub-01, ses-A`` and ``sub-02, ses-B`` failed,
+For a multi-session dataset, assume the jobs running ``sub-01, ses-A`` and ``sub-02, ses-B`` failed,
 and you hope to resubmit them:
 
 .. code-block:: bash

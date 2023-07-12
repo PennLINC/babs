@@ -21,7 +21,7 @@ Raw (unzipped) BIDS dataset, or zipped BIDS dataset?
 
 * If there are zip files, like ``sub-*.zip``,
   it would be considered as a zipped BIDS derivatives dataset.
-* If there are only unzipped folders, like folder ``sub-*/``,
+* If there are only unzipped folders in the BIDS file/directory structure format, like folder ``sub-*/``,
   then it is considered as a raw (unzipped) BIDS dataset.
 * If both zipped file ``sub-*.zip`` and unzipped folders ``sub-*`` present,
   then it is considered as a zipped BIDS derivatives dataset.
@@ -35,7 +35,7 @@ was categorized as a raw (unzipped) dataset or a zipped dataset.
 .. _requirements_for_zipped_BIDS_derivatives_dataset:
 
 =====================================================
-Requirements for zipped BIDS derivatives dataset
+Requirements for a zipped BIDS derivatives input dataset
 =====================================================
 There are several requirements for zipped BIDS derivatives dataset:
 
@@ -52,8 +52,7 @@ Naming zip files
 
 * Similarly, for multi-session dataset, the zip filename should follow the pattern of
   ``sub-*_ses-*_<name>*.zip``
-* In this dataset, for each subject (for single-session data),
-  or each session (in multi-session data),
+* In this dataset, for each subject/session pair, 
   there should only be one zip file whose filename contains input dataset's name.
 
     * For example, say we have ``sub-01_ses-A_freesurfer-20-2-3.zip``,
@@ -64,7 +63,7 @@ Naming zip files
 -------------------------
 Content of the zip files
 -------------------------
-Within the zip file for a specific subject (or session), there should be a folder
+Within the zip file of a specific subject (or session), there should be a folder
 named by this input dataset's name, e.g., folder ``freesurfer``
 inside ``sub-01_ses-A_freesurfer-20-2-3.zip`` in the input dataset ``freesurfer``.
 

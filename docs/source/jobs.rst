@@ -31,12 +31,12 @@ is located at ``/path/to/my_BABS_project/analysis/code``.
 Recommended workflow of job submission and status checking
 ***************************************************************
 Processing large-scale datasets and handling hundreds or even thousands of jobs
-could be tough for many data analysts. We hope BABS could help this process.
-For best experience, we recommend using ``babs-submit`` and ``babs-status`` in the following steps;
+can be tough. We hope BABS can help this process.
+We recommend using ``babs-submit`` and ``babs-status`` in the following way;
 in short, it's a iteration between ``babs-submit`` and ``babs-status``:
 
-#. Check how many jobs to run: run ``babs-status --project_root /path/to/my_BABS_project``.
-   This will return a summary that includes number of jobs to complete.
+#. Check how many jobs need to run: run ``babs-status --project_root /path/to/my_BABS_project``.
+   This will return a summary that includes the number of jobs that are expected to complete.
    See :ref:`list_included_subjects` for how BABS determines this list of jobs to complete.
 #. You may submit several exemplar jobs with ``babs-submit``, then check job status
    with ``babs-status`` to see if they finish successfully.
@@ -92,7 +92,7 @@ you can use two options of ``babs-status`` here:
         --container-config-yaml-file /path/to/my_yaml_file.yaml \
         --job-account
         
-  This will perform job account, thus it may take longer time
+  This will perform job account, thus it may take longer
   (e.g., ~0.5h for ~250 failed jobs without alert messages;
   also depending on the speed of the cluster).
 
@@ -102,7 +102,7 @@ you can use two options of ``babs-status`` here:
 Set up section ``alert_log_messages`` for failed job auditing
 -------------------------------------------------------------------
 If there are failed jobs, you may be wondering why they failed.
-A direct way is to check their log files, but it will take a lot of time to go through
+A direct way to investigate is to check their log files, but it will take a lot of time to go through
 all failed jobs' log files. ``babs-status`` supports failed job auditing and summary
 by searching pre-defined alert messages in the failed jobs' log files.
 These alert messages are defined by you in the
@@ -114,7 +114,7 @@ section **alert_log_messages** in the container's configuration YAML file.
 
 * You may also refer to the example YAML files we provide
   in `folder "notebooks/" <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
-* No worry if you could not cover all alert messages at once;
+* Do not worry if you do not cover all alert messages on the first try;
   you can add/change this section **alert_log_messages** in the YAML file anytime you want,
   and simply call::
     
@@ -185,9 +185,9 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 #. Line 24-25: If there are jobs that failed but don't have defined alert message,
    and ``--job-account`` is requested, BABS will then run job account
    and try to extract more information and summarize.
-   For each of these jobs, BABS runs job account command and extract messages from it.
+   For each of these jobs, BABS runs job account command and extracts messages from it.
 
-    * In above case, as ``hard_runtime_limit: "48:00:00"`` was set,
+    * In the above case, as ``hard_runtime_limit: "48:00:00"`` was set,
       those 56 failed jobs without alert messages failed probably due to exceeding this runtime limit
       (``h_rt limit`` in the line #25).
     * For SGE clusters: BABS uses command ``qacct`` for job account,

@@ -39,11 +39,11 @@ Please see document :ref:`preparation` for how to prepare these inputs.
 .. _how-to-define-name-of-input-dataset:
 
 ---------------------------------------------------------------------------
-How to define input dataset's name ``<name>`` in ``babs-init --input``?
+How to define the input dataset's name ``<name>`` in ``babs-init --input``?
 ---------------------------------------------------------------------------
 
-**General guideline**: a string you think that's informative, and you don't need to choose
-from a predefined pool by BABS. Examples are ``BIDS``, ``freesurfer``.
+**General guideline**: a string you think that's informative.
+Examples are ``BIDS``, ``freesurfer``.
 
 **Specific restrictions**:
 

@@ -38,7 +38,7 @@ will be zipped and pushed to a remote indexed archive (RIA) store as a new branc
 Most importantly, all provenance is tracked by DataLad, including code (e.g., exact Singularity run command),
 input BIDS dataset(s), the BIDS App, and results.
 
-:bdg-success:`Step IV.` After all jobs are completed, you can use :doc:`babs-merge <babs-merge>` to merge results and provenance of successful jobs.
+:bdg-success:`Step IV.` After all jobs have completed, you can use :doc:`babs-merge <babs-merge>` to merge results and provenance of successful jobs.
 After you clone and unzip the results from the BABS project, they are ready to be consumed!
 Details about results merging and consuming are on this page: :doc:`after_jobs`.
 

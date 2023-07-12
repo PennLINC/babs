@@ -16,7 +16,7 @@ Command-Line Arguments
 
 .. warning::
     Do NOT kill ``babs-submit``
-    when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
+    while it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
 
 
 **********************
@@ -25,7 +25,7 @@ Example commands
 
 Basic use
 ---------------
-When only providing the required argument ``--project-root``,
+If users only provide the required argument ``--project-root``,
 ``babs-submit`` will only submit one job:
 
 .. code-block:: bash
@@ -33,7 +33,7 @@ When only providing the required argument ``--project-root``,
     babs-submit \
         --project-root /path/to/my_BABS_project
 
-Submit certain amount of jobs
+Submitting a certain amount of jobs
 ----------------------------------
 
 .. code-block:: bash
