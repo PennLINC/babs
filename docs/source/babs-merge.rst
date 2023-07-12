@@ -24,7 +24,7 @@ Example commands
         --project-root /path/to/my_BABS_project
 
 It's usually not necessary to add the other two arguments (``--chunk-size``, ``--trial-run``),
-as those two arguments are mainly for developer's to use.
+as those two arguments are mainly for developers to use.
 
 **********************
 Detailed description
