@@ -1,5 +1,6 @@
-# This is an example config yaml file for fmriprep-fake version 0.1.0.
+# This is an example config yaml file for fmriprep-fake version 'unstable'.
 # fmriprep-fake's Docker image is publicly available at: https://hub.docker.com/r/djarecka/fmriprep_fake
+  # However, the version we use here is available at: https://hub.docker.com/r/chenyingzhao/fmriprep_fake
 # fmriprep-fake generates fMRIPrep outputs without running fMRIPrep itself. You may use it to check fmriprep outputs.
 #     More details please see: https://github.com/djarecka/fmriprep-fake
 # Thanks to Dorota Jarecka for preparing and sharing this BIDS App!
@@ -10,33 +11,36 @@
 #   or be compatible to the toy BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
-# 'singularity_run': There is no such section for fmriprep-fake
-#   as all commands needed by fmriprep-fake have been handled by BABS.
+# Arguments in `singularity run`:
+singularity_run:
+    --output-layout: "legacy"
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   For `--output-layout legacy`, users don't need to create the output folder,
+#   as all derivatives are in 'fmriprep' or 'freesurfer' folder.
 zip_foldernames:
-    fmriprepfake: "0-1-1"   # folder 'fmriprepfake' will be zipped into 'sub-xx_ses-yy_fmriprepfake-0-1-1.zip'
+    fmriprep: "0-1-2"   # folder 'fmriprep' will be zipped into 'sub-xx_ses-yy_fmriprep-0-1-2.zip'
+    freesurfer: '0-1-2'   # folder 'freesurfer' will be zipped into 'sub-xx_ses-yy_freesurfer-0-1-2.zip'
 
 cluster_resources:
-    interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
-    hard_memory_limit: 2G   # "-l h_vmem=25G" on cubic
-    temporary_disk_space: 20G   # "-l tmpfree=50G" on cubic  # this is highly-recommended on cubic
-    hard_runtime_limit: "24:00:00"   # needed by cubic for PennLINC lab members; otherwise jobs will be sent to generic nodes 
+    interpreting_shell: "/bin/bash -l"
+    hard_memory_limit: 2G
+    temporary_disk_space: 20G
+    hard_runtime_limit: "20"   # 20min
     customized_text: |
-        #$ -R y
-        #$ -l hostname=!compute-fed*
-# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
-#   So it's probably not relevant for other clusters
+        #SBATCH -p amd2tb,ram256g
+# Notes: Above `customized_text` is MSI Slurm cluster specific.
+#   So it may not be relevant for other clusters
 
 # Users need to add their customized bash command below,
 #   they will be used as preambles in `participant_job.sh`
 #   the commands should not be quoted!
 script_preamble: |
-    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
-    echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
 
 # Where to run the jobs:
-job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
 
 # Below is to filter out subjects (or sessions)
 #   right now we only filter based on unzipped dataset
