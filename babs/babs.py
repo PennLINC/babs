@@ -2424,7 +2424,8 @@ class Container():
         rm -rf prep .git/tmp/wkdir
         rm ${filterfile}
         """
-        cmd_clean = "rm -rf " + path_output_folder + " " + ".git/tmp/wkdir" + "\n"
+        cmd_clean = "rm -rf " + OUTPUT_MAIN_FOLDERNAME + " " + ".git/tmp/wkdir" + "\n"
+        # ^^ rm the entire output folder `outputs`
         if flag_filterfile is True:
             cmd_clean += "rm ${filterfile}" + " \n"
 

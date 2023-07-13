@@ -495,7 +495,7 @@ def get_info_zip_foldernames(config):
         #   there cannot be two placeholders (w/ same strings);
         #   otherwise error when loading yaml file
         value = config["zip_foldernames"][PLACEHOLDER_MK_SUB_OUTPUT_FOLDER]
-        if value == "true":
+        if value.lower() == "true":    # lower case is "true"
             if_mk_folder = True
 
     # Get the dict of foldernames + version number:
