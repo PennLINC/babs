@@ -41,8 +41,7 @@ cluster_resources:
     temporary_disk_space: 200G    # --> "#SBATCH --tmp=200G"
     hard_runtime_limit: "72:00:00"    # --> "--time=72:00:00", i.e., 3 days.  Should NOT large than partition's time limit!
     customized_text: |
-        #SBATCH -p k40
-# Other choices of job partitions on MSI: amd2tb,ram256g,v100,k40
+        #SBATCH -p amd2tb,ram256g
 # Notes: Above `customized_text` is MSI Slurm cluster specific.
 #   So it may not be relevant for other clusters
 

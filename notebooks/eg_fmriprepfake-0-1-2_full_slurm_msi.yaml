@@ -15,9 +15,10 @@
 #   as all commands needed by fmriprep-fake have been handled by BABS.
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   As we are using BIDS output layout, we need to ask BABS to create a folder 'fmriprepfake' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    fmriprepfake: "unstable"   # folder 'fmriprepfake' will be zipped into 'sub-xx_ses-yy_fmriprepfake-0-1-1.zip'
+    fmriprepfake: "0-1-2"   # folder 'fmriprepfake' will be zipped into 'sub-xx_ses-yy_fmriprepfake-0-1-2.zip'
 
 cluster_resources:
     interpreting_shell: "/bin/bash -l"
@@ -26,7 +27,6 @@ cluster_resources:
     hard_runtime_limit: "20"   # 20min
     customized_text: |
         #SBATCH -p amd2tb,ram256g
-# Other choices of job partitions on MSI: amd2tb,ram256g,v100,k40
 # Notes: Above `customized_text` is MSI Slurm cluster specific.
 #   So it may not be relevant for other clusters
 
