@@ -16,6 +16,7 @@
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 zip_foldernames:
+    $TO_CREATE_FOLDER: "true"
     fmriprepfake: "unstable"   # folder 'fmriprepfake' will be zipped into 'sub-xx_ses-yy_fmriprepfake-0-1-1.zip'
 
 cluster_resources:
