@@ -1,0 +1,49 @@
+# This is an example config yaml file for fmriprep-fake version 'unstable'.
+# fmriprep-fake's Docker image is publicly available at: https://hub.docker.com/r/djarecka/fmriprep_fake
+  # However, the version we use here is available at: https://hub.docker.com/r/chenyingzhao/fmriprep_fake
+# fmriprep-fake generates fMRIPrep outputs without running fMRIPrep itself. You may use it to check fmriprep outputs.
+#     More details please see: https://github.com/djarecka/fmriprep-fake
+# Thanks to Dorota Jarecka for preparing and sharing this BIDS App!
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the toy BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# 'singularity_run': There is no such section for fmriprep-fake
+#   as all commands needed by fmriprep-fake have been handled by BABS.
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    fmriprepfake: "unstable"   # folder 'fmriprepfake' will be zipped into 'sub-xx_ses-yy_fmriprepfake-0-1-1.zip'
+
+cluster_resources:
+    interpreting_shell: "/bin/bash -l"
+    hard_memory_limit: 2G
+    temporary_disk_space: 20G
+    hard_runtime_limit: "20"   # 20min
+    customized_text: |
+        #SBATCH -p amd2tb,ram256g
+# Other choices of job partitions on MSI: amd2tb,ram256g,v100,k40
+# Notes: Above `customized_text` is MSI Slurm cluster specific.
+#   So it may not be relevant for other clusters
+
+# Users need to add their customized bash command below,
+#   they will be used as preambles in `participant_job.sh`
+#   the commands should not be quoted!
+script_preamble: |
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
+
+# Where to run the jobs:
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
+
+# Below is to filter out subjects (or sessions)
+#   right now we only filter based on unzipped dataset
+required_files:
+    $INPUT_DATASET_#1:
+        - "func/*_bold.nii*"
+        - "anat/*_T1w.nii*"
+
+# 'alert_log_messages': not to include this section for now.

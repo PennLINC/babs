@@ -25,6 +25,7 @@ from babs.utils import (get_immediate_subdirectories,
                         generate_cmd_set_envvar,
                         generate_cmd_filterfile,
                         generate_cmd_singularityRun_from_config, generate_cmd_unzip_inputds,
+                        get_info_zip_foldernames,
                         generate_cmd_zipping_from_config,
                         validate_type_session,
                         validate_type_system,
@@ -2257,10 +2258,9 @@ class Container():
         When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
         meaning, starting with space, a backward slash, a return, and a tab.
         """
-        from .constants import PATH_FS_LICENSE_IN_CONTAINER
+        from .constants import PATH_FS_LICENSE_IN_CONTAINER, OUTPUT_MAIN_FOLDERNAME
 
         type_session = validate_type_session(type_session)
-        output_foldername = "outputs"    # folername of BIDS App outputs
 
         # Check if the folder exist; if not, create it:
         bash_dir = op.dirname(bash_path)
@@ -2268,6 +2268,7 @@ class Container():
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
+        # 1. check `singularity_run` section:
         if "singularity_run" not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
@@ -2295,9 +2296,13 @@ class Container():
             cmd_singularity_flags, flag_fs_license, path_fs_license, singuRun_input_dir = \
                 generate_cmd_singularityRun_from_config(self.config, input_ds)
 
-        print()
-
         # TODO: also corporate the `call-fmt` in `datalad containers-add`
+
+        # 2. check `zip_foldernames` section:
+        dict_zip_foldernames, if_mk_output_folder, path_output_folder = \
+            get_info_zip_foldernames(self.config)
+
+        print()
 
         # Check if the bash file already exist:
         if op.exists(bash_path):
@@ -2386,7 +2391,7 @@ class Container():
         cmd_head_singularityRun += " \\" + "\n\t"
         cmd_head_singularityRun += singuRun_input_dir  # inputs/data/<name>
         cmd_head_singularityRun += " \\" + "\n\t"
-        cmd_head_singularityRun += output_foldername   # output folder
+        cmd_head_singularityRun += path_output_folder    # defined above
 
         # currently all BIDS App support `participant` positional argu:
         cmd_head_singularityRun += " \\" + "\n\t"
@@ -2411,7 +2416,7 @@ class Container():
         print(cmd_head_singularityRun + cmd_singularity_flags)
 
         # Zip:
-        cmd_zip = generate_cmd_zipping_from_config(self.config, type_session, output_foldername)
+        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
         bash_file.write(cmd_zip)
 
         # Delete folders and files:
@@ -2419,7 +2424,7 @@ class Container():
         rm -rf prep .git/tmp/wkdir
         rm ${filterfile}
         """
-        cmd_clean = "rm -rf " + output_foldername + " " + ".git/tmp/wkdir" + "\n"
+        cmd_clean = "rm -rf " + path_output_folder + " " + ".git/tmp/wkdir" + "\n"
         if flag_filterfile is True:
             cmd_clean += "rm ${filterfile}" + " \n"
 

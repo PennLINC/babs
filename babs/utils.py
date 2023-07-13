@@ -442,20 +442,105 @@ def generate_cmd_set_envvar(env_var_name):
 
     return cmd, env_var_value, env_var_value_in_container
 
-
-def generate_cmd_zipping_from_config(config, type_session, output_foldername="outputs"):
+def get_info_zip_foldernames(config):
     """
-    This is to generate bash command to zip BIDS App outputs.
+    This is to get information from `zip_foldernames` section
+    in the container configuration YAML file.
+    Note that users have option to request creating a sub-folder in `outputs` folder,
+    if the BIDS App does not do so (e.g., fMRIPrep new BIDS output layout).
+
+    Information:
+    1. foldernames to zip
+    2. whether the user requests creating a sub-folder
+    3. path to the output dir to be used in the `singularity run`
 
     Parameters:
     ------------
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
+
+    Returns:
+    ---------
+    dict_zip_foldernames: dict
+        `config["zip_foldernames"]` w/ placeholder key/value pair removed.
+    if_mk_folder: bool
+        whether requested to create a sub-folder in `outputs`.
+    path_output_folder: str
+        output folder used in `singularity run` of the BIDS App.
+        see examples below.
+
+    Examples `path_output_folder` of BIDS App:
+    -------------------------------------------------
+    In `zip_foldernames` section:
+    1. No placeholder:                  outputs
+    2. placeholder = true & 1 folder:   outputs/<foldername>
+
+    Notes:
+    ----------
+    In fact, we use `OUTPUT_MAIN_FOLDERNAME` to define the 'outputs' string.
+    """
+
+    from .constants import OUTPUT_MAIN_FOLDERNAME, PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
+
+    # Sanity check: this section should exist:
+    if "zip_foldernames" not in config:
+        raise Exception("The `container_config_yaml_file` does not contain"
+                        + " the section `zip_foldernames`. Please add this section!")
+
+    # Check if placeholder to make a sub-folder in `outputs` folder:
+    if_mk_folder = False
+    if PLACEHOLDER_MK_SUB_OUTPUT_FOLDER in config["zip_foldernames"]:
+        # check its value:
+        #   there cannot be two placeholders (w/ same strings);
+        #   otherwise error when loading yaml file
+        value = config["zip_foldernames"][PLACEHOLDER_MK_SUB_OUTPUT_FOLDER]
+        if value == "true":
+            if_mk_folder = True
+
+    # Get the dict of foldernames + version number:
+    dict_zip_foldernames = config["zip_foldernames"]
+    if if_mk_folder:
+        # remove key of placeholder if there is:
+        _ = dict_zip_foldernames.pop(PLACEHOLDER_MK_SUB_OUTPUT_FOLDER)
+        # ^^ the returned value is the value of this key
+
+        # sanity check: if there was placeholder, we expect only one output folder to create:
+        if len(dict_zip_foldernames) == 1:   # good
+            pass
+        elif len(dict_zip_foldernames) == 0:  # only placeholder was provided:
+            raise Exception("Only placeholder '" + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER + "'"
+                            + " is provided in section 'zip_foldernames'."
+                            + " You should also provide"
+                            + " a name of output folder to create and zip.")
+        else:   # len(dict_zip_foldernames) > 1:   # more than one foldernames provided:
+            raise Exception("You ask BABS to create more than one output folder,"
+                            + " but BABS can only create one output folder."
+                            + " Please only keep one of them in 'zip_foldernames' section.")
+
+    # Get the list of foldernames (w/o version number):
+    list_foldernames = list(dict_zip_foldernames.keys())
+
+    # Generate the output folder path:
+    path_output_folder = OUTPUT_MAIN_FOLDERNAME
+    if if_mk_folder:
+        the_folder = list_foldernames[0]   # there is only one folder
+        path_output_folder += "/" + the_folder
+
+    return dict_zip_foldernames, if_mk_folder, path_output_folder
+
+
+def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
+    """
+    This is to generate bash command to zip BIDS App outputs.
+
+    Parameters:
+    ------------
+    dict_zip_foldernames: dictionary
+        `config["zip_foldernames"]` w/ placeholder key/value pair removed.
+        got from `get_info_zip_foldernames()`.
     type_session: str
         "multi-ses" or "single-ses"
-    output_foldername: str
-        the foldername of the outputs of BIDS App; default is "outputs".
 
     Returns:
     ---------
@@ -464,8 +549,10 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
         based on section `zip_foldernames` in the yaml file.
     """
 
+    from .constants import OUTPUT_MAIN_FOLDERNAME
+
     # cd to output folder:
-    cmd = "cd " + output_foldername + "\n"
+    cmd = "cd " + OUTPUT_MAIN_FOLDERNAME + "\n"
 
     # 7z:
     if type_session == "multi-ses":
@@ -473,28 +560,23 @@ def generate_cmd_zipping_from_config(config, type_session, output_foldername="ou
     else:
         str_sesid = ""
 
-    if "zip_foldernames" in config:
-        value_temp = ""
-        temp = 0
+    # start to generate 7z commands:
+    value_temp = ""
+    temp = 0
+    for key, value in dict_zip_foldernames.items():
+        # each key is a foldername to be zipped;
+        # each value is the version string;
+        temp = temp + 1
+        if (temp != 1) & (value_temp != value):    # not matching last value
+            warnings.warn("In section `zip_foldernames` in `container_config_yaml_file`: \n"
+                            "The version string of '" + key + "': '" + value + "'"
+                            + " does not match with the last version string; "
+                            + "we suggest using the same version string across all foldernames.")
+        value_temp = value
 
-        for key, value in config["zip_foldernames"].items():
-            # each key is a foldername to be zipped;
-            # each value is the version string;
-            temp = temp + 1
-            if (temp != 1) & (value_temp != value):    # not matching last value
-                warnings.warn("In section `zip_foldernames` in `container_config_yaml_file`: \n"
-                              "The version string of '" + key + "': '" + value + "'"
-                              + " does not match with the last version string; "
-                              + "we suggest using the same version string across all foldernames.")
-            value_temp = value
-
-            cmd += "7z a ../${subid}" + str_sesid + "_" + \
-                key + "-" + value + ".zip" + " " + key + "\n"
-            # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
-
-    else:    # the yaml file does not have the section `zip_foldernames`:
-        raise Exception("The `container_config_yaml_file` does not contain"
-                        + " the section `zip_foldernames`. Please add this section!")
+        cmd += "7z a ../${subid}" + str_sesid + "_" + \
+            key + "-" + value + ".zip" + " " + key + "\n"
+        # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
 
     # return to original dir:
     cmd += "cd ..\n"
