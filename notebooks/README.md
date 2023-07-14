@@ -33,10 +33,10 @@
 | BIDS App | Function | Docker Hub | Docs | Notes | 
 | :-- | :--|:-- | :-- |:-- |
 | fMRIPrep | Preprocessing fMRI data | ___ | ___ | The default output layout changed in `21.0.0`. BABS YAML files for new BIDS layout and legacy layout are different. |
-| QSIPrep | Preprocessing dMRI data | ___ | ____ | |
+| QSIPrep | Preprocessing dMRI data | [Docker Hub](https://hub.docker.com/r/pennbbl/qsiprep) | ____ | |
 | XCP-D | Post-processing fMRI data | ____ | _____ | The 0.4.0 version is labeled as `04.0` on Docker Hub. |
 | toy BIDS App | Quick test of BABS | ____ | _____ | |
-| fmriprep-fake | Mimicks fMRIPrep output layout and generates fake derivatives, for quick test | [Docker Hub](https://hub.docker.com/r/djarecka/fmriprep_fake); Version 0.1.2 is available [here](https://hub.docker.com/r/chenyingzhao/fmriprep_fake) | see its [GitHub repo](https://github.com/djarecka/fmriprep-fake) |  |
+| fmriprep-fake | Mimics fMRIPrep output layout and generates fake derivatives, for quick test | [Docker Hub](https://hub.docker.com/r/djarecka/fmriprep_fake); Version 0.1.2 is available [here](https://hub.docker.com/r/chenyingzhao/fmriprep_fake) | see its [GitHub repo](https://github.com/djarecka/fmriprep-fake) |  |
 
 * fMRI = functional MRI
 * dMRI = diffusion MRI
