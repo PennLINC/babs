@@ -4,7 +4,6 @@
 #   Task:             `--sloppy` mode
 #   Which system:     Slurm
 #   Tested on which cluster:  MSI cluster
-# QSIPrep's Docker image is publicly available at: https://hub.docker.com/r/pennbbl/qsiprep
 
 # WARNING!!!
 #   This is only an example, which may not necessarily fit your purpose,
