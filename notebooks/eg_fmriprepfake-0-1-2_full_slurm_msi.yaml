@@ -1,14 +1,14 @@
-# This is an example config yaml file for fmriprep-fake version 'unstable'.
-# fmriprep-fake's Docker image is publicly available at: https://hub.docker.com/r/djarecka/fmriprep_fake
-  # However, the version we use here is available at: https://hub.docker.com/r/chenyingzhao/fmriprep_fake
-# fmriprep-fake generates fMRIPrep outputs without running fMRIPrep itself. You may use it to check fmriprep outputs.
-#     More details please see: https://github.com/djarecka/fmriprep-fake
-# Thanks to Dorota Jarecka for preparing and sharing this BIDS App!
+# This is an example config yaml file for:
+#   BIDS App:         fmriprep-fake
+#   BIDS App version: 0.1.2
+#   Task:             regular mode, generating BIDS output layout
+#   Which system:     Slurm
+#   Tested on which cluster:  UMN MSI cluster
 
 # Warning!!!
 #   This is only an example, which may not necessarily fit your purpose,
 #   or be an optimized solution for your case,
-#   or be compatible to the toy BIDS App version you're using.
+#   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
 # 'singularity_run': There is no such section for fmriprep-fake
