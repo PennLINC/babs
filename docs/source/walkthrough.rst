@@ -442,7 +442,7 @@ The command below can be found in the printed messages from ``babs-init``:
 
     singularity run --cleanenv \
         -B ${PWD} \
-        containers/.datalad/environments/toybidsapp-0-0-7/image \
+        toybidsapp-container/.datalad/environments/toybidsapp-0-0-7/image \
         inputs/data/BIDS \
         outputs \
         participant \
