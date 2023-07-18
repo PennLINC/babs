@@ -13,7 +13,7 @@
 
 # Arguments in `singularity run`:
 singularity_run:
-    -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
+    -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
     --n_cpus: "1"
     --stop-on-first-crash: ""
     --fs-license-file: "/home/faird/zhaoc/software/FreeSurfer/license.txt"  # [FIX ME] path to FS license file
