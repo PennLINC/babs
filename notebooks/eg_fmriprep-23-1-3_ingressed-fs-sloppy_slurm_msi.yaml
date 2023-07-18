@@ -33,7 +33,7 @@ singularity_run:
     --cifti-output: 91k
     -v: "-v"
     --fs-subjects-dir: inputs/data/fmriprep_anat/fmriprep_anat/sourcedata/freesurfer
-    --sloppy: ''      # ADD THIS WHEN TEST RUN! TOOD: remove this in a full run!
+    --sloppy: ''      # ADD THIS WHEN TEST RUN! TODO: remove this in a full run!
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As we are using BIDS output layout, we need to ask BABS to create a folder 'fmriprep' to wrap all derivatives:
