@@ -122,6 +122,13 @@ see all-black images in image viewers.
     
         $ datalad get *
 
+    You should see these printed messages from ``datalad`` at the end:
+
+    .. code-block:: console
+
+        action summary:
+          get (notneeded: 1, ok: 47)
+
     Then, please skip the step in the next code block below,
     i.e., do NOT drop file content or remove the local copy of this dataset.
 
