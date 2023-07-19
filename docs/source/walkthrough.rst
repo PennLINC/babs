@@ -106,6 +106,26 @@ You can now view this image in image viewers.
 Note that the intensities of images in this dataset have been zero-ed out, so it's normal to
 see all-black images in image viewers.
 
+.. dropdown:: If there is no Internet connection on compute nodes
+
+    In the later steps, jobs for executing the BIDS App will run on compute nodes,
+    and will fetch the file contents of the input BIDS dataset.
+    As this input BIDS dataset we use for this example walkthrough is available on OSF,
+    by default, jobs will fetch the file contents from OSF via Internet connections.
+    This would be a problem for clusters without Internet connection on compute nodes.
+    
+    If the cluster you're using does not have Internet connection on compute nodes,
+    to avoid issues when running the jobs,
+    please fetch all the file contents now by running:
+    
+    ..  code-block:: console
+    
+        $ datalad get *
+
+    Then, please skip the step in the next code block below,
+    i.e., do NOT drop file content or remove the local copy of this dataset.
+
+
 By now, you have made sure you can successfully install this dataset and get the file contents.
 Now you can drop the file content and remove this local copy of this dataset,
 as you can directly use its OSF link for input dataset for BABS:
@@ -141,6 +161,13 @@ As mentioned above,
 you will use a toy, multi-session BIDS dataset available on OSF:
 https://osf.io/w2nu3/. You'll directly copy this link as the path to the input dataset,
 so no extra work needs to be done here.
+
+.. dropdown:: If there is no Internet connection on compute nodes
+
+    When providing the path to the input BIDS dataset,
+    please do not use the OSF http link;
+    instead, please use the path to the local copy of this dataset.
+    We will provide more guides when we reach that step. 
 
 Step 1.2. Prepare DataLad dataset of containerized BIDS App
 -------------------------------------------------------------
@@ -366,7 +393,12 @@ By now, you have prepared these in the ``~/babs_demo`` folder:
 
 .. developer's note: 
 ..  It's optional to have cloned dataset ``raw_BIDS_multi-ses`` locally, as we can directly use its OSF link
-..  for input dataset for BABS.
+..  for input dataset for BABS. Unless there is no internet connection on compute node.
+
+.. dropdown:: If there is no Internet connection on compute nodes
+
+    In this folder, you should also see the local copy of the input BIDS dataset
+    ``raw_BIDS_multi-ses``.
 
 Now you can start to use BABS for data analysis.
 
@@ -394,6 +426,13 @@ and results and provenance are saved. An example command of ``babs-init`` is as 
         --container_config_yaml_file ${PWD}/config_toybidsapp_demo.yaml \
         --type_session multi-ses \
         --type_system sge
+
+.. dropdown:: If there is no Internet connection on compute nodes
+
+    Please replace line #5 with ``--input BIDS /path/to/cloned_input_BIDS_dataset``,
+    and please replace ``/path/to/cloned_input_BIDS_dataset`` with the correct path
+    to the local copy of the input BIDS dataset,
+    e.g., ``${PWD}/raw_BIDS_multi-ses``.
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
 The input dataset will be called ``BIDS``, and you can just provide the OSF link as its path (line #5).
