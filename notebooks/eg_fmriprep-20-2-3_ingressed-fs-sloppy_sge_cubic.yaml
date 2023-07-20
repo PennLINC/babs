@@ -1,4 +1,18 @@
-# Below is example config yaml file for fMRIPrep ingressed freesurfer:
+# This is an example config yaml file for:
+#   BIDS App:         fMRIPrep ("fmriprep")
+#   BIDS App version: 20.2.3
+#   Task:             Preprocessing fMRI data with FreeSurfer results ingressed, however in a sloppy mode!
+#   Which system:     SGE
+#   Tested on which cluster:  PennMed CUBIC cluster
+
+# WARNING!!!
+#   This is in `--sloppy` mode, which is for testing ONLY, NOT for generating productions used for research!
+
+# WARNING!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
 #   In this example, we assume:
@@ -7,7 +21,6 @@
 #   3. When running `babs-init` for current use case, argument `--input` for `babs-init` is as below:
 #     --input BIDS <path/to/raw_BIDS_dataset>    # 1st input dataset \
 #     --input freesurfer <path/to/cloned_freesurfer_output_ria>    # 2nd input dataset \
-
 singularity_run:
     $INPUT_PATH: inputs/data/BIDS   # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
@@ -39,7 +52,7 @@ cluster_resources:
 
 # Necessary commands to be run first:
 script_preamble: |
-    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # [FIX ME] Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
 
 # Where to run the jobs:
 job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
