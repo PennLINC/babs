@@ -18,7 +18,7 @@
 # Arguments when executing the BIDS App using `singularity run`:
 singularity_run:
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
-    --n_cpus: '1'
+    --n_cpus: '1'    # seems like fMRIPrep 20.2.X that includes freesurfer recon, cannot go more than 1 cpus...
     --stop-on-first-crash: ""
     --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # [FIX ME] path to FS license file
     --skip-bids-validation: ""
@@ -36,7 +36,6 @@ zip_foldernames:
 cluster_resources:
     interpreting_shell: /bin/bash
     hard_memory_limit: 25G
-    number_of_cpus: '2'   # needed???????
     temporary_disk_space: 200G
     hard_runtime_limit: "96:00:00"
     customized_text: |
