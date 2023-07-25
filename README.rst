@@ -7,6 +7,9 @@ BABS: BIDS App Bootstrap
   :alt: Documentation Status
 .. image:: https://circleci.com/gh/PennLINC/babs/tree/main.svg?style=svg
   :target: https://circleci.com/gh/PennLINC/babs/tree/main
+.. image:: https://zenodo.org/badge/456981533.svg
+   :target: https://zenodo.org/badge/latestdoi/456981533
+   :alt: DOI
 
 Full documentation at https://pennlinc-babs.readthedocs.io
 
