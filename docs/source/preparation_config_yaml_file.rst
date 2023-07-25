@@ -77,7 +77,9 @@ Instead, users are expected to define these in this section, **singularity_run**
 Example **singularity_run**
 -----------------------------------
 
-Below is example section **singularity_run** for ``fMRIPrep``::
+Below is example section **singularity_run** for ``fMRIPrep``:
+
+..  code-block:: yaml
 
     singularity_run:
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
@@ -507,7 +509,9 @@ and the interpreting shell for executing the job script.
 Example section **cluster_resources**
 ----------------------------------------
 
-Example section **cluster_resources** for ``QSIPrep``::
+Example section **cluster_resources** for ``QSIPrep``:
+
+..  code-block:: yaml
 
     cluster_resources:
         interpreting_shell: /bin/bash
@@ -647,7 +651,9 @@ bash commands that are required by job running. An example would be to activate 
 however, different clusters may require different commands to do so. Therefore, BABS asks the user to
 provide it.
 
-Example section **script_preamble** for a specific cluster::
+Example section **script_preamble** for a specific cluster:
+
+..  code-block:: yaml
 
     script_preamble: |
         source ${CONDA_PREFIX}/bin/activate babs    # Penn Med CUBIC cluster; replace 'babs' with your conda env name
@@ -692,7 +698,9 @@ to (saved in) the output RIA (i.e., a permanent storage) where your BABS project
     We recommend using space that automatically cleans after the job finishes especially for large-scale dataset
     which has a large amount of jobs to do.
 
-Example section **job_compute_space**::
+Example section **job_compute_space**:
+
+..  code-block:: yaml
 
     job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
 
@@ -733,7 +741,9 @@ You may have a dataset where not all the subjects (and sessions) have the requir
 running the BIDS App. You can simply provide this list of required files, and BABS will exclude those
 subjects and sessions who don't have any of listed required files.
 
-Example section **required_files** for ``fMRIPrep``::
+Example section **required_files** for ``fMRIPrep``:
+
+..  code-block:: yaml
 
     required_files:
         $INPUT_DATASET_#1:
@@ -777,7 +787,9 @@ This section is optional.
 This section is to define a list of alert messages to be searched in log files,
 and these messages may indicates failure of a job.
 
-Example section **alert_log_messages** for fMRIPrep::
+Example section **alert_log_messages** for fMRIPrep:
+
+..  code-block:: yaml
 
     alert_log_messages:
         stdout:
