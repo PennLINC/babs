@@ -1,0 +1,52 @@
+# This is an example config yaml file for:
+#   BIDS App:         fmriprep-fake
+#   BIDS App version: 0.1.2
+#   Task:             `--output-layout legacy`, generating legacy output layout
+#   Which system:     Slurm
+#   Tested on which cluster:  UMN MSI cluster
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    --output-layout: "legacy"
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   For `--output-layout legacy`, users don't need to create the output folder,
+#   as all derivatives are in 'fmriprep' or 'freesurfer' folder.
+zip_foldernames:
+    fmriprep: "0-1-2"   # folder 'fmriprep' will be zipped into 'sub-xx_ses-yy_fmriprep-0-1-2.zip'
+    freesurfer: '0-1-2'   # folder 'freesurfer' will be zipped into 'sub-xx_ses-yy_freesurfer-0-1-2.zip'
+
+cluster_resources:
+    interpreting_shell: "/bin/bash -l"
+    hard_memory_limit: 2G
+    temporary_disk_space: 20G
+    hard_runtime_limit: "20"   # 20min
+    customized_text: |
+        #SBATCH -p amd2tb,ram256g
+# Notes: Above `customized_text` is MSI Slurm cluster specific.
+#   So it may not be relevant for other clusters
+
+# Users need to add their customized bash command below,
+#   they will be used as preambles in `participant_job.sh`
+#   the commands should not be quoted!
+script_preamble: |
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
+
+# Where to run the jobs:
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
+
+# Below is to filter out subjects (or sessions)
+#   right now we only filter based on unzipped dataset
+required_files:
+    $INPUT_DATASET_#1:
+        - "func/*_bold.nii*"
+        - "anat/*_T1w.nii*"
+
+# 'alert_log_messages': not to include this section for now.

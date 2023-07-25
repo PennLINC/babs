@@ -1,0 +1,54 @@
+# This is an example config yaml file for:
+#   BIDS App:         fmriprep-fake
+#   BIDS App version: 0.1.2
+#   Task:             `--anat-only` mode
+#   Which system:     Slurm
+#   Tested on which cluster:  UMN MSI cluster
+
+# Warning!!!
+#   although `fmriprep-fake` version 0.1.2 takes argument `--anat-only`, it won't do anything different,
+#   and it will still generate all derivatives (including fMRI data derivatives)...
+#   Therefore, this is only for testing purpose!
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    --anat-only: ""
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   As we are using BIDS output layout, we need to ask BABS to create a folder 'fmriprep_anat' to wrap all derivatives:
+zip_foldernames:
+    $TO_CREATE_FOLDER: "true"
+    fmriprep_anat: "0-1-2"   # folder 'fmriprep_anat' will be zipped into 'sub-xx_(ses-yy_)fmriprep_anat-0-1-2.zip'
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: "/bin/bash -l"
+    hard_memory_limit: 2G
+    temporary_disk_space: 20G
+    hard_runtime_limit: "20"   # 20min
+    customized_text: |
+        #SBATCH -p amd2tb,ram256g
+# Notes: Above `customized_text` is MSI Slurm cluster specific.
+#   So it may not be relevant for other clusters
+
+# Necessary commands to be run first:
+script_preamble: |
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
+
+# Where to run the jobs:
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
+
+# Below is to filter out subjects (or sessions). Only those with required files will be kept.
+#   Because of `--anat-only`, func bold data is not needed.
+required_files:
+    $INPUT_DATASET_#1:
+        - "anat/*_T1w.nii*"
+
+# 'alert_log_messages': not included in this example, but you may add it!

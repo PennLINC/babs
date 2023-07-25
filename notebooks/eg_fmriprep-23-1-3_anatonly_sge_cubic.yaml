@@ -1,0 +1,67 @@
+# This is an example config yaml file for:
+#   BIDS App:         fMRIPrep ("fmriprep")
+#   BIDS App version: 23.1.3
+#   Task:             `--anat-only` mode
+#   Which system:     SGE
+#   Tested on which cluster:  PennMed CUBIC cluster
+
+# WARNING!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
+    --n_cpus: "1"
+    --stop-on-first-crash: ""
+    --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # [FIX ME] path to FS license file
+    --skip-bids-validation: ""
+    --output-spaces: MNI152NLin6Asym:res-2   # TODO: needed? Only generated figures, not real images...
+    --force-bbr: ""   # TODO: needed?
+    -v: '-v'
+    --anat-only: ""   # only runs the anatomical workflows
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'fmriprep_anat' to wrap all derivatives:
+zip_foldernames:
+    $TO_CREATE_FOLDER: "true"
+    fmriprep_anat: "23-1-3"   # folder 'fmriprep_anat' will be zipped into 'sub-xx_(ses-yy_)fmriprep_anat-23-1-3.zip'
+# Note: The generated data can also be used to provide FreeSurfer derivatives as input dataset when running fMRIPrep on fMRI data,
+#   i.e., for use case: fMRIPrep with FreeSurfer results ingressed.
+#   For that case, when using `babs-init`, for `--input`, please call this FreeSurfer derivatives dataset 'fmriprep_anat'.
+
+cluster_resources:
+    interpreting_shell: /bin/bash
+    hard_memory_limit: 25G
+    temporary_disk_space: 200G
+    hard_runtime_limit: "48:00:00"
+    customized_text: |
+        #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
+
+# Necessary commands to be run first:
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+
+# Below is to filter out subjects (or sessions). Only those with required files will be kept.
+#   Because of `--anat-only`, func bold data is not needed.
+required_files:
+    $INPUT_DATASET_#1:
+        - "anat/*_T1w.nii*"
+
+# Alert messages that might be found in log files of failed jobs:
+#   These messages may be helpful for debugging errors in failed jobs.
+alert_log_messages:
+    stdout:
+        - "Excessive topologic defect encountered"
+        - "Cannot allocate memory"
+        - "mris_curvature_stats: Could not open file"
+        - "Numerical result out of range"
+        - "fMRIPrep failed"

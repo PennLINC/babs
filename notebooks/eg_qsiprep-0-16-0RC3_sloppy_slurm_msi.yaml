@@ -4,7 +4,6 @@
 #   Task:             `--sloppy` mode
 #   Which system:     Slurm
 #   Tested on which cluster:  MSI cluster
-# QSIPrep's Docker image is publicly available at: https://hub.docker.com/r/pennbbl/qsiprep
 
 # WARNING!!!
 #   This is only an example, which may not necessarily fit your purpose,
@@ -41,8 +40,7 @@ cluster_resources:
     number_of_cpus: "6"    # --> "#SBATCH --cpus-per-task=6"
     hard_runtime_limit: "48:00:00"    # --> "--time=48:00:00", i.e., 2 days. Should NOT large than partition's time limit!
     customized_text: |
-        #SBATCH -p ram256g
-# Other choices of job partitions on MSI: amd2tb,ram256g,v100,k40
+        #SBATCH -p amd2tb,ram256g
 # Notes: Above `customized_text` is MSI Slurm cluster specific.
 #   So it may not be relevant for other clusters
 

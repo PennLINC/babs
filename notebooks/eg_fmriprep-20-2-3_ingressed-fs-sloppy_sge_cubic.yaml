@@ -1,9 +1,12 @@
 # This is an example config yaml file for:
 #   BIDS App:         fMRIPrep ("fmriprep")
 #   BIDS App version: 20.2.3
-#   Task:             Preprocessing fMRI data with FreeSurfer results ingressed
+#   Task:             Preprocessing fMRI data with FreeSurfer results ingressed, however in a sloppy mode!
 #   Which system:     SGE
 #   Tested on which cluster:  PennMed CUBIC cluster
+
+# WARNING!!!
+#   This is in `--sloppy` mode, which is for testing ONLY, NOT for generating productions used for research!
 
 # WARNING!!!
 #   This is only an example, which may not necessarily fit your purpose,
@@ -30,6 +33,7 @@ singularity_run:
     --cifti-output: 91k
     -v: "-v"
     --fs-subjects-dir: inputs/data/freesurfer/freesurfer
+    --sloppy: ''      # ADD THIS WHEN TEST RUN!
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 zip_foldernames:

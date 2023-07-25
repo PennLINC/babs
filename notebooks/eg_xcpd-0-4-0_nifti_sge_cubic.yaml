@@ -1,0 +1,47 @@
+# This is an example config yaml file for:
+#   BIDS App:         XCP-D ("xcpd")
+#   BIDS App version: 0.4.0
+#   Task:             Running the entire workflow, for NIfTI images (i.e., without `--cifti`)
+#   Which system:     SGE
+#   Tested on which cluster:  PennMed CUBIC cluster
+
+# WARNING!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    -w: "$BABS_TMPDIR"   # this is a placeholder recognized BABS.
+    --despike: ""
+    --lower-bpf: "0.01"
+    --upper-bpf: "0.08"
+    -p: "36P"
+    --fd-thresh: "0.3"
+    -vvv: ""
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   XCP-D will automatically generate a folder called 'xcp_d' that wrap all the output files.
+zip_foldernames:
+    xcp_d: "0-4-0"     # folder 'xcp_d' will be zipped into 'sub-xx_(ses-yy_)xcp_d-0-4-0.zip'
+
+cluster_resources:
+    interpreting_shell: /bin/bash
+    hard_memory_limit: 32G
+    temporary_disk_space: 100G
+    hard_runtime_limit: "24:00:00"
+    customized_text: |
+        #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
+
+# Necessary commands to be run first:
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate mydatalad    # Penn Med CUBIC cluster; replace 'mydatalad' with your conda env name
+
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+
+# `required_files` and `alert_log_messages` sections are not provided in this example.

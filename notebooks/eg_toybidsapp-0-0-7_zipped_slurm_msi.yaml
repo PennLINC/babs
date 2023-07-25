@@ -1,0 +1,44 @@
+# This is an example config yaml file for:
+#   BIDS App:         toy BIDS App "toy_bids_app"
+#   BIDS App version: 0.0.7
+#   Task:             `--zipped`, for application to zipped BIDS derivatives dataset
+#   Which system:     Slurm
+#   Tested on which cluster:  UMN MSI cluster
+
+# Warning!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    --zipped: ""    # for zipped input dataset
+    --dummy: "2"   # this is a dummy variable, accepting values
+    -v: ""    # this is also a dummy variable, not accepting values
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    toybidsapp: "0-0-7"   # folder 'toybidsapp' will be zipped into 'sub-xx_(ses-yy_)toybidsapp-0-0-7.zip'
+
+cluster_resources:
+    interpreting_shell: "/bin/bash -l"
+    hard_memory_limit: 25G
+    temporary_disk_space: 50G
+    hard_runtime_limit: "20"   # 20min
+    customized_text: |
+        #SBATCH -p amd2tb,ram256g
+# Notes: Above `customized_text` is MSI Slurm cluster specific.
+#   So it may not be relevant for other clusters
+
+# Necessary commands to be run first:
+script_preamble: |
+    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
+    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
+
+# Where to run the jobs:
+job_compute_space: "/tmp"   # [FIX ME] MSI cluster
+
+# 'required_files' section is not needed for toy BIDS App.
+
+# 'alert_log_messages' section is usually not needed for toy BIDS App.
