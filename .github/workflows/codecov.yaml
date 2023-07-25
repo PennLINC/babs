@@ -1,4 +1,11 @@
-- name: Upload coverage reports to Codecov
-  uses: codecov/codecov-action@v3
-  env:
-    CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+---
+name: Codecov
+
+on: [push, pull_request]
+# ref: https://docs.github.com/en/actions/using-workflows/triggering-a-workflow
+
+jobs:
+  - name: Upload coverage reports to Codecov
+    uses: codecov/codecov-action@v3
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
