@@ -480,13 +480,19 @@ Other detailed instructions
 ---------------------------------
 
 * The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
-  For this example, you probably use ``fmriprep-20-2-3`` for *image NAME*.
-* When calling ``babs-init``, argument ``--container-name`` should use the same version too,
-  i.e., ``--container-name fmriprep-20-2-3`` for current example.
+  
+    * In example #1, you probably use ``fmriprep-20-2-3`` for *image NAME*;
+    * In example #2, you probably use ``fmriprep-23-1-3`` for *image NAME*.
+
+* When calling ``babs-init``, argument ``--container-name`` should use the same version too, i.e.,
+  
+    * ``--container-name fmriprep-20-2-3`` in example #1;
+    * ``--container-name fmriprep-23-1-3`` in example #2;
+
 * Please use dashes ``-`` instead of dots ``.`` when indicating the version number,
   e.g., ``20-2-3`` instead of ``20.2.3``.
 * If there are multiple folders to zip, we recommend using the consistent version string across these folders.
-  In this example case, the ``fMRIPrep`` BIDS App's version is ``20.2.3``, so we specify ``20-2-3`` for
+  In example #1, the ``fMRIPrep`` BIDS App's version is ``20.2.3``, so we specify ``20-2-3`` for
   both folders ``fmriprep`` and ``freesurfer``,
   although the version of ``FreeSurfer`` included in this ``fMRIPrep`` may not be ``20.2.3``.
 
