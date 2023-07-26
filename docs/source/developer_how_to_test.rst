@@ -13,9 +13,9 @@ in a container required by CircleCI. However, we are working on building a conta
 and we welcome other researchers to help this too - please
 see `issue #113 <https://github.com/PennLINC/babs/issues/113>`_ for more.
 
-============
-pytest
-============
+================
+Step 1. pytest
+================
 
 The pytest of BABS can be done manually or automatically on CircleCI, without the need of being on an HPC cluster.
 
@@ -36,6 +36,9 @@ for our testing infrastructure will also be installed::
 
 At present, the pytest of BABS only covers testing ``babs-init`` and ``babs-check-setup``,
 due to challenges of running tests interactively with a job scheduler.
+
+You should run all pytest. After running pytest, you should not receive error messages.
+Warning messages are fine.
 
 To run all tests in pytest::
 
@@ -66,3 +69,49 @@ Automatic pytest via CircleCI
 
 Whenever there is a commit to GitHub, CircleCI tests will be triggered, and it will automatically run the pytest.
 
+=======================================================
+Step 2. Manual tests on an HPC cluster (SGE or Slurm)
+=======================================================
+
+Currently pytest does not cover ``babs-submit``, ``babs-status`` and ``babs-merge``.
+Therefore, we need to manually test them on an HPC cluster with SGE or Slurm job scheduler system.
+
+--------------------------------------------------------------------
+General guidelines for testing ``babs-submit`` and ``babs-status``
+--------------------------------------------------------------------
+
+In theory, we should test on both SGE and Slurm systems. However, researchers may not have access
+to both systems. Therefore, if you make a pull request, please let us know which HPC job scheduler system
+you've used to test.
+
+You should use a single-session dataset and a multi-session dataset to go through the comprehensive test checklist.
+Toy datasets can be found :ref:`here <example_input_BIDS_datasets_for_BABS>`.
+
+You may use the toy BIDS App to test out. See :doc:`here <preparation_container>` for more.
+
+After running each command below, please check the printed messages and the updated ``job_status.csv``.
+The first 6 lines of ``job_status.csv`` will be printed;
+this CSV file can be found at: ``analysis/code/job_status.csv`` in a BABS project.
+The explanations of this CSV file can be found :ref:`here <detailed_description_of_job_status_csv>`.
+
+------------------------------------
+Testing ``babs-submit``
+------------------------------------
+
+Comprehensive test checklist (please add ``--project-root``):
+
+- [ ] ``babs-submit`` (submitting one job)
+- [ ] ``babs-submit --job``
+- [ ] ``babs-submit --count``
+
+------------------------------------
+Testing ``babs-status``
+------------------------------------
+
+Comprehensive test checklist (please add ``--project-root``):
+
+- [ ] ``babs-status``
+
+------------------------------------
+Testing ``babs-merge``
+------------------------------------
