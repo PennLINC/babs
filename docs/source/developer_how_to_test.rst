@@ -76,6 +76,11 @@ Step 2. Manual tests on an HPC cluster (SGE or Slurm)
 Currently pytest does not cover ``babs-submit``, ``babs-status`` and ``babs-merge``.
 Therefore, we need to manually test them on an HPC cluster with SGE or Slurm job scheduler system.
 
+There are two general steps in manual testing:
+
+* Step 2.1 Comprehensive tests using a toy BIDS data and the toy BIDS App
+* Step 2.2 Real application using a large-scale dataset and a real BIDS App
+
 --------------------------------------------------------------------
 General guidelines for testing ``babs-submit`` and ``babs-status``
 --------------------------------------------------------------------
@@ -84,7 +89,8 @@ In theory, we should test on both SGE and Slurm systems. However, researchers ma
 to both systems. Therefore, if you make a pull request, please let us know which HPC job scheduler system
 you've used to test.
 
-You should use a single-session dataset and a multi-session dataset to go through the comprehensive test checklist.
+For Step 2.1 Comprehensive tests,
+you should use both a single-session dataset and a multi-session dataset to go through the comprehensive test checklist.
 Toy datasets can be found :ref:`here <example_input_BIDS_datasets_for_BABS>`.
 
 You may use the toy BIDS App to test out. See :doc:`here <preparation_container>` for more.
@@ -95,7 +101,7 @@ this CSV file can be found at: ``analysis/code/job_status.csv`` in a BABS projec
 The explanations of this CSV file can be found :ref:`here <detailed_description_of_job_status_csv>`.
 
 ------------------------------------
-Testing ``babs-submit``
+Step 2.1.1: Testing ``babs-submit``
 ------------------------------------
 
 Comprehensive test checklist (please add ``--project-root``):
@@ -103,9 +109,10 @@ Comprehensive test checklist (please add ``--project-root``):
 - [ ] ``babs-submit`` (submitting one job)
 - [ ] ``babs-submit --job``
 - [ ] ``babs-submit --count``
+- [ ] ``babs-submit --all``
 
 ------------------------------------
-Testing ``babs-status``
+Step 2.1.2: Testing ``babs-status``
 ------------------------------------
 
 Comprehensive test checklist (please add ``--project-root``):
@@ -124,5 +131,23 @@ Please check out :ref:`this page <how_to_test_out_babs_status>`
 for how to create failed and pending jobs.
 
 ------------------------------------
-Testing ``babs-merge``
+Step 2.1.3: Testing ``babs-merge``
 ------------------------------------
+
+Comprehensive test checklist (please add ``--project-root``):
+- [ ] ``babs-merge``
+
+----------------------------------------------------------------------
+Step 2.2: Testing using a large-scale dataset + a real BIDS App
+----------------------------------------------------------------------
+This is to make sure that the updated code also works on a large-scale dataset
+and when using a real BIDS App (e.g., fMRIPrep, QSIPrep).
+This is especially important to test out when you have updated the workflow of status updates,
+i.e., how ``job_status.csv`` is updated, or you revised the source code for generating BABS scripts.
+
+For example, you may use a dataset with hundreds of (or more) subjects or subject/session pairs.
+Run BABS commands, and check if the content of generated scripts are as expected.
+Then submit a few jobs.
+While the jobs are running, use ``babs-status`` to check their statuses and see
+how long this command takes. It should not take a long time (see :doc:`jobs` for example run time).
+Finally, check if you can successfully merge the results + get the zip file content + unzip it.
