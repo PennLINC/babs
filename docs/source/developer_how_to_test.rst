@@ -111,6 +111,17 @@ Testing ``babs-status``
 Comprehensive test checklist (please add ``--project-root``):
 
 - [ ] ``babs-status``
+- [ ] ``babs-status --resubmit failed``
+- [ ] ``babs-status --resubmit pending``
+- [ ] ``babs-status --resubmit-job <sub_id/ses_id of a failed job>``
+- [ ] ``babs-status --resubmit-job <sub_id/ses_id of a pending job>``
+- [ ] ``babs-status --resubmit-job <sub_id/ses_id of a running job>`` --> expect no from BABS
+- [ ] ``babs-status --container-config-yaml-file path/to/config.yaml`` for failed job auditing
+- [ ] ``babs-status --container-config-yaml-file path/to/config.yaml --job-account`` for failed job auditing
+
+
+Please check out :ref:`this page <how_to_test_out_babs_status>`
+for how to create failed and pending jobs.
 
 ------------------------------------
 Testing ``babs-merge``

@@ -133,6 +133,8 @@ when ``print(df)`` by python::
 
 Note: ``0`` at the beginning: index of pd.DataFrame
 
+.. _how_to_test_out_babs_status:
+
 ====================================
 How to test out ``babs-status``
 ====================================
@@ -144,7 +146,9 @@ Create pending or failed jobs
 Change/Add these in ``participant_job.sh``:
 
 - failed: see next section
-- pending: on SGE clusters: increase ``-l h_vmem`` and ``-l s_vmem``; increase ``-pe threaded N``
+- pending: Please increase the cluster resources you request, e.g., memory, number of CPUs, etc
+
+    - on SGE clusters: increase ``-l h_vmem`` and ``-l s_vmem``; increase ``-pe threaded N``
 - stalled (``eqw``): skip this for now. See Bergman email 12/20/22
 
 After these changes, ``datalad save -m "message"`` and ``datalad push --to input``
