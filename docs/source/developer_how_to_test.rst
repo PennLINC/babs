@@ -99,13 +99,23 @@ Toy datasets can be found :ref:`here <example_input_BIDS_datasets_for_BABS>`.
 
 You may use the toy BIDS App to test out. See :doc:`here <preparation_container>` for more.
 
-After running each command below, please check the printed messages and the updated ``job_status.csv``.
+After running each ``babs-submit`` or ``babs-status`` below,
+please check the printed messages and the updated ``job_status.csv``.
 The first 6 lines of ``job_status.csv`` will be printed;
 this CSV file can be found at: ``analysis/code/job_status.csv`` in a BABS project.
 The explanations of this CSV file can be found :ref:`here <detailed_description_of_job_status_csv>`.
 
+-----------------------------------------
+Step 2.1.1: Testing ``babs-check-setup``
+-----------------------------------------
+
+Comprehensive test checklist (please add ``--project-root``):
+
+- [ ] ``babs-merge --job-test`` --> see if the information summarized by BABS is correct
+  (e.g., information of designated environment and temporary workspace:)
+
 ------------------------------------
-Step 2.1.1: Testing ``babs-submit``
+Step 2.1.2: Testing ``babs-submit``
 ------------------------------------
 
 Comprehensive test checklist (please add ``--project-root``):
@@ -116,7 +126,7 @@ Comprehensive test checklist (please add ``--project-root``):
 - [ ] ``babs-submit --all``
 
 ------------------------------------
-Step 2.1.2: Testing ``babs-status``
+Step 2.1.3: Testing ``babs-status``
 ------------------------------------
 
 Comprehensive test checklist (please add ``--project-root``):
@@ -135,7 +145,7 @@ Please check out :ref:`this page <how_to_test_out_babs_status>`
 for how to create failed and pending jobs.
 
 ------------------------------------
-Step 2.1.3: Testing ``babs-merge``
+Step 2.1.4: Testing ``babs-merge``
 ------------------------------------
 
 Comprehensive test checklist (please add ``--project-root``):

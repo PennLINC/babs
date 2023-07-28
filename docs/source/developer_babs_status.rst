@@ -146,10 +146,12 @@ Create pending or failed jobs
 Change/Add these in ``participant_job.sh``:
 
 - failed: see next section
-- pending: Please increase the cluster resources you request, e.g., memory, number of CPUs, etc
+- pending: Please increase the cluster resources you request,
+  e.g., memory, number of CPUs, temporary disk space, etc.
 
+    - on SLurm clusters: increase ``#SBATCH --mem``, ``#SBATCH --tmp``, etc
     - on SGE clusters: increase ``-l h_vmem`` and ``-l s_vmem``; increase ``-pe threaded N``
-- stalled (``eqw``): skip this for now. See Bergman email 12/20/22
+- stalled (``eqw`` on SGE clusters): skip this for now. See Bergman email 12/20/22
 
 After these changes, ``datalad save -m "message"`` and ``datalad push --to input``
 
