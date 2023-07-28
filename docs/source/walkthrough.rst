@@ -336,8 +336,9 @@ There are several lines (highlighted above) that require customization based on 
       And please replace ``...`` with other lines with pre-defined keys from BABS,
       such as ``interpreting_shell`` and ``hard_memory_limit``. 
 
-    * If needed, you may add more requests for other resources, e.g., runtime limit of 20min (`hard_runtime_limit: 00:20:00`),
-      temporary disk space of 20GB,
+    * If needed, you may add more requests for other resources,
+      e.g., runtime limit of 20min (``hard_runtime_limit: "00:20:00"``),
+      temporary disk space of 20GB (``temporary_disk_space: 20G``),
       Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
     * .. dropdown:: For Penn Medicine CUBIC cluster only:

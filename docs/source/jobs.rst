@@ -307,6 +307,16 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 FAQ for job submission and status checking
 *******************************************************
 
+Q: In printed messages from ``babs-status``, what if the number of submitted jobs
+does not match with the total number of jobs summarized under "Among submitted jobs"?
+
+A: This should happen infrequently. Those "missing" jobs may in some uncommon or brief states
+that BABS does not recognize. Please wait for a bit moment, and rerun ``babs-status``.
+
+.. developer's notes: if calling `babs-status` immediately after `babs-submit` on MSI Slurm cluster,
+..  you may see this. This is because jobs are in atypical states `CF` (configuring).
+..  Just wait several sec and rerun `babs-status`.
+
 Q: In ``job_status.csv``, why column ``alert_message`` is updated every time ``babs-status`` is called,
 whereas column ``job_account`` is only updated when ``--job-account`` is called?
 
