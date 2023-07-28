@@ -81,11 +81,15 @@ There are two general steps in manual testing:
 * Step 2.1 Comprehensive tests using a toy BIDS data and the toy BIDS App
 * Step 2.2 Real application using a large-scale dataset and a real BIDS App
 
+Note that here we provide a comprehensive list of tests, which is important to go through before a new release.
+However, for minor changes in the source code, a comprehensive test may not be necessary and more focused tests may be sufficient.
+If you are not sure which tests are sufficient, we are happy to discuss about it.
+
 --------------------------------------------------------------------
 General guidelines for testing ``babs-submit`` and ``babs-status``
 --------------------------------------------------------------------
 
-In theory, we should test on both SGE and Slurm systems. However, researchers may not have access
+In theory, it's best to test on both SGE and Slurm systems. However, researchers may not have access
 to both systems. Therefore, if you make a pull request, please let us know which HPC job scheduler system
 you've used to test.
 
@@ -106,7 +110,7 @@ Step 2.1.1: Testing ``babs-submit``
 
 Comprehensive test checklist (please add ``--project-root``):
 
-- [ ] ``babs-submit`` (submitting one job)
+- [ ] ``babs-submit`` (to submit one job)
 - [ ] ``babs-submit --job``
 - [ ] ``babs-submit --count``
 - [ ] ``babs-submit --all``
@@ -122,7 +126,7 @@ Comprehensive test checklist (please add ``--project-root``):
 - [ ] ``babs-status --resubmit pending``
 - [ ] ``babs-status --resubmit-job <sub_id/ses_id of a failed job>``
 - [ ] ``babs-status --resubmit-job <sub_id/ses_id of a pending job>``
-- [ ] ``babs-status --resubmit-job <sub_id/ses_id of a running job>`` --> expect no from BABS
+- [ ] ``babs-status --resubmit-job <sub_id/ses_id of a running job>`` --> expect BABS to say not to submit a running job
 - [ ] ``babs-status --container-config-yaml-file path/to/config.yaml`` for failed job auditing
 - [ ] ``babs-status --container-config-yaml-file path/to/config.yaml --job-account`` for failed job auditing
 
@@ -135,6 +139,7 @@ Step 2.1.3: Testing ``babs-merge``
 ------------------------------------
 
 Comprehensive test checklist (please add ``--project-root``):
+
 - [ ] ``babs-merge``
 
 ----------------------------------------------------------------------
@@ -143,7 +148,8 @@ Step 2.2: Testing using a large-scale dataset + a real BIDS App
 This is to make sure that the updated code also works on a large-scale dataset
 and when using a real BIDS App (e.g., fMRIPrep, QSIPrep).
 This is especially important to test out when you have updated the workflow of status updates,
-i.e., how ``job_status.csv`` is updated, or you revised the source code for generating BABS scripts.
+i.e., how ``job_status.csv`` is updated, or you revised the source code for generating BABS scripts
+and the changes are related to a real BIDS App.
 
 For example, you may use a dataset with hundreds of (or more) subjects or subject/session pairs.
 Run BABS commands, and check if the content of generated scripts are as expected.
