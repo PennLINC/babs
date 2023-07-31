@@ -50,6 +50,7 @@ from babs.utils import (get_immediate_subdirectories,
                         get_alert_message_in_log_files,
                         get_username,
                         check_job_account,
+                        get_cmd_cancel_job,
                         print_versions_from_yaml,
                         get_git_show_ref_shasum,
                         ceildiv)
@@ -1242,7 +1243,8 @@ class BABS():
 
                                     # kill original one
                                     proc_kill = subprocess.run(
-                                        ["qdel", job_id_str],
+                                        [get_cmd_cancel_job(self.type_system),
+                                         job_id_str],  # e.g., `qdel <job_id>`
                                         stdout=subprocess.PIPE
                                     )
                                     proc_kill.check_returncode()
@@ -1286,7 +1288,8 @@ class BABS():
 
                                     # kill original one
                                     proc_kill = subprocess.run(
-                                        ["qdel", job_id_str],
+                                        [get_cmd_cancel_job(self.type_system),
+                                         job_id_str],  # e.g., `qdel <job_id>`
                                         stdout=subprocess.PIPE
                                     )
                                     proc_kill.check_returncode()
@@ -1332,7 +1335,8 @@ class BABS():
 
                                 #     # kill original one
                                 #     proc_kill = subprocess.run(
-                                #         ["qdel", job_id_str],
+                                #         [get_cmd_cancel_job(self.type_system),
+                                #          job_id_str],   # e.g., `qdel <job_id>`
                                 #         stdout=subprocess.PIPE
                                 #     )
                                 #     proc_kill.check_returncode()
@@ -1479,7 +1483,8 @@ class BABS():
 
                         # kill original one
                         proc_kill = subprocess.run(
-                            ["qdel", job_id_str],
+                            [get_cmd_cancel_job(self.type_system),
+                             job_id_str],   # e.g., `qdel <job_id>`
                             stdout=subprocess.PIPE
                         )
                         proc_kill.check_returncode()

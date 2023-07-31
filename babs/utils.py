@@ -2442,6 +2442,40 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
 
     return msg_toreturn
 
+
+def get_cmd_cancel_job(type_system):
+    """
+    This is to get the command used for canceling a job
+    (i.e., deleting a job from the queue).
+    This is dependent on cluster system.
+
+    Parameters:
+    ------------
+    type_system: str
+        the type of job scheduling system, "sge" or "slurm"
+
+    Returns:
+    --------------
+    cmd: str
+        the command for canceling a job
+
+    Notes:
+    ----------------
+    On SGE clusters, we use `qdel <job_id>` to cancel a job;
+    On Slurm clusters, we use `scancel <job_id>` to cancel a job.
+    """
+
+    if type_system == "sge":
+        cmd = "qdel"
+    elif type_system == "slurm":
+        cmd = "scancel"
+    else:
+        raise Exception("Invalid job scheduler system type `type_system`: " + type_system)
+
+    # print("the command for cancelling the job: " + cmd)   # NOTE: for testing only
+    return cmd
+
+
 def print_versions_from_yaml(fn_yaml):
     """
     This is to go thru information in `code/check_setup/check_env.yaml` saved by `test_job.py`.
