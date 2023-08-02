@@ -21,6 +21,7 @@ Below is a detailed description of implementations.
 .. toctree::
    :maxdepth: 1
 
+   developer_how_to_test
    developer_config_yaml_file
    developer_babs_status
 

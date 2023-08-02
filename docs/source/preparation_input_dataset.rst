@@ -104,8 +104,10 @@ as input dataset for your current BABS project ("BABS project B"), you may:
 .. Developer's Notes: In theory the user could directly provide ``ria+file://xxx/output_ria#~data`` as the path to the input dataset in ``babs-init``,
 ..      but we hope they could test if this string is correct by letting them clone once.
 
+.. _example_input_BIDS_datasets_for_BABS:
+
 ================================================================
-Examples input BIDS datasets for BABS
+Example input BIDS datasets for BABS
 ================================================================
 .. list-table:: Example input datasets available on OSF
    :widths: 25 25 25

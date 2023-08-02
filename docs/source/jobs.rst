@@ -240,6 +240,8 @@ Below is an example python script of reading ``job_status.csv``::
 You can also slice ``df`` and extract only failed jobs, only jobs whose ``alert_message``
 matches with a specific string, etc.
 
+.. _detailed_description_of_job_status_csv:
+
 ==================================================
 Detailed description of ``job_status.csv``
 ==================================================
