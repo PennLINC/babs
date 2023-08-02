@@ -78,11 +78,12 @@ Therefore, we need to manually test them on an HPC cluster with SGE or Slurm job
 
 There are two general steps in manual testing:
 
-* Step 2.1 Comprehensive tests using a toy BIDS data and the toy BIDS App
+* Step 2.1 Tests using a toy BIDS data and the toy BIDS App
 * Step 2.2 Real application using a large-scale dataset and a real BIDS App
 
-Note that here we provide a comprehensive list of tests, which is important to go through before a new release.
-However, for minor changes in the source code, a comprehensive test may not be necessary and more focused tests may be sufficient.
+Note that here we provide a comprehensive list of tests, which would be important to go through before a new release
+(if there are major changes in job submissions/status checking).
+However, for minor changes in the source code, comprehensive testing may not be necessary and more focused tests may be sufficient.
 If you are not sure which tests are sufficient, we are happy to discuss about it.
 
 --------------------------------------------------------------------
@@ -93,16 +94,16 @@ In theory, it's best to test on both SGE and Slurm systems. However, researchers
 to both systems. Therefore, if you make a pull request, please let us know which HPC job scheduler system
 you've used to test.
 
-For Step 2.1 Comprehensive tests,
-you should use both a single-session dataset and a multi-session dataset to go through the comprehensive test checklist.
+For Step 2.1 Tests using a toy BIDS data and the toy BIDS App,
+if the looping of the jobs (subjects in single-session data, or subject/session pairs in multi-session data) were changed,
+you should have two rounds of testing, one using a single-session dataset, the other using a multi-session dataset.
 Toy datasets can be found :ref:`here <example_input_BIDS_datasets_for_BABS>`.
 
 You may use the toy BIDS App to test out. See :doc:`here <preparation_container>` for more.
 
 After running each ``babs-submit`` or ``babs-status`` below,
 please check the printed messages and the updated ``job_status.csv``.
-The first 6 lines of ``job_status.csv`` will be printed;
-this CSV file can be found at: ``analysis/code/job_status.csv`` in a BABS project.
+This CSV file can be found at: ``analysis/code/job_status.csv`` in a BABS project.
 The explanations of this CSV file can be found :ref:`here <detailed_description_of_job_status_csv>`.
 
 -----------------------------------------
@@ -112,7 +113,7 @@ Step 2.1.1: Testing ``babs-check-setup``
 Comprehensive test checklist (please add ``--project-root``):
 
 - [ ] ``babs-merge --job-test`` --> see if the information summarized by BABS is correct
-  (e.g., information of designated environment and temporary workspace:)
+  (e.g., information of designated environment and temporary workspace)
 
 ------------------------------------
 Step 2.1.2: Testing ``babs-submit``
