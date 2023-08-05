@@ -11,23 +11,11 @@
 
 ### List of example container configuration YAML file:
 
-| example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | cluster system | Notes | 
-| :-- | :--|:-- | :-- |:-- | :-- | :-- |
-| [link](eg_toybidsapp-0-0-7_rawBIDS_sge_cubic.yaml) | toy BIDS App | 0.0.7 |for processing raw BIDS dataset | one raw BIDS dataset | SGE | |
-| [link](eg_toybidsapp-0-0-7_rawBIDS_slurm_msi.yaml) | toy BIDS App | 0.0.7 |for processing raw BIDS dataset | one raw BIDS dataset | Slurm | |
-| [link](eg_toybidsapp-0-0-7_zipped_sge_cubic.yaml) | toy BIDS App | 0.0.7 |for processing zipped BIDS derivatives dataset | one zipped BIDS derivatives dataset | SGE | |
-| [link](eg_toybidsapp-0-0-7_zipped_slurm_msi.yaml) | toy BIDS App | 0.0.7 |for processing zipped BIDS derivatives dataset | one zipped BIDS derivatives dataset | Slurm | |
-| [link](eg_fmriprep-20-2-3_full_sge_cubic.yaml) | fMRIPrep | 20.2.3 | Full run of fMRIPrep | one raw BIDS dataset | SGE | |
-| [link](eg_fmriprep-20-2-3_anatonly_sge_cubic.yaml) | fMRIPrep | 20.2.3 | fMRIPrep `--anat-only` mode | one raw BIDS dataset | SGE | |
-| [link](eg_fmriprep-20-2-3_ingressed-fs_sge_cubic.yaml) | fMRIPrep | 20.2.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset (of FreeSurfer results) | SGE | |
-| [link](eg_fmriprep-20-2-3_sloppy_sge_cubic.yaml) | fMRIPrep | 20.2.3 | fMRIPrep `--sloppy` mode | one raw BIDS dataset | SGE | ⚠️ WARNING: only for testing! ⚠️ |
-| [link](eg_fmriprep-20-2-3_sloppy_slurm_msi.yaml) | fMRIPrep | 20.2.3 | fMRIPrep `--sloppy` mode | one raw BIDS dataset | Slurm | ⚠️ WARNING: only for testing! ⚠️ |
-| [link](eg_fmriprepfake-0-1-2_full_slurm_msi.yaml) | fmriprep-fake | 0.1.2 | fmriprep-fake, mimicking current *BIDS output layout* of fMRIPrep (v21.0+) | one raw BIDS dataset | Slurm | |
-| [link](eg_fmriprepfake-0-1-2_legacy-layout_slurm_msi.yaml) | fmriprep-fake | 0.1.2 | fmriprep-fake, mimicking *legacy output layout* of fMRIPrep (< v21.0) | one raw BIDS dataset | Slurm | |
-| [link](eg_fmriprepfake-0-1-2_anatonly_slurm_msi.yaml) | fmriprep-fake | 0.1.2 | fmriprep-fake, using `--anat-only` | one raw BIDS dataset | Slurm | ⚠️ WARNING: For version `0.1.2`, although `--anat-only` is on, the generated files won't be different and will still include fMRI derivatives. |
-| [link](eg_qsiprep-0-16-0RC3_sloppy_sge_cubic.yaml) | QSIPrep | 0.16.0RC3 | QSIPrep `--sloppy` mode | one raw BIDS dataset | SGE | ⚠️ WARNING: only for testing! |
-| [link](eg_qsiprep-0-16-0RC3_sloppy_slurm_msi.yaml) | QSIPrep | 0.16.0RC3 | QSIPrep `--sloppy` mode | one raw BIDS dataset | Slurm | ⚠️ WARNING: only for testing! |
-| [link](eg_xcpd-0-3-0_full_sge_cubic.yaml ) | XCP-D | 0.3.0 | XCP full run | one zipped BIDS derivatives dataset (of fMRIPrep results) | SGE | |
+| example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | Notes | 
+| :-- | :--|:-- | :-- |:-- | :-- |
+| [link](eg_toybidsapp-0-0-7_rawBIDS-walkthrough_sge_cubic.yaml) | toy BIDS App | 0.0.7 |for processing raw BIDS dataset | one raw BIDS dataset | This is used in the [example walkthrough](https://pennlinc-babs.readthedocs.io/en/stable/walkthrough.html); please refer to that doc for how to customize this YAML file.  ||
+| [link](eg_toybidsapp-0-0-7_zipped.yaml) | toy BIDS App | 0.0.7 | for processing zipped BIDS derivatives dataset | one zipped BIDS derivatives dataset |  |
+
 
 ### BIDS App links
 | BIDS App | Function | Docker Hub | Docs | Notes | 
