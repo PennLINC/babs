@@ -220,10 +220,10 @@ def get_container_config_yaml_filename(which_bidsapp,
     """
     dict_cluster_name = {'sge': 'cubic',
                          'slurm': 'msi'}
-    dict_bidsapp_version = {"qsiprep": "0-16-0RC3",
+    dict_bidsapp_version = {"qsiprep": "0-18-1",
                             "fmriprep": "20-2-3",
                             "toybidsapp": "0-0-7"}
-    dict_task_name = {"qsiprep": 'sloppy',
+    dict_task_name = {"qsiprep": 'regular',
                       "fmriprep": "full",
                       "toybidsapp": "rawBIDS-walkthrough"}
 
@@ -243,9 +243,11 @@ def get_container_config_yaml_filename(which_bidsapp,
 
     # cluster system type and example name:
     # TODO: change here to reflect the updated names in YAML files:
+    when_simple_name = ((which_bidsapp == "toybidsapp") & (which_input == "fmriprep")) \
+        | ((which_bidsapp == "qsiprep") )
     # if (which_bidsapp == "toybidsapp") & (which_input == "BIDS"):
         # add "sge" and "cubic", as this is the YAML file for eg walkthrough:
-    if (which_bidsapp != "toybidsapp") | (which_input != "fmriprep"):
+    if not when_simple_name:
         container_config_yaml_filename += "_" + type_system + "_" \
             + dict_cluster_name[type_system] + ".yaml"
     else:   # just add ".yaml", no need to add system names:
