@@ -221,10 +221,10 @@ def get_container_config_yaml_filename(which_bidsapp,
     dict_cluster_name = {'sge': 'cubic',
                          'slurm': 'msi'}
     dict_bidsapp_version = {"qsiprep": "0-18-1",
-                            "fmriprep": "20-2-3",
+                            "fmriprep": "23-1-3",
                             "toybidsapp": "0-0-7"}
     dict_task_name = {"qsiprep": 'regular',
-                      "fmriprep": "full",
+                      "fmriprep": "regular",
                       "toybidsapp": "rawBIDS-walkthrough"}
 
     # bidsapp and its version:
