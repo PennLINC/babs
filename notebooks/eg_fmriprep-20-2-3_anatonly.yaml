@@ -1,0 +1,58 @@
+# This is the container configuration YAML file for:
+#   fMRIPrep 
+#   whose version = '20-2-3'
+#   under condition: `--anat-only`
+
+# Arguments in `singularity run`:
+singularity_run:
+    -w: "$BABS_TMPDIR"   # this is a placeholder.
+    --n_cpus: '1'
+    --stop-on-first-crash: ""
+    --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # path to FS license file
+    --skip-bids-validation: ""
+    --output-spaces: MNI152NLin6Asym:res-2
+    --force-bbr: ""
+    --cifti-output: 91k
+    -v: '-v'
+    --anat-only: ''
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   We use fMRIPrep's version string when zipping 'freesurfer' folder.
+zip_foldernames:
+    freesurfer: "20-2-3"   # folder 'freesurfer' will be zipped into 'sub-xx_(ses-yy_)freesurfer-20-2-3.zip'
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
+    hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
+    temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
+    hard_runtime_limit: "48:00:00"    # 2 days
+    customized_text: |
+        #$ -R y
+        #$ -l hostname=!compute-fed*
+# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
+#   So it's probably not relevant for other clusters
+
+# Necessary commands to be run first:
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate showcase    # Penn Med CUBIC cluster; replace 'showcase' with your conda env name
+
+# Where to run the jobs:
+job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+
+# Below is to filter out subjects (or sessions). Only those with required files will be kept.
+#   Because of `--anat-only`, func bold data is not needed.
+required_files:
+    $INPUT_DATASET_#1:
+        - "anat/*_T1w.nii*"
+
+# Alert messages that might be found in log files of failed jobs:
+#   These messages may be helpful for debugging errors in failed jobs.
+alert_log_messages:
+    stdout:
+        # - "Exception: No T1w images found for"  # probably not needed, after setting `required_files`
+        - "Excessive topologic defect encountered"
+        - "Cannot allocate memory"
+        - "mris_curvature_stats: Could not open file"
+        - "Numerical result out of range"
+        - "fMRIPrep failed"
