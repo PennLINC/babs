@@ -1,16 +1,23 @@
-# This is the container configuration YAML file for:
-#   fMRIPrep 
-#   whose version = '20-2-3'
-#   under condition: `--anat-only`
+# This is an example config yaml file for:
+#   BIDS App:         fMRIPrep ("fmriprep")
+#   BIDS App version: 20.2.3
+#   Task:             `--anat-only` mode
+#   Which system:     SGE or Slurm
+
+# WARNING!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
 singularity_run:
-    -w: "$BABS_TMPDIR"   # this is a placeholder.
+    -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
     --n_cpus: '1'
     --stop-on-first-crash: ""
-    --fs-license-file: "/cbica/projects/BABS/software/FreeSurfer/license.txt"  # path to FS license file
+    --fs-license-file: "/path/to/FreeSurfer/license.txt"  # [FIX ME] path to FreeSurfer license file
     --skip-bids-validation: ""
-    --output-spaces: MNI152NLin6Asym:res-2
+    --output-spaces: "MNI152NLin6Asym:res-2"
     --force-bbr: ""
     --cifti-output: 91k
     -v: '-v'
@@ -23,22 +30,19 @@ zip_foldernames:
 
 # How much cluster resources it needs:
 cluster_resources:
-    interpreting_shell: /bin/bash   # "-S /bin/bash" on cubic
-    hard_memory_limit: 25G   # "-l h_vmem=25G" on cubic
-    temporary_disk_space: 200G   # "-l tmpfree=200G" on cubic  # this is highly-recommended on cubic
-    hard_runtime_limit: "48:00:00"    # 2 days
-    customized_text: |
-        #$ -R y
-        #$ -l hostname=!compute-fed*
-# Notes: Above `customized_text` is Penn Med CUBIC cluster specific.
-#   So it's probably not relevant for other clusters
+    interpreting_shell: "/bin/bash"
+    hard_memory_limit: 25G
+    temporary_disk_space: 200G
+    hard_runtime_limit: "48:00:00"
 
 # Necessary commands to be run first:
+#   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
-    source ${CONDA_PREFIX}/bin/activate showcase    # Penn Med CUBIC cluster; replace 'showcase' with your conda env name
+    source xxxx    # [FIX ME or DELETE ME] source any necessary program
+    conda activate my_conda_env_name   # [FIX ME] replace 'my_conda_env_name' with your environment variable name
 
 # Where to run the jobs:
-job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+job_compute_space: "/path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 #   Because of `--anat-only`, func bold data is not needed.

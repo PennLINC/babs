@@ -23,9 +23,11 @@ In addition, please check if the function of the YAML files (especially the `sin
 | [link](eg_toybidsapp-0-0-7_zipped.yaml) | toy BIDS App | 0.0.7 | for testing BABS on a *zipped* BIDS derivatives dataset | one zipped BIDS derivatives dataset |  |
 | [link](eg_qsiprep-0-18-1_regular.yaml) | QSIPrep | 0.18.1 | regular use of QSIPrep | one raw BIDS dataset | This does not include `qsirecon` workflow |
 | [link](eg_fmriprep-23-1-3_regular.yaml) | fMRIPrep | 23.1.3 | regular use of fMRIPrep | one raw BIDS dataset |  |
-| [link](eg_fmriprep-23-1-3_ingressed-fs.yaml) | fMRIPrep | 23.1.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results |  |
+| [link](eg_fmriprep-23-1-3_anatonly.yaml) | fMRIPrep | 23.1.3 | fMRIPrep `--anat-only` | one raw BIDS dataset |  |
+| [link](eg_fmriprep-23-1-3_ingressed-fs.yaml) | fMRIPrep | 23.1.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` (see example YAML [here](eg_fmriprep-23-1-3_anatonly.yaml)) |
 | [link](eg_fmriprep-20-2-3_regular.yaml) | fMRIPrep | 20.2.3 | regular use of fMRIPrep | one raw BIDS dataset |  |
-| [link](eg_fmriprep-20-2-3_ingressed-fs.yaml) | fMRIPrep | 20.2.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results |  |
+| [link](eg_fmriprep-20-2-3_anatonly.yaml) | fMRIPrep | 20.2.3 | fMRIPrep `--anat-only` | one raw BIDS dataset | Only `freesurfer` folder is saved. |
+| [link](eg_fmriprep-20-2-3_ingressed-fs.yaml) | fMRIPrep | 20.2.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` (see example YAML [here](eg_fmriprep-20-2-3_anatonly.yaml)) |
 
 
 Note that because fMRIPrep changed its default output layout in version `21.0`, here we provide example YAML files for both a recent version (`23.1.3`) and an older version (`20.2.3`). The recent version uses BIDS output layout, whereas the older one uses legacy output layout. This difference reflects in the `zip_folernames` section.
