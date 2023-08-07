@@ -28,18 +28,12 @@ In addition, please check if the function of the YAML files (especially the `sin
 | [link](eg_fmriprep-20-2-3_regular.yaml) | fMRIPrep | 20.2.3 | regular use of fMRIPrep | one raw BIDS dataset |  |
 | [link](eg_fmriprep-20-2-3_anatonly.yaml) | fMRIPrep | 20.2.3 | fMRIPrep `--anat-only` | one raw BIDS dataset | Only `freesurfer` folder is saved. |
 | [link](eg_fmriprep-20-2-3_ingressed-fs.yaml) | fMRIPrep | 20.2.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` (see example YAML [here](eg_fmriprep-20-2-3_anatonly.yaml)) |
+| [link](eg_xcpd-0-4-0_nifti.yaml) | XCP-D | 0.4.0 | for NIfTI images (i.e., without `--cifti`) | one zipped BIDS derivatives dataset of fMRIPrep results | The 0.4.0 version of XCP-D is labeled as `04.0` on Docker Hub.  |
 
 
 Note that because fMRIPrep changed its default output layout in version `21.0`, here we provide example YAML files for both a recent version (`23.1.3`) and an older version (`20.2.3`). The recent version uses BIDS output layout, whereas the older one uses legacy output layout. This difference reflects in the `zip_folernames` section.
 
-### BIDS App links
-| BIDS App | Function | Docker Hub | Docs | Notes | 
-| :-- | :--|:-- | :-- |:-- |
-| fMRIPrep | Preprocessing fMRI data | ___ | ___ | The default output layout changed in `21.0.0`. BABS YAML files for new BIDS layout and legacy layout are different. |
-| QSIPrep | Preprocessing dMRI data | [Docker Hub](https://hub.docker.com/r/pennbbl/qsiprep) | ____ | |
-| XCP-D | Post-processing fMRI data | ____ | _____ | The 0.4.0 version is labeled as `04.0` on Docker Hub. |
-| toy BIDS App | Quick test of BABS | ____ | _____ | |
-| fmriprep-fake | Mimics fMRIPrep output layout and generates fake derivatives, for quick test | [Docker Hub](https://hub.docker.com/r/djarecka/fmriprep_fake); Version 0.1.2 is available [here](https://hub.docker.com/r/chenyingzhao/fmriprep_fake) | see its [GitHub repo](https://github.com/djarecka/fmriprep-fake) |  |
-
-* fMRI = functional MRI
-* dMRI = diffusion MRI
+## Other files
+- Example initial subject list for toy BIDS datasets:
+  - [initial_sub_list_multi-ses.csv](initial_sub_list_multi-ses.csv)
+  - [initial_sub_list_single-ses.csv](initial_sub_list_single-ses.csv)
