@@ -2,8 +2,7 @@
 #   BIDS App:         toy BIDS App "toy_bids_app"
 #   BIDS App version: 0.0.7
 #   Task:             `--zipped`, for application to zipped BIDS derivatives dataset
-#   Which system:     Slurm
-#   Tested on which cluster:  UMN MSI cluster
+#   Which system:     SGE or Slurm
 
 # Warning!!!
 #   This is only an example, which may not necessarily fit your purpose,
@@ -22,22 +21,19 @@ zip_foldernames:
     toybidsapp: "0-0-7"   # folder 'toybidsapp' will be zipped into 'sub-xx_(ses-yy_)toybidsapp-0-0-7.zip'
 
 cluster_resources:
-    interpreting_shell: "/bin/bash -l"
+    interpreting_shell: "/bin/bash"
     hard_memory_limit: 25G
     temporary_disk_space: 50G
-    hard_runtime_limit: "20"   # 20min
-    customized_text: |
-        #SBATCH -p amd2tb,ram256g
-# Notes: Above `customized_text` is MSI Slurm cluster specific.
-#   So it may not be relevant for other clusters
+    hard_runtime_limit: "00:20:00"   # 20min
 
 # Necessary commands to be run first:
+#   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
-    source /home/faird/shared/code/external/envs/miniconda3/load_miniconda3.sh   # [FIX ME] MSI cluster faird group. Replace filepath with yours.
-    conda activate babs   # [FIX ME] replace 'babs' with your env variable name
+    source xxxx    # [FIX ME or DELETE ME] source any necessary program
+    conda activate my_conda_env_name   # [FIX ME] replace 'my_conda_env_name' with your environment variable name
 
 # Where to run the jobs:
-job_compute_space: "/tmp"   # [FIX ME] MSI cluster
+job_compute_space: "/path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # 'required_files' section is not needed for toy BIDS App.
 

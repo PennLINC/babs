@@ -51,7 +51,8 @@ These include example YAML files for:
 * Different BIDS Apps: fMRIPrep, QSIPrep, XCP-D, as well as toy BIDS App, etc.
 * Cases with different input BIDS datasets, including one raw BIDS dataset, one zipped BIDS derivates dataset,
   and the combination of these two.
-* Different cluster systems, including SGE and Slurm.
+
+These YAML files can be customized for different clusters, including SGE and Slurm clusters.
 
 .. developer's note: ^^ using main branch on github.
 
@@ -274,7 +275,7 @@ Advanced - Manual of writing section ``singularity_run``
 
     * For the named argument ``--fs-subjects-dir``, say we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
 
-        * Then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
+        * For fMRIPrep version < 21.0, then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
         * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
           in ``babs-init --input <name> /path/to/freesurfer_dataset``
         * Note that, as this is a zipped dataset, you need to repeat ``freesurfer`` twice.
@@ -284,6 +285,8 @@ Advanced - Manual of writing section ``singularity_run``
                   This is because, ``freesurfer`` dataset will locate at ``inputs/data/freesurfer``, and after unzipping
                   a subject's (or a session's) freesurfer zipped folder, there will be
                   another folder called ``freesurfer``, so the path to the unzipped folder will be ``inputs/data/freesurfer/freesurfer``.
+        
+        * For fMRIPrep version >= 21.0, please refer to example YAML files for examples.
 
     * :octicon:`alert-fill` :bdg-warning:`warning` Please check :ref:`how-to-define-name-of-input-dataset` for
       restrictions in naming each dataset when calling ``babs-init``!

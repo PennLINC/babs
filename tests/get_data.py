@@ -218,14 +218,14 @@ def get_container_config_yaml_filename(which_bidsapp,
     container_config_yaml_filename: str
         the filename, without the path.
     """
-    dict_cluster_name = {'sge': 'cubic',
-                         'slurm': 'msi'}
-    dict_bidsapp_version = {"qsiprep": "0-16-0RC3",
-                            "fmriprep": "20-2-3",
+    # dict_cluster_name = {'sge': 'cubic',
+    #                      'slurm': 'msi'}
+    dict_bidsapp_version = {"qsiprep": "0-18-1",
+                            "fmriprep": "23-1-3",
                             "toybidsapp": "0-0-7"}
-    dict_task_name = {"qsiprep": 'sloppy',
-                      "fmriprep": "full",
-                      "toybidsapp": "rawBIDS"}
+    dict_task_name = {"qsiprep": 'regular',
+                      "fmriprep": "regular",
+                      "toybidsapp": "rawBIDS-walkthrough"}
 
     # bidsapp and its version:
     container_config_yaml_filename = "eg_" + which_bidsapp + "-" \
@@ -241,9 +241,8 @@ def get_container_config_yaml_filename(which_bidsapp,
     else:
         container_config_yaml_filename += dict_task_name[which_bidsapp]
 
-    # cluster system type and example name:
-    container_config_yaml_filename += "_" + type_system + "_" \
-        + dict_cluster_name[type_system] + ".yaml"
+    # just add ".yaml", no need to add system names:
+    container_config_yaml_filename += ".yaml"
 
     return container_config_yaml_filename
 
