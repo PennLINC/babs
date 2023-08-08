@@ -180,16 +180,15 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 
 #. Line #9-16: Overall summary of number of jobs to complete,
    as well as their breakdowns: number of jobs submitted/finished/pending/running/failed;
-#. Line 18-22: Summary of failed jobs, based on the provided section **alert_log_messages** in
+#. Line #18-22: Summary of failed jobs, based on the provided section **alert_log_messages** in
    ``--container-config-yaml-file``, BABS tried to find user-defined alert messages in failed jobs' log files;
-#. Line 24-25: If there are jobs that failed but don't have defined alert message,
+#. Line #24-25: If there are jobs that failed but don't have defined alert message,
    and ``--job-account`` is requested, BABS will then run job account
    and try to extract more information and summarize.
    For each of these jobs, BABS runs job account command and extracts messages from it.
 
-    * In the above case, as ``hard_runtime_limit: "48:00:00"`` was set,
-      those 56 failed jobs without alert messages failed probably due to exceeding this runtime limit
-      (``h_rt limit`` in the line #25).
+    * In the above case, line #25 tells us that these jobs were killed by the cluster
+      because they exceeded resource limits.
     * For SGE clusters: BABS uses command ``qacct`` for job account,
       and pulls out the code and message from ``failed`` section in ``qacct``.
     * For Slurm clusters: BABS uses command ``sacct`` for job account,
