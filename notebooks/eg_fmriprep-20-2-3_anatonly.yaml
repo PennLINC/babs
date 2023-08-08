@@ -25,6 +25,7 @@ singularity_run:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   We use fMRIPrep's version string when zipping 'freesurfer' folder.
+#   Note: here we will only save folder 'freesurfer' and won't save folder 'fmriprep'
 zip_foldernames:
     freesurfer: "20-2-3"   # folder 'freesurfer' will be zipped into 'sub-xx_(ses-yy_)freesurfer-20-2-3.zip'
 
