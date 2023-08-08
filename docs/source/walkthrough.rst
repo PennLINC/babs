@@ -646,9 +646,9 @@ We'll iteratively use ``babs-submit`` and ``babs-status`` to submit jobs and che
 
 We first use ``babs-status`` to check the number of jobs we initially expect to finish successfully.
 In this example walkthrough, as no initial list was provided,
-BABS determines this number based on the number of subject/session pairs in the input BIDS dataset.
+BABS determines this number based on the number of sessions in the input BIDS dataset.
 We did not request extra filtering (based on required files) in our YAML file either,
-so BABS will submit one job per subject/session pair.
+so BABS will submit one job for each session.
 
 ..  code-block:: console
 
