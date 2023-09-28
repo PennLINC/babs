@@ -65,20 +65,19 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
 
     for i_ds in range(0, input_ds.num_ds):
         if input_ds.df["is_zipped"][i_ds] is False:   # unzipped ds:
-            is_valid_sublevel = False
-
             input_ds_path = input_ds.df["path_now_abs"][i_ds]
-            list_subs = get_immediate_subdirectories(input_ds_path)
-            for sub_temp in list_subs:   # if one of the folder starts with "sub-", then it's fine
-                if sub_temp[0:4] == "sub-":
-                    is_valid_sublevel = True
-                    break
-            if not is_valid_sublevel:
+            # Check if there is sub-*:
+            full_paths = sorted(glob.glob(input_ds_path   # `sorted()` is optional
+                                          + "/sub-*"))
+            # only get the sub's foldername, if it's a directory:
+            list_subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
+            if len(list_subs) == 0:   # no folders with `sub-*`:
                 raise Exception(
                     "There is no `sub-*` folder in input dataset #" + str(i_ds+1)
                     + " '" + input_ds.df["name"][i_ds] + "'!"
                 )
 
+            # For multi-ses: also check if there is session in each sub-*:
             if type_session == "multi-ses":
                 for sub_temp in list_subs:  # every sub- folder should contain a session folder
                     if sub_temp[0] == ".":  # hidden folder
