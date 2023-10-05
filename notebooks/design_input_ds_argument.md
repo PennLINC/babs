@@ -33,5 +33,5 @@ What we need to know re: fMRIPrep with FS ingressed:
   * it's zipped,
   * zipped foldername suffix: we detect based on `freesurfer`
   * in this zipped folder, after unzipping, what's the relative path to the data as input? `freesurfer` --> this means that the path in babs is `inputs/data/freesurfer/freesurfer`   # first `freesurfer` is from the name user gives;
-  * used as named argu: user tell us in `singularity_run` after that speicfic argu flag. see ppt. We'll teach user how to write this.
+  * used as named argu: user tell us in `singularity_run` after that specific argu flag. see ppt. We'll teach user how to write this.
     * over-engineered: If it's named argu, probably another placeholder in `singularity_run`, e.g. `$INPUT_DATASET_#2`
