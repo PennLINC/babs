@@ -533,6 +533,25 @@ the generated directives would be:
     When running jobs, inputs are cloned from input RIA store,
     and results and provenance will be pushed to output RIA store. 
 
+    Below is a brief version (to be used in the paper):
+
+    ..  code-block:: console
+
+        .
+        ├── analysis
+        │   ├── CHANGELOG.md
+        │   ├── code        # including scripts etc
+        │   ├── containers  # cloned container DataLad dataset
+        │   ├── inputs      # cloned input BIDS DataLad dataset(s)
+        │   ├── logs        # where the log files will be
+        │   └── README.md
+        ├── input_ria       # input RIA
+        └── output_ria      # output RIA
+
+.. developer's note: 
+.. # Note for `logs` folder:
+.. # `logs` folder probably exist from beginning (see above: full list of folder structure); log files will exist later.
+.. # ├── merge_ds        # for merging; it exists only after `babs-merge` is applied
 
 Step 2.2. Use ``babs-check-setup`` to make sure it's good to go
 --------------------------------------------------------------------
