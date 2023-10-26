@@ -78,21 +78,40 @@ See also
 Notes in ``babs-init`` CLI: :ref:`how-to-define-name-of-input-dataset`
 
 
-================================================================
-Using results from another BABS project as input BIDS dataset
-================================================================
-If you hope to use zipped results from another BABS' project ("BABS project A")
-as input dataset for your current BABS project ("BABS project B"), you may:
+==================================================================
+Using results from another BABS project as an input BIDS dataset
+==================================================================
+If you hope to use zipped results from another BABS project ("BABS project A")
+as input dataset for a new BABS project ("BABS project B"), you may follow these steps:
 
-#. Clone the results out from the output RIA of BABS project A:
+#. Test out the path you'll to use.
+   This step is optional but highly recommended.
+   This is to make sure that the input dataset's path you'll provide is correct.
+   To do so, please try cloning the results from the output RIA of BABS project A:
 
     * If BABS project A is on the local file system that current directory has access to,
-      you may clone its output RIA by::
+      you may clone the results from its output RIA by::
         
         datalad clone ria+file:///absolute/path/to/my_BABS_project_A/output_ria#~data
 
-    * For more details and/or other RIA scenarios, please refer to `datalad clone's documentation <https://docs.datalad.org/en/stable/generated/man/datalad-clone.html>`_ and `DataLad Handbook about cloning from RIA stores <https://handbook.datalad.org/en/latest/beyond_basics/101-147-riastores.html#cloning-and-updating-from-ria-stores>`_
-#. Then use the path to the cloned dataset as the input dataset directory.
+    * For more details and/or other RIA scenarios,
+      please refer to `datalad clone's documentation <https://docs.datalad.org/en/stable/generated/man/datalad-clone.html>`_
+      and `DataLad Handbook about cloning from RIA stores <https://handbook.datalad.org/en/latest/beyond_basics/101-147-riastores.html#cloning-and-updating-from-ria-stores>`_
+
+#. If you successfully cloned the results, then this means the path you used is correct.
+   You can go ahead and use this path
+   as the input dataset path for generating BABS project B.
+
+    * Please make sure you use the *entire* string after ``datalad clone`` as the input dataset path.
+      For above example, this path is::
+
+        ria+file:///absolute/path/to/my_BABS_project_A/output_ria#~data
+
+#. You may remove the cloned results
+   of the BABS project A (from the first step)::
+
+    datalad remove -d <cloned_results_of_BABS_project_A>
+
 #. :octicon:`alert-fill` :bdg-warning:`warning`
    Please refer to docs listed below for detailed requirements before you run ``babs-init``:
 
