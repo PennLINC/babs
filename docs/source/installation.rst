@@ -12,7 +12,7 @@ specifically, Sun Grid Engine (SGE) and Slurm clusters.
 Please make sure Singularity or one of its successors
 (i.e. SingularityCE or Apptainer which BABS currently supports) is available on the cluster.
 
-Currenlty, BABS is **not** compatible with:
+Currently, BABS is **not** compatible with:
 
 * cloud-based computing platforms (e.g., Amazon Web Services [AWS]);
 * local computers where a job scheduling system or Singularity software is not installed;
