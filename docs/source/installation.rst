@@ -4,6 +4,20 @@ Installation
 
 .. contents:: Table of Contents
 
+Step 0. System requirement
+=============================================
+
+Currently BABS supports applications on high performance computing (HPC) clusters,
+specifically, Sun Grid Engine (SGE) and Slurm clusters.
+Please make sure Singularity or one of its successors
+(i.e. SingularityCE or Apptainer which BABS currently supports) is available on the cluster.
+
+Currently, BABS is **not** compatible with:
+
+* cloud-based computing platforms (e.g., Amazon Web Services [AWS]);
+* local computers where a job scheduling system or Singularity software is not installed;
+* computing nodes without job scheduling systems.
+
 Step 1. Prepare a conda environment for BABS
 =============================================
 

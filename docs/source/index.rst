@@ -2,11 +2,14 @@
 .. include:: ../../README.rst
 .. include:: links.rst
 
-Documentations
+Documentation
 ==================
 
+Please follow the instructions in this documentation to use BABS.
+Currently there is no alternative usage of BABS.
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    overview
    installation
