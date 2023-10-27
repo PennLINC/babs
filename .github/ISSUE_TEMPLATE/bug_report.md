@@ -11,9 +11,13 @@ assignees: ''
 
 ## Additional details
 <!--Please fill in the following details-->
-- BABS version:
-- Docker version:
-- Singularity version:
+- BABS version (`pip show babs`):
+- DataLad version (`datalad --version`):
+- Git version (`git --version`):
+- `git-annex` version (`git-annex version`; pasting the first printed line is sufficient):
+- `datalad-container` version (`datalad containers-add --version`):
+- Singularity version (`singularity --version`):
+- Please copy and paste the printed messages from `babs-check-setup`:
 
 ### What were you trying to do?
 
