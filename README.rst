@@ -20,7 +20,7 @@ scalable Python package for BIDS App analysis of large datasets.
 It uses `DataLad <https://www.datalad.org/>`_ and adopts
 the `FAIRly big framework <https://doi.org/10.1038/s41597-022-01163-2>`_.
 Currently, BABS supports jobs submissions and audits on Sun Grid Engine (SGE) and Slurm
-high performance computing (HPC) clusters with a parsimonious set of programs.
+high performance computing (HPC) clusters.
 
 BABS programs
 ---------------------
