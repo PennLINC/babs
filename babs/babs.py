@@ -379,7 +379,8 @@ class BABS():
             proc_git_commit_amend = subprocess.run(
                 ["git", "commit", "--amend", "-m",
                     "Register input data dataset '" + input_ds.df["name"][i_ds]
-                    + "' as a subdataset"],
+                    + "' as a subdataset",
+                    "--allow-empty"],
                 cwd=self.analysis_path,
                 stdout=subprocess.PIPE
             )
