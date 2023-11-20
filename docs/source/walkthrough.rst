@@ -63,8 +63,13 @@ as the working directory in this example walkthrough:
     $ mkdir -p ~/babs_demo
     $ cd babs_demo
 
-Before you start, to test if you have all the dependencies
-(including ``datalad-osf``) installed properly, let's try installing
+Step 0: Ensure dependencies and data access
+===========================================
+
+(Optional)
+
+Before you start, you can test if you have all the dependencies
+(including ``datalad-osf``) installed properly. Let's try installing
 the toy, multi-session BIDS dataset you'll use in this example walkthrough:
 
 ..  code-block:: console
