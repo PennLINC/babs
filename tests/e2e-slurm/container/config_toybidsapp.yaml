@@ -1,0 +1,21 @@
+# Arguments in `singularity run`:
+singularity_run:
+    --no-zipped: ""
+    --dummy: "2"
+    -v: ""
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    toybidsapp: "0-0-7"
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: /bin/bash
+    hard_memory_limit: 2G
+
+script_preamble: |
+    . ~/miniconda.env
+    conda activate babs
+
+# Where to run the jobs:
+job_compute_space: "/tmp"

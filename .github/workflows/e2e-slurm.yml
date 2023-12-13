@@ -1,0 +1,30 @@
+---
+name: Slurm
+
+on: [push]
+jobs:
+    e2e-slurm:
+      name: Test e2e with SLURM
+      runs-on: ubuntu-latest
+      steps:
+        - name: checkout our repo
+          uses: actions/checkout@v4
+        - name: Install apptainer
+          uses: eWaterCycle/setup-apptainer@v2
+          with:
+            apptainer-version: 1.1.2
+        - name: Install Conda
+          uses: conda-incubator/setup-miniconda@v3
+          with:
+            activate-environment: babs
+            auto-update-conda: true
+            python-version: 3.9
+        - name: Conda info
+          shell: bash -el {0}
+          run: conda info
+        - name: Install Babs
+          shell: bash -el {0}
+          run: ./tests/e2e-slurm/install-babs.sh
+        - name: Execute e2e with SLURM
+          shell: bash -el {0}
+          run: ./tests/e2e-slurm/main.sh
