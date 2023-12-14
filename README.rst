@@ -22,6 +22,20 @@ the `FAIRly big framework <https://doi.org/10.1038/s41597-022-01163-2>`_.
 Currently, BABS supports jobs submissions and audits on Sun Grid Engine (SGE) and Slurm
 high performance computing (HPC) clusters.
 
+Please cite our paper if you use BABS:
+
+    Zhao, C., Jarecka, D., Covitz, S., Chen, Y., Eickhoff, S. B.,
+    Fair, D. A., Franco, A. R., Halchenko, Y. O., Hendrickson, T. J., Hoffstaedter, F.,
+    Houghton, A., Kiar, G., Macdonald, A., Mehta, K., Milham, M. P.,
+    Salo, T., Hanke, M., Ghosh, S. S., Cieslak, M. & Satterthwaite, T. D. (2024).
+    A reproducible and generalizable software workflow
+    for analysis of large-scale neuroimaging data collections using BIDS Apps.
+    *Imaging Neuroscience*. Accepted.
+
+Currently, the paper has been accepted for publication in *Imaging Neuroscience*.
+The *bioRxiv* version can be found `here <https://doi.org/10.1101/2023.08.16.552472>`_.
+
+
 BABS programs
 ---------------------
 
