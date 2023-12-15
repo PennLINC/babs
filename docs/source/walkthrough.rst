@@ -66,7 +66,11 @@ as the working directory in this example walkthrough:
 Step 0: Ensure dependencies and data access
 ===========================================
 
-(Optional)
+*Notes: This Step 0 is only required for clusters
+where there is no Internet connection on compute nodes;
+otherwise, you may skip this step.
+However we do recommend going through this step if this is your first time
+running this example walkthrough.*
 
 Before you start, you can test if you have all the dependencies
 (including ``datalad-osf``) installed properly. Let's try installing
