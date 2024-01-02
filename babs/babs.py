@@ -913,11 +913,10 @@ class BABS():
             # check job status every 1 min:
             flag_done = False   # whether job is out of queue (True)
             flag_success_test_job = False  # whether job was successfully finished (True)
-            print("Will check the test job's status every 1 min...")
+            print("Will check the test job's status using backoff strategy")
+            sleeptime = 1
             while not flag_done:
-                # wait for 1 min:
-                time.sleep(60)   # Sleep for 60 seconds
-
+                time.sleep(sleeptime)
                 # check the job status
                 df_all_job_status = request_all_job_status(self.type_system)
                 d_now_str = str(datetime.now())
@@ -936,6 +935,8 @@ class BABS():
                         to_print += "Test job is pending (`qw`)..."
                     elif state_code == "eqw":
                         to_print += "Test job is stalled (`eqw`)..."
+                    sleeptime = sleeptime * 2
+                    print(f"Waiting {sleeptime} seconds before retry")
 
                 else:   # the job is not in queue:
                     flag_done = True
