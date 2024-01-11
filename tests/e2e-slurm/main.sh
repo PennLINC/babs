@@ -45,6 +45,7 @@ podman run -it --rm \
 	-v "${MINICONDA_PATH}:${MINICONDA_PATH}:Z" \
 	-v "${THIS_DIR}/container:/opt/outer:ro,Z" \
 	"${FQDN_IMAGE}" \
-	/bin/bash -c ". /opt/outer/walkthrough-tests.sh" # TODO keep these logs?
+	/bin/bash -c ". /opt/outer/walkthrough-tests.sh"
 
+	#/bin/bash -c ". /opt/outer/walkthrough-tests.sh && bash" # TODO remove, for debug only
 # trap stop_container EXIT

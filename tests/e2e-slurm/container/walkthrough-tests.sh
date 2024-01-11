@@ -26,7 +26,7 @@ set +e # We need to check the error code and allow failures until slurm has star
 export PATH=${PWD}/tests/e2e-slurm/bin/:${PATH}
 for ((i=1; i<=max_retries; i++)); do
 	# Check if the command was successful
-	if sacct; then
+	if sacct > /dev/null; then
 		echo "Slurm is up and running!"
 		break
 	else

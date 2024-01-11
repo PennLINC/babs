@@ -59,6 +59,71 @@ babs-check-setup --project_root "${PWD}"/test_project/ --job-test
 echo "Job submitted: Check setup, with job"
 
 babs-status --project_root "${PWD}"/test_project/
+
+# Wait for all running jobs to finish
+while [[ -n $(squeue -u $USER -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u $USER -t RUNNING,PENDING"
+    squeue -u $USER -t RUNNING,PENDING
+    echo "Waiting for running jobs to finish..."
+    sleep 5 # Wait for 60 seconds before checking again
+done
+
+echo "No running jobs."
+
+# TODO make sure this works
+# Check for failed jobs TODO state filter doesnt seem to be working as expected
+# if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
+if sacct -u $USER --noheader | grep -q "FAILED"; then
+    sacct -u $USER
+    echo "There are failed jobs."
+    exit 1 # Exit with failure status
+else
+    sacct -u $USER
+    echo "PASSED: No failed jobs."
+fi
+
+babs-submit --project-root "${PWD}/test_project/"
+
+# # Wait for all running jobs to finish
+while [[ -n $(squeue -u $USER -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u $USER -t RUNNING,PENDING"
+    squeue -u $USER -t RUNNING,PENDING
+    echo "Waiting for running jobs to finish..."
+    sleep 5 # Wait for 60 seconds before checking again
+done
+
+echo "========================================================================="
+echo "babs-status:"
+babs-status --project_root "${PWD}"/test_project/
+echo "========================================================================="
+
+# Check for failed jobs TODO state filter doesnt seem to be working as expected
+# if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
+if sacct -u $USER --noheader | grep -q "FAILED"; then
+    sacct -u $USER
+    echo "========================================================================="
+    echo "There are failed jobs."
+    exit 1 # Exit with failure status
+else
+    sacct -u $USER
+    echo "========================================================================="
+    echo "PASSED: No failed jobs."
+fi
+
+babs-merge --project_root "${PWD}"/test_project/
+
+
+# TODO: we need to fail if there is a failed job
+# fi
+
+# sleep 10
+# babs-status --project_root "${PWD}"/test_project/
+# sleep 10
+# babs-status --project_root "${PWD}"/test_project/
+# sleep 10
+# babs-status --project_root "${PWD}"/test_project/
+# sleep 10
+# babs-status --project_root "${PWD}"/test_project/
 #
 # babs-submit --project_root "${PWD}"/test_project/
 #
