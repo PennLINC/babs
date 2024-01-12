@@ -71,7 +71,7 @@ done
 echo "No running jobs."
 
 # TODO make sure this works
-# Check for failed jobs TODO state filter doesnt seem to be working as expected
+# Check for failed jobs TODO state filter doesn't seem to be working as expected
 # if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
 if sacct -u $USER --noheader | grep -q "FAILED"; then
     sacct -u $USER
@@ -97,7 +97,7 @@ echo "babs-status:"
 babs-status --project_root "${PWD}"/test_project/
 echo "========================================================================="
 
-# Check for failed jobs TODO state filter doesnt seem to be working as expected
+# Check for failed jobs TODO see above
 # if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
 if sacct -u $USER --noheader | grep -q "FAILED"; then
     sacct -u $USER

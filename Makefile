@@ -7,9 +7,6 @@ setup-user:
 e2e: clean
 	./tests/e2e-slurm/main.sh
 
-build: clean
-	podman build -f tests/e2e-slurm/Containerfile . -t testss
-
 # TODO testdata variable
 clean:
 	podman stop slurm 2>/dev/null || true

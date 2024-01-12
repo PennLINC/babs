@@ -2079,12 +2079,8 @@ def get_last_line(fn):
                 # remove spaces at the beginning or the end; remove '\n':
                 last_line = last_line.strip().replace("\n", "")
             else:
-                print("empty file")
-                print(fn)
                 last_line = np.nan
     else:   # e.g., `qw` pending
-        print("file DNE")
-        print(fn)
         last_line = np.nan
 
     return last_line
