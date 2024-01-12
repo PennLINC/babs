@@ -8,6 +8,8 @@ echo "We are now running as user $(whoami)"
 echo "DEBUG: MINICONDA_PATH=${MINICONDA_PATH}"
 echo "DEBUG: TESTDATA=${TESTDATA}"
 
+# without MINICONDA_PATH set, shellcheck cannot follow
+# shellcheck disable=SC1091
 source  "$MINICONDA_PATH/etc/profile.d/conda.sh"
 conda activate babs
 
@@ -25,7 +27,7 @@ echo "Git email: $(git config user.email)"
 
 # TODO switch back to osf project
 # Populate input data (Divergent from tuturial, bc https://github.com/datalad/datalad-osf/issues/191
-pushd ${TESTDATA}
+pushd "${TESTDATA}"
 echo "Installing Input Data"
 datalad install ///dbic/QA
 
@@ -33,7 +35,7 @@ datalad install ///dbic/QA
 datalad create -D "toy BIDS App" toybidsapp-container
 pushd toybidsapp-container
 datalad containers-add \
-    --url ${PWD}/../toybidsapp-0.0.7.sif \
+    --url "${PWD}/../toybidsapp-0.0.7.sif" \
     toybidsapp-0-0-7
 popd
 rm -f toybidsapp-0.0.7.sif
@@ -61,9 +63,9 @@ echo "Job submitted: Check setup, with job"
 babs-status --project_root "${PWD}"/test_project/
 
 # Wait for all running jobs to finish
-while [[ -n $(squeue -u $USER -t RUNNING,PENDING --noheader) ]]; do
-    echo "squeue -u $USER -t RUNNING,PENDING"
-    squeue -u $USER -t RUNNING,PENDING
+while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
+    squeue -u "$USER" -t RUNNING,PENDING
     echo "Waiting for running jobs to finish..."
     sleep 5 # Wait for 60 seconds before checking again
 done
@@ -73,21 +75,21 @@ echo "No running jobs."
 # TODO make sure this works
 # Check for failed jobs TODO state filter doesn't seem to be working as expected
 # if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
-if sacct -u $USER --noheader | grep -q "FAILED"; then
-    sacct -u $USER
+if sacct -u "$USER" --noheader | grep -q "FAILED"; then
+    sacct -u "$USER"
     echo "There are failed jobs."
     exit 1 # Exit with failure status
 else
-    sacct -u $USER
+    sacct -u "$USER"
     echo "PASSED: No failed jobs."
 fi
 
 babs-submit --project-root "${PWD}/test_project/"
 
 # # Wait for all running jobs to finish
-while [[ -n $(squeue -u $USER -t RUNNING,PENDING --noheader) ]]; do
-    echo "squeue -u $USER -t RUNNING,PENDING"
-    squeue -u $USER -t RUNNING,PENDING
+while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
+    squeue -u "$USER" -t RUNNING,PENDING
     echo "Waiting for running jobs to finish..."
     sleep 5 # Wait for 60 seconds before checking again
 done
@@ -99,13 +101,13 @@ echo "========================================================================="
 
 # Check for failed jobs TODO see above
 # if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
-if sacct -u $USER --noheader | grep -q "FAILED"; then
-    sacct -u $USER
+if sacct -u "$USER" --noheader | grep -q "FAILED"; then
+    sacct -u "$USER"
     echo "========================================================================="
     echo "There are failed jobs."
     exit 1 # Exit with failure status
 else
-    sacct -u $USER
+    sacct -u "$USER"
     echo "========================================================================="
     echo "PASSED: No failed jobs."
 fi

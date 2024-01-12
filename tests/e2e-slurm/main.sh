@@ -20,7 +20,6 @@ TAG=23.11.07 # TODO
 
 FQDN_IMAGE=${REGISTRY}/${HUBUSER}/${REPO}:${TAG}
 THIS_DIR="$(readlink -f "$0" | xargs dirname )"
-TESTDATA=/opt/testdata
 
 . tests/e2e-slurm/container/ensure-env.sh
 

@@ -34,7 +34,7 @@ for ((i=1; i<=max_retries; i++)); do
 		sleep $delay
 	fi
 	# exit if max retries reached
-	if [ $i -eq $max_retries ]; then
+	if [ "$i" -eq "$max_retries" ]; then
 		echo "Failed to start Slurm after $max_retries attempts."
 	exit 1
     fi
