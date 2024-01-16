@@ -1,21 +1,13 @@
 #!/bin/bash -i
-
+# Here we perform all actions that must be done as root inside the container and then
+# execute the walkthrough as BABS_USER
 set -eu
-
-# add that outside user
-# groupadd --gid "$GID" "$USER"  && useradd --uid $UID --gid "$GID" "$USER"
-
-# Install singularity inside the container
-yum update -y && yum install -y epel-release &&  yum update -y &&  yum install -y singularity-runtime apptainer
-#
-# git version
-# git config user.name > /dev/null || git config --system user.name "e2e slurm"
-# git config user.email > /dev/null || git config --system user.email "fake@example.com"
-# git config --system --add safe.directory '*'
 
 export TESTDATA=/opt/testdata
 BABS_USER=testuser
 
+# Install singularity inside the container
+yum update -y && yum install -y epel-release &&  yum update -y &&  yum install -y singularity-runtime apptainer
 
 # Wait for slurm to be up
 max_retries=10

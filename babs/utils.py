@@ -1674,7 +1674,6 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
                               stdout=subprocess.PIPE)
 
     proc_cmd.check_returncode()
-    print(f"Return code: {proc_cmd.returncode}")
     msg = proc_cmd.stdout.decode('utf-8')
 
     if type_system == "sge":

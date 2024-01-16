@@ -21,6 +21,7 @@ TAG=23.11.07 # TODO
 FQDN_IMAGE=${REGISTRY}/${HUBUSER}/${REPO}:${TAG}
 THIS_DIR="$(readlink -f "$0" | xargs dirname )"
 
+# Sets MINICONDA_PATH
 . tests/e2e-slurm/container/ensure-env.sh
 
 if [ "$MINICONDA_PATH/envs/$CONDA_DEFAULT_ENV/bin/babs-init" != "$(which babs-init)" ]; then
@@ -29,12 +30,9 @@ if [ "$MINICONDA_PATH/envs/$CONDA_DEFAULT_ENV/bin/babs-init" != "$(which babs-in
     exit 1
 fi
 
-stop_container () {
-	podman stop slurm || true
-}
-
 echo "Success, we are in the conda env with babs-init!"
- # Because babs is dev-installed from here. TODO: we can remove if we remove -e from pip install
+
+# PWD shared so babs can be optionally be installed with develop install
 podman run -it --rm \
 	--name slurm \
 	--hostname slurmctl  \
@@ -45,6 +43,3 @@ podman run -it --rm \
 	-v "${THIS_DIR}/container:/opt/outer:ro,Z" \
 	"${FQDN_IMAGE}" \
 	/bin/bash -c ". /opt/outer/walkthrough-tests.sh"
-
-	#/bin/bash -c ". /opt/outer/walkthrough-tests.sh && bash" # TODO remove, for debug only
-# trap stop_container EXIT

@@ -12,6 +12,3 @@ build/
 # Distribution / packaging
 dist/
 babs/VERSION
-
-# e2e testdata
-.testdata*

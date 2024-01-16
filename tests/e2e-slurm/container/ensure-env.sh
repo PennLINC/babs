@@ -1,6 +1,5 @@
 #!/bin/bash
 #
-# exported for use in inner-slurm.sh
 if [ -z "${MINICONDA_PATH:-}" ]; then
     if hash conda; then
         # We don't need the return value, we already catch the error

@@ -2778,13 +2778,9 @@ class Container():
             env_flags = "-v DSLOCKFILE=" + babs.analysis_path + "/.SGE_datalad_lock"
         elif system.type == "slurm":
             submit_head = "sbatch"
-            # TODO: asmacdo
             env_flags = "--export=DSLOCKFILE=" + babs.analysis_path + "/.SLURM_datalad_lock"
         else:
             warnings.warn("not supporting systems other than sge...")
-
-        # TODO: rm asmacdo hack
-        # env_flags = env_flags + f",MINICONDA_PATH={os.getenv('MINICONDA_PATH')}"
 
         # Check if the bash file already exist:
         if op.exists(yaml_path):
