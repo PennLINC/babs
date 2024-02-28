@@ -1685,7 +1685,13 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
         # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
     else:
         raise Exception("type system can be slurm or sge")
-    job_id = int(job_id_str)
+
+    # This is necessary SLURM commands can fail but have return code 0
+    try:
+        job_id = int(job_id_str)
+    except ValueError as e:
+        raise ValueError(f"Cannot convert {job_id_str!r} into an int: {e}. "
+            f"That output is a result of running command {cmd} which produced output {msg}.")
 
     # log filename:
     log_filename = job_name + ".*" + job_id_str
