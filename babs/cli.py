@@ -79,7 +79,8 @@ def babs_init_cli():
     parser.add_argument(
         '--container_config_yaml_file', '--container-config-yaml-file',
         help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container")
+        " of how to run the BIDS App container",
+        required=True)
     parser.add_argument(
         "--type_session", "--type-session",
         choices=['single-ses', 'single_ses', 'single-session', 'single_session',
@@ -294,6 +295,51 @@ def babs_check_setup_main():
 
     # Call method `babs_check_setup()`:
     babs_proj.babs_check_setup(input_ds, args.job_test)
+
+def babs_update_setup_cli():
+    """
+    CLI for: Update setups for job running in a BABS project,
+    e.g., cluster resources request, script preamble.
+    """
+
+    parser = argparse.ArgumentParser(
+        description="Update setups for running jobs.")
+    parser.add_argument(
+        "--project_root", "--project-root",
+        help="Absolute path to the root of BABS project."
+        " For example, '/path/to/my_BABS_project/'.",
+        required=True)
+    parser.add_argument(
+        '--container_config_yaml_file', '--container-config-yaml-file',
+        help="Path to an updated YAML file that contains the configurations"
+        " of how to run the BIDS App container",
+        required=True)
+
+    return parser
+
+def babs_update_setup_main():
+    """
+    Update setups for job running in a BABS project,
+    e.g., cluster resources request, script preamble.
+
+    Parameters:
+    --------------
+    project_root: str
+        Absolute path to the root of BABS project.
+    container_config_yaml_file: str
+        Path to an updated container's configuration YAML file.
+    """
+
+    # Get arguments:
+    args = babs_check_setup_cli().parse_args()
+    project_root = args.project_root
+
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj, input_ds = get_existing_babs_proj(project_root)
+
+    # Call `babs_update_setup()`:
+    babs_proj.babs_update_setup(input_ds, args.container_config_yaml_file)
+
 
 def babs_submit_cli():
     """
