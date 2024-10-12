@@ -2,6 +2,7 @@
 
 import os
 import os.path as op
+from urllib.parse import urlparse
 import subprocess
 import warnings
 import pandas as pd
@@ -206,7 +207,7 @@ class BABS():
         # ^^ another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
         # if success: no output; if failed: will raise CalledProcessError
         proc_output_ria_data_dir.check_returncode()
-        self.output_ria_data_dir = proc_output_ria_data_dir.stdout.decode('utf-8')
+        self.output_ria_data_dir = urlparse(proc_output_ria_data_dir.stdout.decode('utf-8')).path
         if self.output_ria_data_dir[-1:] == "\n":
             # remove the last 2 characters
             self.output_ria_data_dir = self.output_ria_data_dir[:-1]
@@ -777,8 +778,9 @@ class BABS():
         #   the one in `self` attr is directly got from `analysis` remote,
         #   so should not use that here.
         # output_ria:
-        actual_output_ria_data_dir = os.readlink(
-            op.join(self.output_ria_path, "alias/data"))   # get the symlink of `alias/data`
+        actual_output_ria_data_dir = urlparse(os.readlink(
+                op.join(self.output_ria_path, "alias/data")
+        )).path   # get the symlink of `alias/data` then change to path
         assert op.exists(actual_output_ria_data_dir)    # make sure this exists
         # get '000/0000-0000-0000-0000':
         data_foldername = op.join(
