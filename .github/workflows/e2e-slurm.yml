@@ -1,7 +1,7 @@
 ---
 name: Slurm
 
-on: [push]
+on: [push, pull_request]
 jobs:
     e2e-slurm:
       name: Test e2e with SLURM
