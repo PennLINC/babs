@@ -20,13 +20,6 @@ Command-Line Arguments
       :ref:`how-to-define-name-of-input-dataset` below for general guidelines
       and specific restrictions.
 
-   --list_sub_file, --list-sub-file : @after
-      Add this to test if txt below will be rendered...
-      Please render.
-      Examples:
-      `Single-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_single-ses.csv>`_,
-      `Multi-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_multi-ses.csv>`_.
-
    --keep_if_failed, --keep-if-failed : @after
       These words below somehow refuse to appear in the built docs...
       Please refer to below section
@@ -88,7 +81,9 @@ How is the list of subjects (and sessions) determined?
 A list of subjects (and sessions) will be determined when running ``babs-init``,
 and will be saved in a CSV file called named ``sub_final_inclu.csv`` (for single-session dataset)
 or ``sub_ses_final_inclu.csv`` (for multiple-session dataset),
-located at ``/path/to/my_BABS_project/analysis/code``
+located at ``/path/to/my_BABS_project/analysis/code``.
+
+**To filter subjects and sessions**, use ``babs-init`` with ``--list-sub-file /path/to/subject/list/csv/file``. Examples: `Single-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_single-ses.csv>`_, `Multi-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_multi-ses.csv>`_.
 
 See :ref:`list_included_subjects` for how this list is determined.
 
