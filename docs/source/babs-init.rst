@@ -21,7 +21,8 @@ Command-Line Arguments
       and specific restrictions.
 
    --list_sub_file, --list-sub-file : @after
-      Add this to test if txt below will be rendered.
+      Add this to test if txt below will be rendered...
+      Please render.
       Examples:
       `Single-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_single-ses.csv>`_,
       `Multi-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_multi-ses.csv>`_.
