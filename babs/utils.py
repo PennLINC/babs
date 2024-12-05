@@ -154,9 +154,11 @@ def validate_type_system(type_system):
     For valid ones, the type string will be changed to lower case.
     If not valid, raise error message.
     """
-    list_supported = ['sge', 'slurm']
+    list_supported = ['slurm']
     if type_system.lower() in list_supported:
         type_system = type_system.lower()   # change to lower case, if needed
+    elif type_system.lower() == 'sge':
+        raise Exception("We no longer support SGE. Use BABS 0.0.8 for SGE support.")
     else:
         raise Exception("Invalid cluster system type: '" + type_system + "'!"
                         + " Currently BABS only support one of these: "
@@ -1413,10 +1415,10 @@ def get_list_sub_ses(input_ds, config, babs):
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
 
-def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
+def submit_array(analysis_path, type_session, type_system, maxarray,
                    flag_print_message=True):
     """
-    This is to submit one job.
+    This is to submit a job array based on template yaml file.
 
     Parameters:
     ----------------
@@ -1426,10 +1428,8 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
         multi-ses or single-ses
     type_system: str
         the type of job scheduling system, "sge" or "slurm"
-    sub: str
-        subject id
-    ses: str or None
-        session id. For type-session == "single-ses", this is None
+    maxarray: str
+        max index of the array (first index is always 1)
     flag_print_message: bool
         to print a message (True) or not (False)
 
@@ -1439,9 +1439,11 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
         the int version of ID of the submitted job.
     job_id_str: str
         the string version of ID of the submitted job.
-    log_filename: str
-        log filename of this job.
-        Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
+    task_id_list: list
+        the list of task ID (dtype int) from the submitted job, starting from 1.
+    log_filename: list 
+        the list of log filenames (dtype str) of this job.
+        Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>'; user needs to replace '*' with 'o', 'e', etc
 
     Notes:
     -----------------
@@ -1459,14 +1461,15 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
     cmd_template = templates["cmd_template"]
     job_name_template = templates["job_name_template"]
 
-    if type_session == "single-ses":
-        cmd = cmd_template.replace("${sub_id}", sub)
-        to_print = "Job for " + sub
-        job_name = job_name_template.replace("${sub_id}", sub)
-    else:   # multi-ses
-        cmd = cmd_template.replace("${sub_id}", sub).replace("${ses_id}", ses)
-        to_print = "Job for " + sub + ", " + ses
-        job_name = job_name_template.replace("${sub_id}", sub).replace("${ses_id}", ses)
+    cmd = cmd_template.replace("${max_array}", maxarray)
+    to_print = "Job for an array of " + maxarray
+    job_name = job_name_template.replace("${max_array}", str(int(maxarray)-1))
+
+    # COMMENT OUT BECAUSE sub and ses AREN'T NEEDED FOR JOB SUBMISSION
+    # if type_session == "single-ses":
+    #     sub_list_path = op.join(analysis_path, "code", "sub_final_inclu.csv")
+    # elif type_session == "multi-ses":
+    #     sub_list_path = op.join(analysis_path, "code", "sub_ses_final_inclu.csv")
     # print(cmd)
 
     # run the command, get the job id:
@@ -1487,33 +1490,95 @@ def submit_one_job(analysis_path, type_session, type_system, sub, ses=None,
         raise Exception("type system can be slurm or sge")
     job_id = int(job_id_str)
 
-    # log filename:
-    log_filename = job_name + ".*" + job_id_str
+    task_id_list = []
+    log_filename_list = []
+
+    for i_array in range(int(maxarray)): 
+        task_id_list.append(i_array + 1)  # minarray starts from 1
+        # log filename:
+        log_filename_list.append(
+            job_name + ".*" + job_id_str + "_" + str(i_array + 1))
 
     to_print += " has been submitted (job ID: " + job_id_str + ")."
     if flag_print_message:
         print(to_print)
 
-    return job_id, job_id_str, log_filename
+    return job_id, job_id_str, task_id_list, log_filename_list
 
 
-def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done=None, debug=False):
+def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list, 
+                    submitted=None, done=None, debug=False):
     """
-    This is to update one job's status and information in the dataframe df_jobs,
-    mostly used after job submission or resubmission. Therefore, a lot of fields will be reset.
-    For other cases (e.g., to update job status to running state / successfully finished state, etc.),
-    you may directly update df_jobs without using this function.
+    This is to update the status of one array task in the dataframe df_job_submit 
+    (file: code/job_status.csv). This 
+    function is mostly used after job submission or resubmission. Therefore, 
+    a lot of fields will be reset. For other cases (e.g., to update job status 
+    to running state / successfully finished state, etc.), you may directly 
+    update df_jobs without using this function.
+    Parameters:
+    ----------------
+    df_job_submit: pd.DataFrame
+        dataframe of the submitted job
+    job_id: int
+        the int version of ID of the submitted job.
+    task_id_list: list
+        list of task id (dtype int), starts from 1
+    log_filename_list: list
+        list log filename (dtype str) of the submitted job
+    submitted: bool or None
+        whether the has_submitted field has to be updated
+    done: bool or None
+        whether the is_done field has to be updated
+    debug: bool
+        whether the job auditing fields need to be reset to np.nan
+        (fields include last_line_stdout_file, alert_message, and job_account).
+
+    Returns:
+    ------------------
+    df_job_submit: pd.DataFrame
+        dataframe of the submitted job, updated
+    """
+    # Updating df_job_submit:
+    # looping through each array task id in `task_id_list`
+    for ind in range(len(task_id_list)):  #`task_id_list` starts from 1
+        df_job_submit.loc[ind, "job_id"] = job_id
+        df_job_submit.loc[ind, "task_id"] = int(task_id_list[ind])
+        df_job_submit.at[ind, "log_filename"] = log_filename_list[ind]
+        # reset fields:
+        df_job_submit.loc[ind, "needs_resubmit"] = False
+        df_job_submit.loc[ind, "is_failed"] = np.nan
+        df_job_submit.loc[ind, "job_state_category"] = np.nan
+        df_job_submit.loc[ind, "job_state_code"] = np.nan
+        df_job_submit.loc[ind, "duration"] = np.nan
+        if submitted is not None:
+            # update the status:
+            df_job_submit.loc[ind, "has_submitted"] = submitted
+        if done is not None:
+            # update the status:
+            df_job_submit.loc[ind, "is_done"] = done
+        if debug:
+            df_job_submit.loc[ind, "last_line_stdout_file"] = np.nan
+            df_job_submit.loc[ind, "alert_message"] = np.nan
+            df_job_submit.loc[ind, "job_account"] = np.nan  
+    return df_job_submit
+
+
+def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
+    """
+    This is to update the status of one array task in the dataframe df_jobs 
+    (file: code/job_status.csv). This is done by inserting information from 
+    the updated dataframe df_job_submit (file: code/job_submit.csv). This 
+    function is mostly used after job submission or resubmission. Therefore, 
+    a lot of fields will be reset. For other cases (e.g., to update job status 
+    to running state / successfully finished state, etc.), you may directly 
+    update df_jobs without using this function.
 
     Parameters:
     ----------------
     df_jobs: pd.DataFrame
         dataframe of jobs and their status
-    i_job: int
-        index of the job to be updated
-    job_id: int
-        job id
-    log_filename: str
-        log filename of this job.
+    df_job_submit: pd.DataFrame
+        dataframe of the to-be-submitted job
     submitted: bool or None
         whether the has_submitted field has to be updated
     done: bool or None
@@ -1525,32 +1590,45 @@ def df_update_one_job(df_jobs, i_job, job_id, log_filename, submitted=None, done
     Returns:
     ------------------
     df_jobs: pd.DataFrame
-        dataframe of jobs, updated
+        dataframe of jobs and their status, updated
     """
-    # assign into `df_job_updated`:
-    df_jobs.at[i_job, "job_id"] = job_id
-    df_jobs.at[i_job, "log_filename"] = log_filename
-    # reset fields:
-    df_jobs.at[i_job, "is_failed"] = np.nan
-    df_jobs.at[i_job, "job_state_category"] = np.nan
-    df_jobs.at[i_job, "job_state_code"] = np.nan
-    df_jobs.at[i_job, "duration"] = np.nan
-    if submitted is not None:
-        # update the status:
-        df_jobs.at[i_job, "has_submitted"] = submitted
-    if done is not None:
-        # update the status:
-        df_jobs.at[i_job, "is_done"] = done
-    if debug:
-        df_jobs.at[i_job, "last_line_stdout_file"] = np.nan
-        df_jobs.at[i_job, "alert_message"] = np.nan
-        df_jobs.at[i_job, "job_account"] = np.nan
+    # Updating df_jobs
+    for index, row in df_job_submit.iterrows():
+        sub_id = row['sub_id']
+
+        if 'ses_id' in df_jobs.columns:
+            ses_id = row['ses_id']
+            # Locate the corresponding rows in df_jobs
+            mask = (df_jobs['sub_id'] == sub_id) & (df_jobs['ses_id'] == ses_id)
+        elif 'ses_id' not in df_jobs.columns:
+            mask = (df_jobs['sub_id'] == sub_id)
+
+        # Update df_jobs fields based on the latest info in df_job_submit
+        df_jobs.loc[mask, "job_id"] = row['job_id']
+        df_jobs.loc[mask, "task_id"] = row['task_id']
+        df_jobs.loc[mask, "log_filename"] = row['log_filename']
+        # reset fields:
+        df_jobs.loc[mask, "needs_resubmit"] = row['needs_resubmit']
+        df_jobs.loc[mask, "is_failed"] = row['is_failed']
+        df_jobs.loc[mask, "job_state_category"] = row['job_state_category']
+        df_jobs.loc[mask, "job_state_code"] = row['job_state_code']
+        df_jobs.loc[mask, "duration"] = row['duration']
+        if submitted is not None:
+            # update the status:
+            df_jobs.loc[mask, "has_submitted"] = row['has_submitted']
+        if done is not None:
+            # update the status:
+            df_jobs.loc[mask, "is_done"] = row['is_done']
+        if debug:
+            df_jobs.loc[mask, "last_line_stdout_file"] = row['last_line_stdout_file']
+            df_jobs.loc[mask, "alert_message"] = row['alert_message']
+            df_jobs.loc[mask, "job_account"] = row['job_account'] 
     return df_jobs
 
 
-def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
+def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     """
-    This is to prepare the list of job indices to be submitted.
+    This is to prepare the df_job_submit to be submitted.
 
     Parameters:
     ----------------
@@ -1565,20 +1643,21 @@ def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
 
     Returns:
     ------------------
-    job_ind_list: list
+    df_job_submit: pd.DataFrame
         list of job indices to be submitted,
         these are indices from the full job status dataframe `df_job`
     """
-    job_ind_list = []
+    df_job_submit = pd.DataFrame()
     # Check if there is still jobs to submit:
     total_has_submitted = int(df_job["has_submitted"].sum())
-    if total_has_submitted == df_job.shape[0]:  # all submitted
+    if total_has_submitted == df_job.shape[0]:   # all submitted
        print("All jobs have already been submitted. "
              + "Use `babs-status` to check job status.")
-       return job_ind_list
+       return df_job_submit
 
     # See if user has specified list of jobs to submit:
-    if df_job_specified is not None:
+    # NEED TO WORK ON THIS
+    if df_job_specified is not None: # NEED TO WORK ON THIS
         print("Will only submit specified jobs...")
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
@@ -1615,15 +1694,13 @@ def prepare_job_ind_list(df_job, df_job_specified, count, type_session):
                             + " If you want to resubmit it," \
                             + " please use `babs-status --resubmit`"
                 print(to_print)
-    else: # taking into account the `count` argument
-        j_count = 0
-        for i_job in range(0, df_job.shape[0]):
-            if not df_job["has_submitted"][i_job]:  # to run
-                job_ind_list.append(i_job)
-                j_count += 1
-                if j_count == count:
-                    break
-    return job_ind_list
+    else:    # taking into account the `count` argument
+        df_remain = df_job[df_job.has_submitted == False]
+        if count > 0:
+            df_job_submit = df_remain[:count].reset_index(drop=True)
+        else:   # if count is None or negative, run all
+            df_job_submit = df_remain.copy().reset_index(drop=True)
+    return df_job_submit
 
 
 def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
@@ -1727,6 +1804,7 @@ def create_job_status_csv(babs):
         df_job["job_state_code"] = np.nan
         df_job["duration"] = np.nan
         df_job["is_done"] = False   # = has branch in output_ria
+        df_job["needs_resubmit"] = False
         # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job["is_failed"] = np.nan
@@ -1768,9 +1846,18 @@ def read_job_status_csv(csv_path):
         loaded dataframe
     """
     df = pd.read_csv(csv_path,
-                     dtype={"job_id": 'int',
-                            'has_submitted': 'bool',
-                            'is_done': 'bool'
+                     dtype={"job_id": 'Int64',
+                            "task_id": 'Int64',
+                            "log_filename": 'str',
+                            'has_submitted': 'boolean',
+                            'is_done': 'boolean',
+                            'is_failed': 'boolean',
+                            'needs_resubmit': 'boolean',
+                            'last_line_stdout_file': 'str',
+                            'job_state_category': 'str',
+                            'job_state_code': 'str',
+                            'duration': 'str',
+                            "alert_message": 'str'
                             })
     return df
 
@@ -1805,7 +1892,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
     if total_has_submitted > 0:    # there is at least one job submitted
         total_is_done = int(df["is_done"].sum())
         print("Among submitted jobs,")
-        print(str(total_is_done) + ' job(s) are successfully finished;')
+        print(str(total_is_done) + ' job(s) successfully finished;')
 
         if total_is_done == total_jobs:
             print("All jobs are completed!")
@@ -1819,7 +1906,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
             # TODO: add stalled one
 
             total_is_failed = int(df["is_failed"].sum())
-            print(str(total_is_failed) + ' job(s) are failed.')
+            print(str(total_is_failed) + ' job(s) failed.')
 
             # if there is job failed: print more info by categorizing msg:
             if total_is_failed > 0:
@@ -2008,6 +2095,38 @@ def _parsing_squeue_out(squeue_std):
 
         df = pd.DataFrame(data=dict_val)
         df = df.set_index('JB_job_number')
+
+        # df for array submission looked different
+        # Need to expand rows like 3556872_[98-1570] to 3556872_98, 3556872_99, etc
+        # This code only expects the first line to be pending array tasks, 3556872_[98-1570]
+        if '[' in df.index[0]:
+            first_row = df.iloc[0]        
+            range_parts = re.search(r"\[(\d+-\d+)", df.index[0]).group(1)  # get the array range
+            start, end = map(int, range_parts.split("-"))  # get min and max pending array
+            job_id = df.index[0].split("_")[0]
+
+            expanded_rows = []
+            for task_id in range(start, end + 1):
+                expanded_rows.append(
+                    {
+                        "JB_job_number": f"{job_id}_{task_id}",
+                        "@state": first_row["@state"],
+                        "duration": first_row["duration"],
+                        "state": first_row["state"],
+                        "job_id": job_id,
+                        "task_id": task_id,
+                    }
+                )
+            # Convert expanded rows to DataFrame
+            expanded_df = pd.DataFrame(expanded_rows).set_index("JB_job_number")
+            # Process the rest of the DataFrame
+            remaining_df = df.iloc[1:].copy()
+            remaining_df["job_id"] = remaining_df.index.str.split("_").str[0]
+            remaining_df["task_id"] = remaining_df.index.str.split("_").str[1].astype(int)
+            # Combine and sort
+            final_df = pd.concat([expanded_df, remaining_df])
+            final_df = final_df.sort_values(by=["job_id", "task_id"])
+            return final_df
 
     return df
 
