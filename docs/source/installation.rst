@@ -77,7 +77,7 @@ How to install ``datalad-osf``::
     pip install datalad-osf
 
     # Provide your OSF credentials (token) - this step is very important!
-    datalad osf-credentials
+    datalad osf-credentials --method userpassword
 
 
 Installation reference
