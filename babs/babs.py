@@ -2882,7 +2882,10 @@ class Container():
             eo_args = "-e " + babs.analysis_path + f"/logs/{job_name}.e%A_%a " \
                 + "-o " + babs.analysis_path + f"/logs/{job_name}.o%A_%a"
             # array task id starts from 0 so that max_array == count
-            array_args = "--array=1-${max_array}"
+            if test:  # no max_array for `submit_test_job_template.yaml`
+                array_args = "--array=1"
+            else:  # need max_array for for `submit_job_template.yaml`
+                array_args = "--array=1-${max_array}"
 
         # Generate the job submission command, with sub ID and ses ID as placeholders:
         cmd = submit_head + " " + env_flags + name_flag_str + job_name + " " + \
