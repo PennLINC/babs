@@ -2415,7 +2415,7 @@ class Container():
             cmd_singularity_flags += '--bids-filter-file "${filterfile}"'  # <- TODO: test out!!
 
         cmd_singularity_flags += " \\" + "\n\t"
-        cmd_singularity_flags += '--participant-label "${subid}"'   # standard argument in BIDS App
+        cmd_singularity_flags += '--participant_label "${subid}"'   # standard argument in BIDS App
 
         bash_file.write(cmd_singularity_flags)
         bash_file.write("\n\n")
