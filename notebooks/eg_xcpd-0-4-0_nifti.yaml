@@ -12,6 +12,7 @@
 
 # Arguments in `singularity run`:
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"   # this is a placeholder recognized BABS.
     --despike: ""
     --lower-bpf: "0.01"

@@ -12,6 +12,7 @@
 
 # Arguments in `singularity run`:
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     --zipped: ""    # for zipped input dataset
     --dummy: "2"   # this is a dummy variable, accepting values
     -v: ""    # this is also a dummy variable, not accepting values

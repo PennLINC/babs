@@ -11,6 +11,7 @@
 #   Therefore, please change and tailor it for your case before use it!!!
 
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     -v: "-v"
     -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
     --n_cpus: "2"   # For SGE clusters: you can use "$NSLOTS" here if `number_of_cpus` is set
