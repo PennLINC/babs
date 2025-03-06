@@ -12,6 +12,7 @@
 
 # Arguments in `singularity run`:
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
     --n_cpus: "1"
     --stop-on-first-crash: ""

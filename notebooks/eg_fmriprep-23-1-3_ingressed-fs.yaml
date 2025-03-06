@@ -18,6 +18,7 @@
 #     --input BIDS <path/to/raw_BIDS_dataset>    # 1st input dataset \
 #     --input fmriprep_anat <path/to/cloned_fmriprep_anat_output_ria>    # 2nd input dataset \
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     $INPUT_PATH: inputs/data/BIDS   # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
     --n_cpus: '1'
