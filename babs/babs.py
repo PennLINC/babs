@@ -1138,6 +1138,39 @@ class BABS:
         if flag_warning_output_ria:
             print("\nPlease check out the warning for output RIA!")
 
+    def babs_update_setup(self, input_ds, container_config_yaml_file):
+        """
+        This is to update setup of jobs run in a BABS project.
+
+        Parameters:
+        --------------
+        input_ds: class `Input_ds`
+            information of input dataset(s)
+        container_config_yaml_file: str
+            Path to an updated container's configuration YAML file.
+        """
+
+        babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+
+        # Sanity check: if the user has changed `required_files` section in YAML file:
+        #   if changed, throw out a warning.
+        # TODO^^
+
+        # ==============================================================
+        # Redo: Bootstrap scripts:
+        # ==============================================================
+
+        # Re-generate `<containerName>_zip.sh`: ----------------------------------
+        #   which is a bash script of singularity run + zip
+        #   in folder: `analysis/code`
+        print("\nRe-generating a bash script for running container and zipping the outputs...")
+        print("This bash script will be named as `" + container_name + "_zip.sh`")
+        bash_path = op.join(self.analysis_path, "code", container_name + "_zip.sh")
+        container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
+        self.datalad_save(path="code/" + container_name + "_zip.sh",
+                          message="Generate script of running container")
+
+
     def babs_submit(self, count=1, df_job_specified=None):
         """
         This function submits jobs and prints out job status.
