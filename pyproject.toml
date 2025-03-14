@@ -5,18 +5,42 @@ build-backend = "setuptools.build_meta"
 
 [tool.ruff]
 # Same as Black.
-line-length = 88
+line-length = 99
 indent-width = 4
 
 # Assume Python 3.8
 target-version = "py38"
 
 [tool.ruff.lint]
-# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
-select = ["E", "F", "W", "I", "UP", "S", "B", "T20", "RUF"]
+extend-select = [
+  "F",
+  "E",
+  "W",
+  "I",
+  "UP",
+  "YTT",
+  "S",
+  "BLE",
+  "B",
+  "A",
+  # "CPY",
+  "C4",
+  "DTZ",
+  "T10",
+  # "EM",
+  "EXE",
+  "FA",
+  "ISC",
+  "ICN",
+  "PT",
+  "Q",
+]
 ignore = [
-    "S101",  # Use of assert detected
-    "B905",  # `zip()` without an explicit `strict=` parameter
+  "S101",  # Ignore use of assert for now
+  "S105",
+  "S311",  # We are not using random for cryptographic purposes
+  "ISC001",
+  "S603",
 ]
 
 # Allow autofix for all enabled rules (when `--fix`) is provided.
@@ -51,11 +75,17 @@ exclude = [
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+# [tool.ruff.lint.extend-per-file-ignores]
+# "*/test_*.py" = ["S101"]
+# "xcp_d/utils/debug.py" = ["A002", "T100"]
+# "docs/conf.py" = ["A001"]
+# "docs/sphinxext/github_link.py" = ["BLE001"]
+
 [tool.ruff.format]
-quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
+quote-style = "single"
 
 # Isort settings
 [tool.ruff.lint.isort]
