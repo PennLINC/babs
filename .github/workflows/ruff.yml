@@ -21,6 +21,6 @@ jobs:
       - name: Run Ruff format check
         run: |
           ruff format --check .
-      - name: Run Ruff linting
+      - name: Run Ruff linting and import sorting
         run: |
           ruff check .

@@ -56,3 +56,17 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+
+# Isort settings
+[tool.ruff.lint.isort]
+known-first-party = ["babs"]
+known-third-party = ["datalad", "pandas", "yaml"]
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
+combine-as-imports = true
+split-on-trailing-comma = true
