@@ -1239,7 +1239,6 @@ class BABS:
                     # save updated df:
                     df_job_updated.to_csv(self.job_status_path_abs, index=False)
                     df_job_submit_updated.to_csv(self.job_submit_path_abs, index=False)
-
                 # here, the job status was not checked, so message from `report_job_status()`
                 #   based on current df is not trustable:
                 # # Report the job status:
