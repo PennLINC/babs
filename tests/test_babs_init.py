@@ -99,7 +99,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
     # check if `--fs-license-file` is included in YAML file:
     container_config_yaml_filename = \
         get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
-                                           type_system="sge")  # TODO: also test slurm!
+                                           type_system="slurm")  # TODO: also test slurm!
     container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
                                          container_config_yaml_filename)
     assert op.exists(container_config_yaml_file)
@@ -133,7 +133,7 @@ def test_babs_init(which_bidsapp, which_input, type_session, if_input_local, if_
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
-        type_system="sge",
+        type_system="slurm",
         keep_if_failed=False
     )
 
