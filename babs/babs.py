@@ -2693,6 +2693,7 @@ class Container:
             # read config from the yaml file:
             (
                 cmd_singularity_flags,
+                subject_selection_flag,
                 flag_fs_license,
                 path_fs_license,
                 singuRun_input_dir,
@@ -2976,7 +2977,7 @@ class Container:
                     + '"'
                     + "\n"
                 )
-                # ^^ `-n` means "Get (clone) a registered subdataset, but don’t retrieve data"
+                # ^^ `-n` means "Get (clone) a registered subdataset, but don't retrieve data"
                 #   here input ds is a sub-dataset of dataset `analysis`.
                 # NOTE: not sure why `bootstrap-fmriprep-ingressed-fs.sh` uses:
                 # `datalad get -n -r "inputs/data/BIDS/${subid}"`
