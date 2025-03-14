@@ -304,7 +304,7 @@ def babs_submit_cli():
     --all   # if specified, will submit all remaining jobs that haven't been submitted.
     --job sub-id ses-id   # can repeat
 
-    If none of these flags are specified, will only submit one job.
+    If none of these flags are specified, will only submit one job array task.
     """
 
     parser = argparse.ArgumentParser(
@@ -836,10 +836,10 @@ def get_existing_babs_proj(project_root):
     for i_ds in range(0, input_ds.num_ds):
         ds_index_str = "$INPUT_DATASET_#" + str(i_ds+1)
         # `path_data_rel`:
-        input_ds.df["path_data_rel"][i_ds] = \
+        input_ds.df.loc[i_ds, "path_data_rel"] = \
             babs_proj_config["input_ds"][ds_index_str]["path_data_rel"]
         # `is_zipped`:
-        input_ds.df["is_zipped"][i_ds] = \
+        input_ds.df.loc[i_ds, "is_zipped"] = \
             babs_proj_config["input_ds"][ds_index_str]["is_zipped"]
 
     return babs_proj, input_ds
