@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # BABS documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 13 08:41:19 2015.
@@ -12,17 +11,8 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import subprocess
-
 import datetime
-from os.path import (
-    abspath,
-    dirname,
-    exists,
-    join as opj,
-)
-from os import pardir
+import sys
 
 sys.path.append("../..")
 import babs
@@ -30,7 +20,7 @@ import babs
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+# sys.path.insert(0, os.path.abspath('.'))
 
 # # generate missing pieces
 # for setup_py_path in (opj(pardir, 'setup.py'),  # travis
@@ -55,25 +45,25 @@ import babs
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
-#needs_sphinx = '1.0'
+# needs_sphinx = '1.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.inheritance_diagram',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
-    'sphinxarg.ext',  # argparse extension
-    "sphinx_design"   # for adding in-line badges etc
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.todo",
+    "sphinx.ext.coverage",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.ifconfig",
+    "sphinx.ext.inheritance_diagram",
+    "sphinx.ext.viewcode",
+    "sphinx.ext.napoleon",
+    "sphinxarg.ext",  # argparse extension
+    "sphinx_design",  # for adding in-line badges etc
     # 'sphinx_tabs.tabs',   # for sphinx-toolbox
     # 'sphinx-prompt',   # for sphinx-toolbox
     # 'sphinx_toolbox',   # for sphinx-toolbox
@@ -83,20 +73,20 @@ extensions = [
 autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = u'BABS'
-author = u'The BABS developers'
-copyright = u'2022-%s, %s' % (datetime.datetime.now().year, author)
+project = "BABS"
+author = "The BABS developers"
+copyright = "2022-%s, %s" % (datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -109,7 +99,7 @@ release = version
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'en'
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -117,7 +107,7 @@ exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
 # pygments_style = 'sphinx'
-pygments_style = 'default'
+pygments_style = "default"
 # ^^ 'default' and 'monokai' use light code block background,
 #   but they will make sure the highlighted line in code-block will clearly show up.
 
@@ -125,13 +115,13 @@ pygments_style = 'default'
 todo_include_todos = True
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {"https://docs.python.org/": None}
 
 # -- Options for HTML output ----------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 # html_theme = 'alabaster'
 
 # The name of an image file (relative to this directory) to place at the top
@@ -141,7 +131,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 # If true, the index is split into individual pages for each letter.
 html_split_index = True

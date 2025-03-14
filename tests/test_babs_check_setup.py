@@ -1,17 +1,20 @@
 # This is to test `babs-check-setup`.
 
+import argparse
 import os
 import os.path as op
 import sys
-import argparse
-import pytest
 from unittest import mock
+
+import pytest
+
 sys.path.append("..")
 sys.path.append("../babs")
-from babs.cli import (    # noqa
+from babs.cli import (  # noqa
     babs_init_main,
-    babs_check_setup_main)
-from get_data import (   # noqa
+    babs_check_setup_main,
+)
+from get_data import (  # noqa
     get_input_data,
     container_ds_path,
     where_now,
@@ -21,20 +24,17 @@ from get_data import (   # noqa
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
     TOYBIDSAPP_VERSION_DASH,
-    TEMPLATEFLOW_HOME
+    TEMPLATEFLOW_HOME,
 )
+
 
 @pytest.mark.order(index=2)
 @pytest.mark.parametrize(
-    "which_case",
-    [("not_to_keep_failed"),
-     ("wrong_container_ds"),
-     ("wrong_input_ds")]
+    "which_case", [("not_to_keep_failed"), ("wrong_container_ds"), ("wrong_input_ds")]
 )
 def test_babs_check_setup(
-        which_case,
-        tmp_path, tmp_path_factory,
-        container_ds_path, if_circleci):
+    which_case, tmp_path, tmp_path_factory, container_ds_path, if_circleci
+):
     """
     This is to test `babs-check-setup` in different failed `babs-init` cases.
     Successful `babs-init` has been tested in `test_babs_init.py`.
@@ -62,7 +62,9 @@ def test_babs_check_setup(
     if_input_local = False
 
     # Get the path to input dataset:
-    path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
+    path_in = get_input_data(
+        which_input, type_session, if_input_local, tmp_path_factory
+    )
     input_ds_cli = [[which_input, path_in]]
     input_ds_cli_wrong = [[which_input, "/random/path/to/input_ds"]]
 
@@ -73,19 +75,20 @@ def test_babs_check_setup(
 
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
     os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
-    assert os.getenv('TEMPLATEFLOW_HOME') is not None    # assert env var has been set
+    assert os.getenv("TEMPLATEFLOW_HOME") is not None  # assert env var has been set
 
     # Get the cli of `babs-init`:
-    where_project = tmp_path.absolute().as_posix()   # turn into a string
+    where_project = tmp_path.absolute().as_posix()  # turn into a string
     project_name = "my_babs_project"
     project_root = op.join(where_project, project_name)
     container_name = which_bidsapp + "-" + TOYBIDSAPP_VERSION_DASH
     container_config_yaml_filename = "example_container_" + which_bidsapp + ".yaml"
-    container_config_yaml_filename = \
-        get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input=False,
-                                           type_system="slurm")  # TODO: also test slurm!
-    container_config_yaml_file = op.join(op.dirname(__location__), "notebooks",
-                                         container_config_yaml_filename)
+    container_config_yaml_filename = get_container_config_yaml_filename(
+        which_bidsapp, which_input, if_two_input=False, type_system="slurm"
+    )  # TODO: also test slurm!
+    container_config_yaml_file = op.join(
+        op.dirname(__location__), "notebooks", container_config_yaml_filename
+    )
     assert op.exists(container_config_yaml_file)
 
     # below are all correct options:
@@ -99,7 +102,7 @@ def test_babs_check_setup(
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
         type_system="slurm",
-        keep_if_failed=True
+        keep_if_failed=True,
     )
 
     # inject something wrong --> `babs-init` will fail:
@@ -117,21 +120,21 @@ def test_babs_check_setup(
 
     # run `babs-init`:
     with mock.patch.object(
-            argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
+        argparse.ArgumentParser, "parse_args", return_value=babs_init_opts
+    ):
         babs_init_main()
 
     # Get cli of `babs-check-setup`:
     babs_check_setup_opts = argparse.Namespace(
-        project_root=project_root,
-        job_test=False
+        project_root=project_root, job_test=False
     )
     # Set up expected error message from `babs-check-setup`:
     if which_case == "not_to_keep_failed":
-        error_type = Exception   # what's after `raise` in the source code
+        error_type = Exception  # what's after `raise` in the source code
         error_msg = "`--project-root` does not exist!"
         # ^^ see `get_existing_babs_proj()` in CLI
     elif which_case == "wrong_container_ds":
-        error_type = AssertionError   # error from `assert`
+        error_type = AssertionError  # error from `assert`
         error_msg = "There is no containers DataLad dataset in folder:"
     elif which_case == "wrong_input_ds":
         error_type = FileNotFoundError
@@ -140,7 +143,9 @@ def test_babs_check_setup(
 
     # Run `babs-check-setup`:
     with mock.patch.object(
-            argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts):
-        with pytest.raises(error_type,
-                           match=error_msg):   # contains what pattern in error message
+        argparse.ArgumentParser, "parse_args", return_value=babs_check_setup_opts
+    ):
+        with pytest.raises(
+            error_type, match=error_msg
+        ):  # contains what pattern in error message
             babs_check_setup_main()

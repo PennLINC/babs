@@ -1,20 +1,21 @@
-""" Utils and helper functions """
+"""Utils and helper functions"""
 
+import copy
+import glob
 import os
 import os.path as op
+import re
+import subprocess
 import sys
 import warnings  # built-in, no need to install
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
 import pkg_resources
 import yaml
-import glob
-import copy
-import pandas as pd
-import numpy as np
-from filelock import Timeout, FileLock
-import subprocess
+from filelock import FileLock, Timeout
 from qstat import qstat  # https://github.com/relleums/qstat
-from datetime import datetime
-import re
 
 
 # Disable the behavior of printing messages:
@@ -172,10 +173,10 @@ def validate_type_system(type_system):
     For valid ones, the type string will be changed to lower case.
     If not valid, raise error message.
     """
-    list_supported = ['slurm']
+    list_supported = ["slurm"]
     if type_system.lower() in list_supported:
-        type_system = type_system.lower()   # change to lower case, if needed
-    elif type_system.lower() == 'sge':
+        type_system = type_system.lower()  # change to lower case, if needed
+    elif type_system.lower() == "sge":
         raise Exception("We no longer support SGE. Use BABS 0.0.8 for SGE support.")
     else:
         raise Exception(
@@ -695,10 +696,10 @@ echo "{" > ${filterfile}"""
     cmd += """\necho "'fmap': {'datatype': 'fmap'}," >> ${filterfile}"""
 
     if "fmriprep" in container_name.lower():
-        cmd += """\necho "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'}," >> ${filterfile}"""  # noqa: E731,E123
+        cmd += """\necho "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'}," >> ${filterfile}"""
 
     elif "qsiprep" in container_name.lower():
-        cmd += """\necho "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'}," >> ${filterfile}"""  # noqa: E731,E123
+        cmd += """\necho "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'}," >> ${filterfile}"""
 
     cmd += """
 echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'}," >> ${filterfile}
@@ -1487,9 +1488,7 @@ def get_list_sub_ses(input_ds, config, babs):
                 print("All subjects have required files.")
 
         elif babs.type_session == "multi-ses":
-            subs_missing = (
-                []
-            )  # elements can repeat if more than one ses in a sub has missing file
+            subs_missing = []  # elements can repeat if more than one ses in a sub has missing file
             sess_missing = []
             which_dataset_missing = []
             which_file_missing = []
@@ -1653,8 +1652,10 @@ def get_list_sub_ses(input_ds, config, babs):
     elif babs.type_session == "multi-ses":
         return dict_sub_ses
 
-def submit_array(analysis_path, type_session, type_system, maxarray,
-                   flag_print_message=True):
+
+def submit_array(
+    analysis_path, type_session, type_system, maxarray, flag_print_message=True
+):
     """
     This is to submit a job array based on template yaml file.
 
@@ -1679,7 +1680,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
         the string version of ID of the submitted job.
     task_id_list: list
         the list of task ID (dtype int) from the submitted job, starting from 1.
-    log_filename: list 
+    log_filename: list
         the list of log filenames (dtype str) of this job.
         Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>'; user needs to replace '*' with 'o', 'e', etc
 
@@ -1692,7 +1693,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
     # Load the job submission template:
     #   details of this template yaml file: see `Container.generate_job_submit_template()`
     template_yaml_path = op.join(analysis_path, "code", "submit_job_template.yaml")
-    with open(template_yaml_path, "r") as f:
+    with open(template_yaml_path) as f:
         templates = yaml.load(f, Loader=yaml.FullLoader)
     f.close()
     # sections in this template yaml file:
@@ -1701,7 +1702,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
 
     cmd = cmd_template.replace("${max_array}", maxarray)
     to_print = "Job for an array of " + maxarray
-    job_name = job_name_template.replace("${max_array}", str(int(maxarray)-1))
+    job_name = job_name_template.replace("${max_array}", str(int(maxarray) - 1))
 
     # COMMENT OUT BECAUSE sub and ses AREN'T NEEDED FOR JOB SUBMISSION
     # if type_session == "single-ses":
@@ -1712,7 +1713,9 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
 
     # run the command, get the job id:
     proc_cmd = subprocess.run(
-        cmd.split(), cwd=analysis_path, stdout=subprocess.PIPE  # separate by space
+        cmd.split(),
+        cwd=analysis_path,
+        stdout=subprocess.PIPE,  # separate by space
     )
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode("utf-8")
@@ -1731,11 +1734,10 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
     task_id_list = []
     log_filename_list = []
 
-    for i_array in range(int(maxarray)): 
+    for i_array in range(int(maxarray)):
         task_id_list.append(i_array + 1)  # minarray starts from 1
         # log filename:
-        log_filename_list.append(
-            job_name + ".*" + job_id_str + "_" + str(i_array + 1))
+        log_filename_list.append(job_name + ".*" + job_id_str + "_" + str(i_array + 1))
 
     to_print += " has been submitted (job ID: " + job_id_str + ")."
     if flag_print_message:
@@ -1744,14 +1746,21 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
     return job_id, job_id_str, task_id_list, log_filename_list
 
 
-def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list, 
-                    submitted=None, done=None, debug=False):
+def df_submit_update(
+    df_job_submit,
+    job_id,
+    task_id_list,
+    log_filename_list,
+    submitted=None,
+    done=None,
+    debug=False,
+):
     """
-    This is to update the status of one array task in the dataframe df_job_submit 
-    (file: code/job_status.csv). This 
-    function is mostly used after job submission or resubmission. Therefore, 
-    a lot of fields will be reset. For other cases (e.g., to update job status 
-    to running state / successfully finished state, etc.), you may directly 
+    This is to update the status of one array task in the dataframe df_job_submit
+    (file: code/job_status.csv). This
+    function is mostly used after job submission or resubmission. Therefore,
+    a lot of fields will be reset. For other cases (e.g., to update job status
+    to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
     Parameters:
     ----------------
@@ -1778,7 +1787,7 @@ def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list,
     """
     # Updating df_job_submit:
     # looping through each array task id in `task_id_list`
-    for ind in range(len(task_id_list)):  #`task_id_list` starts from 1
+    for ind in range(len(task_id_list)):  # `task_id_list` starts from 1
         df_job_submit.loc[ind, "job_id"] = job_id
         df_job_submit.loc[ind, "task_id"] = int(task_id_list[ind])
         df_job_submit.at[ind, "log_filename"] = log_filename_list[ind]
@@ -1797,18 +1806,18 @@ def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list,
         if debug:
             df_job_submit.loc[ind, "last_line_stdout_file"] = np.nan
             df_job_submit.loc[ind, "alert_message"] = np.nan
-            df_job_submit.loc[ind, "job_account"] = np.nan  
+            df_job_submit.loc[ind, "job_account"] = np.nan
     return df_job_submit
 
 
 def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
     """
-    This is to update the status of one array task in the dataframe df_jobs 
-    (file: code/job_status.csv). This is done by inserting information from 
-    the updated dataframe df_job_submit (file: code/job_submit.csv). This 
-    function is mostly used after job submission or resubmission. Therefore, 
-    a lot of fields will be reset. For other cases (e.g., to update job status 
-    to running state / successfully finished state, etc.), you may directly 
+    This is to update the status of one array task in the dataframe df_jobs
+    (file: code/job_status.csv). This is done by inserting information from
+    the updated dataframe df_job_submit (file: code/job_submit.csv). This
+    function is mostly used after job submission or resubmission. Therefore,
+    a lot of fields will be reset. For other cases (e.g., to update job status
+    to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
 
     Parameters:
@@ -1832,35 +1841,35 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
     """
     # Updating df_jobs
     for index, row in df_job_submit.iterrows():
-        sub_id = row['sub_id']
+        sub_id = row["sub_id"]
 
-        if 'ses_id' in df_jobs.columns:
-            ses_id = row['ses_id']
+        if "ses_id" in df_jobs.columns:
+            ses_id = row["ses_id"]
             # Locate the corresponding rows in df_jobs
-            mask = (df_jobs['sub_id'] == sub_id) & (df_jobs['ses_id'] == ses_id)
-        elif 'ses_id' not in df_jobs.columns:
-            mask = (df_jobs['sub_id'] == sub_id)
+            mask = (df_jobs["sub_id"] == sub_id) & (df_jobs["ses_id"] == ses_id)
+        elif "ses_id" not in df_jobs.columns:
+            mask = df_jobs["sub_id"] == sub_id
 
         # Update df_jobs fields based on the latest info in df_job_submit
-        df_jobs.loc[mask, "job_id"] = row['job_id']
-        df_jobs.loc[mask, "task_id"] = row['task_id']
-        df_jobs.loc[mask, "log_filename"] = row['log_filename']
+        df_jobs.loc[mask, "job_id"] = row["job_id"]
+        df_jobs.loc[mask, "task_id"] = row["task_id"]
+        df_jobs.loc[mask, "log_filename"] = row["log_filename"]
         # reset fields:
-        df_jobs.loc[mask, "needs_resubmit"] = row['needs_resubmit']
-        df_jobs.loc[mask, "is_failed"] = row['is_failed']
-        df_jobs.loc[mask, "job_state_category"] = row['job_state_category']
-        df_jobs.loc[mask, "job_state_code"] = row['job_state_code']
-        df_jobs.loc[mask, "duration"] = row['duration']
+        df_jobs.loc[mask, "needs_resubmit"] = row["needs_resubmit"]
+        df_jobs.loc[mask, "is_failed"] = row["is_failed"]
+        df_jobs.loc[mask, "job_state_category"] = row["job_state_category"]
+        df_jobs.loc[mask, "job_state_code"] = row["job_state_code"]
+        df_jobs.loc[mask, "duration"] = row["duration"]
         if submitted is not None:
             # update the status:
-            df_jobs.loc[mask, "has_submitted"] = row['has_submitted']
+            df_jobs.loc[mask, "has_submitted"] = row["has_submitted"]
         if done is not None:
             # update the status:
-            df_jobs.loc[mask, "is_done"] = row['is_done']
+            df_jobs.loc[mask, "is_done"] = row["is_done"]
         if debug:
-            df_jobs.loc[mask, "last_line_stdout_file"] = row['last_line_stdout_file']
-            df_jobs.loc[mask, "alert_message"] = row['alert_message']
-            df_jobs.loc[mask, "job_account"] = row['job_account'] 
+            df_jobs.loc[mask, "last_line_stdout_file"] = row["last_line_stdout_file"]
+            df_jobs.loc[mask, "alert_message"] = row["alert_message"]
+            df_jobs.loc[mask, "job_account"] = row["job_account"]
     return df_jobs
 
 
@@ -1888,14 +1897,16 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     df_job_submit = pd.DataFrame()
     # Check if there is still jobs to submit:
     total_has_submitted = int(df_job["has_submitted"].sum())
-    if total_has_submitted == df_job.shape[0]:   # all submitted
-       print("All jobs have already been submitted. "
-             + "Use `babs-status` to check job status.")
-       return df_job_submit
+    if total_has_submitted == df_job.shape[0]:  # all submitted
+        print(
+            "All jobs have already been submitted. "
+            + "Use `babs-status` to check job status."
+        )
+        return df_job_submit
 
     # See if user has specified list of jobs to submit:
     # NEED TO WORK ON THIS
-    if df_job_specified is not None: # NEED TO WORK ON THIS
+    if df_job_specified is not None:  # NEED TO WORK ON THIS
         print("Will only submit specified jobs...")
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
@@ -1933,11 +1944,11 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
                     + " please use `babs-status --resubmit`"
                 )
                 print(to_print)
-    else:    # taking into account the `count` argument
+    else:  # taking into account the `count` argument
         df_remain = df_job[df_job.has_submitted == False]
         if count > 0:
             df_job_submit = df_remain[:count].reset_index(drop=True)
-        else:   # if count is None or negative, run all
+        else:  # if count is None or negative, run all
             df_job_submit = df_remain.copy().reset_index(drop=True)
     return df_job_submit
 
@@ -1976,7 +1987,7 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     template_yaml_path = op.join(
         analysis_path, "code/check_setup", "submit_test_job_template.yaml"
     )
-    with open(template_yaml_path, "r") as f:
+    with open(template_yaml_path) as f:
         templates = yaml.load(f, Loader=yaml.FullLoader)
     f.close()
     # sections in this template yaml file:
@@ -1987,7 +1998,9 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
 
     # run the command, get the job id:
     proc_cmd = subprocess.run(
-        cmd.split(), cwd=analysis_path, stdout=subprocess.PIPE  # separate by space
+        cmd.split(),
+        cwd=analysis_path,
+        stdout=subprocess.PIPE,  # separate by space
     )
 
     proc_cmd.check_returncode()
@@ -2045,7 +2058,7 @@ def create_job_status_csv(babs):
         df_job["job_state_category"] = np.nan
         df_job["job_state_code"] = np.nan
         df_job["duration"] = np.nan
-        df_job["is_done"] = False   # = has branch in output_ria
+        df_job["is_done"] = False  # = has branch in output_ria
         df_job["needs_resubmit"] = False
         # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
@@ -2087,20 +2100,23 @@ def read_job_status_csv(csv_path):
     df: pandas dataframe
         loaded dataframe
     """
-    df = pd.read_csv(csv_path,
-                     dtype={"job_id": 'Int64',
-                            "task_id": 'Int64',
-                            "log_filename": 'str',
-                            'has_submitted': 'boolean',
-                            'is_done': 'boolean',
-                            'is_failed': 'boolean',
-                            'needs_resubmit': 'boolean',
-                            'last_line_stdout_file': 'str',
-                            'job_state_category': 'str',
-                            'job_state_code': 'str',
-                            'duration': 'str',
-                            "alert_message": 'str'
-                            })
+    df = pd.read_csv(
+        csv_path,
+        dtype={
+            "job_id": "Int64",
+            "task_id": "Int64",
+            "log_filename": "str",
+            "has_submitted": "boolean",
+            "is_done": "boolean",
+            "is_failed": "boolean",
+            "needs_resubmit": "boolean",
+            "last_line_stdout_file": "str",
+            "job_state_category": "str",
+            "job_state_code": "str",
+            "duration": "str",
+            "alert_message": "str",
+        },
+    )
     return df
 
 
@@ -2139,7 +2155,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
     if total_has_submitted > 0:  # there is at least one job submitted
         total_is_done = int(df["is_done"].sum())
         print("Among submitted jobs,")
-        print(str(total_is_done) + ' job(s) successfully finished;')
+        print(str(total_is_done) + " job(s) successfully finished;")
 
         if total_is_done == total_jobs:
             print("All jobs are completed!")
@@ -2153,7 +2169,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
             # TODO: add stalled one
 
             total_is_failed = int(df["is_failed"].sum())
-            print(str(total_is_failed) + ' job(s) failed.')
+            print(str(total_is_failed) + " job(s) failed.")
 
             # if there is job failed: print more info by categorizing msg:
             if total_is_failed > 0:
@@ -2365,10 +2381,14 @@ def _parsing_squeue_out(squeue_std):
         # df for array submission looked different
         # Need to expand rows like 3556872_[98-1570] to 3556872_98, 3556872_99, etc
         # This code only expects the first line to be pending array tasks, 3556872_[98-1570]
-        if '[' in df.index[0]:
-            first_row = df.iloc[0]        
-            range_parts = re.search(r"\[(\d+-\d+)", df.index[0]).group(1)  # get the array range
-            start, end = map(int, range_parts.split("-"))  # get min and max pending array
+        if "[" in df.index[0]:
+            first_row = df.iloc[0]
+            range_parts = re.search(r"\[(\d+-\d+)", df.index[0]).group(
+                1
+            )  # get the array range
+            start, end = map(
+                int, range_parts.split("-")
+            )  # get min and max pending array
             job_id = df.index[0].split("_")[0]
 
             expanded_rows = []
@@ -2388,7 +2408,9 @@ def _parsing_squeue_out(squeue_std):
             # Process the rest of the DataFrame
             remaining_df = df.iloc[1:].copy()
             remaining_df["job_id"] = remaining_df.index.str.split("_").str[0]
-            remaining_df["task_id"] = remaining_df.index.str.split("_").str[1].astype(int)
+            remaining_df["task_id"] = (
+                remaining_df.index.str.split("_").str[1].astype(int)
+            )
             # Combine and sort
             final_df = pd.concat([expanded_df, remaining_df])
             final_df = final_df.sort_values(by=["job_id", "task_id"])
@@ -2457,7 +2479,7 @@ def get_last_line(fn):
     """
 
     if op.exists(fn):
-        with open(fn, "r") as f:
+        with open(fn) as f:
             all_lines = f.readlines()
             if len(all_lines) > 0:  # at least one line in the file:
                 last_line = all_lines[-1]
@@ -2949,7 +2971,7 @@ def print_versions_from_yaml(fn_yaml):
         "Below is the information of designated environment and temporary workspace:\n"
     )
     # print the yaml file:
-    f = open(fn_yaml, "r")
+    f = open(fn_yaml)
     file_contents = f.read()
     print(file_contents)
     f.close()

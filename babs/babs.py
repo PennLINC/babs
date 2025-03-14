@@ -1,64 +1,61 @@
 # This is the main module.
 
+import glob
 import os
 import os.path as op
-from urllib.parse import urlparse
-import subprocess
-import warnings
-import pandas as pd
-import numpy as np
-import glob
-import shutil
-import tempfile
-import yaml
-from filelock import Timeout, FileLock
-from datetime import datetime
-import time
 import re  # regular expression operations
+import shutil
+import subprocess
+import tempfile
+import time
+import warnings
+from datetime import datetime
+from urllib.parse import urlparse
 
 import datalad.api as dlapi
-import datalad.support as dlsupport  # for exception name etc
-from datalad_container.find_container import find_container_
+import numpy as np
+import pandas as pd
+import yaml
+from filelock import FileLock, Timeout
 
 # from datalad.interface.base import build_doc
-
 from babs.utils import (
-    get_immediate_subdirectories,
+    calcu_runtime,
+    ceildiv,
+    check_job_account,
     check_validity_unzipped_input_dataset,
-    generate_cmd_set_envvar,
-    generate_cmd_filterfile,
-    generate_cmd_singularityRun_from_config,
-    generate_cmd_unzip_inputds,
-    get_info_zip_foldernames,
-    generate_cmd_zipping_from_config,
-    validate_type_session,
-    validate_type_system,
-    read_yaml,
-    write_yaml,
+    df_status_update,
+    df_submit_update,
     generate_bashhead_resources,
-    generate_cmd_script_preamble,
-    generate_cmd_job_compute_space,
     generate_cmd_datalad_run,
     generate_cmd_determine_zipfilename,
+    generate_cmd_filterfile,
+    generate_cmd_job_compute_space,
+    generate_cmd_script_preamble,
+    generate_cmd_set_envvar,
+    generate_cmd_singularityRun_from_config,
+    generate_cmd_unzip_inputds,
+    generate_cmd_zipping_from_config,
+    get_alert_message_in_log_files,
+    get_cmd_cancel_job,
+    get_config_msg_alert,
+    get_git_show_ref_shasum,
+    get_immediate_subdirectories,
+    get_info_zip_foldernames,
+    get_last_line,
     get_list_sub_ses,
-    submit_array,
-    df_submit_update,
-    df_status_update,
+    get_username,
     prepare_job_array_df,
-    submit_one_test_job,
+    print_versions_from_yaml,
     read_job_status_csv,
+    read_yaml,
     report_job_status,
     request_all_job_status,
-    calcu_runtime,
-    get_last_line,
-    get_config_msg_alert,
-    get_alert_message_in_log_files,
-    get_username,
-    check_job_account,
-    get_cmd_cancel_job,
-    print_versions_from_yaml,
-    get_git_show_ref_shasum,
-    ceildiv,
+    submit_array,
+    submit_one_test_job,
+    validate_type_session,
+    validate_type_system,
+    write_yaml,
 )
 
 
@@ -723,7 +720,7 @@ class BABS:
             "Below is the configuration information saved during `babs-init`"
             + " in file 'analysis/code/babs_proj_config.yaml':\n"
         )
-        f = open(op.join(self.analysis_path, "code/babs_proj_config.yaml"), "r")
+        f = open(op.join(self.analysis_path, "code/babs_proj_config.yaml"))
         file_contents = f.read()
         print(file_contents)
         f.close()
@@ -838,9 +835,9 @@ class BABS:
         # Check `analysis/code`: ---------------------------------
         print("\nChecking `analysis/code/` folder...")
         # folder `analysis/code` should exist:
-        assert op.exists(
-            op.join(self.analysis_path, "code")
-        ), "Folder 'code' does not exist in 'analysis' folder!"
+        assert op.exists(op.join(self.analysis_path, "code")), (
+            "Folder 'code' does not exist in 'analysis' folder!"
+        )
 
         # assert the list of files in the `code` folder,
         #   and bash files should be executable:
@@ -2653,7 +2650,7 @@ class Container:
         When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
         meaning, starting with space, a backward slash, a return, and a tab.
         """
-        from .constants import PATH_FS_LICENSE_IN_CONTAINER, OUTPUT_MAIN_FOLDERNAME
+        from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
 
         type_session = validate_type_session(type_session)
 
