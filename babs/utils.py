@@ -1,4 +1,4 @@
-""" Utils and helper functions """
+"""Utils and helper functions"""
 
 import copy
 import glob
@@ -33,9 +33,7 @@ def get_datalad_version():
 
 
 def get_immediate_subdirectories(a_dir):
-    return [
-        name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))
-    ]
+    return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
 def check_validity_unzipped_input_dataset(input_ds, type_session):
@@ -64,9 +62,7 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
     if type_session not in ['multi-ses', 'single-ses']:
         raise Exception('invalid `type_session`!')
 
-    if False in list(
-        input_ds.df['is_zipped']
-    ):  # there is at least one dataset is unzipped
+    if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
 
     for i_ds in range(0, input_ds.num_ds):
@@ -89,15 +85,11 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
 
             # For multi-ses: also check if there is session in each sub-*:
             if type_session == 'multi-ses':
-                for (
-                    sub_temp
-                ) in list_subs:  # every sub- folder should contain a session folder
+                for sub_temp in list_subs:  # every sub- folder should contain a session folder
                     if sub_temp[0] == '.':  # hidden folder
                         continue  # skip it
                     is_valid_seslevel = False
-                    list_sess = get_immediate_subdirectories(
-                        op.join(input_ds_path, sub_temp)
-                    )
+                    list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
                     for ses_temp in list_sess:
                         if ses_temp[0:4] == 'ses-':
                             # if one of the folder starts with "ses-", then it's fine
@@ -175,7 +167,7 @@ def validate_type_system(type_system):
     """
     list_supported = ['slurm']
     if type_system.lower() in list_supported:
-        type_system = type_system.lower()   # change to lower case, if needed
+        type_system = type_system.lower()  # change to lower case, if needed
     elif type_system.lower() == 'sge':
         raise Exception('We no longer support SGE. Use BABS 0.0.8 for SGE support.')
     else:
@@ -369,9 +361,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 value = value[:-1]  # remove the unnecessary forward slash at the end
 
             # sanity check that `value` should match with one of input ds's `path_data_rel`
-            if value not in list(
-                input_ds.df['path_data_rel']
-            ):  # after unzip, if needed
+            if value not in list(input_ds.df['path_data_rel']):  # after unzip, if needed
                 warnings.warn(
                     "'"
                     + value
@@ -400,7 +390,8 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                     + " in container's configuration YAML file"
                     + " does NOT exist! The path provided: '"
                     + path_fs_license
-                    + "'."
+                    + "'.",
+                    stacklevel=2,
                 )
 
             # if alright: Now use the path within the container:
@@ -507,7 +498,8 @@ def generate_cmd_set_envvar(env_var_name):
                 + ' but environment variable `TEMPLATEFLOW_HOME` was not set up.'
                 + ' Therefore, BABS will not bind its directory'
                 + ' or inject this environment variable into the container'
-                + ' when running the container. This may cause errors.'
+                + ' when running the container. This may cause errors.',
+                stacklevel=2,
             )
 
     return cmd, env_var_value, env_var_value_in_container
@@ -648,7 +640,7 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
         temp = temp + 1
         if (temp != 1) & (value_temp != value):  # not matching last value
             warnings.warn(
-                "In section `zip_foldernames` in `container_config_yaml_file`: \n"
+                'In section `zip_foldernames` in `container_config_yaml_file`: \n'
                 "The version string of '"
                 + key
                 + "': '"
@@ -659,18 +651,7 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
             )
         value_temp = value
 
-        cmd += (
-            '7z a ../${subid}'
-            + str_sesid
-            + '_'
-            + key
-            + '-'
-            + value
-            + '.zip'
-            + ' '
-            + key
-            + '\n'
-        )
+        cmd += '7z a ../${subid}' + str_sesid + '_' + key + '-' + value + '.zip' + ' ' + key + '\n'
         # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
 
     # return to original dir:
@@ -887,8 +868,7 @@ def generate_bashhead_resources(system, config):
     # sanity check: `cluster_resources` exists:
     if 'cluster_resources' not in config:
         raise Exception(
-            'There is no section `cluster_resources`'
-            + ' in `container_config_yaml_file`!'
+            'There is no section `cluster_resources`' + ' in `container_config_yaml_file`!'
         )
 
     # generate the command for interpreting shell first:
@@ -982,8 +962,7 @@ def generate_cmd_job_compute_space(config):
     # sanity check:
     if 'job_compute_space' not in config:
         raise Exception(
-            "Did not find the section 'job_compute_space'"
-            + ' in `container_config_yaml_file`!'
+            "Did not find the section 'job_compute_space'" + ' in `container_config_yaml_file`!'
         )
 
     cmd += '\n# Change path to an ephemeral (temporary) job compute workspace:\n'
@@ -1022,9 +1001,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
 
     cmd = ''
 
-    if True in list(
-        input_ds.df['is_zipped']
-    ):  # there is at least one dataset is zipped
+    if True in list(input_ds.df['is_zipped']):  # there is at least one dataset is zipped
         cmd += '\n# Get the zip filename of current subject (or session):\n'
 
     for i_ds in range(0, input_ds.num_ds):
@@ -1042,13 +1019,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
             if type_session == 'multi-ses':
                 cmd += '${sesid}_'
 
-            cmd += (
-                '*'
-                + input_ds.df['name'][i_ds]
-                + '*.zip'
-                + " | cut -d '@' -f 1 || true)"
-                + '\n'
-            )
+            cmd += '*' + input_ds.df['name'][i_ds] + '*.zip' + " | cut -d '@' -f 1 || true)" + '\n'
             # `cut -d '@' -f 1` means:
             #   field separator (or delimiter) is @ (`-d '@'`), and get the 1st field (`-f 1`)
             # `<command> || true` means:
@@ -1166,25 +1137,12 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
             # input: also the json file:
             # as using globs `*`, need to be quoted (`''`)!
             cmd += (
-                '\t'
-                + "-i '"
-                + input_ds.df['path_now_rel'][i_ds]
-                + '/'
-                + '*json'
-                + "' \\"
-                + '\n'
+                '\t' + "-i '" + input_ds.df['path_now_rel'][i_ds] + '/' + '*json' + "' \\" + '\n'
             )
             flag_expand_inputs = True  # `--expand inputs`
 
         else:  # zipped:
-            cmd += (
-                '\t'
-                + '-i ${'
-                + input_ds.df['name'][i_ds].upper()
-                + '_ZIP}'
-                + ' \\'
-                + '\n'
-            )
+            cmd += '\t' + '-i ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}' + ' \\' + '\n'
 
     # input: container image
     cmd += '\t' + '-i ' + container.container_path_relToAnalysis + ' \\' + '\n'
@@ -1214,9 +1172,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     cmd += '"' + ' \\' + '\n'
 
     # the real command:
-    cmd += (
-        '\t' + '"' + 'bash ./code/' + container.container_name + '_zip.sh' + ' ${subid}'
-    )
+    cmd += '\t' + '"' + 'bash ./code/' + container.container_name + '_zip.sh' + ' ${subid}'
     if type_session == 'multi-ses':
         cmd += ' ${sesid}'
     for i_ds in range(0, input_ds.num_ds):
@@ -1261,9 +1217,7 @@ def get_list_sub_ses(input_ds, config, babs):
             # ^^ turn into a list
         elif babs.type_session == 'multi-ses':
             dict_sub_ses = (
-                input_ds.initial_inclu_df.groupby('sub_id')['ses_id']
-                .apply(list)
-                .to_dict()
+                input_ds.initial_inclu_df.groupby('sub_id')['ses_id'].apply(list).to_dict()
             )
             # ^^ group based on 'sub_id', apply list to every group,
             #   then turn into a dict.
@@ -1349,18 +1303,14 @@ def get_list_sub_ses(input_ds, config, babs):
     # Remove the subjects (or sessions) which does not have the required files:
     #   ------------------------------------------------------------------------
     # remove existing csv files first:
-    temp_files = glob.glob(
-        op.join(babs.analysis_path, 'code/sub_*missing_required_file.csv')
-    )
+    temp_files = glob.glob(op.join(babs.analysis_path, 'code/sub_*missing_required_file.csv'))
     # ^^ single-ses: `sub_missing*`; multi-ses: `sub_ses_missing*`
     if len(temp_files) > 0:
         for temp_file in temp_files:
             os.remove(temp_file)
     temp_files = []  # clear
     # for multi-ses:
-    fn_csv_sub_delete = op.join(
-        babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv'
-    )
+    fn_csv_sub_delete = op.join(babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv')
     if op.exists(fn_csv_sub_delete):
         os.remove(fn_csv_sub_delete)
 
@@ -1423,9 +1373,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     # iter of list of required files:
                     for required_file in list_required_files:
                         temp_files = glob.glob(
-                            op.join(
-                                input_ds.df['path_now_abs'][i_ds], sub, required_file
-                            )
+                            op.join(input_ds.df['path_now_abs'][i_ds], sub, required_file)
                         )
                         temp_files_2 = glob.glob(
                             op.join(
@@ -1438,9 +1386,7 @@ def get_list_sub_ses(input_ds, config, babs):
                         #  ^^ "**" means checking "all folders" in a subject
                         #  ^^ "**" does not work if there is no `ses-*` folder,
                         #       so also needs to check `temp_files`
-                        if (len(temp_files) == 0) & (
-                            len(temp_files_2) == 0
-                        ):  # didn't find any:
+                        if (len(temp_files) == 0) & (len(temp_files_2) == 0):  # didn't find any:
                             # remove from the `subs` list:
                             #   it shouldn't be removed by earlier datasets,
                             #   as we're iter across updated list `sub`
@@ -1461,12 +1407,12 @@ def get_list_sub_ses(input_ds, config, babs):
             # save `subs_missing` into a csv file:
             if len(subs_missing) > 0:  # there is missing one
                 df_missing = pd.DataFrame(
-                    list(zip(subs_missing, which_dataset_missing, which_file_missing, strict=False)),
+                    list(
+                        zip(subs_missing, which_dataset_missing, which_file_missing, strict=False)
+                    ),
                     columns=['sub_id', 'input_dataset_name', 'missing_required_file'],
                 )
-                fn_csv_missing = op.join(
-                    babs.analysis_path, 'code/sub_missing_required_file.csv'
-                )
+                fn_csv_missing = op.join(babs.analysis_path, 'code/sub_missing_required_file.csv')
                 df_missing.to_csv(fn_csv_missing, index=False)
                 print(
                     'There are '
@@ -1488,9 +1434,7 @@ def get_list_sub_ses(input_ds, config, babs):
                 print('All subjects have required files.')
 
         elif babs.type_session == 'multi-ses':
-            subs_missing = (
-                []
-            )  # elements can repeat if more than one ses in a sub has missing file
+            subs_missing = []  # elements can repeat if more than one ses in a sub has missing file
             sess_missing = []
             which_dataset_missing = []
             which_file_missing = []
@@ -1535,9 +1479,7 @@ def get_list_sub_ses(input_ds, config, babs):
                                     # add to missing list:
                                     subs_missing.append(sub)
                                     sess_missing.append(ses)
-                                    which_dataset_missing.append(
-                                        input_ds.df['name'][i_ds]
-                                    )
+                                    which_dataset_missing.append(input_ds.df['name'][i_ds])
                                     which_file_missing.append(required_file)
                                     # no need to check other required files:
                                     break
@@ -1565,7 +1507,8 @@ def get_list_sub_ses(input_ds, config, babs):
                             subs_missing,
                             sess_missing,
                             which_dataset_missing,
-                            which_file_missing, strict=False,
+                            which_file_missing,
+                            strict=False,
                         )
                     ),
                     columns=[
@@ -1598,7 +1541,9 @@ def get_list_sub_ses(input_ds, config, babs):
                 print('All sessions from all subjects have required files.')
             # save deleted subjects into a list:
             if len(subs_delete) > 0:
-                df_sub_delete = pd.DataFrame(list(zip(subs_delete, strict=False)), columns=['sub_id'])
+                df_sub_delete = pd.DataFrame(
+                    list(zip(subs_delete, strict=False)), columns=['sub_id']
+                )
                 fn_csv_sub_delete = op.join(
                     babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv'
                 )
@@ -1626,8 +1571,7 @@ def get_list_sub_ses(input_ds, config, babs):
         df_final = pd.DataFrame(list(zip(subs, strict=False)), columns=['sub_id'])
         df_final.to_csv(fn_csv_final, index=False)
         print(
-            'The final list of included subjects has been saved to this CSV file: '
-            + fn_csv_final
+            'The final list of included subjects has been saved to this CSV file: ' + fn_csv_final
         )
     elif babs.type_session == 'multi-ses':
         fn_csv_final = op.join(
@@ -1654,8 +1598,8 @@ def get_list_sub_ses(input_ds, config, babs):
     elif babs.type_session == 'multi-ses':
         return dict_sub_ses
 
-def submit_array(analysis_path, type_session, type_system, maxarray,
-                   flag_print_message=True):
+
+def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_message=True):
     """
     This is to submit a job array based on template yaml file.
 
@@ -1680,7 +1624,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
         the string version of ID of the submitted job.
     task_id_list: list
         the list of task ID (dtype int) from the submitted job, starting from 1.
-    log_filename: list 
+    log_filename: list
         the list of log filenames (dtype str) of this job.
         Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>'; user needs to replace '*' with 'o', 'e', etc
 
@@ -1702,7 +1646,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
 
     cmd = cmd_template.replace('${max_array}', maxarray)
     to_print = 'Job for an array of ' + maxarray
-    job_name = job_name_template.replace('${max_array}', str(int(maxarray)-1))
+    job_name = job_name_template.replace('${max_array}', str(int(maxarray) - 1))
 
     # COMMENT OUT BECAUSE sub and ses AREN'T NEEDED FOR JOB SUBMISSION
     # if type_session == "single-ses":
@@ -1713,7 +1657,9 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
 
     # run the command, get the job id:
     proc_cmd = subprocess.run(
-        cmd.split(), cwd=analysis_path, stdout=subprocess.PIPE  # separate by space
+        cmd.split(),
+        cwd=analysis_path,
+        stdout=subprocess.PIPE,  # separate by space
     )
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
@@ -1735,8 +1681,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
     for i_array in range(int(maxarray)):
         task_id_list.append(i_array + 1)  # minarray starts from 1
         # log filename:
-        log_filename_list.append(
-            job_name + '.*' + job_id_str + '_' + str(i_array + 1))
+        log_filename_list.append(job_name + '.*' + job_id_str + '_' + str(i_array + 1))
 
     to_print += ' has been submitted (job ID: ' + job_id_str + ').'
     if flag_print_message:
@@ -1745,14 +1690,15 @@ def submit_array(analysis_path, type_session, type_system, maxarray,
     return job_id, job_id_str, task_id_list, log_filename_list
 
 
-def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list,
-                    submitted=None, done=None, debug=False):
+def df_submit_update(
+    df_job_submit, job_id, task_id_list, log_filename_list, submitted=None, done=None, debug=False
+):
     """
-    This is to update the status of one array task in the dataframe df_job_submit 
-    (file: code/job_status.csv). This 
-    function is mostly used after job submission or resubmission. Therefore, 
-    a lot of fields will be reset. For other cases (e.g., to update job status 
-    to running state / successfully finished state, etc.), you may directly 
+    This is to update the status of one array task in the dataframe df_job_submit
+    (file: code/job_status.csv). This
+    function is mostly used after job submission or resubmission. Therefore,
+    a lot of fields will be reset. For other cases (e.g., to update job status
+    to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
     Parameters:
     ----------------
@@ -1779,7 +1725,7 @@ def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list,
     """
     # Updating df_job_submit:
     # looping through each array task id in `task_id_list`
-    for ind in range(len(task_id_list)):  #`task_id_list` starts from 1
+    for ind in range(len(task_id_list)):  # `task_id_list` starts from 1
         df_job_submit.loc[ind, 'job_id'] = job_id
         df_job_submit.loc[ind, 'task_id'] = int(task_id_list[ind])
         df_job_submit.at[ind, 'log_filename'] = log_filename_list[ind]
@@ -1804,12 +1750,12 @@ def df_submit_update(df_job_submit, job_id, task_id_list, log_filename_list,
 
 def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
     """
-    This is to update the status of one array task in the dataframe df_jobs 
-    (file: code/job_status.csv). This is done by inserting information from 
-    the updated dataframe df_job_submit (file: code/job_submit.csv). This 
-    function is mostly used after job submission or resubmission. Therefore, 
-    a lot of fields will be reset. For other cases (e.g., to update job status 
-    to running state / successfully finished state, etc.), you may directly 
+    This is to update the status of one array task in the dataframe df_jobs
+    (file: code/job_status.csv). This is done by inserting information from
+    the updated dataframe df_job_submit (file: code/job_submit.csv). This
+    function is mostly used after job submission or resubmission. Therefore,
+    a lot of fields will be reset. For other cases (e.g., to update job status
+    to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
 
     Parameters:
@@ -1840,7 +1786,7 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
             # Locate the corresponding rows in df_jobs
             mask = (df_jobs['sub_id'] == sub_id) & (df_jobs['ses_id'] == ses_id)
         elif 'ses_id' not in df_jobs.columns:
-            mask = (df_jobs['sub_id'] == sub_id)
+            mask = df_jobs['sub_id'] == sub_id
 
         # Update df_jobs fields based on the latest info in df_job_submit
         df_jobs.loc[mask, 'job_id'] = row['job_id']
@@ -1889,14 +1835,13 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     df_job_submit = pd.DataFrame()
     # Check if there is still jobs to submit:
     total_has_submitted = int(df_job['has_submitted'].sum())
-    if total_has_submitted == df_job.shape[0]:   # all submitted
-       print('All jobs have already been submitted. '
-             + 'Use `babs-status` to check job status.')
-       return df_job_submit
+    if total_has_submitted == df_job.shape[0]:  # all submitted
+        print('All jobs have already been submitted. ' + 'Use `babs-status` to check job status.')
+        return df_job_submit
 
     # See if user has specified list of jobs to submit:
     # NEED TO WORK ON THIS
-    if df_job_specified is not None: # NEED TO WORK ON THIS
+    if df_job_specified is not None:  # NEED TO WORK ON THIS
         print('Will only submit specified jobs...')
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
@@ -1934,11 +1879,11 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
                     + ' please use `babs-status --resubmit`'
                 )
                 print(to_print)
-    else:    # taking into account the `count` argument
+    else:  # taking into account the `count` argument
         df_remain = df_job[df_job.has_submitted == False]
         if count > 0:
             df_job_submit = df_remain[:count].reset_index(drop=True)
-        else:   # if count is None or negative, run all
+        else:  # if count is None or negative, run all
             df_job_submit = df_remain.copy().reset_index(drop=True)
     return df_job_submit
 
@@ -1988,7 +1933,9 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
 
     # run the command, get the job id:
     proc_cmd = subprocess.run(
-        cmd.split(), cwd=analysis_path, stdout=subprocess.PIPE  # separate by space
+        cmd.split(),
+        cwd=analysis_path,
+        stdout=subprocess.PIPE,  # separate by space
     )
 
     proc_cmd.check_returncode()
@@ -2046,7 +1993,7 @@ def create_job_status_csv(babs):
         df_job['job_state_category'] = np.nan
         df_job['job_state_code'] = np.nan
         df_job['duration'] = np.nan
-        df_job['is_done'] = False   # = has branch in output_ria
+        df_job['is_done'] = False  # = has branch in output_ria
         df_job['needs_resubmit'] = False
         # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
         # # if ^^ is False, but `is_done` is True, did not successfully clean the space
@@ -2088,20 +2035,23 @@ def read_job_status_csv(csv_path):
     df: pandas dataframe
         loaded dataframe
     """
-    df = pd.read_csv(csv_path,
-                     dtype={'job_id': 'Int64',
-                            'task_id': 'Int64',
-                            'log_filename': 'str',
-                            'has_submitted': 'boolean',
-                            'is_done': 'boolean',
-                            'is_failed': 'boolean',
-                            'needs_resubmit': 'boolean',
-                            'last_line_stdout_file': 'str',
-                            'job_state_category': 'str',
-                            'job_state_code': 'str',
-                            'duration': 'str',
-                            'alert_message': 'str'
-                            })
+    df = pd.read_csv(
+        csv_path,
+        dtype={
+            'job_id': 'Int64',
+            'task_id': 'Int64',
+            'log_filename': 'str',
+            'has_submitted': 'boolean',
+            'is_done': 'boolean',
+            'is_failed': 'boolean',
+            'needs_resubmit': 'boolean',
+            'last_line_stdout_file': 'str',
+            'job_state_category': 'str',
+            'job_state_code': 'str',
+            'duration': 'str',
+            'alert_message': 'str',
+        },
+    )
     return df
 
 
@@ -2224,9 +2174,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
                             # ^^ str(unique_job_account) is in case it is `np.nan`,
                             #   though should not be possible to be `np.nan`
 
-        print(
-            '\nAll log files are located in folder: ' + op.join(analysis_path, 'logs')
-        )
+        print('\nAll log files are located in folder: ' + op.join(analysis_path, 'logs'))
 
 
 def request_all_job_status(type_system):
@@ -2354,9 +2302,7 @@ def _parsing_squeue_out(squeue_std):
 
         # job state mapping from slurm to sge:
         state_slurm2sge = {'R': 'r', 'PD': 'qw'}
-        dict_val['state'] = [
-            state_slurm2sge.get(sl_st, 'NA') for sl_st in dict_val.pop('st')
-        ]
+        dict_val['state'] = [state_slurm2sge.get(sl_st, 'NA') for sl_st in dict_val.pop('st')]
         # e.g.,: dict_val: {'JB_job_number': ['157414586', '157414584'],
         #   '@state': ['pending', 'running'], 'duration': ['0:00', '0:52'], 'state': ['qw', 'r']}
 
@@ -2498,15 +2444,13 @@ def get_config_msg_alert(container_config_yaml_file):
 
             # Check if there is either 'stdout' or 'stderr' in "alert_log_messages":
             if config_msg_alert is not None:  # there is sth under "alert_log_messages":
-                if ('stdout' not in config_msg_alert) & (
-                    'stderr' not in config_msg_alert
-                ):
+                if ('stdout' not in config_msg_alert) & ('stderr' not in config_msg_alert):
                     # neither is included:
                     warnings.warn(
                         "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
                         " neither 'stdout' nor 'stderr' is included in this section."
                         " So BABS won't check if there is"
-                        " any alerting message in log files."
+                        ' any alerting message in log files.'
                     )
                     config_msg_alert = None  # not useful anymore, set to None then.
             else:  # nothing under "alert_log_messages":
@@ -2514,7 +2458,7 @@ def get_config_msg_alert(container_config_yaml_file):
                     "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
                     " neither 'stdout' nor 'stderr' is included in this section."
                     " So BABS won't check if there is"
-                    " any alerting message in log files."
+                    ' any alerting message in log files.'
                 )
                 # `config_msg_alert` is already `None`, no need to set to None
         else:
@@ -2522,7 +2466,7 @@ def get_config_msg_alert(container_config_yaml_file):
             warnings.warn(
                 "There is no section called 'alert_log_messages' in the provided"
                 " `container_config_yaml_file`. So BABS won't check if there is"
-                " any alerting message in log files."
+                ' any alerting message in log files.'
             )
     else:
         config_msg_alert = None
@@ -2742,14 +2686,10 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
 
     if if_no_sacct:  # there is no information about this job in sacct:
         warnings.warn(
-            '`sacct` did not provide information about job '
-            + job_id_str
-            + ', '
-            + job_name
+            '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name
         )
         print(
-            'Hint: check if the job is still in the queue,'
-            ' e.g., in state of pending, running, etc'
+            'Hint: check if the job is still in the queue, e.g., in state of pending, running, etc'
         )
         print(
             'Hint: check if the username used for submitting this job'
@@ -2772,15 +2712,10 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
 
         # find the row that matches the job id and job name
         #   i.e., without '.batch' or '.extern'; usually is the first line:
-        temp = df.index[
-            (df['JobID'] == job_id_str) & (df['JobName'] == job_name)
-        ].tolist()
+        temp = df.index[(df['JobID'] == job_id_str) & (df['JobName'] == job_name)].tolist()
         if len(temp) == 0:  # did not find the job:
             warnings.warn(
-                '`sacct` did not provide information about job '
-                + job_id_str
-                + ', '
-                + job_name
+                '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name
             )
             print(
                 'Hint: check if the job is still in the queue,'
@@ -2793,23 +2728,16 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
                 + "'"
             )
             print(
-                'Hint: check if the job ID is more than '
-                + str(len_char_jobid)
-                + ' chars,'
+                'Hint: check if the job ID is more than ' + str(len_char_jobid) + ' chars,'
                 ' or job name is more than ' + str(len_char_jobname) + ' chars.'
             )
             msg_toreturn = msg_no_sacct
         elif len(temp) > 1:  # more than one matched:
             warnings.warn(
-                '`sacct` detects more than one job for this job '
-                + job_id_str
-                + ', '
-                + job_name
+                '`sacct` detects more than one job for this job ' + job_id_str + ', ' + job_name
             )
             print(
-                'Hint: check if the job ID is more than '
-                + str(len_char_jobid)
-                + ' chars,'
+                'Hint: check if the job ID is more than ' + str(len_char_jobid) + ' chars,'
                 ' or job name is more than ' + str(len_char_jobname) + ' chars.'
             )
             msg_toreturn = msg_more_than_one
@@ -2837,9 +2765,7 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
     try:
         proc_qacct.check_returncode()
         msg = proc_qacct.stdout.decode('utf-8')
-        list_qacct_failed = re.findall(
-            r'(?:failed)(.*?)(?:\n)', msg
-        )  # find all, return a list
+        list_qacct_failed = re.findall(r'(?:failed)(.*?)(?:\n)', msg)  # find all, return a list
         # ^^ between `failed` and `\n`
         # example output: ['      xcpsub-00000   ', '      fpsub-0000  ']
         if len(list_qacct_failed) > 1:  # more than one job were found:
@@ -2860,9 +2786,7 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
 
         if if_valid_qacct_failed:
             # example: '       0    '
-            qacct_failed = (
-                qacct_failed.strip()
-            )  # remove the spaces at the beginning and the end
+            qacct_failed = qacct_failed.strip()  # remove the spaces at the beginning and the end
 
             if qacct_failed != '0':  # field `failed` is not '0', i.e., was not success:
                 msg_toreturn = 'qacct: failed: ' + qacct_failed
@@ -2873,9 +2797,7 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
         # if the job is still in queue (qw or r etc), this will throw out an error:
         #   '.... returned non-zero exit status 1.'
         warnings.warn('Error when `qacct` for job ' + job_id_str + ', ' + job_name)
-        print(
-            'Hint: check if the job is still in the queue, e.g., in state of qw, r, etc'
-        )
+        print('Hint: check if the job is still in the queue, e.g., in state of qw, r, etc')
         print(
             'Hint: check if the username used for submitting this job'
             + " was not current username '"
@@ -2917,9 +2839,7 @@ def get_cmd_cancel_job(type_system):
     elif type_system == 'slurm':
         cmd = 'scancel'
     else:
-        raise Exception(
-            'Invalid job scheduler system type `type_system`: ' + type_system
-        )
+        raise Exception('Invalid job scheduler system type `type_system`: ' + type_system)
 
     # print("the command for cancelling the job: " + cmd)   # NOTE: for testing only
     return cmd
@@ -2946,9 +2866,7 @@ def print_versions_from_yaml(fn_yaml):
     """
     # Read the yaml file and print the content:
     config = read_yaml(fn_yaml)
-    print(
-        'Below is the information of designated environment and temporary workspace:\n'
-    )
+    print('Below is the information of designated environment and temporary workspace:\n')
     # print the yaml file:
     f = open(fn_yaml)
     file_contents = f.read()
@@ -2966,7 +2884,7 @@ def print_versions_from_yaml(fn_yaml):
     for key in config['version']:
         if config['version'][key] == 'not_installed':  # see `babs/template_test_job.py`
             flag_all_installed = False
-            warnings.warn('This required package is not installed: ' + key)
+            warnings.warn('This required package is not installed: ' + key, stacklevel=2)
 
     return flag_writable, flag_all_installed
 

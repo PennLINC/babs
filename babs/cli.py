@@ -30,80 +30,110 @@ def babs_init_cli():
     """
     parser = argparse.ArgumentParser(
         description='``babs-init`` initializes a BABS project and bootstraps scripts'
-                    ' that will be used later.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        ' that will be used later.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--where_project', '--where-project',
+        '--where_project',
+        '--where-project',
         help='Absolute path to the directory where the babs project will locate',
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--project_name', '--project-name',
+        '--project_name',
+        '--project-name',
         help='The name of the babs project; '
-             'this folder will be automatically created in the directory'
-             ' specified in ``--where_project``.',
-        required=True)
+        'this folder will be automatically created in the directory'
+        ' specified in ``--where_project``.',
+        required=True,
+    )
     parser.add_argument(
         '--input',
-        action='append',   # append each `--input` as a list;
+        action='append',  # append each `--input` as a list;
         # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
         # ref: https://docs.python.org/3/library/argparse.html
-        nargs=2,   # expect 2 arguments per `--input` from the command line;
+        nargs=2,  # expect 2 arguments per `--input` from the command line;
         #            they will be gathered as one list
         metavar=('input_dataset_name', 'input_dataset_path'),
         help='Input BIDS DataLad dataset. '
-             'Format: ``--input <name> <path/to/input_datalad_dataset>``. '
-             'Here ``<name>`` is a name of this input dataset. '
-             '``<path/to/input_datalad_dataset>`` is the path to this input dataset.',
-        required=True)
+        'Format: ``--input <name> <path/to/input_datalad_dataset>``. '
+        'Here ``<name>`` is a name of this input dataset. '
+        '``<path/to/input_datalad_dataset>`` is the path to this input dataset.',
+        required=True,
+    )
     parser.add_argument(
-        '--list_sub_file', '--list-sub-file',   # optional flag
+        '--list_sub_file',
+        '--list-sub-file',  # optional flag
         type=str,
-        help="Path to the CSV file that lists the subject (and sessions) to analyze; "
-        " If there is no such file, please not to specify this flag."
+        help='Path to the CSV file that lists the subject (and sessions) to analyze; '
+        ' If there is no such file, please not to specify this flag.'
         " Single-session data: column of 'sub_id';"
-        " Multi-session data: columns of 'sub_id' and 'ses_id'.",)
+        " Multi-session data: columns of 'sub_id' and 'ses_id'.",
+    )
     parser.add_argument(
-        '--container_ds', '--container-ds',
+        '--container_ds',
+        '--container-ds',
         help='Path to the container DataLad dataset',
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--container_name', '--container-name',
+        '--container_name',
+        '--container-name',
         help='The name of the BIDS App container, i.e.,'
-        + ' the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``.'
-        + " Importantly, this should include the BIDS App's name"
-        + ' to make sure the bootstrap scripts are set up correctly;'
-        + ' Also, the version number should be added, too.'
-        + ' ``babs-init`` is not case sensitive to this ``--container_name``.'
-        + ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.',
+        ' the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``.'
+        " Importantly, this should include the BIDS App's name"
+        ' to make sure the bootstrap scripts are set up correctly;'
+        ' Also, the version number should be added, too.'
+        ' ``babs-init`` is not case sensitive to this ``--container_name``.'
+        ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.',
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--container_config_yaml_file', '--container-config-yaml-file',
+        '--container_config_yaml_file',
+        '--container-config-yaml-file',
         help='Path to a YAML file that contains the configurations'
-        ' of how to run the BIDS App container')
+        ' of how to run the BIDS App container',
+    )
     parser.add_argument(
-        '--type_session', '--type-session',
-        choices=['single-ses', 'single_ses', 'single-session', 'single_session',
-                 'multi-ses', 'multi_ses', 'multiple-ses', 'multiple_ses',
-                 'multi-session', 'multi_session', 'multiple-session', 'multiple_session'],
+        '--type_session',
+        '--type-session',
+        choices=[
+            'single-ses',
+            'single_ses',
+            'single-session',
+            'single_session',
+            'multi-ses',
+            'multi_ses',
+            'multiple-ses',
+            'multiple_ses',
+            'multi-session',
+            'multi_session',
+            'multiple-session',
+            'multiple_session',
+        ],
         help="Whether the input dataset is single-session ['single-ses'] "
-             "or multiple-session ['multi-ses']",
-        required=True)
+        "or multiple-session ['multi-ses']",
+        required=True,
+    )
     parser.add_argument(
-        '--type_system', '--type-system',
+        '--type_system',
+        '--type-system',
         choices=['sge', 'slurm'],
         help='The name of the job scheduling type_system that you will use.',
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--keep_if_failed', '--keep-if-failed',
+        '--keep_if_failed',
+        '--keep-if-failed',
         action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help="If ``babs-init`` fails with error, whether to keep the created BABS project."
-             " By default, you don't need to turn this option on."
-             " However, when ``babs-init`` fails and you hope to use ``babs-check-setup``"
-             " to diagnose, please turn it on to rerun ``babs-init``,"
-             " then run ``babs-check-setup``."
-             " Please refer to section below 'What if ``babs-init`` fails?' for details."
+        help='If ``babs-init`` fails with error, whether to keep the created BABS project.'
+        " By default, you don't need to turn this option on."
+        ' However, when ``babs-init`` fails and you hope to use ``babs-check-setup``'
+        ' to diagnose, please turn it on to rerun ``babs-init``,'
+        ' then run ``babs-check-setup``.'
+        " Please refer to section below 'What if ``babs-init`` fails?' for details.",
         #      ^^ in `babs-init.rst`, pointed to below section for more
     )
 
@@ -180,10 +210,15 @@ def babs_init_main():
 
     # check if it exists: if so, raise error
     if op.exists(project_root):
-        raise Exception("The folder `--project_name` '" + project_name
-                        + "' already exists in the directory"
-                        + " `--where_project` '" + where_project + "'!"
-                        + " `babs-init` won't proceed to overwrite this folder.")
+        raise Exception(
+            "The folder `--project_name` '"
+            + project_name
+            + "' already exists in the directory"
+            + " `--where_project` '"
+            + where_project
+            + "'!"
+            + " `babs-init` won't proceed to overwrite this folder."
+        )
 
     # check if `where_project` exists:
     if not op.exists(where_project):
@@ -214,9 +249,7 @@ def babs_init_main():
     # currently solution: add notes in Debugging in `babs-init` docs: `babs-init.rst`
 
     # Create an instance of babs class:
-    babs_proj = BABS(project_root,
-                     type_session,
-                     type_system)
+    babs_proj = BABS(project_root, type_session, type_system)
 
     # Validate system's type name `type_system`:
     system = System(type_system)
@@ -232,23 +265,27 @@ def babs_init_main():
     #   if success, good!
     #   if failed, and if not `keep_if_failed`: delete the BABS project `babs-init` creates!
     try:
-        babs_proj.babs_bootstrap(input_ds,
-                                 container_ds, container_name, container_config_yaml_file,
-                                 system)
-    except:
+        babs_proj.babs_bootstrap(
+            input_ds, container_ds, container_name, container_config_yaml_file, system
+        )
+    except Exception:
         print('\n`babs-init` failed! Below is the error message:')
-        traceback.print_exc()   # print out the traceback error messages
+        traceback.print_exc()  # print out the traceback error messages
         if not keep_if_failed:
             # clean up:
             print('\nCleaning up created BABS project...')
             babs_proj.clean_up(input_ds)
-            print('Please check the error messages above!'
-                  + ' Then fix the problem, and rerun `babs-init`.')
+            print(
+                'Please check the error messages above!'
+                ' Then fix the problem, and rerun `babs-init`.'
+            )
         else:
             print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
-            print('Please check the error messages above!'
-                  + ' Then fix the problem, delete this failed BABS project,'
-                  + ' and rerun `babs-init`.')
+            print(
+                'Please check the error messages above!'
+                ' Then fix the problem, delete this failed BABS project,'
+                ' and rerun `babs-init`.'
+            )
 
 
 def babs_check_setup_cli():
@@ -258,17 +295,22 @@ def babs_check_setup_cli():
 
     parser = argparse.ArgumentParser(
         description='``babs-check-setup`` validates setups by ``babs-init``.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--project_root', '--project-root',
-        help="Absolute path to the root of BABS project."
+        '--project_root',
+        '--project-root',
+        help='Absolute path to the root of BABS project.'
         " For example, '/path/to/my_BABS_project/'.",
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--job_test', '--job-test',
+        '--job_test',
+        '--job-test',
         action='store_true',
         # ^^ if `--job-test` is specified, args.job_test = True; otherwise, False
-        help='Whether to submit and run a test job. Will take longer time if doing so.')
+        help='Whether to submit and run a test job. Will take longer time if doing so.',
+    )
 
     return parser
 
@@ -296,6 +338,7 @@ def babs_check_setup_main():
     # Call method `babs_check_setup()`:
     babs_proj.babs_check_setup(input_ds, args.job_test)
 
+
 def babs_submit_cli():
     """
     Submit jobs.
@@ -308,34 +351,36 @@ def babs_submit_cli():
     If none of these flags are specified, will only submit one job array task.
     """
 
-    parser = argparse.ArgumentParser(
-        description='Submit jobs to cluster compute nodes.')
+    parser = argparse.ArgumentParser(description='Submit jobs to cluster compute nodes.')
     parser.add_argument(
-        '--project_root', '--project-root',
-        help="Absolute path to the root of BABS project."
+        '--project_root',
+        '--project-root',
+        help='Absolute path to the root of BABS project.'
         " For example, '/path/to/my_BABS_project/'.",
-        required=True)
+        required=True,
+    )
 
     # --count, --job: can only request one of them
     # and none of them are required.
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
-        '--count',
-        type=int,
-        help='Number of jobs to submit. It should be a positive integer.')
+        '--count', type=int, help='Number of jobs to submit. It should be a positive integer.'
+    )
     group.add_argument(
         '--all',
         action='store_true',
         # ^^ if `--all` is specified, args.all = True; otherwise, False
-        help="Request to run all jobs that haven't been submitted.")
+        help="Request to run all jobs that haven't been submitted.",
+    )
     group.add_argument(
         '--job',
-        action='append',   # append each `--job` as a list;
+        action='append',  # append each `--job` as a list;
         nargs='+',
         help='The subject ID (and session ID) whose job to be submitted.'
         ' Can repeat to submit more than one job.'
         ' Format would be `--job sub-xx` for single-session dataset,'
-        ' and `--job sub-xx ses-yy` for multiple-session dataset.')
+        ' and `--job sub-xx ses-yy` for multiple-session dataset.',
+    )
 
     return parser
 
@@ -344,6 +389,7 @@ def babs_submit_cli():
     # babs_submit(args.project_root,
     #             args.count,  # if not provided, will be `None`
     #             args.job)
+
 
 def babs_submit_main():
     # def babs_submit(project_root, count=None, job=None):
@@ -359,7 +405,8 @@ def babs_submit_main():
     count: int or None
         number of jobs to be submitted
         default: None (did not specify in cli)
-            if `--job` is not requested, it will be changed to `1` before going into `babs_submit()`
+            if `--job` is not requested, it will be changed to `1` before going
+            into `babs_submit()`
         any negative int will be treated as submitting all jobs that haven't been submitted.
     job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
@@ -381,18 +428,20 @@ def babs_submit_main():
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
-    if all:   # if True:
+    if all:  # if True:
         count = -1  # so that to submit all remaining jobs
     if count is None:
-        count = 1   # if not to specify `--count`, change to 1
+        count = 1  # if not to specify `--count`, change to 1
     # sanity check:
     if count == 0:
-        raise Exception('`--count 0` is not valid! Please specify a positive integer. '
-                        + 'To submit all jobs, please do not specify `--count`.')
+        raise Exception(
+            '`--count 0` is not valid! Please specify a positive integer. '
+            'To submit all jobs, please do not specify `--count`.'
+        )
 
     # Actions on `job`:
     if job is not None:
-        count = -1    # just in case; make sure all specified jobs will be submitted
+        count = -1  # just in case; make sure all specified jobs will be submitted
 
         # sanity check:
         if babs_proj.type_session == 'single-ses':
@@ -401,79 +450,89 @@ def babs_submit_main():
             expected_len = 2
         for i_job in range(0, len(job)):
             # expected length in each sub-list:
-            assert len(job[i_job]) == expected_len, \
-                'There should be ' + str(expected_len) + ' arguments in `--job`,' \
-                + ' as input dataset(s) is ' + babs_proj.type_session + '!'
+            assert len(job[i_job]) == expected_len, (
+                'There should be '
+                + str(expected_len)
+                + ' arguments in `--job`,'
+                + ' as input dataset(s) is '
+                + babs_proj.type_session
+                + '!'
+            )
             # 1st argument:
-            assert job[i_job][0][0:4] == 'sub-', \
+            assert job[i_job][0][0:4] == 'sub-', (
                 'The 1st argument of `--job`' + " should be 'sub-*'!"
+            )
             if babs_proj.type_session == 'multi-ses':
                 # 2nd argument:
-                assert job[i_job][1][0:4] == 'ses-', \
+                assert job[i_job][1][0:4] == 'ses-', (
                     'The 2nd argument of `--job`' + " should be 'ses-*'!"
+                )
 
         # turn into a pandas DataFrame:
         if babs_proj.type_session == 'single-ses':
-            df_job_specified = pd.DataFrame(None,
-                                            index=list(range(0, len(job))),
-                                            columns=['sub_id'])
+            df_job_specified = pd.DataFrame(
+                None, index=list(range(0, len(job))), columns=['sub_id']
+            )
         elif babs_proj.type_session == 'multi-ses':
-            df_job_specified = pd.DataFrame(None,
-                                            index=list(range(0, len(job))),
-                                            columns=['sub_id', 'ses_id'])
+            df_job_specified = pd.DataFrame(
+                None, index=list(range(0, len(job))), columns=['sub_id', 'ses_id']
+            )
         for i_job in range(0, len(job)):
             df_job_specified.at[i_job, 'sub_id'] = job[i_job][0]
             if babs_proj.type_session == 'multi-ses':
                 df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
 
         # sanity check:
-        df_job_specified = \
-            check_df_job_specific(df_job_specified, babs_proj.job_status_path_abs,
-                                  babs_proj.type_session, 'babs-submit')
+        df_job_specified = check_df_job_specific(
+            df_job_specified, babs_proj.job_status_path_abs, babs_proj.type_session, 'babs-submit'
+        )
     else:  # `job` is None:
         df_job_specified = None
 
     # Call method `babs_submit()`:
     babs_proj.babs_submit(count, df_job_specified)
 
+
 def babs_status_cli():
     """
     Check job status.
     """
 
-    parser = argparse.ArgumentParser(
-        description='Check job status in a BABS project.')
+    parser = argparse.ArgumentParser(description='Check job status in a BABS project.')
     parser.add_argument(
-        '--project_root', '--project-root',
-        help="Absolute path to the root of BABS project."
+        '--project_root',
+        '--project-root',
+        help='Absolute path to the root of BABS project.'
         " For example, '/path/to/my_BABS_project/'.",
-        required=True)
+        required=True,
+    )
     parser.add_argument(
         '--resubmit',
-        action='append',   # append each `--resubmit` as a list;
+        action='append',  # append each `--resubmit` as a list;
         # ref: https://docs.python.org/3/library/argparse.html
-        nargs=1,   # expect 1 argument per `--resubmit` from the command line;
+        nargs=1,  # expect 1 argument per `--resubmit` from the command line;
         choices=['failed', 'pending'],
         # NOTE: ^^ not to include 'stalled' as it has not been tested yet.
         metavar=('condition to resubmit'),
-        help="Resubmit jobs with what kind of status."
-             " ``failed``: Jobs that failed, i.e.,"
-             " jobs that are out of queue but do not have results pushed to output RIA."
-             " The list of failed jobs can also be found by filtering jobs with"
-             " ``'is_failed' = True`` in ``job_status.csv``;"
-             " ``pending``: Jobs that are pending (without error) in the queue."
-             " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm."
-        )
+        help='Resubmit jobs with what kind of status.'
+        ' ``failed``: Jobs that failed, i.e.,'
+        ' jobs that are out of queue but do not have results pushed to output RIA.'
+        ' The list of failed jobs can also be found by filtering jobs with'
+        " ``'is_failed' = True`` in ``job_status.csv``;"
+        ' ``pending``: Jobs that are pending (without error) in the queue.'
+        " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm.",
+    )
     # "'stalled': the previous submitted job is pending with error in the queue "
     # "(example qstat code: 'eqw')."
 
     parser.add_argument(
         '--resubmit-job',
-        action='append',   # append each `--resubmit-job` as a list;
+        action='append',  # append each `--resubmit-job` as a list;
         nargs='+',
         help='The subject ID (and session ID) whose job to be resubmitted.'
         ' You can repeat this argument many times to request resubmissions of more than one job.'
-        ' Currently, only pending or failed jobs in the request will be resubmitted.')
+        ' Currently, only pending or failed jobs in the request will be resubmitted.',
+    )
     # ^^ NOTE: not to include 'stalled' jobs here;
     # ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
     #                   but fix the issue - Bergman 12/20/22 email
@@ -485,21 +544,25 @@ def babs_status_cli():
     #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
     #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
-        '--container_config_yaml_file', '--container-config-yaml-file',
-        help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container. It may include ``alert_log_messages`` section."
-        " ``babs-status`` will use this section for failed job auditing,"
-        " by checking if any defined alert messages"
-        " can be found in failed jobs' log files.")
+        '--container_config_yaml_file',
+        '--container-config-yaml-file',
+        help='Path to a YAML file that contains the configurations'
+        ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
+        ' ``babs-status`` will use this section for failed job auditing,'
+        ' by checking if any defined alert messages'
+        " can be found in failed jobs' log files.",
+    )
     parser.add_argument(
-        '--job_account', '--job-account',
+        '--job_account',
+        '--job-account',
         action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
         help='Whether to account failed jobs, which may take some time.'
-             ' When using ``--job-account``, please also add ``--container_config_yaml_file``.'
-             ' If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)'
-             ' is also requested,'
-             ' this ``--job-account`` will be skipped.')
+        ' When using ``--job-account``, please also add ``--container_config_yaml_file``.'
+        ' If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)'
+        ' is also requested,'
+        ' this ``--job-account`` will be skipped.',
+    )
 
     return parser
 
@@ -538,7 +601,7 @@ def babs_status_main():
 
     # Get arguments:
     args = babs_status_cli().parse_args()
-    args.reckless = False    # WARNING: NOTE: hard-coded, as not supporting `--reckless` right now
+    args.reckless = False  # WARNING: NOTE: hard-coded, as not supporting `--reckless` right now
 
     project_root = args.project_root
     resubmit = args.resubmit
@@ -555,7 +618,7 @@ def babs_status_main():
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Get the list of resubmit conditions:
-    if resubmit is not None:   # user specified --resubmit
+    if resubmit is not None:  # user specified --resubmit
         # e.g., [['pending'], ['failed']]
         # change nested list to a simple list:
         flags_resubmit = []
@@ -563,16 +626,16 @@ def babs_status_main():
             flags_resubmit.append(resubmit[i][0])
 
         # remove duplicated elements:
-        flags_resubmit = list(set(flags_resubmit))   # `list(set())`: acts like "unique"
+        flags_resubmit = list(set(flags_resubmit))  # `list(set())`: acts like "unique"
 
         # print message:
         print(
-            'Will resubmit jobs if '
-            + ' or '.join(flags_resubmit) + '.')   # e.g., `failed`; `failed or pending`
+            'Will resubmit jobs if ' + ' or '.join(flags_resubmit) + '.'
+        )  # e.g., `failed`; `failed or pending`
 
-    else:   # `resubmit` is None:
+    else:  # `resubmit` is None:
         print('Did not request resubmit based on job states (no `--resubmit`).')
-        flags_resubmit = []   # empty list
+        flags_resubmit = []  # empty list
 
     # If `--job-account` is requested:
     if job_account:
@@ -582,9 +645,10 @@ def babs_status_main():
             # this is meaningless to run `job-account` if resubmitting anyway:
             print(
                 'Although `--job-account` was requested,'
-                + ' as `--resubmit failed` was also requested,'
-                + " it's meaningless to run job account on previous failed jobs,"
-                + ' so will skip `--job-account`')
+                ' as `--resubmit failed` was also requested,'
+                " it's meaningless to run job account on previous failed jobs,"
+                ' so will skip `--job-account`'
+            )
 
     # If `resubmit-job` is requested:
     if resubmit_job is not None:
@@ -596,28 +660,33 @@ def babs_status_main():
 
         for i_job in range(0, len(resubmit_job)):
             # expected length in each sub-list:
-            assert len(resubmit_job[i_job]) == expected_len, \
-                'There should be ' + str(expected_len) + ' arguments in `--resubmit-job`,' \
-                + ' as input dataset(s) is ' + babs_proj.type_session + '!'
+            assert len(resubmit_job[i_job]) == expected_len, (
+                'There should be '
+                + str(expected_len)
+                + ' arguments in `--resubmit-job`,'
+                + ' as input dataset(s) is '
+                + babs_proj.type_session
+                + '!'
+            )
             # 1st argument:
-            assert resubmit_job[i_job][0][0:4] == 'sub-', \
+            assert resubmit_job[i_job][0][0:4] == 'sub-', (
                 'The 1st argument of `--resubmit-job`' + " should be 'sub-*'!"
+            )
             if babs_proj.type_session == 'multi-ses':
                 # 2nd argument:
-                assert resubmit_job[i_job][1][0:4] == 'ses-', \
+                assert resubmit_job[i_job][1][0:4] == 'ses-', (
                     'The 2nd argument of `--resubmit-job`' + " should be 'ses-*'!"
+                )
 
         # turn into a pandas DataFrame:
         if babs_proj.type_session == 'single-ses':
-            df_resubmit_job_specific = \
-                pd.DataFrame(None,
-                             index=list(range(0, len(resubmit_job))),
-                             columns=['sub_id'])
+            df_resubmit_job_specific = pd.DataFrame(
+                None, index=list(range(0, len(resubmit_job))), columns=['sub_id']
+            )
         elif babs_proj.type_session == 'multi-ses':
-            df_resubmit_job_specific = \
-                pd.DataFrame(None,
-                             index=list(range(0, len(resubmit_job))),
-                             columns=['sub_id', 'ses_id'])
+            df_resubmit_job_specific = pd.DataFrame(
+                None, index=list(range(0, len(resubmit_job))), columns=['sub_id', 'ses_id']
+            )
 
         for i_job in range(0, len(resubmit_job)):
             df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
@@ -625,26 +694,34 @@ def babs_status_main():
                 df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
 
         # sanity check:
-        df_resubmit_job_specific = \
-            check_df_job_specific(df_resubmit_job_specific, babs_proj.job_status_path_abs,
-                                  babs_proj.type_session, 'babs-status')
+        df_resubmit_job_specific = check_df_job_specific(
+            df_resubmit_job_specific,
+            babs_proj.job_status_path_abs,
+            babs_proj.type_session,
+            'babs-status',
+        )
 
         if len(df_resubmit_job_specific) > 0:
-            if reckless:    # if `--reckless`:
-                print('Will resubmit all the job(s) listed in `--resubmit-job`,'
-                      + " even if they're done or running.")
+            if reckless:  # if `--reckless`:
+                print(
+                    'Will resubmit all the job(s) listed in `--resubmit-job`,'
+                    " even if they're done or running."
+                )
             else:
-                print('Will resubmit the job(s) listed in `--resubmit-job`,'
-                      + " if they're pending or failed.")   # not to include 'stalled'
-        else:    # in theory should not happen, but just in case:
+                print(
+                    'Will resubmit the job(s) listed in `--resubmit-job`,'
+                    " if they're pending or failed."
+                )  # not to include 'stalled'
+        else:  # in theory should not happen, but just in case:
             raise Exception('There is no valid job in --resubmit-job!')
 
-    else:   # `--resubmit-job` is None:
+    else:  # `--resubmit-job` is None:
         df_resubmit_job_specific = None
 
     # Call method `babs_status()`:
-    babs_proj.babs_status(flags_resubmit, df_resubmit_job_specific, reckless,
-                          container_config_yaml_file, job_account)
+    babs_proj.babs_status(
+        flags_resubmit, df_resubmit_job_specific, reckless, container_config_yaml_file, job_account
+    )
 
 
 def babs_merge_cli():
@@ -654,29 +731,37 @@ def babs_merge_cli():
     parser = argparse.ArgumentParser(
         description='``babs-merge`` merges results and provenance'
         ' from all successfully finished jobs.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--project_root', '--project-root',
-        help="Absolute path to the root of BABS project."
+        '--project_root',
+        '--project-root',
+        help='Absolute path to the root of BABS project.'
         " For example, '/path/to/my_BABS_project/'.",
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--chunk-size', '--chunk_size',
+        '--chunk-size',
+        '--chunk_size',
         type=int,
         default=2000,
         help='Number of branches in a chunk when merging at a time.'
-             ' We recommend using default value.')
+        ' We recommend using default value.',
+    )
     # Matt: 5000 is not good, 2000 is appropriate.
     #   Smaller chunk is, more merging commits which is fine.
     parser.add_argument(
-        '--trial-run', '--trial_run',
+        '--trial-run',
+        '--trial_run',
         action='store_true',
         # ^^ if `--trial-run` is specified, args.trial_run = True; otherwise, False
         help="Whether to run as a trial run which won't push the merge back to output RIA."
-             " This option should only be used by developers for testing purpose."
-             " Users: please don't turn this on!")
+        ' This option should only be used by developers for testing purpose.'
+        " Users: please don't turn this on!",
+    )
 
     return parser
+
 
 def babs_merge_main():
     """
@@ -704,20 +789,25 @@ def babs_merge_main():
 
 
 def babs_unzip_cli():
-    """ CLI for babs-unzip """
+    """CLI for babs-unzip"""
 
     parser = argparse.ArgumentParser(
         description='``babs-unzip`` unzips results zip files and extracts desired files',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
-        '--project_root', '--project-root',
-        help="Absolute path to the root of BABS project."
+        '--project_root',
+        '--project-root',
+        help='Absolute path to the root of BABS project.'
         " For example, '/path/to/my_BABS_project/'.",
-        required=True)
+        required=True,
+    )
     parser.add_argument(
-        '--container_config_yaml_file', '--container-config-yaml-file',
+        '--container_config_yaml_file',
+        '--container-config-yaml-file',
         help='Path to a YAML file of the BIDS App container that contains information of'
-        ' what files to unzip etc.')
+        ' what files to unzip etc.',
+    )
 
     return parser
 
@@ -748,9 +838,11 @@ def babs_unzip_main():
 
     # Sanity checks:
     if 'unzip_desired_filenames' not in config:
-        raise Exception("Section 'unzip_desired_filenames' is not included"
-                        " in `--container_config_yaml_file`. This section is required."
-                        " Path to this YAML file: '" + container_config_yaml_file + "'.")
+        raise Exception(
+            "Section 'unzip_desired_filenames' is not included"
+            ' in `--container_config_yaml_file`. This section is required.'
+            " Path to this YAML file: '" + container_config_yaml_file + "'."
+        )
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
@@ -781,17 +873,18 @@ def get_existing_babs_proj(project_root):
 
     # Sanity check: the path `project_root` exists:
     if op.exists(project_root) is False:
-        raise Exception('`--project-root` does not exist! Requested `--project-root` was: '
-                        + project_root)
+        raise Exception(
+            '`--project-root` does not exist! Requested `--project-root` was: ' + project_root
+        )
 
     # Read configurations of BABS project from saved yaml file:
-    babs_proj_config_yaml = op.join(project_root,
-                                    'analysis/code/babs_proj_config.yaml')
+    babs_proj_config_yaml = op.join(project_root, 'analysis/code/babs_proj_config.yaml')
     if op.exists(babs_proj_config_yaml) is False:
         raise Exception(
             '`babs-init` was not successful;'
-            + " there is no 'analysis/code/babs_proj_config.yaml' file!"
-            + ' Please rerun `babs-init` to finish the setup.')
+            " there is no 'analysis/code/babs_proj_config.yaml' file!"
+            ' Please rerun `babs-init` to finish the setup.'
+        )
 
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
 
@@ -801,9 +894,12 @@ def get_existing_babs_proj(project_root):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
             raise Exception(
-                "There is no section '" + the_section + "'"
+                "There is no section '"
+                + the_section
+                + "'"
                 + " in 'babs_proj_config.yaml' file in 'analysis/code' folder!"
-                + ' Please rerun `babs-init` to finish the setup.')
+                + ' Please rerun `babs-init` to finish the setup.'
+            )
 
     type_session = babs_proj_config['type_session']
     type_system = babs_proj_config['type_system']
@@ -817,16 +913,19 @@ def get_existing_babs_proj(project_root):
     # Get information for input dataset:
     input_ds_yaml = babs_proj_config['input_ds']
     # sanity check:
-    if len(input_ds_yaml) == 0:   # there was no input ds:
-        raise Exception("Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
-                        + 'does not include any input dataset!'
-                        + ' Something was wrong during `babs-init`...')
+    if len(input_ds_yaml) == 0:  # there was no input ds:
+        raise Exception(
+            "Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
+            'does not include any input dataset!'
+            ' Something was wrong during `babs-init`...'
+        )
 
-    input_cli = []   # to be a nested list
+    input_cli = []  # to be a nested list
     for i_ds in range(0, len(input_ds_yaml)):
-        ds_index_str = '$INPUT_DATASET_#' + str(i_ds+1)
-        input_cli.append([input_ds_yaml[ds_index_str]['name'],
-                          input_ds_yaml[ds_index_str]['path_in']])
+        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
+        input_cli.append(
+            [input_ds_yaml[ds_index_str]['name'], input_ds_yaml[ds_index_str]['path_in']]
+        )
 
     # Get the class `Input_ds`:
     input_ds = Input_ds(input_cli)
@@ -835,18 +934,20 @@ def get_existing_babs_proj(project_root):
     input_ds.assign_path_now_abs(babs_proj.analysis_path)
     # 2. `path_data_rel` and `is_zipped`:
     for i_ds in range(0, input_ds.num_ds):
-        ds_index_str = '$INPUT_DATASET_#' + str(i_ds+1)
+        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
         # `path_data_rel`:
-        input_ds.df.loc[i_ds, 'path_data_rel'] = \
-            babs_proj_config['input_ds'][ds_index_str]['path_data_rel']
+        input_ds.df.loc[i_ds, 'path_data_rel'] = babs_proj_config['input_ds'][ds_index_str][
+            'path_data_rel'
+        ]
         # `is_zipped`:
-        input_ds.df.loc[i_ds, 'is_zipped'] = \
-            babs_proj_config['input_ds'][ds_index_str]['is_zipped']
+        input_ds.df.loc[i_ds, 'is_zipped'] = babs_proj_config['input_ds'][ds_index_str][
+            'is_zipped'
+        ]
 
     return babs_proj, input_ds
 
-def check_df_job_specific(df, job_status_path_abs,
-                          type_session, which_function):
+
+def check_df_job_specific(df, job_status_path_abs, type_session, which_function):
     """
     This is to perform sanity check on the pd.DataFrame `df`
     which is used by `babs-submit --job` and `babs-status --resubmit-job`.
@@ -884,7 +985,7 @@ def check_df_job_specific(df, job_status_path_abs,
     """
 
     # 1. Sanity check: there should not be duplications in `df`:
-    df_unique = df.drop_duplicates(keep='first')   # default: keep='first'
+    df_unique = df.drop_duplicates(keep='first')  # default: keep='first'
     if df_unique.shape[0] != df.shape[0]:
         to_print = 'There are duplications in requested '
         if which_function == 'babs-submit':
@@ -894,9 +995,9 @@ def check_df_job_specific(df, job_status_path_abs,
         else:
             raise Exception('Invalid `which_function`: ' + which_function)
         to_print += ' . Only the first occuration(s) will be kept...'
-        warnings.warn(to_print)
+        warnings.warn(to_print, stacklevel=2)
 
-        df = df_unique   # update with the unique one
+        df = df_unique  # update with the unique one
 
     # 2. Sanity check: `df` should be a sub-set of all jobs:
     # read the `job_status.csv`:
@@ -919,12 +1020,13 @@ def check_df_job_specific(df, job_status_path_abs,
                     to_print += '`--resubmit-job`'
                 else:
                     raise Exception('Invalid `which_function`: ' + which_function)
-                to_print += ' are not in the final list of included subjects (and sessions).' \
-                    + ' Path to this final inclusion list is at: ' \
-                    + job_status_path_abs
+                to_print += (
+                    ' are not in the final list of included subjects (and sessions).'
+                    ' Path to this final inclusion list is at: ' + job_status_path_abs
+                )
                 raise Exception(to_print)
 
-    except Timeout:   # after waiting for time defined in `timeout`:
+    except Timeout:  # after waiting for time defined in `timeout`:
         # if another instance also uses locks, and is currently running,
         #   there will be a timeout error
         print('Another instance of this application currently holds the lock.')

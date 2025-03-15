@@ -219,9 +219,7 @@ class BABS:
         # ^^ another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
         # if success: no output; if failed: will raise CalledProcessError
         proc_output_ria_data_dir.check_returncode()
-        self.output_ria_data_dir = urlparse(
-            proc_output_ria_data_dir.stdout.decode('utf-8')
-        ).path
+        self.output_ria_data_dir = urlparse(proc_output_ria_data_dir.stdout.decode('utf-8')).path
         if self.output_ria_data_dir[-1:] == '\n':
             # remove the last 2 characters
             self.output_ria_data_dir = self.output_ria_data_dir[:-1]
@@ -257,9 +255,7 @@ class BABS:
                 # remove the last 2 characters
                 self.analysis_dataset_id = self.analysis_dataset_id[:-1]
             # remove the double quotes:
-            if (self.analysis_dataset_id[0] == "'") & (
-                self.analysis_dataset_id[-1] == "'"
-            ):
+            if (self.analysis_dataset_id[0] == "'") & (self.analysis_dataset_id[-1] == "'"):
                 # if first and the last characters are quotes: remove them
                 self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
@@ -315,7 +311,8 @@ class BABS:
             gitignore_file.write('\n.SLURM_datalad_lock')
         else:
             warnings.warn(
-                'Not supporting systems other than SGE or Slurm' + " for '.gitignore'."
+                'Not supporting systems other than SGE or Slurm' + " for '.gitignore'.",
+                stacklevel=2,
             )
         # not to track lock file:
         gitignore_file.write('\n' + 'code/babs_proj_config.yaml.lock')
@@ -340,9 +337,7 @@ class BABS:
         babs_proj_config_file.write('input_ds:\n')  # input dataset's name(s)
         for i_ds in range(0, input_ds.num_ds):
             babs_proj_config_file.write('  $INPUT_DATASET_#' + str(i_ds + 1) + ':\n')
-            babs_proj_config_file.write(
-                "    name: '" + input_ds.df.loc[i_ds, 'name'] + "'\n"
-            )
+            babs_proj_config_file.write("    name: '" + input_ds.df.loc[i_ds, 'name'] + "'\n")
             babs_proj_config_file.write(
                 "    path_in: '" + input_ds.df.loc[i_ds, 'path_in'] + "'\n"
             )
@@ -389,9 +384,7 @@ class BABS:
         print('\nRegistering the input dataset(s)...')
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
-            i_ds_path = op.join(
-                self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel']
-            )
+            i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel'])
             print(
                 'Cloning input dataset #'
                 + str(i_ds + 1)
@@ -427,9 +420,7 @@ class BABS:
 
         # Check the type of each input dataset: (zipped? unzipped?)
         #   this also gets `is_zipped`
-        print(
-            '\nChecking whether each input dataset is a zipped or unzipped dataset...'
-        )
+        print('\nChecking whether each input dataset is a zipped or unzipped dataset...')
         input_ds.check_if_zipped()
         # sanity checks:
         input_ds.check_validity_zipped_input_dataset(self.type_session)
@@ -443,9 +434,9 @@ class BABS:
         for i_ds in range(0, input_ds.num_ds):
             ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
             # update `path_data_rel`:
-            babs_proj_config['input_ds'][ds_index_str]['path_data_rel'] = (
-                input_ds.df.loc[i_ds, 'path_data_rel']
-            )
+            babs_proj_config['input_ds'][ds_index_str]['path_data_rel'] = input_ds.df.loc[
+                i_ds, 'path_data_rel'
+            ]
             # update `is_zipped`:
             babs_proj_config['input_ds'][ds_index_str]['is_zipped'] = input_ds.df.loc[
                 i_ds, 'is_zipped'
@@ -491,9 +482,7 @@ class BABS:
         # Generate `<containerName>_zip.sh`: ----------------------------------
         # which is a bash script of singularity run + zip
         # in folder: `analysis/code`
-        print(
-            '\nGenerating a bash script for running container and zipping the outputs...'
-        )
+        print('\nGenerating a bash script for running container and zipping the outputs...')
         print('This bash script will be named as `' + container_name + '_zip.sh`')
         bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
         container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
@@ -506,14 +495,10 @@ class BABS:
         os.makedirs(op.join(self.analysis_path, 'code/check_setup'), exist_ok=True)
 
         # Generate `participant_job.sh`: --------------------------------------
-        print(
-            '\nGenerating a bash script for running jobs at participant (or session) level...'
-        )
+        print('\nGenerating a bash script for running jobs at participant (or session) level...')
         print('This bash script will be named as `participant_job.sh`')
         bash_path = op.join(self.analysis_path, 'code', 'participant_job.sh')
-        container.generate_bash_participant_job(
-            bash_path, input_ds, self.type_session, system
-        )
+        container.generate_bash_participant_job(bash_path, input_ds, self.type_session, system)
 
         # also, generate a bash script of a test job used by `babs-check-setup`:
         path_check_setup = op.join(self.analysis_path, 'code/check_setup')
@@ -618,7 +603,7 @@ class BABS:
         # SUCCESS!
         print('\n')
         print(
-            "BABS project has been initialized!"
+            'BABS project has been initialized!'
             " Path to this BABS project: '" + self.project_root + "'"
         )
         print('`babs-init` was successful!')
@@ -641,9 +626,7 @@ class BABS:
         * generate bootstrapped scripts
         * finish up
         """
-        if op.exists(
-            self.project_root
-        ):  # if BABS project root folder has been created:
+        if op.exists(self.project_root):  # if BABS project root folder has been created:
             if op.exists(self.analysis_path):  # analysis folder is created by datalad
                 self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
                 # Remove each input dataset:
@@ -771,9 +754,7 @@ class BABS:
         # Check input dataset(s): ---------------------------
         print('\nChecking input dataset(s)...')
         # check if there is at least one folder in the `inputs/data` dir:
-        temp_list = get_immediate_subdirectories(
-            op.join(self.analysis_path, 'inputs/data')
-        )
+        temp_list = get_immediate_subdirectories(op.join(self.analysis_path, 'inputs/data'))
         assert len(temp_list) > 0, (
             "There is no sub-directory (i.e., no input dataset) in 'inputs/data'!"
             + " Full path to folder 'inputs/data': "
@@ -835,9 +816,9 @@ class BABS:
         # Check `analysis/code`: ---------------------------------
         print('\nChecking `analysis/code/` folder...')
         # folder `analysis/code` should exist:
-        assert op.exists(
-            op.join(self.analysis_path, 'code')
-        ), "Folder 'code' does not exist in 'analysis' folder!"
+        assert op.exists(op.join(self.analysis_path, 'code')), (
+            "Folder 'code' does not exist in 'analysis' folder!"
+        )
 
         # assert the list of files in the `code` folder,
         #   and bash files should be executable:
@@ -1030,9 +1011,7 @@ class BABS:
                 ' will be able to finish successfully.'
             )
 
-            _, job_id_str, log_filename = submit_one_test_job(
-                self.analysis_path, self.type_system
-            )
+            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.type_system)
             log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
             o_fn = log_fn.replace('.*', '.o') + '_1'  # add task_id of test job "_1"
             # write this information in a YAML file:
@@ -1051,9 +1030,7 @@ class BABS:
 
             # check job status every 1 min:
             flag_done = False  # whether job is out of queue (True)
-            flag_success_test_job = (
-                False  # whether job was successfully finished (True)
-            )
+            flag_success_test_job = False  # whether job was successfully finished (True)
             print("Will check the test job's status using backoff strategy")
             sleeptime = 1
             while not flag_done:
@@ -1062,15 +1039,11 @@ class BABS:
                 df_all_job_status = request_all_job_status(self.type_system)
                 d_now_str = str(datetime.now())
                 to_print = d_now_str + ': '
-                if (
-                    job_id_str + '_1' in df_all_job_status.index.to_list()
-                ):  # Add task_id
+                if job_id_str + '_1' in df_all_job_status.index.to_list():  # Add task_id
                     # ^^ if `df` is empty, `.index.to_list()` will return []
                     # if the job is still in the queue:
                     # state_category = df_all_job_status.at[job_id_str, '@state']
-                    state_code = df_all_job_status.at[
-                        job_id_str + '_1', 'state'
-                    ]  # Add task_id
+                    state_code = df_all_job_status.at[job_id_str + '_1', 'state']  # Add task_id
                     # ^^ column `@state`: 'running' or 'pending'
 
                     # print some information:
@@ -1095,9 +1068,7 @@ class BABS:
                         flag_success_test_job = False
                         to_print += 'Test job was not successfully finished'
                         to_print += ' and is currently out of queue.'
-                        to_print += (
-                            " Last line of stdout log file: '" + last_line + "'."
-                        )
+                        to_print += " Last line of stdout log file: '" + last_line + "'."
                         to_print += ' Path to the log file: ' + log_fn
                 print(to_print)
 
@@ -1113,9 +1084,7 @@ class BABS:
                 fn_check_env_yaml = op.join(
                     self.analysis_path, 'code/check_setup', 'check_env.yaml'
                 )
-                flag_writable, flag_all_installed = print_versions_from_yaml(
-                    fn_check_env_yaml
-                )
+                flag_writable, flag_all_installed = print_versions_from_yaml(fn_check_env_yaml)
                 if not flag_writable:
                     raise Exception(
                         'The designated workspace is not writable!'
@@ -1229,9 +1198,7 @@ class BABS:
                         120,
                     ):  # default is 80 characters...
                         # ^^ print all the columns and rows (with returns)
-                        print(
-                            df_job_updated.head(num_rows_to_print)
-                        )  # only first several rows
+                        print(df_job_updated.head(num_rows_to_print))  # only first several rows
 
                     # save updated df:
                     df_job_updated.to_csv(self.job_status_path_abs, index=False)
@@ -1331,9 +1298,7 @@ class BABS:
                     task_id_str = str(task_id)
                     job_task_id_str = job_id_str + '_' + task_id_str  # eg: 3536406_1
                     log_filename = df_job.at[i_task, 'log_filename']  # with "*"
-                    log_fn = op.join(
-                        self.analysis_path, 'logs', log_filename
-                    )  # abs path
+                    log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
                     o_fn = log_fn.replace('.*', '.o')
 
                     # did_resubmit = False   # reset: did not resubmit this job
@@ -1359,17 +1324,13 @@ class BABS:
                                 df_resubmit_task_specific['ses_id'] == ses
                             )
 
-                        if any(
-                            temp
-                        ):  # any matched; `temp` is pd.Series of True or False
+                        if any(temp):  # any matched; `temp` is pd.Series of True or False
                             if_request_resubmit_this_task = True
                             # print("debugging purpose: request to resubmit job: " + sub + ", " + ses)
                             # ^^ only for multi-ses!
 
                     # Update the "last_line_stdout_file":
-                    df_job_updated.at[i_task, 'last_line_stdout_file'] = get_last_line(
-                        o_fn
-                    )
+                    df_job_updated.at[i_task, 'last_line_stdout_file'] = get_last_line(o_fn)
 
                     # Check if any alert message in log files for this job:
                     # NOTE: in theory can skip failed jobs in previous round,
@@ -1381,9 +1342,7 @@ class BABS:
                         if_found_log_files,
                     ) = get_alert_message_in_log_files(config_msg_alert, log_fn)
                     # ^^ the function will handle even if `config_msg_alert=None`
-                    df_job_updated.at[i_task, 'alert_message'] = (
-                        alert_message_in_log_files
-                    )
+                    df_job_updated.at[i_task, 'alert_message'] = alert_message_in_log_files
 
                     # Check if there is a branch in output RIA:
                     #   check if branch name of current job is in the list of all branches:
@@ -1405,9 +1364,7 @@ class BABS:
                         # Check the job status:
                         if job_task_id_str in df_all_job_status.index.to_list():
                             # ^^ if `df` is empty, `.index.to_list()` will return []
-                            state_category = df_all_job_status.at[
-                                job_task_id_str, '@state'
-                            ]
+                            state_category = df_all_job_status.at[job_task_id_str, '@state']
                             state_code = df_all_job_status.at[job_task_id_str, 'state']
                             # ^^ column `@state`: 'running' or 'pending'
 
@@ -1424,7 +1381,7 @@ class BABS:
                                     )
                                     # NOTE: removed "and `--reckless` was not specified, "
                                     #   can add this ^^ back after supporting `--reckless` in CLI
-                                    warnings.warn(to_print)
+                                    warnings.warn(to_print, stacklevel=2)
 
                                 # COMMENT OUT BECAUSE reckless is always False
                                 # AND THIS HAS BEEN REMOVE FROM CLI
@@ -1460,9 +1417,7 @@ class BABS:
                                     df_job_updated.at[i_task, 'job_state_category'] = (
                                         state_category
                                     )
-                                    df_job_updated.at[i_task, 'job_state_code'] = (
-                                        state_code
-                                    )
+                                    df_job_updated.at[i_task, 'job_state_code'] = state_code
                                     # get the duration:
                                     if 'duration' in df_all_job_status:
                                         # e.g., slurm `squeue` automatically returns the duration,
@@ -1475,9 +1430,7 @@ class BABS:
                                         # time, as this is using current time, instead of
                                         # the time when `qstat`/requesting job queue.
                                         duration = calcu_runtime(
-                                            df_all_job_status.at[
-                                                job_task_id_str, 'JAT_start_time'
-                                            ]
+                                            df_all_job_status.at[job_task_id_str, 'JAT_start_time']
                                         )
                                     df_job_updated.at[i_task, 'duration'] = duration
 
@@ -1499,7 +1452,7 @@ class BABS:
                                     if self.type_session == 'multi-ses':
                                         to_print += ', ' + ses
                                     to_print += ', as it was pending and resubmit was requested.'
-                                    print(to_print)
+                                    print(to_print, stacklevel=2)
 
                                     # kill original one
                                     proc_kill = subprocess.run(
@@ -1517,9 +1470,7 @@ class BABS:
                                     df_job_updated.at[i_task, 'job_state_category'] = (
                                         state_category
                                     )
-                                    df_job_updated.at[i_task, 'job_state_code'] = (
-                                        state_code
-                                    )
+                                    df_job_updated.at[i_task, 'job_state_code'] = state_code
 
                             # COMMENT OUT BECAUSE "eqw" is SGE STATE
                             # elif state_code == "eqw":
@@ -1585,18 +1536,14 @@ class BABS:
                                 # change the 'alert_message' to no alert in logs,
                                 #   so that when reporting job status,
                                 #   info from job accounting will be reported
-                                df_job_updated.at[i_task, 'alert_message'] = (
-                                    MSG_NO_ALERT_IN_LOGS
-                                )
+                                df_job_updated.at[i_task, 'alert_message'] = MSG_NO_ALERT_IN_LOGS
 
                             # check the log file:
                             # TODO ^^
                             # TODO: assign error category in df; also print it out
 
                             # resubmit if requested:
-                            elif ('failed' in flags_resubmit) or (
-                                if_request_resubmit_this_task
-                            ):
+                            elif ('failed' in flags_resubmit) or (if_request_resubmit_this_task):
                                 # Resubmit:
                                 # did_resubmit = True
                                 df_job_updated.at[i_task, 'needs_resubmit'] = True
@@ -1606,7 +1553,7 @@ class BABS:
                                 if self.type_session == 'multi-ses':
                                     to_print += ', ' + ses
                                 to_print += ', as it failed and resubmit was requested.'
-                                print(to_print)
+                                print(to_print, stacklevel=2)
 
                                 # no need to kill original one!
                                 #   As it already failed and out of job queue...
@@ -1630,14 +1577,10 @@ class BABS:
                                         username_lowercase,
                                         self.type_system,
                                     )
-                                    df_job_updated.at[i_job, 'job_account'] = (
-                                        msg_job_account
-                                    )
+                                    df_job_updated.at[i_job, 'job_account'] = msg_job_account
 
                 # Collect all to-be-resubmitted tasks into a single DataFrame
-                df_job_resubmit = df_job_updated[
-                    df_job_updated['needs_resubmit'] == True
-                ].copy()
+                df_job_resubmit = df_job_updated[df_job_updated['needs_resubmit'] == True].copy()
                 df_job_resubmit.reset_index(drop=True, inplace=True)
                 if df_job_resubmit.shape[0] > 0:
                     maxarray = str(df_job_resubmit.shape[0])
@@ -1662,9 +1605,7 @@ class BABS:
                         df_job_resubmit_updated,
                         submitted=True,
                     )
-                    df_job_resubmit_updated.to_csv(
-                        self.job_submit_path_abs, index=False
-                    )
+                    df_job_resubmit_updated.to_csv(self.job_submit_path_abs, index=False)
                 # Done: submitted jobs that not 'is_done'
 
                 # For 'is_done' jobs in previous round:
@@ -1678,9 +1619,7 @@ class BABS:
                     task_id_str = str(task_id)
                     job_task_id_str = job_id_str + '_' + task_id_str  # eg: 3536406_1
                     log_filename = df_job.at[i_task, 'log_filename']  # with "*"
-                    log_fn = op.join(
-                        self.analysis_path, 'logs', log_filename
-                    )  # abs path
+                    log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
                     o_fn = log_fn.replace('.*', '.o')
 
                     if self.type_session == 'single-ses':
@@ -1704,9 +1643,7 @@ class BABS:
                                 df_resubmit_task_specific['ses_id'] == ses
                             )
 
-                        if any(
-                            temp
-                        ):  # any matched; `temp` is pd.Series of True or False
+                        if any(temp):  # any matched; `temp` is pd.Series of True or False
                             if_request_resubmit_this_task = True
                             # print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
                             # ^^ only for multi-ses
@@ -1722,7 +1659,7 @@ class BABS:
                         )
                         # NOTE: removed "and `--reckless` was not specified, "
                         #   can add this ^^ back after supporting `--reckless` in CLI
-                        warnings.warn(to_print)
+                        warnings.warn(to_print, stacklevel=2)
 
                     # COMMENT OUT BECAUSE reckless is always False
                     # AND THIS HAS BEEN REMOVE FROM CLI
@@ -1761,18 +1698,14 @@ class BABS:
                     else:  # did not request resubmit, or `--reckless` is None:
                         # just perform normal stuff for a successful job:
                         # Update the "last_line_stdout_file":
-                        df_job_updated.at[i_task, 'last_line_stdout_file'] = (
-                            get_last_line(o_fn)
-                        )
+                        df_job_updated.at[i_task, 'last_line_stdout_file'] = get_last_line(o_fn)
                         # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
                         alert_message_in_log_files, if_no_alert_in_log, _ = (
                             get_alert_message_in_log_files(config_msg_alert, log_fn)
                         )
                         # ^^ the function will handle even if `config_msg_alert=None`
-                        df_job_updated.at[i_task, 'alert_message'] = (
-                            alert_message_in_log_files
-                        )
+                        df_job_updated.at[i_task, 'alert_message'] = alert_message_in_log_files
                 # Done: 'is_done' jobs.
 
                 # For jobs that haven't been submitted yet:
@@ -1784,14 +1717,10 @@ class BABS:
                     if self.type_session == 'single-ses':
                         df_job_not_submitted_slim = df_job_not_submitted[['sub_id']]
                     elif self.type_session == 'multi-ses':
-                        df_job_not_submitted_slim = df_job_not_submitted[
-                            ['sub_id', 'ses_id']
-                        ]
+                        df_job_not_submitted_slim = df_job_not_submitted[['sub_id', 'ses_id']]
 
                     # check if `--resubmit-job` was requested for any these jobs:
-                    df_intersection = df_resubmit_task_specific.merge(
-                        df_job_not_submitted_slim
-                    )
+                    df_intersection = df_resubmit_task_specific.merge(df_job_not_submitted_slim)
                     if len(df_intersection) > 0:
                         warnings.warn(
                             'Jobs for some of the subjects (and sessions) requested in'
@@ -1841,7 +1770,7 @@ class BABS:
             raise Exception(
                 "Folder 'merge_ds' already exists. `babs-merge` won't proceed."
                 " If you're sure you want to rerun `babs-merge`,"
-                " please remove this folder before you rerun `babs-merge`."
+                ' please remove this folder before you rerun `babs-merge`.'
                 " Path to 'merge_ds': '" + merge_ds_path + "'. "
             )
 
@@ -1850,13 +1779,9 @@ class BABS:
         #   as `merge_ds` should not exist at the moment,
         #   no need to check existence/remove these files.
         # define path to text file of invalid job list exists:
-        fn_list_invalid_jobs = op.join(
-            merge_ds_path, 'code', 'list_invalid_job_when_merging.txt'
-        )
+        fn_list_invalid_jobs = op.join(merge_ds_path, 'code', 'list_invalid_job_when_merging.txt')
         # define path to text file of files with missing content:
-        fn_list_content_missing = op.join(
-            merge_ds_path, 'code', 'list_content_missing.txt'
-        )
+        fn_list_content_missing = op.join(merge_ds_path, 'code', 'list_content_missing.txt')
         # define path to printed messages from `git annex fsck`:
         # ^^ this will be absolutely used if `babs-merge` does not fail:
         fn_msg_fsck = op.join(merge_ds_path, 'code', 'log_git_annex_fsck.txt')
@@ -1893,8 +1818,7 @@ class BABS:
 
         if len(list_branches_jobs) == 0:
             raise Exception(
-                'There is no successfully finished job yet.'
-                ' Please run `babs-submit` first.'
+                'There is no successfully finished job yet. Please run `babs-submit` first.'
             )
 
         # Find all valid branches (i.e., those with results --> have different SHASUM):
@@ -1915,9 +1839,7 @@ class BABS:
             # another way: `default_branch_name = msg.split("HEAD branch: ")[1].split("\n")[0]`
         else:
             raise Exception('There is no HEAD branch in output RIA!')
-        print(
-            "Git default branch's name of output RIA is: '" + default_branch_name + "'"
-        )
+        print("Git default branch's name of output RIA is: '" + default_branch_name + "'")
 
         # get current git commit SHASUM before merging as a reference:
         git_ref, _ = get_git_show_ref_shasum(default_branch_name, merge_ds_path)
@@ -1929,9 +1851,7 @@ class BABS:
         for branch_job in list_branches_jobs:
             # get the job's `git show-ref`:
             git_ref_branch_job, _ = get_git_show_ref_shasum(branch_job, merge_ds_path)
-            if (
-                git_ref_branch_job == git_ref
-            ):  # no new commit --> no results in this branch
+            if git_ref_branch_job == git_ref:  # no new commit --> no results in this branch
                 list_branches_no_results.append(branch_job)
             else:  # has results:
                 list_branches_with_results.append(branch_job)
@@ -1973,10 +1893,7 @@ class BABS:
 
         # Merge valid branches chunk by chunk:
         print('\nMerging valid job branches chunk by chunk...')
-        print(
-            'Total number of job branches to merge = '
-            + str(len(list_branches_with_results))
-        )
+        print('Total number of job branches to merge = ' + str(len(list_branches_with_results)))
         print('Chunk size (number of job branches per chunk) = ' + str(chunk_size))
         # turn the list into numpy array:
         arr = np.asarray(list_branches_with_results)
@@ -2000,17 +1917,11 @@ class BABS:
             # join all branches in this chunk:
             joined_by_space = ' '.join(the_chunk)  # e.g., 'a b c'
             # command to run:
-            commit_msg = (
-                'merge results chunk ' + str(i_chunk + 1) + '/' + str(num_chunks)
-            )
+            commit_msg = 'merge results chunk ' + str(i_chunk + 1) + '/' + str(num_chunks)
             # ^^ okay to not to be quoted,
             #   as in `subprocess.run` this is a separate element in the `cmd` list
-            cmd = ['git', 'merge', '-m', commit_msg] + joined_by_space.split(
-                ' '
-            )  # split by space
-            proc_git_merge = subprocess.run(
-                cmd, cwd=merge_ds_path, stdout=subprocess.PIPE
-            )
+            cmd = ['git', 'merge', '-m', commit_msg] + joined_by_space.split(' ')  # split by space
+            proc_git_merge = subprocess.run(cmd, cwd=merge_ds_path, stdout=subprocess.PIPE)
             proc_git_merge.check_returncode()
             print(proc_git_merge.stdout.decode('utf-8'))
 
@@ -2109,12 +2020,11 @@ class BABS:
         else:  # `--trial-run` is on:
             print('')  # new empty line
             warnings.warn(
-                '`--trial-run` was requested,'
-                + ' not to push merging actions to output RIA.'
+                '`--trial-run` was requested,' + ' not to push merging actions to output RIA.'
             )
             print('\n`babs-merge` did not fully finish yet!')
 
-    def babs_unzip(container_config_yaml_file):
+    def babs_unzip(self, container_config_yaml_file):
         """
         This function unzips results and extract desired files.
         This is done in 3 steps:
@@ -2203,14 +2113,10 @@ class Input_ds:
         for i in range(0, self.num_ds):
             self.df.loc[i, 'name'] = input_cli[i][0]
             self.df.loc[i, 'path_in'] = input_cli[i][1]
-            self.df.loc[i, 'path_now_rel'] = op.join(
-                'inputs/data', self.df.loc[i, 'name']
-            )
+            self.df.loc[i, 'path_now_rel'] = op.join('inputs/data', self.df.loc[i, 'name'])
 
         # sanity check: input ds names should not be identical:
-        if (
-            len(set(self.df['name'].tolist())) != self.num_ds
-        ):  # length of the set = number of ds
+        if len(set(self.df['name'].tolist())) != self.num_ds:  # length of the set = number of ds
             raise Exception("There are identical names in input datasets' names!")
 
         # Initialize other attributes: ------------------------------
@@ -2238,9 +2144,7 @@ class Input_ds:
             self.initial_inclu_df = None
         else:
             if op.exists(list_sub_file) is False:  # does not exist:
-                raise Exception(
-                    '`list_sub_file` does not exists! Please check: ' + list_sub_file
-                )
+                raise Exception('`list_sub_file` does not exists! Please check: ' + list_sub_file)
             else:  # exists:
                 self.initial_inclu_df = pd.read_csv(list_sub_file)
                 self.validate_initial_inclu_df(type_session)
@@ -2259,9 +2163,7 @@ class Input_ds:
         # Sanity check: no repeated sub (or sessions):
         if type_session == 'single-ses':
             # there should only be one occurrence per sub:
-            if len(set(self.initial_inclu_df['sub_id'])) != len(
-                self.initial_inclu_df['sub_id']
-            ):
+            if len(set(self.initial_inclu_df['sub_id'])) != len(self.initial_inclu_df['sub_id']):
                 raise Exception("There are repeated 'sub_id' in" + '`list_sub_file`!')
         elif type_session == 'multi-ses':
             # there should not be repeated combinations of `sub_id` and `ses_id`:
@@ -2281,16 +2183,10 @@ class Input_ds:
             # sort:
             self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id'])
             # reset the index, and remove the additional colume:
-            self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(
-                columns=['index']
-            )
+            self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(columns=['index'])
         elif type_session == 'multi-ses':
-            self.initial_inclu_df = self.initial_inclu_df.sort_values(
-                by=['sub_id', 'ses_id']
-            )
-            self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(
-                columns=['index']
-            )
+            self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id', 'ses_id'])
+            self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(columns=['index'])
 
     def assign_path_now_abs(self, analysis_path):
         """
@@ -2303,9 +2199,7 @@ class Input_ds:
         """
 
         for i in range(0, self.num_ds):
-            self.df.loc[i, 'path_now_abs'] = op.join(
-                analysis_path, self.df.loc[i, 'path_now_rel']
-            )
+            self.df.loc[i, 'path_now_abs'] = op.join(analysis_path, self.df.loc[i, 'path_now_rel'])
 
     def check_if_zipped(self):
         """
@@ -2386,9 +2280,7 @@ class Input_ds:
             Name of the container
         """
 
-        if True in list(
-            self.df['is_zipped']
-        ):  # there is at least one dataset is zipped
+        if True in list(self.df['is_zipped']):  # there is at least one dataset is zipped
             print(
                 'Performing sanity check for any zipped input dataset...'
                 ' Getting example zip file(s) to check...'
@@ -2511,9 +2403,7 @@ class System:
         #   ref: https://note.nkmk.me/en/python-script-file-path/
         __location__ = op.realpath(op.dirname(op.abspath(__file__)))
 
-        fn_dict_cluster_systems_yaml = op.join(
-            __location__, 'dict_cluster_systems.yaml'
-        )
+        fn_dict_cluster_systems_yaml = op.join(__location__, 'dict_cluster_systems.yaml')
         with open(fn_dict_cluster_systems_yaml) as f:
             dict = yaml.load(f, Loader=yaml.FullLoader)
             # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
@@ -2672,8 +2562,7 @@ class Container:
             )
             # if there is only one input ds, fine:
             print(
-                "Section 'singularity_run' was not included "
-                "in the `container_config_yaml_file`. "
+                "Section 'singularity_run' was not included in the `container_config_yaml_file`. "
             )
             cmd_singularity_flags = ''  # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
@@ -2699,8 +2588,8 @@ class Container:
         # TODO: also corporate the `call-fmt` in `datalad containers-add`
 
         # 2. check `zip_foldernames` section:
-        dict_zip_foldernames, if_mk_output_folder, path_output_folder = (
-            get_info_zip_foldernames(self.config)
+        dict_zip_foldernames, if_mk_output_folder, path_output_folder = get_info_zip_foldernames(
+            self.config
         )
 
         print()
@@ -2740,9 +2629,7 @@ class Container:
         # Check if `--bids-filter-file "${filterfile}"` is needed:
         flag_filterfile = False
         if type_session == 'multi-ses':
-            if any(
-                ele in self.container_name.lower() for ele in ['fmriprep', 'qsiprep']
-            ):
+            if any(ele in self.container_name.lower() for ele in ['fmriprep', 'qsiprep']):
                 # ^^ if the container_name contains `fmriprep` or `qsiprep`:
                 # ^^ case insensitive (as have changed to lower case), accept "fMRIPrep-0-0-0"
                 flag_filterfile = True
@@ -2812,14 +2699,10 @@ class Container:
         if flag_filterfile is True:
             # also needs a $filterfile flag:
             cmd_singularity_flags += ' \\' + '\n\t'
-            cmd_singularity_flags += (
-                '--bids-filter-file "${filterfile}"'  # <- TODO: test out!!
-            )
+            cmd_singularity_flags += '--bids-filter-file "${filterfile}"'  # <- TODO: test out!!
 
         cmd_singularity_flags += ' \\' + '\n\t'
-        cmd_singularity_flags += (
-            '--participant-label "${subid}"'  # standard argument in BIDS App
-        )
+        cmd_singularity_flags += '--participant-label "${subid}"'  # standard argument in BIDS App
 
         bash_file.write(cmd_singularity_flags)
         bash_file.write('\n\n')
@@ -2896,8 +2779,7 @@ class Container:
 
         # Change how this bash file is run:
         bash_file.write(
-            '\n# Fail whenever something is fishy,'
-            + ' use -x to get verbose logfiles:\n'
+            '\n# Fail whenever something is fishy,' + ' use -x to get verbose logfiles:\n'
         )
         bash_file.write('set -e -u -x\n')
 
@@ -2911,10 +2793,10 @@ class Container:
             'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)\n'
         )
         bash_file.write(
-            "subid=$(echo \"$subject_row\" | sed -n 's/^.*\\(sub-[A-Za-z0-9]*\\).*$/\\1/p')\n"
+            'subid=$(echo "$subject_row" | sed -n \'s/^.*\\(sub-[A-Za-z0-9]*\\).*$/\\1/p\')\n'
         )
         bash_file.write(
-            "sesid=$(echo \"$subject_row\" | sed -n 's/^.*\\(ses-[A-Za-z0-9]*\\).*$/\\1/p')\n"
+            'sesid=$(echo "$subject_row" | sed -n \'s/^.*\\(ses-[A-Za-z0-9]*\\).*$/\\1/p\')\n'
         )
 
         # Change path to a temporary job compute workspace:
@@ -2931,9 +2813,7 @@ class Container:
             varname_jobid = 'SLURM_ARRAY_JOB_ID'
 
         if type_session == 'multi-ses':
-            bash_file.write(
-                'BRANCH="job-${' + varname_jobid + '}-${subid}-${sesid}"' + '\n'
-            )
+            bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}-${sesid}"' + '\n')
         elif type_session == 'single-ses':
             bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}"' + '\n')
 
@@ -2998,10 +2878,7 @@ class Container:
                 """
             else:  # zipped ds:
                 bash_file.write(
-                    'datalad get -n "'
-                    + input_ds.df.loc[i_ds, 'path_now_rel']
-                    + '"'
-                    + '\n'
+                    'datalad get -n "' + input_ds.df.loc[i_ds, 'path_now_rel'] + '"' + '\n'
                 )
                 # e.g., `datalad get -n "inputs/data/freesurfer"`
                 # ^^ should NOT only get specific zip file, as right now we need to
@@ -3025,9 +2902,7 @@ class Container:
                 """
 
         # determine the zip filename:
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(
-            input_ds, type_session
-        )
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
         bash_file.write(cmd_determine_zipfilename)
 
         # `datalad run`:
@@ -3139,8 +3014,7 @@ class Container:
 
         # Change how this bash file is run:
         bash_file.write(
-            '\n# Fail whenever something is fishy,'
-            + ' use -x to get verbose logfiles:\n'
+            '\n# Fail whenever something is fishy,' + ' use -x to get verbose logfiles:\n'
         )
         bash_file.write('set -e -u -x\n')
 
@@ -3226,11 +3100,9 @@ class Container:
             env_flags = '-v DSLOCKFILE=' + babs.analysis_path + '/.SGE_datalad_lock'
         elif system.type == 'slurm':
             submit_head = 'sbatch'
-            env_flags = (
-                '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
-            )
+            env_flags = '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
         else:
-            warnings.warn('not supporting systems other than sge...')
+            warnings.warn('not supporting systems other than sge...', stacklevel=2)
 
         # Check if the bash file already exist:
         if op.exists(yaml_path):
@@ -3263,14 +3135,7 @@ class Container:
         # Now, we can define stdout and stderr file names/paths:
         if system.type == 'sge':
             # sge clusters only need logs folder path; filename is not needed:
-            eo_args = (
-                '-e '
-                + babs.analysis_path
-                + '/logs '
-                + '-o '
-                + babs.analysis_path
-                + '/logs'
-            )
+            eo_args = '-e ' + babs.analysis_path + '/logs ' + '-o ' + babs.analysis_path + '/logs'
         elif system.type == 'slurm':
             # slurm clusters also need exact filenames:
             eo_args = (
