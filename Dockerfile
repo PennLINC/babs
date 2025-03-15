@@ -33,6 +33,12 @@ ENV PATH=/opt/conda/envs/babs/bin:$PATH
 RUN git config --global user.name "CircleCI" \
     && git config --global user.email "circleci@example.com"
 
+# Create toy bids app
+RUN mkdir -p /singularity_images \
+    && apptainer build \
+    /singularity_images/toybidsapp_0.0.7.sif \
+    docker://pennlinc/toy_bids_app:0.0.7
+
 # # install BABS
 # COPY . $HOME/babs
 # WORKDIR $HOME/babs
