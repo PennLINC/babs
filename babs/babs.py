@@ -227,7 +227,8 @@ class BABS:
         if not flag_output_ria_only:  # also want other information:
             # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
 
-            # way #1: using datalad api; however, it always prints out the full, lengthy wtf report....
+            # way #1: using datalad api; however, it always prints out the full,
+            # lengthy wtf report....
             # # full dict from `datalad wtf`:
             # blockPrint()
             # full_wtf_list = dlapi.wtf(dataset=self.analysis_path)
@@ -670,9 +671,7 @@ class BABS:
         # confirm the BABS project has been removed:
         assert not op.exists(self.project_root), (
             'Created BABS project was not completely deleted!'
-            + " Path to created BABS project: '"
-            + self.project_root
-            + "'"
+            " Path to created BABS project: '" + self.project_root + "'"
         )
 
         print('\nCreated BABS project has been cleaned up.')
@@ -701,7 +700,7 @@ class BABS:
         # Print out the saved configuration info: ----------------
         print(
             'Below is the configuration information saved during `babs-init`'
-            + " in file 'analysis/code/babs_proj_config.yaml':\n"
+            " in file 'analysis/code/babs_proj_config.yaml':\n"
         )
         f = open(op.join(self.analysis_path, 'code/babs_proj_config.yaml'))
         file_contents = f.read()
@@ -714,8 +713,7 @@ class BABS:
         #   (^^ though should be checked in `get_existing_babs_proj()` in cli.py)
         assert op.exists(self.analysis_path), (
             "Folder 'analysis' does not exist in this BABS project!"
-            + ' Current path to analysis folder: '
-            + self.analysis_path
+            ' Current path to analysis folder: ' + self.analysis_path
         )
         # if there is `analysis`:
         # update `analysis_datalad_handle`:
@@ -726,28 +724,24 @@ class BABS:
         # Check `analysis` datalad dataset: ----------------------
         print("\nCheck status of 'analysis' DataLad dataset...")
         # Are there anything unsaved? ref: CuBIDS function
-        analysis_statuses = set(
-            [
-                status['state']
-                for status in self.analysis_datalad_handle.status(
-                    eval_subdataset_state='commit'
-                    # not to fully eval subdataset (e.g. input ds) status
-                    # otherwise, would take too long..
-                )
-            ]
-        )
+        analysis_statuses = {
+            status['state']
+            for status in self.analysis_datalad_handle.status(
+                eval_subdataset_state='commit'
+                # not to fully eval subdataset (e.g. input ds) status
+                # otherwise, would take too long..
+            )
+        }
         # statuses should be all "clean", without anything else e.g., "modified":
-        assert analysis_statuses == set(['clean']), (
+        assert analysis_statuses == {'clean'}, (
             "Analysis DataLad dataset's status is not clean."
-            + " There might be untracked or modified files in folder 'analysis'."
-            + " Please go to this directory: '"
-            + self.analysis_path
-            + "'\n"
-            + ' and run `datalad status` to check what were changed,'
-            + " then run `datalad save -m 'your message'`,"
-            + ' then run `datalad push --to input`;'
-            + " Finally, if you're sure there is no successful jobs finished, you can"
-            + ' run `datalad push --to output`.'
+            " There might be untracked or modified files in folder 'analysis'."
+            " Please go to this directory: '" + self.analysis_path + "'\n"
+            ' and run `datalad status` to check what were changed,'
+            " then run `datalad save -m 'your message'`,"
+            ' then run `datalad push --to input`;'
+            " Finally, if you're sure there is no successful jobs finished, you can"
+            ' run `datalad push --to output`.'
         )
         print(CHECK_MARK + ' All good!')
 
@@ -757,8 +751,7 @@ class BABS:
         temp_list = get_immediate_subdirectories(op.join(self.analysis_path, 'inputs/data'))
         assert len(temp_list) > 0, (
             "There is no sub-directory (i.e., no input dataset) in 'inputs/data'!"
-            + " Full path to folder 'inputs/data': "
-            + op.join(self.analysis_path, 'inputs/data')
+            " Full path to folder 'inputs/data': " + op.join(self.analysis_path, 'inputs/data')
         )
 
         # check each input ds:
@@ -880,35 +873,29 @@ class BABS:
                 if_found_sibling_output = True
                 assert the_sibling['url'] == actual_output_ria_data_dir, (
                     "The `analysis` datalad dataset's sibling 'output' url does not match"
-                    + ' the path to the output RIA.'
-                    + ' Former = '
-                    + the_sibling['url']
-                    + ';'
-                    + ' Latter = '
-                    + actual_output_ria_data_dir
+                    ' the path to the output RIA.'
+                    ' Former = ' + the_sibling['url'] + ';'
+                    ' Latter = ' + actual_output_ria_data_dir
                 )
             if the_sibling['name'] == 'input':  # input ria:
                 if_found_sibling_input = True
                 assert the_sibling['url'] == actual_input_ria_data_dir, (
                     "The `analysis` datalad dataset's sibling 'input' url does not match"
-                    + ' the path to the input RIA.'
-                    + ' Former = '
-                    + the_sibling['url']
-                    + ';'
-                    + ' Latter = '
-                    + actual_input_ria_data_dir
+                    ' the path to the input RIA.'
+                    ' Former = ' + the_sibling['url'] + ';'
+                    ' Latter = ' + actual_input_ria_data_dir
                 )
         if not if_found_sibling_input:
             raise Exception(
                 "Did not find a sibling of 'analysis' DataLad dataset"
-                + " that's called 'input'. There may be something wrong when"
-                + ' setting up input RIA!'
+                " that's called 'input'. There may be something wrong when"
+                ' setting up input RIA!'
             )
         if not if_found_sibling_output:
             raise Exception(
                 "Did not find a sibling of 'analysis' DataLad dataset"
-                + " that's called 'output'. There may be something wrong when"
-                + ' setting up output RIA!'
+                " that's called 'output'. There may be something wrong when"
+                ' setting up output RIA!'
             )
 
         # output_ria_datalad_handle = dlapi.Dataset(self.output_ria_data_dir)
@@ -932,20 +919,14 @@ class BABS:
         hash_input_ria = proc_hash_input_ria.stdout.decode('utf-8').replace('\n', '')
         assert hash_analysis == hash_input_ria, (
             'The hash of current commit of `analysis` datalad dataset does not match'
-            + ' with that of input RIA.'
-            + ' Former = '
-            + hash_analysis
-            + ';'
-            + ' Latter = '
-            + hash_input_ria
-            + '.'
-            + '\n'
-            + 'It might be because that latest commits in'
-            + ' `analysis` were not pushed to input RIA.'
-            + " Try running this command at directory '"
-            + self.analysis_path
-            + "': \n"
-            + '$ datalad push --to input'
+            ' with that of input RIA.'
+            ' Former = ' + hash_analysis + ';'
+            ' Latter = ' + hash_input_ria + '.'
+            '\n'
+            'It might be because that latest commits in'
+            ' `analysis` were not pushed to input RIA.'
+            " Try running this command at directory '" + self.analysis_path + "': \n"
+            '$ datalad push --to input'
         )
 
         # output ria's commit hash:
@@ -962,22 +943,17 @@ class BABS:
             flag_warning_output_ria = True
             warnings.warn(
                 'The hash of current commit of `analysis` datalad dataset does not match'
-                + ' with that of output RIA.'
-                + ' Former = '
-                + hash_analysis
-                + ';'
-                + ' Latter = '
-                + hash_output_ria
-                + '.\n'
-                + 'It might be because that latest commits in'
-                + ' `analysis` were not pushed to output RIA.\n'
-                + 'If there are already successful job(s) finished, please do NOT push updates'
-                + ' from `analysis` to output RIA.\n'
-                + "If you're sure there is no successful job finished, you may try running"
-                + " this command at directory '"
-                + self.analysis_path
-                + "': \n"
-                + '$ datalad push --to output'
+                ' with that of output RIA.'
+                ' Former = ' + hash_analysis + ';'
+                ' Latter = ' + hash_output_ria + '.\n'
+                'It might be because that latest commits in'
+                ' `analysis` were not pushed to output RIA.\n'
+                'If there are already successful job(s) finished, please do NOT push updates'
+                ' from `analysis` to output RIA.\n'
+                "If you're sure there is no successful job finished, you may try running"
+                " this command at directory '" + self.analysis_path + "': \n"
+                '$ datalad push --to output',
+                stacklevel=2,
             )
         else:
             flag_warning_output_ria = False
@@ -994,10 +970,10 @@ class BABS:
         if not flag_job_test:
             print(
                 "\nNot to submit a test job as it's not requested."
-                + " We recommend running a test job with `--job-test` if you haven't done so;"
-                + ' It will gather setup information in the designated environment'
-                + ' and make sure future BABS jobs with current setups'
-                + ' will be able to finish successfully.'
+                " We recommend running a test job with `--job-test` if you haven't done so;"
+                ' It will gather setup information in the designated environment'
+                ' and make sure future BABS jobs with current setups'
+                ' will be able to finish successfully.'
             )
             print('\n`babs-check-setup` was successful! ')
         else:
@@ -1075,9 +1051,9 @@ class BABS:
             if not flag_success_test_job:  # failed
                 raise Exception(
                     '\nThere is something wrong probably in the setups.'
-                    + ' Please check the log files'
-                    + ' and the `--container_config_yaml_file`'
-                    + ' provided in `babs-init`!'
+                    ' Please check the log files'
+                    ' and the `--container_config_yaml_file`'
+                    ' provided in `babs-init`!'
                 )
             else:  # flag_success_test_job == True:
                 # go thru `code/check_setup/check_env.yaml`: check if anything wrong:
@@ -1088,26 +1064,26 @@ class BABS:
                 if not flag_writable:
                     raise Exception(
                         'The designated workspace is not writable!'
-                        + ' Please change it in the YAML file'
-                        + ' used in `babs-init --container-config-yaml-file`,'
-                        + ' then rerun `babs-init` with updated YAML file.'
+                        ' Please change it in the YAML file'
+                        ' used in `babs-init --container-config-yaml-file`,'
+                        ' then rerun `babs-init` with updated YAML file.'
                     )
                     # NOTE: ^^ currently this is not aligned with YAML file sections;
                     # this will make more sense after adding section of workspace path in YAML file
                 if not flag_all_installed:
                     raise Exception(
                         'Some required package(s) were not installed'
-                        + ' in the designated environment!'
-                        + ' Please install them in the designated environment,'
-                        + ' or change the designated environment you hope to use'
-                        + ' in `--container-config-yaml-file` and rerun `babs-init`!'
+                        ' in the designated environment!'
+                        ' Please install them in the designated environment,'
+                        ' or change the designated environment you hope to use'
+                        ' in `--container-config-yaml-file` and rerun `babs-init`!'
                     )
 
                 print(
                     'Please check if above versions are the ones you hope to use!'
-                    + ' If not, please change the version in the designated environment,'
-                    + ' or change the designated environment you hope to use'
-                    + ' in `--container-config-yaml-file` and rerun `babs-init`.'
+                    ' If not, please change the version in the designated environment,'
+                    ' or change the designated environment you hope to use'
+                    ' in `--container-config-yaml-file` and rerun `babs-init`.'
                 )
                 print(CHECK_MARK + ' All good in test job!')
                 print('\n`babs-check-setup` was successful! ')
@@ -1131,7 +1107,7 @@ class BABS:
             If `--job` was not specified in `babs-submit`, it will be None.
         """
 
-        count_report_progress = 10
+        #  = 10
         # ^^ if `j_count` is several times of `count_report_progress`, report progress
 
         # update `analysis_datalad_handle`:
@@ -1149,7 +1125,8 @@ class BABS:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
                 df_job = read_job_status_csv(self.job_status_path_abs)
 
-                # create and save a job array df to submit (based either on df_job_specified or count):
+                # create and save a job array df to submit
+                # (based either on df_job_specified or count):
                 df_job_submit = prepare_job_array_df(
                     df_job, df_job_specified, count, self.type_session
                 )
@@ -1326,7 +1303,8 @@ class BABS:
 
                         if any(temp):  # any matched; `temp` is pd.Series of True or False
                             if_request_resubmit_this_task = True
-                            # print("debugging purpose: request to resubmit job: " + sub + ", " + ses)
+                            # print("debugging purpose: request to resubmit job: " + sub + ", "
+                            #  + ses)
                             # ^^ only for multi-ses!
 
                     # Update the "last_line_stdout_file":
@@ -1385,7 +1363,8 @@ class BABS:
 
                                 # COMMENT OUT BECAUSE reckless is always False
                                 # AND THIS HAS BEEN REMOVE FROM CLI
-                                # if if_request_resubmit_this_task & reckless:  # force to resubmit:
+                                # if if_request_resubmit_this_task & reckless:
+                                # # force to resubmit:
                                 #     # Resubmit:
                                 #     # did_resubmit = True
                                 #     # print a message:
@@ -1411,8 +1390,9 @@ class BABS:
                                 #                        self.type_system,
                                 #                        sub, ses)
                                 #     # update fields:
-                                #     df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
-                                #                                        log_filename, debug=True)
+                                #     df_job_updated = df_update_one_job(
+                                #         df_job_updated, i_job, job_id_updated,
+                                #         log_filename, debug=True)
                                 else:  # just let it run:
                                     df_job_updated.at[i_task, 'job_state_category'] = (
                                         state_category
@@ -1478,7 +1458,8 @@ class BABS:
                             #     #   as this was not tested out;
                             #     #   also, equivalent `eqw` code on Slurm was not mapped either.
 
-                            #     if ('stalled' in flags_resubmit) or (if_request_resubmit_this_task):
+                            #     if ('stalled' in flags_resubmit) or
+                            #        (if_request_resubmit_this_task):
                             #         # requested resubmit,
                             #         #   but currently not support resubmitting stalled jobs:
                             #         #   print warning msg:
@@ -1496,7 +1477,8 @@ class BABS:
                             #     #     to_print = "Resubmit job for " + sub
                             #     #     if self.type_session == "multi-ses":
                             #     #         to_print += ", " + ses
-                            #     #     to_print += ", as it was stalled and resubmit was requested."
+                            #     #     to_print += ",
+                            #     #     as it was stalled and resubmit was requested."
                             #     #     print(to_print)
 
                             #     #     # kill original one
@@ -1513,8 +1495,9 @@ class BABS:
                             #     #                        self.type_system,
                             #     #                        sub, ses)
                             #     #     # update fields:
-                            #     #     df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
-                            #     #                                        log_filename, debug=True)
+                            #     #     df_job_updated = df_update_one_job(
+                            #     #         df_job_updated, i_job, job_id_updated,
+                            #     #         log_filename, debug=True)
                             #     # else:   # not to resubmit:
 
                             #     # only update fields:
@@ -1529,7 +1512,7 @@ class BABS:
                             df_job_updated.at[i_task, 'job_state_code'] = np.nan
                             df_job_updated.at[i_task, 'duration'] = np.nan
                             # ROADMAP: ^^ get duration via `qacct`
-                            if if_found_log_files == False:  # bool or np.nan
+                            if if_found_log_files is False:  # bool or np.nan
                                 # If there is no log files, the alert message would be 'np.nan';
                                 # however this is a failed job, so it should have log files,
                                 #   unless it was killed by the user when pending.
@@ -1571,7 +1554,7 @@ class BABS:
                                     # if `--job-account` is requested, and there is no alert
                                     #   message found in log files:
                                     job_name = log_filename.split('.*')[0]
-                                    msg_job_account = check_job_account(
+                                    check_job_account(
                                         job_id_str,
                                         job_name,
                                         username_lowercase,
@@ -1581,7 +1564,7 @@ class BABS:
                                     # df_job_updated.at[i_job, 'job_account'] = msg_job_account
 
                 # Collect all to-be-resubmitted tasks into a single DataFrame
-                df_job_resubmit = df_job_updated[df_job_updated['needs_resubmit'] == True].copy()
+                df_job_resubmit = df_job_updated[df_job_updated['needs_resubmit']].copy()
                 df_job_resubmit.reset_index(drop=True, inplace=True)
                 if df_job_resubmit.shape[0] > 0:
                     maxarray = str(df_job_resubmit.shape[0])
@@ -1646,7 +1629,8 @@ class BABS:
 
                         if any(temp):  # any matched; `temp` is pd.Series of True or False
                             if_request_resubmit_this_task = True
-                            # print("debugging purpose: request to resubmit job:" + sub + ", " + ses)
+                            # print("debugging purpose: request to resubmit job:" + sub + ", "
+                            #  + ses)
                             # ^^ only for multi-ses
 
                     # if want to resubmit, but `--reckless` is NOT specified: print msg:
@@ -1655,8 +1639,7 @@ class BABS:
                         if self.type_session == 'multi-ses':
                             to_print += ', ' + ses
                         to_print += (
-                            ' was requested, as this job is done,'
-                            + " BABS won't resubmit this job."
+                            " was requested, as this job is done, BABS won't resubmit this job."
                         )
                         # NOTE: removed "and `--reckless` was not specified, "
                         #   can add this ^^ back after supporting `--reckless` in CLI
@@ -1725,8 +1708,9 @@ class BABS:
                     if len(df_intersection) > 0:
                         warnings.warn(
                             'Jobs for some of the subjects (and sessions) requested in'
-                            + " `--resubmit-job` haven't been submitted yet."
-                            + ' Please use `babs-submit` first.'
+                            " `--resubmit-job` haven't been submitted yet."
+                            ' Please use `babs-submit` first.',
+                            stacklevel=2,
                         )
                 # Done: jobs that haven't submitted yet
 
@@ -1861,8 +1845,8 @@ class BABS:
         if len(list_branches_with_results) == 0:  # empty:
             raise Exception(
                 'There is no job branch in output RIA that has results yet,'
-                + ' i.e., there is no successfully finished job yet.'
-                + ' Please run `babs-submit` first.'
+                ' i.e., there is no successfully finished job yet.'
+                ' Please run `babs-submit` first.'
             )
 
         # check if there is invalid job (without results):
@@ -1872,12 +1856,11 @@ class BABS:
             if_any_warning = True
             warnings.warn(
                 'There are invalid job branch(es) in output RIA,'
-                + ' and these job(s) do not have results.'
-                + ' The list of such invalid jobs will be saved to'
-                + " the following text file: '"
-                + fn_list_invalid_jobs
-                + "'."
-                + ' Please review it.'
+                ' and these job(s) do not have results.'
+                ' The list of such invalid jobs will be saved to'
+                " the following text file: '" + fn_list_invalid_jobs + "'."
+                ' Please review it.',
+                stacklevel=2,
             )
             with open(fn_list_invalid_jobs, 'w') as f:
                 f.write('\n'.join(list_branches_no_results))
@@ -1980,7 +1963,7 @@ class BABS:
                     f.write('\n')
                 raise Exception(
                     'Unable to find file content for some file(s).'
-                    + " The information has been saved to this text file: '"
+                    " The information has been saved to this text file: '"
                     + fn_list_content_missing
                     + "'."
                 )
@@ -2021,7 +2004,8 @@ class BABS:
         else:  # `--trial-run` is on:
             print('')  # new empty line
             warnings.warn(
-                '`--trial-run` was requested,' + ' not to push merging actions to output RIA.'
+                '`--trial-run` was requested, not to push merging actions to output RIA.',
+                stacklevel=2,
             )
             print('\n`babs-merge` did not fully finish yet!')
 
@@ -2158,7 +2142,7 @@ class Input_ds:
             if 'ses_id' not in list(self.initial_inclu_df.columns):
                 raise Exception(
                     "There is no 'ses_id' column in `list_sub_file`!"
-                    + ' It is expected as this is a multi-session dataset.'
+                    ' It is expected as this is a multi-session dataset.'
                 )
 
         # Sanity check: no repeated sub (or sessions):
@@ -2175,7 +2159,7 @@ class Input_ds:
             if after_dropping.shape[0] < self.initial_inclu_df.shape[0]:
                 print(
                     "Combinations of 'sub_id' and 'ses_id' in some rows are duplicated."
-                    + ' Will only keep the first occurrence...'
+                    ' Will only keep the first occurrence...'
                 )
                 self.initial_inclu_df = after_dropping
 
@@ -2249,9 +2233,7 @@ class Input_ds:
             else:  # did not detect any of them...
                 raise Exception(
                     'BABS did not detect any folder or zip file of `sub-*`'
-                    + " in input dataset '"
-                    + self.df.loc[i_ds, 'name']
-                    + "'."
+                    " in input dataset '" + self.df.loc[i_ds, 'name'] + "'."
                 )
 
         # Assign `path_data_rel`:
@@ -2366,7 +2348,8 @@ class Input_ds:
                         + "' in zipped input file '"
                         + temp_zipfilename
                         + "'. This may cause error"
-                        + ' when running BIDS App for this subject/session'
+                        + ' when running BIDS App for this subject/session',
+                        stacklevel=2,
                     )
 
 
@@ -2406,7 +2389,7 @@ class System:
 
         fn_dict_cluster_systems_yaml = op.join(__location__, 'dict_cluster_systems.yaml')
         with open(fn_dict_cluster_systems_yaml) as f:
-            dict = yaml.load(f, Loader=yaml.FullLoader)
+            dict = yaml.safe_load(f)
             # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
 
         # sanity check:
@@ -2508,8 +2491,8 @@ class Container:
         # the 'image' symlink or folder should exist:
         assert op.exists(container_path_abs) or op.islink(container_path_abs), (
             "the folder 'image' of container DataLad dataset does not exist,"
-            + " and there is no symlink called 'image' either;"
-            + " Path to 'image' in cloned container DataLad dataset should be: '"
+            " and there is no symlink called 'image' either;"
+            " Path to 'image' in cloned container DataLad dataset should be: '"
             + container_path_abs
             + "'."
         )
@@ -2519,7 +2502,7 @@ class Container:
         This is to get the config dict from `config_yaml_file`
         """
         with open(self.config_yaml_file) as f:
-            self.config = yaml.load(f, Loader=yaml.FullLoader)
+            self.config = yaml.safe_load(f)
             # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
         f.close()
 
@@ -2557,9 +2540,9 @@ class Container:
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, (
                 "Section 'singularity_run' is missing in the provided"
-                + ' `container_config_yaml_file`. As there are more than one'
-                + ' input dataset, you must include this section to specify'
-                + ' to which argument that each input dataset will go.'
+                ' `container_config_yaml_file`. As there are more than one'
+                ' input dataset, you must include this section to specify'
+                ' to which argument that each input dataset will go.'
             )
             # if there is only one input ds, fine:
             print(
@@ -2946,9 +2929,9 @@ class Container:
         #   this includes dropping of images in `containers` dataset, and zipped output
         bash_file.write(
             'datalad drop -r .'
-            + ' --reckless availability'
-            + ' --reckless modification'  # this is needed for zipped input ds
-            + '\n'
+            ' --reckless availability'
+            ' --reckless modification'  # this is needed for zipped input ds
+            '\n'
         )
         # ^^ old scripts: datalad drop -r . --nocheck   # `--nocheck` is deprecated...
 
