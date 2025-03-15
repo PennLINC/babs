@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "babs"
-version = "0.0.1"
 description = "BABS: BIDS App BootStrap"
 authors = [{name = "The PennLINC developers"}]
 license = {file = "LICENSE"}
