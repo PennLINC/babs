@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: pennlinc/babs_tests:datalad0.17.2_v5
+    - image: pennlinc/babs_testing:0.1
 
 # TODO:
 # runinstall: &runinstall
@@ -13,7 +13,7 @@ version: 2.1
 # TODO: add tests from flake8
 
 jobs:
-  pytest:    # run pytest
+  pytest: # run pytest
     <<: *dockersetup
     resource_class: xlarge
     working_directory: /home/circleci/src/babs
@@ -26,13 +26,13 @@ jobs:
           command: |
             pip install .[tests]
             pytest -n 6 -sv
-  
-  deployable:  # checkpoint of deployable: requires all success
+
+  deployable: # checkpoint of deployable: requires all success
     <<: *dockersetup
     steps:
       - run: echo Deploying!
 
-  deploy_pypi:   # deploy to pypi
+  deploy_pypi: # deploy to pypi
     <<: *dockersetup
     working_directory: /tmp/src/babs
     steps:
@@ -49,7 +49,6 @@ jobs:
             python3 -m twine upload dist/*
         # NOTE: if want to test with test pypi, add `--repository testpypi` after `twine upload`
 
-
 workflows:
   # version: 2
   build_test_deploy:
@@ -61,11 +60,11 @@ workflows:
           #  - build
           filters:
             tags:
-              only: /.*/    # i.e., all branches and tags
+              only: /.*/ # i.e., all branches and tags
       - deployable:
-          requires:    # should require all jobs' success before deploying
+          requires: # should require all jobs' success before deploying
             - pytest
-          filters:    # run when main branch + any tags
+          filters: # run when main branch + any tags
             branches:
               only: main
             tags:
@@ -73,7 +72,7 @@ workflows:
       - deploy_pypi:
           requires:
             - deployable
-          filters:   # runs for no branches but runs for any tags
+          filters: # runs for no branches but runs for any tags
             branches:
               ignore: /.*/
             tags:

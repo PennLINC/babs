@@ -179,8 +179,8 @@ class BABS:
         # ^^ number of dicts in list `statuses` = len(path)
         # check that all statuses returned are "okay":
         # below is from cubids
-        saved_status = set([status['status'] for status in statuses])
-        if saved_status.issubset(set(['ok', 'notneeded'])) is False:
+        saved_status = {status['status'] for status in statuses}
+        if saved_status.issubset({'ok', 'notneeded'}) is False:
             # exists element in `saved_status` that is not "ok" or "notneeded"
             # ^^ "notneeded": nothing to save
             raise Exception('`datalad save` failed!')
@@ -1377,7 +1377,7 @@ class BABS:
                                         to_print += ', ' + ses
                                     to_print += (
                                         ' was requested, as this job is running,'
-                                        + " BABS won't resubmit this job."
+                                        " BABS won't resubmit this job."
                                     )
                                     # NOTE: removed "and `--reckless` was not specified, "
                                     #   can add this ^^ back after supporting `--reckless` in CLI
@@ -1577,7 +1577,8 @@ class BABS:
                                         username_lowercase,
                                         self.type_system,
                                     )
-                                    df_job_updated.at[i_job, 'job_account'] = msg_job_account
+                                    raise Exception('This should be impossible to reach')
+                                    # df_job_updated.at[i_job, 'job_account'] = msg_job_account
 
                 # Collect all to-be-resubmitted tasks into a single DataFrame
                 df_job_resubmit = df_job_updated[df_job_updated['needs_resubmit'] == True].copy()
