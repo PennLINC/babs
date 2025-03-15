@@ -2,9 +2,9 @@ FROM ubuntu:22.04
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-                    ca-certificates \
-                    bzip2 \
-                    curl \
+    ca-certificates \
+    bzip2 \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -33,10 +33,16 @@ ENV PATH=/opt/conda/envs/babs/bin:$PATH
 RUN git config --global user.name "CircleCI" \
     && git config --global user.email "circleci@example.com"
 
-# install BABS
-COPY . $HOME/babs
-WORKDIR $HOME/babs
-RUN pip install .[tests]
+# Create toy bids app
+RUN mkdir -p /singularity_images \
+    && apptainer build \
+    /singularity_images/toybidsapp_0.0.7.sif \
+    docker://pennlinc/toy_bids_app:0.0.7
+
+# # install BABS
+# COPY . $HOME/babs
+# WORKDIR $HOME/babs
+# RUN pip install .[tests]
 
 # # pytest BABS
 # RUN pytest ~/babs
