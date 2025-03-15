@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # BABS documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 13 08:41:19 2015.
@@ -12,19 +11,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import subprocess
-
 import datetime
-from os.path import (
-    abspath,
-    dirname,
-    exists,
-    join as opj,
-)
-from os import pardir
+import sys
 
-sys.path.append("../..")
+sys.path.append('../..')
 import babs
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -73,7 +63,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
     'sphinxarg.ext',  # argparse extension
-    "sphinx_design"   # for adding in-line badges etc
+    'sphinx_design'   # for adding in-line badges etc
     # 'sphinx_tabs.tabs',   # for sphinx-toolbox
     # 'sphinx-prompt',   # for sphinx-toolbox
     # 'sphinx_toolbox',   # for sphinx-toolbox
@@ -94,9 +84,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'BABS'
-author = u'The BABS developers'
-copyright = u'2022-%s, %s' % (datetime.datetime.now().year, author)
+project = 'BABS'
+author = 'The BABS developers'
+copyright = '2022-%s, %s' % (datetime.datetime.now().year, author)
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
