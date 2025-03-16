@@ -1,4 +1,5 @@
 """This is to get data for pytests"""
+
 import os
 import os.path as op
 
@@ -11,31 +12,35 @@ import datalad.api as dlapi
 import pytest
 
 sys.path.append('..')
-from babs.utils import (read_yaml)   # noqa
+from babs.utils import read_yaml  # noqa
 
 # =============== Define several constant variables: ==================
-__location__ = op.dirname(op.abspath(__file__))   # the path to the directory of current python script
+__location__ = op.dirname(
+    op.abspath(__file__)
+)  # the path to the directory of current python script
 #   ^^ `op.abspath()` is to make sure always returns abs path, regardless of python version
 #       ref: https://note.nkmk.me/en/python-script-file-path/
 
 # containers:
 LIST_WHICH_BIDSAPP = ['toybidsapp', 'fmriprep', 'qsiprep']
-TOYBIDSAPP_VERSION = '0.0.7'   # +++++++++++++++++++++++
+TOYBIDSAPP_VERSION = '0.0.7'  # +++++++++++++++++++++++
 TOYBIDSAPP_VERSION_DASH = TOYBIDSAPP_VERSION.replace('.', '-')
-FN_TOYBIDSAPP_SIF_CIRCLECI = op.join('/singularity_images',
-                                     'toybidsapp_' + TOYBIDSAPP_VERSION + '.sif')
+FN_TOYBIDSAPP_SIF_CIRCLECI = op.join(
+    '/singularity_images', 'toybidsapp_' + TOYBIDSAPP_VERSION + '.sif'
+)
 
 # path of input datasets:
 ORIGIN_INPUT_DATA = read_yaml(op.join(__location__, 'origin_input_dataset.yaml'))
 INFO_2ND_INPUT_DATA = {
     'which_input': 'fmriprep',
     # "type_session": this should be consistent with the first dataset
-    'if_input_local': False
+    'if_input_local': False,
 }
 
 # env variables
 TEMPLATEFLOW_HOME = '/test/templateflow_home'
 # ====================================================================
+
 
 def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     """
@@ -51,14 +56,25 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     if_input_local: bool
         if the input dataset is local [True] or remote (e.g., on OSF) [False]
     tmp_path_factory: fixture
-        see: https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-tmp-path-factory-fixture
-        API see: https://docs.pytest.org/en/7.1.x/reference/reference.html#tmp-path-factory
+        see: https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-tmp-path-factory
 
     Returns:
     -----------
     path_in: str
         where is the input dataset
     """
+    # Check if we're on CircleCI and should use cached data
+    env_circleci = os.getenv('CIRCLECI')
+    if env_circleci and not if_input_local:
+        cached_path = op.join('/home/circleci/test_data', f'{which_input}_{type_session}')
+        if op.exists(cached_path):
+            return cached_path
+        else:
+            raise Exception(
+                f'Expected cached dataset not found at {cached_path}. '
+                'Did the download_test_data job complete successfully?'
+            )
+
     if not if_input_local:
         # directly grab from pre-defined YAML file:
         path_in = ORIGIN_INPUT_DATA[which_input][type_session]
@@ -68,28 +84,24 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
         path_in_pathlib = tmp_path_factory.mktemp(which_input)
         # turn into a string of absolute path (but seems not necessary):
         path_in = path_in_pathlib.absolute().as_posix()
-        # ^^ e.g.: `/private/var/folders/fn/????/T/pytest-of-<username>/pytest-00/<which_input>0`
-        #   `????` is random number but consistent across pytests;
-        #   `pytest-00` is index of pytest, 01, 02, etc. Only most recent 3 temp dir will be kept.
-        #   `<which_input>0`: e.g., `bids0`, `bids1`, etc.
-        #       --> Even if same `which_input`, the temp dir won't be duplicated. Tested.
 
         # clone to this local temporary place:
-        dlapi.clone(source=origin_in,
-                    path=path_in)
+        dlapi.clone(source=origin_in, path=path_in)
 
     return path_in
 
+
 @pytest.fixture(scope='session')
 def if_circleci():
-    """ If it's currently running on CircleCI """
-    env_circleci = os.getenv('CIRCLECI')    # a string 'true' or None
+    """If it's currently running on CircleCI"""
+    env_circleci = os.getenv('CIRCLECI')  # a string 'true' or None
     if env_circleci:
         if_circleci = True
     else:
         if_circleci = False
 
     return if_circleci
+
 
 @pytest.fixture(scope='session')
 def where_now(if_circleci):
@@ -113,9 +125,12 @@ def where_now(if_circleci):
         where_now = 'on_local'
     else:
         where_now = ''
-        raise Exception('Not on CircleCI, and neither singularity nor docker is installed!'
-                        + ' Pytest cannot proceed.')
+        raise Exception(
+            'Not on CircleCI, and neither singularity nor docker is installed!'
+            ' Pytest cannot proceed.'
+        )
     return where_now
+
 
 @pytest.fixture(scope='session')
 def container_ds_path(where_now, tmp_path_factory):
@@ -152,19 +167,20 @@ def container_ds_path(where_now, tmp_path_factory):
     elif where_now == 'on_cluster':
         # build the sif file:
         folder_toybidsapp_sif = tmp_path_factory.mktemp('temp_singularity_images')
-        fn_toybidsapp_sif = op.join(folder_toybidsapp_sif,
-                                    'toybidsapp_' + TOYBIDSAPP_VERSION + '.sif')
+        fn_toybidsapp_sif = op.join(
+            folder_toybidsapp_sif, 'toybidsapp_' + TOYBIDSAPP_VERSION + '.sif'
+        )
         proc_singularity_build = subprocess.run(
             # singularity build toybidsapp_${toybidsapp_version}.sif \
             #       docker://pennlinc/toy_bids_app:${toybidsapp_version}
             ['singularity', 'build', fn_toybidsapp_sif, docker_url],
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE,
+        )
         proc_singularity_build.check_returncode()
     elif where_now == 'on_local':
         # directly pull from docker:
         cmd = 'docker pull ' + docker_addr
-        proc_docker_pull = subprocess.run(
-            cmd.split())
+        proc_docker_pull = subprocess.run(cmd.split())
         proc_docker_pull.check_returncode()
         fn_toybidsapp_sif = None
     else:
@@ -179,27 +195,27 @@ def container_ds_path(where_now, tmp_path_factory):
     container_ds_handle = dlapi.create(path=origin_container_ds)
     # add container image into this datalad dataset:
     for which_bidsapp in LIST_WHICH_BIDSAPP:
-        if where_now in ['on_circleci', 'on_cluster']:   # add the built sif file:
+        if where_now in ['on_circleci', 'on_cluster']:  # add the built sif file:
             # datalad containers-add --url ${fn_sif} toybidsapp-${version_tag_dash}
             # API help: in python env: `help(dlapi.containers_add)`
             container_ds_handle.containers_add(
-                name=which_bidsapp+'-'+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
-                url=fn_toybidsapp_sif)
+                name=which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
+                url=fn_toybidsapp_sif,
+            )
             # # can remove the original sif file now:
             # os.remove(fn_toybidsapp_sif)
-        elif where_now == 'on_local':   # add docker image:
+        elif where_now == 'on_local':  # add docker image:
             # datalad containers-add --url dhub://pennlinc/toy_bids_app:${version_tag} \
             #   toybidsapp-${version_tag_dash}
             container_ds_handle.containers_add(
-                name=which_bidsapp+'-'+TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
-                url='dhub://'+docker_addr   # e.g., "dhub://pennlinc/toy_bids_app:0.0.7"
+                name=which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
+                url='dhub://' + docker_addr,  # e.g., "dhub://pennlinc/toy_bids_app:0.0.7"
             )
 
     return origin_container_ds
 
-def get_container_config_yaml_filename(which_bidsapp,
-                                       which_input, if_two_input,
-                                       type_system):
+
+def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input, type_system):
     """
     This is to get the container's config YAML file name,
     depending on the BIDS App and if there are two inputs (for fMRIPrep)
@@ -223,16 +239,17 @@ def get_container_config_yaml_filename(which_bidsapp,
     """
     # dict_cluster_name = {'sge': 'cubic',
     #                      'slurm': 'msi'}
-    dict_bidsapp_version = {'qsiprep': '0-18-1',
-                            'fmriprep': '23-1-3',
-                            'toybidsapp': '0-0-7'}
-    dict_task_name = {'qsiprep': 'regular',
-                      'fmriprep': 'regular',
-                      'toybidsapp': 'rawBIDS-walkthrough'}
+    dict_bidsapp_version = {'qsiprep': '0-18-1', 'fmriprep': '23-1-3', 'toybidsapp': '0-0-7'}
+    dict_task_name = {
+        'qsiprep': 'regular',
+        'fmriprep': 'regular',
+        'toybidsapp': 'rawBIDS-walkthrough',
+    }
 
     # bidsapp and its version:
-    container_config_yaml_filename = 'eg_' + which_bidsapp + '-' \
-        + dict_bidsapp_version[which_bidsapp]
+    container_config_yaml_filename = (
+        'eg_' + which_bidsapp + '-' + dict_bidsapp_version[which_bidsapp]
+    )
 
     # task:
     container_config_yaml_filename += '_'
@@ -265,7 +282,7 @@ def if_command_installed(cmd):
         True or False
     """
     a = shutil.which(cmd)
-    if a is None:   # not exist:
+    if a is None:  # not exist:
         if_installed = False
     else:
         if_installed = True
