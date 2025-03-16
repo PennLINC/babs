@@ -145,7 +145,7 @@ ignore = [
 inline-quotes = "single"
 
 [tool.ruff.lint.extend-per-file-ignores]
-"*/test_*.py" = ["S101"]
+"*/test_*.py" = ["S101", "F811"]
 "docs/conf.py" = ["A001"]
 "docs/source/conf.py" = ["A001"]
 "docs/sphinxext/github_link.py" = ["BLE001"]
