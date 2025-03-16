@@ -46,7 +46,7 @@ jobs:
           no_output_timeout: 1h
           command: |
             pip install .[tests]
-            pytest -n 6 -sv
+            pytest -n 4 -sv --durations=0 --timeout=300 --log-cli-level=DEBUG
 
   deployable: # checkpoint of deployable: requires all success
     <<: *dockersetup
