@@ -63,9 +63,9 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     path_in: str
         where is the input dataset
     """
-    # Check if we're on CircleCI and should use cached data
+    # Check if we're on CircleCI - always use cached data on CircleCI
     env_circleci = os.getenv('CIRCLECI')
-    if env_circleci and not if_input_local:
+    if env_circleci:
         cached_path = op.join('/home/circleci/test_data', f'{which_input}_{type_session}')
         if op.exists(cached_path):
             return cached_path
@@ -75,6 +75,7 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
                 'Did the download_test_data job complete successfully?'
             )
 
+    # For non-CircleCI environments
     if not if_input_local:
         # directly grab from pre-defined YAML file:
         path_in = ORIGIN_INPUT_DATA[which_input][type_session]

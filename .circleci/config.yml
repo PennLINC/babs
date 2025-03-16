@@ -26,6 +26,9 @@ jobs:
             pip install datalad-osf
             # Download each dataset from origin_input_dataset.yaml
             python3 /home/circleci/src/babs/tests/download_datasets.py
+            # Debug output
+            echo "Contents of test_data directory:"
+            ls -la /home/circleci/test_data/
       - save_cache:
           key: test-data-v1
           paths:
