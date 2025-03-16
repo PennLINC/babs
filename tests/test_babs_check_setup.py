@@ -32,7 +32,9 @@ from get_data import (  # noqa
 @pytest.mark.parametrize(
     'which_case', [('not_to_keep_failed'), ('wrong_container_ds'), ('wrong_input_ds')]
 )
-def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_path, if_circleci):
+def test_babs_check_setup(
+    which_case, tmp_path, tmp_path_factory, container_ds_path_param, if_circleci_param
+):
     """
     This is to test `babs-check-setup` in different failed `babs-init` cases.
     Successful `babs-init` has been tested in `test_babs_init.py`.
@@ -50,8 +52,10 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         so expected error will be: BABS project does not exist.
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
-    container_ds_path: fixture; str
+    container_ds_path_param: fixture; str
         Path to the container datalad dataset
+    if_circleci_param: fixture
+        CircleCI environment indicator
     """
     # fixed variables:
     which_bidsapp = 'toybidsapp'
@@ -66,8 +70,8 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     input_ds_cli_wrong = [[which_input, '/random/path/to/input_ds']]
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
-    assert op.exists(container_ds_path)
-    assert op.exists(op.join(container_ds_path, '.datalad/config'))
+    assert op.exists(container_ds_path_param)
+    assert op.exists(op.join(container_ds_path_param, '.datalad/config'))
     container_ds_path_wrong = '/random/path/to/container_ds'
 
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
@@ -94,7 +98,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         project_name=project_name,
         input=input_ds_cli,
         list_sub_file=None,
-        container_ds=container_ds_path,
+        container_ds=container_ds_path_param,
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,

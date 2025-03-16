@@ -147,10 +147,12 @@ inline-quotes = "single"
 [tool.ruff.lint.extend-per-file-ignores]
 "*/test_*.py" = ["S101"]
 "docs/conf.py" = ["A001"]
+"docs/source/conf.py" = ["A001"]
 "docs/sphinxext/github_link.py" = ["BLE001"]
 
 [tool.ruff.format]
 quote-style = "single"
+exclude = ["docs/source/conf.py"]
 
 [tool.pytest.ini_options]
 addopts = '-m "not integration"'
