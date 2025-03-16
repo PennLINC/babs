@@ -5,8 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "babs"
 description = "BABS: BIDS App BootStrap"
-authors = [{name = "The PennLINC developers"}]
-license = {file = "LICENSE"}
+authors = [{ name = "The PennLINC developers" }]
+license = { file = "LICENSE" }
 requires-python = ">=3.10"
 dependencies = [
     "backoff",
@@ -19,7 +19,7 @@ dependencies = [
     "pyyaml >= 6.0",
     "qstat >= 0.0.5",
     "regex",
-    "tqdm"
+    "tqdm",
 ]
 
 dynamic = ["version"]
@@ -34,25 +34,19 @@ doc = [
     "sphinx == 5.3.0",
     "sphinx-argparse == 0.4.0",
     "recommonmark == 0.7.1",
-    "jinja2<3.1.0",    # to fix the issue re: jinja2
-    "docutils <0.17",   # to fix the issue of bullet points not rendered
-    "sphinx_design",   # for adding in-line badges etc
-    "sphinx_rtd_theme",    # needed by readthedocs
+    "jinja2<3.1.0",             # to fix the issue re: jinja2
+    "docutils <0.17",           # to fix the issue of bullet points not rendered
+    "sphinx_design",            # for adding in-line badges etc
+    "sphinx_rtd_theme",         # needed by readthedocs
 ]
-dev = [
-    "ruff ~= 0.4.3",
-    "pre-commit",
-]
+dev = ["ruff ~= 0.4.3", "pre-commit"]
 tests = [
     "pytest",
-    "pytest-xdist",   # for running pytest in parallel
-    "pytest-order",   # for ordering test execution
+    "pytest-xdist", # for running pytest in parallel
+    "pytest-order", # for ordering test execution
     "datalad-osf",
 ]
-maint = [
-    "fuzzywuzzy",
-    "python-Levenshtein",
-]
+maint = ["fuzzywuzzy", "python-Levenshtein"]
 
 # Aliases
 all = ["babs[dev,doc,maint,tests]"]
@@ -74,12 +68,12 @@ babs-unzip = "babs.cli:babs_unzip_main"
 allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
-exclude = [".git_archival.txt"]  # No longer needed in sdist
+exclude = [".git_archival.txt"] # No longer needed in sdist
 
 [tool.hatch.build.targets.wheel]
 packages = ["qsiprep"]
 exclude = [
-    "qsiprep/tests/data",  # Large test data directory
+    "qsiprep/tests/data", # Large test data directory
 ]
 
 ##  The following two sections configure setuptools_scm in the hatch way
@@ -104,46 +98,47 @@ line-length = 99
 
 [tool.ruff.lint]
 extend-select = [
-  "F",
-  "E",
-  "W",
-  "I",
-  "UP",
-  "YTT",
-  "S",
-  "BLE",
-  "B",
-  "A",
-  # "CPY",
-  "C4",
-  "DTZ",
-  "T10",
-  # "EM",
-  "EXE",
-  "FA",
-  "ISC",
-  "ICN",
-  "PT",
-  "Q",
+    "F",
+    "E",
+    "W",
+    "I",
+    "UP",
+    "YTT",
+    "S",
+    "BLE",
+    "B",
+    "A",
+    # "CPY",
+    "C4",
+    "DTZ",
+    "T10",
+    # "EM",
+    "EXE",
+    "FA",
+    "ISC",
+    "ICN",
+    "PT",
+    "Q",
 ]
 ignore = [
-  "S101",  # Ignore use of assert for now
-  "S105",
-  "S311",  # We are not using random for cryptographic purposes
-  "ISC001",
-  "S603",
-  "S605",  # TODO: Fix these
-  "DTZ005",  # TODO: Fix these
-  "B904",  # TODO: Fix these
-  "A001",  # TODO: Fix these
-  "B006",  # TODO: Fix these
-  "S607",  # TODO: Fix these
-  "S108",  # TODO: Fix these
-  "S602",  # TODO: Fix these
-  "E402",  # TODO: Fix these
-  "UP028",  # TODO: Fix these
-  "UP031",  # TODO: Fix these
-  "BLE001",  # TODO: Fix these
+    "S101",   # Ignore use of assert for now
+    "S105",
+    "S311",   # We are not using random for cryptographic purposes
+    "ISC001",
+    "S603",
+    "S605",   # TODO: Fix these
+    "DTZ005", # TODO: Fix these
+    "DTZ007", # TODO: Fix these
+    "B904",   # TODO: Fix these
+    "A001",   # TODO: Fix these
+    "B006",   # TODO: Fix these
+    "S607",   # TODO: Fix these
+    "S108",   # TODO: Fix these
+    "S602",   # TODO: Fix these
+    "E402",   # TODO: Fix these
+    "UP028",  # TODO: Fix these
+    "UP031",  # TODO: Fix these
+    "BLE001", # TODO: Fix these
 ]
 
 [tool.ruff.lint.flake8-quotes]
@@ -159,24 +154,13 @@ quote-style = "single"
 
 [tool.pytest.ini_options]
 addopts = '-m "not integration"'
-markers = [
-]
-env = [
-    "RUNNING_PYTEST = 1",
-]
+markers = []
+env = ["RUNNING_PYTEST = 1"]
 
 [tool.coverage.run]
 branch = true
-omit = [
-    "*/tests/*",
-    "*/__init__.py",
-    "*/conftest.py",
-    "babs/_version.py"
-]
+omit = ["*/tests/*", "*/__init__.py", "*/conftest.py", "babs/_version.py"]
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
-exclude_lines = [
-    'raise NotImplementedError',
-    'warnings\.warn',
-]
+exclude_lines = ['raise NotImplementedError', 'warnings\.warn']

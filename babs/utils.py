@@ -205,7 +205,7 @@ def read_yaml(fn, if_filelock=False):
         try:
             with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
                 with open(fn) as f:
-                    config = yaml.load(f, Loader=yaml.FullLoader)
+                    config = yaml.safe_load(f)
                     # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
                 f.close()
         except Timeout:  # after waiting for time defined in `timeout`:
@@ -214,7 +214,7 @@ def read_yaml(fn, if_filelock=False):
             print('Another instance of this application currently holds the lock.')
     else:
         with open(fn) as f:
-            config = yaml.load(f, Loader=yaml.FullLoader)
+            config = yaml.safe_load(f)
             # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
         f.close()
 
@@ -331,8 +331,8 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         if '$INPUT_PATH' not in config['singularity_run']:
             raise Exception(
                 "The key '$INPUT_PATH' is expected in section `singularity_run`"
-                + ' in `container_config_yaml_file`, because there are more than'
-                + ' one input dataset!'
+                ' in `container_config_yaml_file`, because there are more than'
+                ' one input dataset!'
             )
     else:  # only 1 input dataset:
         # check if the path is consistent with the name of the only input ds's name:
@@ -341,12 +341,10 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             if config['singularity_run']['$INPUT_PATH'] != expected_temp:
                 raise Exception(
                     "As there is only one input dataset, the value of '$INPUT_PATH'"
-                    + ' in section `singularity_run`'
-                    + ' in `container_config_yaml_file` should be'
-                    + " '"
-                    + expected_temp
-                    + "'; You can also choose"
-                    + " not to specify '$INPUT_PATH'."
+                    ' in section `singularity_run`'
+                    ' in `container_config_yaml_file` should be'
+                    " '" + expected_temp + "'; You can also choose"
+                    " not to specify '$INPUT_PATH'."
                 )
 
     # example key: "-w", "--n_cpus"
@@ -363,13 +361,12 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             # sanity check that `value` should match with one of input ds's `path_data_rel`
             if value not in list(input_ds.df['path_data_rel']):  # after unzip, if needed
                 warnings.warn(
-                    "'"
-                    + value
-                    + "' specified after $INPUT_PATH"
-                    + ' (in section `singularity_run`'
-                    + ' in `container_config_yaml_file`), does not'
-                    + " match with any dataset's current path."
-                    + ' This may cause error when running the BIDS App.'
+                    "'" + value + "' specified after $INPUT_PATH"
+                    ' (in section `singularity_run`'
+                    ' in `container_config_yaml_file`), does not'
+                    " match with any dataset's current path."
+                    ' This may cause error when running the BIDS App.',
+                    stacklevel=2,
                 )
 
             singuRun_input_dir = value
@@ -387,10 +384,8 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 #   regardless of the path provided in the yaml file
                 warnings.warn(
                     'Path to FreeSurfer license provided in `--fs-license-file`'
-                    + " in container's configuration YAML file"
-                    + " does NOT exist! The path provided: '"
-                    + path_fs_license
-                    + "'.",
+                    " in container's configuration YAML file"
+                    " does NOT exist! The path provided: '" + path_fs_license + "'.",
                     stacklevel=2,
                 )
 
@@ -495,10 +490,10 @@ def generate_cmd_set_envvar(env_var_name):
         if env_var_value is None:
             warnings.warn(
                 'Usually BIDS App depends on TemplateFlow,'
-                + ' but environment variable `TEMPLATEFLOW_HOME` was not set up.'
-                + ' Therefore, BABS will not bind its directory'
-                + ' or inject this environment variable into the container'
-                + ' when running the container. This may cause errors.',
+                ' but environment variable `TEMPLATEFLOW_HOME` was not set up.'
+                ' Therefore, BABS will not bind its directory'
+                ' or inject this environment variable into the container'
+                ' when running the container. This may cause errors.',
                 stacklevel=2,
             )
 
@@ -550,7 +545,7 @@ def get_info_zip_foldernames(config):
     if 'zip_foldernames' not in config:
         raise Exception(
             'The `container_config_yaml_file` does not contain'
-            + ' the section `zip_foldernames`. Please add this section!'
+            ' the section `zip_foldernames`. Please add this section!'
         )
 
     # Check if placeholder to make a sub-folder in `outputs` folder:
@@ -585,8 +580,8 @@ def get_info_zip_foldernames(config):
         else:  # len(dict_zip_foldernames) > 1:   # more than one foldernames provided:
             raise Exception(
                 'You ask BABS to create more than one output folder,'
-                + ' but BABS can only create one output folder.'
-                + " Please only keep one of them in 'zip_foldernames' section."
+                ' but BABS can only create one output folder.'
+                " Please only keep one of them in 'zip_foldernames' section."
             )
 
     # Get the list of foldernames (w/o version number):
@@ -641,13 +636,10 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
         if (temp != 1) & (value_temp != value):  # not matching last value
             warnings.warn(
                 'In section `zip_foldernames` in `container_config_yaml_file`: \n'
-                "The version string of '"
-                + key
-                + "': '"
-                + value
-                + "'"
-                + ' does not match with the last version string; '
-                + 'we suggest using the same version string across all foldernames.'
+                "The version string of '" + key + "': '" + value + "'"
+                ' does not match with the last version string; '
+                'we suggest using the same version string across all foldernames.',
+                stacklevel=2,
             )
         value_temp = value
 
@@ -677,10 +669,16 @@ echo "{" > ${filterfile}"""
     cmd += """\necho "'fmap': {'datatype': 'fmap'}," >> ${filterfile}"""
 
     if 'fmriprep' in container_name.lower():
-        cmd += """\necho "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'}," >> ${filterfile}"""  # noqa: E731,E123
+        cmd += (
+            """\necho "'bold': {'datatype': 'func', 'session': '$sesid', """
+            """'suffix': 'bold'}," >> ${filterfile}"""
+        )
 
     elif 'qsiprep' in container_name.lower():
-        cmd += """\necho "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'}," >> ${filterfile}"""  # noqa: E731,E123
+        cmd += (
+            """\necho "'dwi': {'datatype': 'dwi', 'session': '$sesid', """
+            """'suffix': 'dwi'}," >> ${filterfile}"""
+        )
 
     cmd += """
 echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'}," >> ${filterfile}
@@ -759,16 +757,16 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
             #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
             #                           "sub-*_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
             #     if len(list_zipfiles) == 0:
-            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
-            #                         + " the zip file(s) does not follow the pattern of "
+            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds]
+            #                         + "'," + " the zip file(s) does not follow the pattern of "
             #                         + "'sub-*_ses-*_'" + input_ds.df["name"][i_ds] + "*.zip")
             # elif type_session == "single-ses":
             #     list_zipfiles = \
             #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
             #                           "sub-*_" + input_ds.df["name"][i_ds] + "*.zip"))
             #     if len(list_zipfiles) == 0:
-            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds] + "',"
-            #                         + " the zip file(s) does not follow the pattern of "
+            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds]
+            #                          + "'," + " the zip file(s) does not follow the pattern of "
             #                         + "'sub-*_'" + input_ds.df["name"][i_ds] + "*.zip")
             # else:
             #     raise Exception("invalid `type_session`: " + type_session)
@@ -875,9 +873,10 @@ def generate_bashhead_resources(system, config):
     if 'interpreting_shell' not in config['cluster_resources']:
         warnings.warn(
             "The interpreting shell was not specified for 'participant_job.sh'."
-            + " This should be specified using 'interpreting_shell'"
-            + " under section 'cluster_resources' in container's"
-            + ' configuration YAML file.'
+            " This should be specified using 'interpreting_shell'"
+            " under section 'cluster_resources' in container's"
+            ' configuration YAML file.',
+            stacklevel=2,
         )
     else:
         key = 'interpreting_shell'
@@ -926,8 +925,9 @@ def generate_cmd_script_preamble(config):
     if 'script_preamble' not in config:
         warnings.warn(
             "Did not find the section 'script_preamble'"
-            + ' in `container_config_yaml_file`.'
-            + ' Not to generate script preamble.'
+            ' in `container_config_yaml_file`.'
+            ' Not to generate script preamble.',
+            stacklevel=2,
         )
         # TODO: ^^ this should be changed to an error!
     else:  # there is `script_preamble`:
@@ -968,7 +968,7 @@ def generate_cmd_job_compute_space(config):
     cmd += '\n# Change path to an ephemeral (temporary) job compute workspace:\n'
     cmd += (
         "# The path is specified according to 'job_compute_space'"
-        + " in container's configuration YAML file.\n"
+        " in container's configuration YAML file.\n"
     )
     cmd += 'cd ' + config['job_compute_space'] + '\n'
 
@@ -1032,10 +1032,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
             # check if it exists:
             cmd += 'if [ -z "${' + variable_name_zip + '}" ]; then' + '\n'
             cmd += (
-                '\t'
-                + "echo 'No input zipfile of "
-                + input_ds.df['name'][i_ds]
-                + ' found for ${subid}'
+                "\techo 'No input zipfile of " + input_ds.df['name'][i_ds] + ' found for ${subid}'
             )
             if type_session == 'multi-ses':
                 cmd += ' ${sesid}'
@@ -1049,8 +1046,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
             # if [ "$a" -gt "$b" ]; then
             cmd += 'if [ "${#array[@]}" -gt "1" ]; then' + '\n'
             cmd += (
-                '\t'
-                + "echo 'There is more than one input zipfile of "
+                "\techo 'There is more than one input zipfile of "
                 + input_ds.df['name'][i_ds]
                 + ' found for ${subid}'
             )
@@ -1114,65 +1110,47 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped
             # input: a subject or session folder
             if type_session == 'multi-ses':
-                cmd += (
-                    '\t'
-                    + '-i '
-                    + input_ds.df['path_now_rel'][i_ds]
-                    + '/'
-                    + '${subid}/${sesid}'
-                    + ' \\'
-                    + '\n'
-                )
+                cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/${subid}/${sesid} \\\n'
             elif type_session == 'single-ses':
-                cmd += (
-                    '\t'
-                    + '-i '
-                    + input_ds.df['path_now_rel'][i_ds]
-                    + '/'
-                    + '${subid}'
-                    + ' \\'
-                    + '\n'
-                )
+                cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/${subid} \\\n'
 
             # input: also the json file:
             # as using globs `*`, need to be quoted (`''`)!
-            cmd += (
-                '\t' + "-i '" + input_ds.df['path_now_rel'][i_ds] + '/' + '*json' + "' \\" + '\n'
-            )
+            cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/' + '*json' + ' \\\n'
             flag_expand_inputs = True  # `--expand inputs`
 
         else:  # zipped:
-            cmd += '\t' + '-i ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}' + ' \\' + '\n'
+            cmd += '\t-i ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}' + ' \\\n'
 
     # input: container image
-    cmd += '\t' + '-i ' + container.container_path_relToAnalysis + ' \\' + '\n'
+    cmd += '\t-i ' + container.container_path_relToAnalysis + ' \\\n'
 
     # --expand:
     # ^^ Expand globs when storing inputs and/or outputs in the commit message.
     # might be needed when `*` in --inputs or --outputs?
     # NOTE: why `bootstrap-fmriprep-ingressed-fs.sh` has `--expand outputs`???
     if flag_expand_inputs is True:
-        cmd += '\t' + '--expand inputs' + ' \\' + '\n'
+        cmd += '\t--expand inputs' + ' \\\n'
 
     # --explicit
-    cmd += '\t' + '--explicit' + ' \\' + '\n'
+    cmd += '\t--explicit' + ' \\\n'
 
     # output: each zipped file
-    fixed_cmd = '\t' + '-o ${subid}_'
+    fixed_cmd = '\t-o ${subid}_'
     if type_session == 'multi-ses':
         fixed_cmd += '${sesid}_'
 
     for key, value in container.config['zip_foldernames'].items():
-        cmd += fixed_cmd + key + '-' + value + '.zip' + ' \\' + '\n'
+        cmd += fixed_cmd + key + '-' + value + '.zip' + ' \\\n'
 
     # message:
-    cmd += '\t' + '-m "' + container.container_name + ' ${subid}'
+    cmd += '\t-m "' + container.container_name + ' ${subid}'
     if type_session == 'multi-ses':
         cmd += ' ${sesid}'
-    cmd += '"' + ' \\' + '\n'
+    cmd += '"' + ' \\\n'
 
     # the real command:
-    cmd += '\t' + '"' + 'bash ./code/' + container.container_name + '_zip.sh' + ' ${subid}'
+    cmd += '\t"' + 'bash ./code/' + container.container_name + '_zip.sh' + ' ${subid}'
     if type_session == 'multi-ses':
         cmd += ' ${sesid}'
     for i_ds in range(0, input_ds.num_ds):
@@ -1210,7 +1188,7 @@ def get_list_sub_ses(input_ds, config, babs):
         # no need to sort (as already done when validating)
         print(
             'Using the subjects (sessions) list provided in `list_sub_file`'
-            + ' as the initial inclusion list.'
+            ' as the initial inclusion list.'
         )
         if babs.type_session == 'single-ses':
             subs = list(input_ds.initial_inclu_df['sub_id'])
@@ -1228,8 +1206,8 @@ def get_list_sub_ses(input_ds, config, babs):
         # for now, only check the first dataset
         print(
             'Did not provide `list_sub_file`.'
-            + ' Will look into the first input dataset'
-            + ' to get the initial inclusion list.'
+            ' Will look into the first input dataset'
+            ' to get the initial inclusion list.'
         )
         i_ds = 0
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
@@ -1260,7 +1238,7 @@ def get_list_sub_ses(input_ds, config, babs):
             subs = [temp.split('_', 3)[0] for temp in zipfilenames]
             # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
             # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
-            subs = sorted(list(set(subs)))  # `list(set())`: acts like "unique"
+            subs = sorted(set(subs))  # `list(set())`: acts like "unique"
 
         # if it's multi-ses, get list of sessions for each subject:
         if babs.type_session == 'multi-ses':
@@ -1318,15 +1296,15 @@ def get_list_sub_ses(input_ds, config, babs):
     if 'required_files' in config:
         print(
             'Filtering out subjects (and sessions) based on `required files`'
-            + ' designated in `container_config_yaml_file`...'
+            ' designated in `container_config_yaml_file`...'
         )
 
         # sanity check on the target input dataset(s):
         if len(config['required_files']) > input_ds.num_ds:
             raise Exception(
                 'Number of input datasets designated in `required_files`'
-                + ' in `container_config_yaml_file`'
-                + ' is more than actual number of input datasets!'
+                ' in `container_config_yaml_file`'
+                ' is more than actual number of input datasets!'
             )
         for i in range(0, len(config['required_files'])):
             i_ds_str = list(config['required_files'].keys())[i]  # $INPUT_DATASET_#?
@@ -1425,9 +1403,9 @@ def get_list_sub_ses(input_ds, config, babs):
                 print("BABS will not run the BIDS App on these subjects' data.")
                 print(
                     'Note for this file: For each reported subject, only'
-                    + ' one missing required file'
-                    + ' in one input dataset is recorded,'
-                    + ' even if there are multiple.'
+                    ' one missing required file'
+                    ' in one input dataset is recorded,'
+                    ' even if there are multiple.'
                 )
 
             else:
@@ -1533,9 +1511,9 @@ def get_list_sub_ses(input_ds, config, babs):
                 print("BABS will not run the BIDS App on these sessions' data.")
                 print(
                     'Note for this file: For each reported session, only'
-                    + ' one missing required file'
-                    + ' in one input dataset is recorded,'
-                    + ' even if there are multiple.'
+                    ' one missing required file'
+                    ' in one input dataset is recorded,'
+                    ' even if there are multiple.'
                 )
             else:
                 print('All sessions from all subjects have required files.')
@@ -1560,7 +1538,7 @@ def get_list_sub_ses(input_ds, config, babs):
     else:
         print(
             'Did not provide `required files` in `container_config_yaml_file`.'
-            + ' Not to filter subjects (or sessions)...'
+            ' Not to filter subjects (or sessions)...'
         )
 
     # Save the final list of sub/ses in a CSV file:
@@ -1626,7 +1604,8 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
         the list of task ID (dtype int) from the submitted job, starting from 1.
     log_filename: list
         the list of log filenames (dtype str) of this job.
-        Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>'; user needs to replace '*' with 'o', 'e', etc
+        Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>';
+        user needs to replace '*' with 'o', 'e', etc
 
     Notes:
     -----------------
@@ -1638,7 +1617,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
     #   details of this template yaml file: see `Container.generate_job_submit_template()`
     template_yaml_path = op.join(analysis_path, 'code', 'submit_job_template.yaml')
     with open(template_yaml_path) as f:
-        templates = yaml.load(f, Loader=yaml.FullLoader)
+        templates = yaml.safe_load(f)
     f.close()
     # sections in this template yaml file:
     cmd_template = templates['cmd_template']
@@ -1778,7 +1757,7 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
         dataframe of jobs and their status, updated
     """
     # Updating df_jobs
-    for index, row in df_job_submit.iterrows():
+    for _, row in df_job_submit.iterrows():
         sub_id = row['sub_id']
 
         if 'ses_id' in df_jobs.columns:
@@ -1843,6 +1822,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     # NEED TO WORK ON THIS
     if df_job_specified is not None:  # NEED TO WORK ON THIS
         print('Will only submit specified jobs...')
+        job_ind_list = []
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
             if type_session == 'single-ses':
@@ -1874,13 +1854,13 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
                     to_print += ', ' + ses
                 to_print += (
                     ' has already been submitted,'
-                    + " so it won't be submitted again."
-                    + ' If you want to resubmit it,'
-                    + ' please use `babs-status --resubmit`'
+                    " so it won't be submitted again."
+                    ' If you want to resubmit it,'
+                    ' please use `babs-status --resubmit`'
                 )
                 print(to_print)
     else:  # taking into account the `count` argument
-        df_remain = df_job[df_job.has_submitted == False]
+        df_remain = df_job[~df_job.has_submitted]
         if count > 0:
             df_job_submit = df_remain[:count].reset_index(drop=True)
         else:  # if count is None or negative, run all
@@ -1923,7 +1903,7 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
         analysis_path, 'code/check_setup', 'submit_test_job_template.yaml'
     )
     with open(template_yaml_path) as f:
-        templates = yaml.load(f, Loader=yaml.FullLoader)
+        templates = yaml.safe_load(f)
     f.close()
     # sections in this template yaml file:
     cmd = templates['cmd_template']
@@ -2111,7 +2091,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
                 if config_msg_alert is not None:
                     print('\nAmong all failed job(s):')
                 # get the list of jobs that 'is_failed=True':
-                list_index_job_failed = df.index[df['is_failed'] == True].tolist()
+                list_index_job_failed = df.index[df['is_failed']].tolist()
                 # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
 
                 # summarize based on `alert_message` column:
@@ -2134,7 +2114,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
 
                 # if there is 'no_alert' in 'alert_message', check 'job_account' column:
                 if MSG_NO_ALERT_IN_LOGS in unique_list_alert_message:
-                    list_index_job_failed_no_alert = (df['is_failed'] == True) & (
+                    list_index_job_failed_no_alert = (df['is_failed']) & (
                         df['alert_message'] == MSG_NO_ALERT_IN_LOGS
                     )
 
@@ -2147,9 +2127,9 @@ def report_job_status(df, analysis_path, config_msg_alert):
                         # if so, 'job_account' was not applied yet:
                         print(
                             "\nFor the failed job(s) that don't have alert message in log files,"
-                            + ' you may use `--job-account` to get more information'
-                            + ' about why they are failed.'
-                            + ' Note that with `--job-account`, `babs-status` may take longer time.'
+                            ' you may use `--job-account` to get more information'
+                            ' about why they are failed.'
+                            ' Note that with `--job-account`, `babs-status` may take longer time.'
                         )
                     else:
                         all_job_account = pdseries.tolist()
@@ -2160,7 +2140,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
 
                         print(
                             '\nAmong job(s) that are failed'
-                            + " and don't have alert message in log files:"
+                            " and don't have alert message in log files:"
                         )
                         for unique_job_account in unique_list_job_account:
                             # count:
@@ -2273,14 +2253,14 @@ def _parsing_squeue_out(squeue_std):
         dict_ind = {'jobid': 0, 'st': 4, 'state': 5, 'time': 6}
         # initialize a dict for holding the values from all jobs:
         # ROADMAP: pd.DataFrame is probably more memory efficient than dicts
-        dict_val = dict((key, []) for key in dict_ind)
+        dict_val = {key: [] for key in dict_ind}
 
         # sanity check: these fields show up in the header we got:
         for fld in ['jobid', 'st', 'state', 'time']:
             if header_l[dict_ind[fld]].lower() != fld:
                 raise Exception(
                     'error in the `squeue` output,'
-                    + f' expected {fld} and got {header_l[dict_ind[fld]].lower()}'
+                    f' expected {fld} and got {header_l[dict_ind[fld]].lower()}'
                 )
 
         for row in datarows:
@@ -2435,7 +2415,7 @@ def get_config_msg_alert(container_config_yaml_file):
 
     if container_config_yaml_file is not None:  # yaml file is provided
         with open(container_config_yaml_file) as f:
-            container_config = yaml.load(f, Loader=yaml.FullLoader)
+            container_config = yaml.safe_load(f)
 
         # Check if there is section 'alert_log_messages':
         if 'alert_log_messages' in container_config:
@@ -2447,10 +2427,11 @@ def get_config_msg_alert(container_config_yaml_file):
                 if ('stdout' not in config_msg_alert) & ('stderr' not in config_msg_alert):
                     # neither is included:
                     warnings.warn(
-                        "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
-                        " neither 'stdout' nor 'stderr' is included in this section."
+                        "Section 'alert_log_messages' is provided in `container_config_yaml_file`,"
+                        " but neither 'stdout' nor 'stderr' is included in this section."
                         " So BABS won't check if there is"
-                        ' any alerting message in log files.'
+                        ' any alerting message in log files.',
+                        stacklevel=2,
                     )
                     config_msg_alert = None  # not useful anymore, set to None then.
             else:  # nothing under "alert_log_messages":
@@ -2458,7 +2439,8 @@ def get_config_msg_alert(container_config_yaml_file):
                     "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
                     " neither 'stdout' nor 'stderr' is included in this section."
                     " So BABS won't check if there is"
-                    ' any alerting message in log files.'
+                    ' any alerting message in log files.',
+                    stacklevel=2,
                 )
                 # `config_msg_alert` is already `None`, no need to set to None
         else:
@@ -2466,7 +2448,8 @@ def get_config_msg_alert(container_config_yaml_file):
             warnings.warn(
                 "There is no section called 'alert_log_messages' in the provided"
                 " `container_config_yaml_file`. So BABS won't check if there is"
-                ' any alerting message in log files.'
+                ' any alerting message in log files.',
+                stacklevel=2,
             )
     else:
         config_msg_alert = None
@@ -2508,8 +2491,8 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     Notes:
     -----------------
     An edge case (not a bug): On cubic cluster, some info will be printed to 'stderr' file
-    before 'stdout' file have any printed messages. So 'alert_message' column may say 'BABS: No alert'
-    but 'last_line_stdout_file' is still 'NaN'
+    before 'stdout' file have any printed messages. So 'alert_message' column may say
+    'BABS: No alert' but 'last_line_stdout_file' is still 'NaN'
     """
 
     from .constants import MSG_NO_ALERT_IN_LOGS
@@ -2686,16 +2669,15 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
 
     if if_no_sacct:  # there is no information about this job in sacct:
         warnings.warn(
-            '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name
+            '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name,
+            stacklevel=2,
         )
         print(
             'Hint: check if the job is still in the queue, e.g., in state of pending, running, etc'
         )
         print(
             'Hint: check if the username used for submitting this job'
-            + " was not current username '"
-            + username_lowercase
-            + "'"
+            " was not current username '" + username_lowercase + "'"
         )
         msg_toreturn = msg_no_sacct
     else:
@@ -2715,7 +2697,8 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
         temp = df.index[(df['JobID'] == job_id_str) & (df['JobName'] == job_name)].tolist()
         if len(temp) == 0:  # did not find the job:
             warnings.warn(
-                '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name
+                '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name,
+                stacklevel=2,
             )
             print(
                 'Hint: check if the job is still in the queue,'
@@ -2723,9 +2706,7 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
             )
             print(
                 'Hint: check if the username used for submitting this job'
-                + " was not current username '"
-                + username_lowercase
-                + "'"
+                " was not current username '" + username_lowercase + "'"
             )
             print(
                 'Hint: check if the job ID is more than ' + str(len_char_jobid) + ' chars,'
@@ -2734,7 +2715,8 @@ def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
             msg_toreturn = msg_no_sacct
         elif len(temp) > 1:  # more than one matched:
             warnings.warn(
-                '`sacct` detects more than one job for this job ' + job_id_str + ', ' + job_name
+                '`sacct` detects more than one job for this job ' + job_id_str + ', ' + job_name,
+                stacklevel=2,
             )
             print(
                 'Hint: check if the job ID is more than ' + str(len_char_jobid) + ' chars,'
@@ -2779,7 +2761,9 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
         elif len(list_qacct_failed) == 1:
             qacct_failed = list_qacct_failed[0]
         else:
-            warnings.warn('Error when `qacct` for job ' + job_id_str + ', ' + job_name)
+            warnings.warn(
+                'Error when `qacct` for job ' + job_id_str + ', ' + job_name, stacklevel=2
+            )
             qacct_failed = np.nan
             if_valid_qacct_failed = False
             msg_toreturn = msg_failed_to_call_qacct
@@ -2796,13 +2780,11 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
     except subprocess.CalledProcessError:  # if `proc_qacct.check_returncode()` failed:
         # if the job is still in queue (qw or r etc), this will throw out an error:
         #   '.... returned non-zero exit status 1.'
-        warnings.warn('Error when `qacct` for job ' + job_id_str + ', ' + job_name)
+        warnings.warn('Error when `qacct` for job ' + job_id_str + ', ' + job_name, stacklevel=2)
         print('Hint: check if the job is still in the queue, e.g., in state of qw, r, etc')
         print(
             'Hint: check if the username used for submitting this job'
-            + " was not current username '"
-            + username_lowercase
-            + "'"
+            " was not current username '" + username_lowercase + "'"
         )
         print('Hint: check if the job was killed during pending state')
         # ^^ for SGE cluster: job manually killed during pending: `qacct` will fail:
