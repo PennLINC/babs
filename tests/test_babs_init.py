@@ -16,9 +16,9 @@ from babs.cli import (  # noqa
 )
 from get_data import (  # noqa
     get_input_data,
-    container_ds_path,
+    container_ds_path as imported_container_ds_path,
     where_now,
-    if_circleci,
+    if_circleci as imported_if_circleci,
     get_container_config_yaml_filename,
     __location__,
     INFO_2ND_INPUT_DATA,
@@ -58,8 +58,8 @@ def test_babs_init(
     if_two_input,
     tmp_path,
     tmp_path_factory,
-    container_ds_path_param,
-    if_circleci_param,
+    container_ds_path,
+    if_circleci,
 ):
     """
     This is to test `babs-init` in different cases.
@@ -81,9 +81,9 @@ def test_babs_init(
         whether to use two input datasets
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
-    container_ds_path_param: fixture; str
+    container_ds_path: fixture; str
         Path to the container datalad dataset
-    if_circleci_param: fixture; bool
+    if_circleci: fixture; bool
         Whether currently in CircleCI
 
     TODO: add `type_system` and to test out Slurm version!
@@ -106,8 +106,8 @@ def test_babs_init(
         input_ds_cli.append([INFO_2ND_INPUT_DATA['which_input'], path_in_2nd])
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
-    assert op.exists(container_ds_path_param)
-    assert op.exists(op.join(container_ds_path_param, '.datalad/config'))
+    assert op.exists(container_ds_path)
+    assert op.exists(op.join(container_ds_path, '.datalad/config'))
 
     # Preparation of freesurfer: for fmriprep and qsiprep:
     # check if `--fs-license-file` is included in YAML file:
@@ -144,7 +144,7 @@ def test_babs_init(
         project_name=project_name,
         input=input_ds_cli,
         list_sub_file=None,
-        container_ds=container_ds_path_param,
+        container_ds=container_ds_path,
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
