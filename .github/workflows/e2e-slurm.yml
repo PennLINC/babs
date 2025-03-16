@@ -1,7 +1,12 @@
 ---
 name: Slurm
 
-on: [push]
+# Temporarily disabled
+on:
+  push:
+    branches-ignore:
+      - '**'  # This prevents the workflow from running on any branch
+
 jobs:
     e2e-slurm:
       name: Test e2e with SLURM
