@@ -3007,7 +3007,6 @@ class Container:
         # Change path to a temporary job compute workspace:
         #   the path is based on what users provide in section 'job_compute_space' in YAML file:
         cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
-        print(f'COMPUTE SPACE {cmd_job_compute_space}', flush=True)
         bash_file.write(cmd_job_compute_space)
 
         # Call `test_job.py`:
@@ -3030,8 +3029,10 @@ class Container:
         bash_file.write('\necho SUCCESS\n')
 
         print('TEST JOB')
-        with open(fn_call_test_job) as f:
-            print(f.read(), flush=True)
+        proc_chmod_bashfile = subprocess.run(
+            ['cat', fn_call_test_job],  # e.g., chmod +x code/participant_job.sh
+            stdout=subprocess.PIPE,
+        )
 
         proc_chmod_bashfile = subprocess.run(
             ['chmod', '+x', fn_call_test_job],  # e.g., chmod +x code/participant_job.sh
