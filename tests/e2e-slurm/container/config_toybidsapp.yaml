@@ -12,7 +12,7 @@ zip_foldernames:
 # How much cluster resources it needs:
 cluster_resources:
     interpreting_shell: /bin/bash
-    hard_memory_limit: 2G
+    # hard_memory_limit: 2G
 
 script_preamble: |
     . ~/miniconda.env
