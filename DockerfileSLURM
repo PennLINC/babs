@@ -31,11 +31,11 @@ RUN mkdir -p /singularity_images \
     docker://pennlinc/toy_bids_app:0.0.7
 
 # # install BABS
-COPY . $HOME/babs
-WORKDIR $HOME/babs
-RUN pip install .[tests]
+# COPY . $HOME/babs
+# WORKDIR $HOME/babs
+# RUN pip install .[tests]
 
-# COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-# ENTRYPOINT ["/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/bin/bash"]
