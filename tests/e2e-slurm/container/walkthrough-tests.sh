@@ -1,18 +1,15 @@
 #!/bin/bash -i
 
-SUBPROJECT_NAME=test_project
 
 set -eu
 
+SUBPROJECT_NAME=test_project
 echo "Git user: $(git config user.name)"
 echo "Git email: $(git config user.email)"
 
 mkdir /test-temp
 pushd /test-temp
 datalad clone osf://w2nu3/ multi-ses
-
-# TODO switch back to osf project
-
 
 # Singularity image created by root, then chowned to this user, and datalad must be run as this user
 datalad create -D "toy BIDS App" toybidsapp-container

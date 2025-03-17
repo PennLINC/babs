@@ -74,6 +74,7 @@ jobs:
             docker run -it \
                 -v ${PWD}:/tests \
                 -h slurmctl --cap-add sys_admin \
+                --privileged \
                 pennlinc/slurm-docker-ci:unstable \
                 /tests/tests/e2e-slurm/container/walkthrough-tests.sh
 
