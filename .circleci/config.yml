@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: pennlinc/babs_testing:0.3
+    - image: pennlinc/slurm-docker-ci:0.9
 
 jobs:
   download_test_data:
@@ -74,6 +74,7 @@ jobs:
             docker run -it \
                 -v ${PWD}:/tests \
                 -h slurmctl --cap-add sys_admin \
+                --privileged \
                 pennlinc/slurm-docker-ci:unstable \
                 /tests/tests/e2e-slurm/container/walkthrough-tests.sh
 

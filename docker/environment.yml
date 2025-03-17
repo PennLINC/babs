@@ -6,6 +6,7 @@ dependencies:
   - git
   - git-annex
   - pip
+  - p7zip
   - python=3.11
   - pip:
       - backoff
