@@ -52,8 +52,10 @@ jobs:
             pytest -n 4 -sv --durations=0 --timeout=300 --log-cli-level=DEBUG
 
   e2e-slurm:
-    machine:
-      image: ubuntu-2204:current
+    # machine:
+    #   image: ubuntu-2204:current
+    docker:
+      - image: pennlinc/slurm-docker-ci:0.4
     working_directory: /home/circleci/src/babs
     steps:
       - checkout:
@@ -65,8 +67,8 @@ jobs:
           name: pytest of BABS
           no_output_timeout: 1h
           command: |
-            docker pull pennlinc/slurm-docker-ci:0.1
-            # docker run -it -h slurmctl --cap-add sys_admin pennlinc/slurm-docker-ci:0.1
+            #docker pull pennlinc/slurm-docker-ci:0.4
+            pip install .[tests]
 
   deployable: # checkpoint of deployable: requires all success
     <<: *dockersetup
