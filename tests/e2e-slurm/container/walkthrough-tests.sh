@@ -1,5 +1,7 @@
 #!/bin/bash -i
 
+pip install datalad datalad_container git git-annex
+
 SUBPROJECT_NAME=test_project
 
 set -eu
