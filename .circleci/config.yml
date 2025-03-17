@@ -55,7 +55,7 @@ jobs:
     machine:
       image: ubuntu-2204:current
     # docker:
-    #   - image: pennlinc/slurm-docker-ci:0.4
+    #   - image: pennlinc/slurm-docker-ci:0.8
     working_directory: /home/circleci/src/babs
     steps:
       - checkout:
@@ -67,8 +67,15 @@ jobs:
           name: pytest of BABS
           no_output_timeout: 1h
           command: |
-            docker pull pennlinc/slurm-docker-ci:0.4
-            # pip install .[tests]
+            docker build \
+            -t pennlinc/slurm-docker-ci:unstable \
+            -f Dockerfile_testing .
+
+            docker run -it \
+                -v ${PWD}:/tests \
+                -h slurmctl --cap-add sys_admin \
+                pennlinc/slurm-docker-ci:unstable \
+                /tests/tests/e2e-slurm/container/walkthrough-tests.sh
 
   deployable: # checkpoint of deployable: requires all success
     <<: *dockersetup

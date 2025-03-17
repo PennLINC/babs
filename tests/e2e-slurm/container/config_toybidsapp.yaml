@@ -1,5 +1,6 @@
 # Arguments in `singularity run`:
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     --no-zipped: ""
     --dummy: "2"
     -v: ""

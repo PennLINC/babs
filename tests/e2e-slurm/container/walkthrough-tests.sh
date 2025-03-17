@@ -1,50 +1,97 @@
 #!/bin/bash -i
-# Here we perform all actions that must be done as root inside the container and then
-# execute the walkthrough as BABS_USER
+
+SUBPROJECT_NAME=test_project
+
 set -eu
 
-export TESTDATA=/opt/testdata
-BABS_USER=testuser
+echo "Git user: $(git config user.name)"
+echo "Git email: $(git config user.email)"
 
-# Install singularity inside the container
-yum update -y && yum install -y epel-release &&  yum update -y &&  yum install -y singularity-runtime apptainer
+mkdir /test-temp
+pushd /test-temp
+datalad clone osf://w2nu3/ multi-ses
 
-# Wait for slurm to be up
-max_retries=10
-delay=10  # seconds
+# TODO switch back to osf project
 
-echo "Try connecting to slurm with sacct until it succeeds"
-set +e # We need to check the error code and allow failures until slurm has started up
-export PATH=${PWD}/tests/e2e-slurm/bin/:${PATH}
-for ((i=1; i<=max_retries; i++)); do
-	# Check if the command was successful
-	if sacct > /dev/null; then
-		echo "Slurm is up and running!"
-		break
-	else
-		echo "Waiting for Slurm to start... retry $i/$max_retries"
-		sleep $delay
-	fi
-	# exit if max retries reached
-	if [ "$i" -eq "$max_retries" ]; then
-		echo "Failed to start Slurm after $max_retries attempts."
-	exit 1
-    fi
+
+# Singularity image created by root, then chowned to this user, and datalad must be run as this user
+datalad create -D "toy BIDS App" toybidsapp-container
+pushd toybidsapp-container
+datalad containers-add \
+    --url "/singularity_images/toybidsapp_0.0.7.sif" \
+    toybidsapp-0-0-7
+popd
+
+# TODO File Issue: --where_project must be abspath file issue for relative path
+babs-init \
+    --where_project "${PWD}" \
+    --project_name $SUBPROJECT_NAME \
+    --input BIDS "${PWD}"/multi-ses \
+    --container_ds "${PWD}"/toybidsapp-container \
+    --container_name toybidsapp-0-0-7 \
+    --container_config_yaml_file "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
+    --type_session multi-ses \
+    --type_system slurm
+
+echo "PASSED: babs-init"
+echo "Check setup, without job"
+babs-check-setup --project_root "${PWD}"/test_project/
+echo "PASSED: Check setup, without job"
+
+babs-check-setup --project_root "${PWD}"/test_project/ --job-test
+echo "Job submitted: Check setup, with job"
+
+babs-status --project_root "${PWD}"/test_project/
+
+# Wait for all running jobs to finish
+while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
+    squeue -u "$USER" -t RUNNING,PENDING
+    echo "Waiting for running jobs to finish..."
+    sleep 5 # Wait for 60 seconds before checking again
 done
-set -e
 
-# Currently we are root inside the container. Now we create a user to own the testdata
-useradd "$BABS_USER"
-# cp rather than use bind directly so it can be owned by the container user and not cause issues outside
-mkdir "${TESTDATA}"
-cp /opt/outer/* "${TESTDATA}"
+echo "No running jobs."
 
+# TODO make sure this works
+# Check for failed jobs TODO state filter doesn't seem to be working as expected
+# if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
+if sacct -u "$USER" --noheader | grep -q "FAILED"; then
+    sacct -u "$USER"
+    echo "There are failed jobs."
+    exit 1 # Exit with failure status
+else
+    sacct -u "$USER"
+    echo "PASSED: No failed jobs."
+fi
 
-# We build the singularity container now while we are root, and use it later as testuser
-pushd "${TESTDATA}"
-singularity build  \
-    toybidsapp-0.0.7.sif \
-    docker://pennlinc/toy_bids_app:0.0.7
+babs-submit --project-root "${PWD}/test_project/"
 
-chown -R "$BABS_USER:$BABS_USER" "${TESTDATA}"
-su "${BABS_USER}" "${TESTDATA}/babs-user-script.sh"
+# # Wait for all running jobs to finish
+while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
+    squeue -u "$USER" -t RUNNING,PENDING
+    echo "Waiting for running jobs to finish..."
+    sleep 5 # Wait for 60 seconds before checking again
+done
+
+echo "========================================================================="
+echo "babs-status:"
+babs-status --project_root "${PWD}"/test_project/
+echo "========================================================================="
+
+# Check for failed jobs TODO see above
+# if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
+if sacct -u "$USER" --noheader | grep -q "FAILED"; then
+    sacct -u "$USER"
+    echo "========================================================================="
+    echo "There are failed jobs."
+    exit 1 # Exit with failure status
+else
+    sacct -u "$USER"
+    echo "========================================================================="
+    echo "PASSED: No failed jobs."
+fi
+
+babs-merge --project_root "${PWD}"/test_project/
+echo "PASSED: e2e walkthrough successful!"

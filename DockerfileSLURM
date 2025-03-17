@@ -1,10 +1,5 @@
 FROM giovtorres/docker-centos7-slurm:latest
 
-# Create a shared $HOME directory
-RUN useradd -m -s /bin/bash -G users babs
-WORKDIR /home/babs
-ENV HOME="/home/babs"
-
 WORKDIR /
 RUN echo "2024.04.11"
 RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
@@ -31,11 +26,6 @@ RUN mkdir -p /singularity_images \
     docker://pennlinc/toy_bids_app:0.0.7
 
 # # install BABS
-# COPY . $HOME/babs
-# WORKDIR $HOME/babs
+# COPY . /babs
+# WORKDIR /babs
 # RUN pip install .[tests]
-
-# COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-
-# ENTRYPOINT ["/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
-# CMD ["/bin/bash"]
