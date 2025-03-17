@@ -55,6 +55,8 @@ jobs:
     docker:
       - image: pennlinc/slurm-docker-ci:unstable
         name: slurmctl
+        entrypoint: /tini -- /usr/local/bin/docker-entrypoint.sh
+        command: /bin/bash
     working_directory: /home/circleci/src/babs
     steps:
       - checkout:
