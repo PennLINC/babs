@@ -55,6 +55,7 @@ jobs:
     docker:
       - image: pennlinc/slurm-docker-ci:unstable
         name: slurmctl
+    working_directory: /home/circleci/src/babs
     steps:
       - checkout:
           path: /home/circleci/src/babs
