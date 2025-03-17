@@ -26,7 +26,7 @@ RUN git config --global user.name "CircleCI" \
 
 # Create toy bids app
 RUN mkdir -p /singularity_images \
-    && apptainer build \
+    && /opt/conda/envs/babs/bin/apptainer build \
     /singularity_images/toybidsapp_0.0.7.sif \
     docker://pennlinc/toy_bids_app:0.0.7
 
@@ -35,7 +35,7 @@ RUN mkdir -p /singularity_images \
 # WORKDIR $HOME/babs
 # RUN pip install .[tests]
 
-COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+# COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-ENTRYPOINT ["/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
-CMD ["/bin/bash"]
+# ENTRYPOINT ["/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
+# CMD ["/bin/bash"]
