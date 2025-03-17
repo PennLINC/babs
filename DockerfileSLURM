@@ -1,0 +1,31 @@
+FROM giovtorres/docker-centos7-slurm:latest
+
+WORKDIR /
+RUN echo "2024.04.11"
+RUN curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj bin/micromamba
+
+COPY docker/environment.yml /tmp/environment.yml
+ENV MAMBA_ROOT_PREFIX="/opt/conda" \
+    MAMBA_NO_LOW_SPEED_LIMIT=1 \
+    PIP_DEFAULT_TIMEOUT=100
+
+RUN micromamba config set extract_threads 1 \
+    && micromamba create -vv -y -f /tmp/environment.yml \
+    && micromamba clean -y -a
+
+ENV PATH=/opt/conda/envs/babs/bin:$PATH
+
+# Configure the git user name and email
+RUN git config --global user.name "CircleCI" \
+    && git config --global user.email "circleci@example.com"
+
+# Create toy bids app
+RUN mkdir -p /singularity_images \
+    && /opt/conda/envs/babs/bin/apptainer build \
+    /singularity_images/toybidsapp_0.0.7.sif \
+    docker://pennlinc/toy_bids_app:0.0.7
+
+# # install BABS
+# COPY . /babs
+# WORKDIR /babs
+# RUN pip install .[tests]
