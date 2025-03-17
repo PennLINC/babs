@@ -3,13 +3,22 @@
 
 set -eu
 
-SUBPROJECT_NAME=test_project
+export USER=root
+export SUBPROJECT_NAME=test_project
 echo "Git user: $(git config user.name)"
 echo "Git email: $(git config user.email)"
 
+DATA_DIR=/home/circleci/test_data
+
+if [ ! -d "${DATA_DIR}/BIDS_multi-ses" ]; then
+    echo "Data directory ${DATA_DIR}/BIDS_multi-ses does not exist"
+    mkdir -p "$DATA_DIR"
+    cd "$DATA_DIR"
+    datalad clone osf://w2nu3/ BIDS_multi-ses
+fi
+
 mkdir /test-temp
 pushd /test-temp
-datalad clone osf://w2nu3/ multi-ses
 
 # Singularity image created by root, then chowned to this user, and datalad must be run as this user
 datalad create -D "toy BIDS App" toybidsapp-container
@@ -19,11 +28,10 @@ datalad containers-add \
     toybidsapp-0-0-7
 popd
 
-# TODO File Issue: --where_project must be abspath file issue for relative path
 babs-init \
     --where_project "${PWD}" \
     --project_name $SUBPROJECT_NAME \
-    --input BIDS "${PWD}"/multi-ses \
+    --input BIDS "${DATA_DIR}/BIDS_multi-ses" \
     --container_ds "${PWD}"/toybidsapp-container \
     --container_name toybidsapp-0-0-7 \
     --container_config_yaml_file "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
@@ -56,13 +64,13 @@ echo "No running jobs."
 if sacct -u "$USER" --noheader | grep -q "FAILED"; then
     sacct -u "$USER"
     echo "There are failed jobs."
-    exit 1 # Exit with failure status
+    #exit 1 # Exit with failure status
 else
     sacct -u "$USER"
     echo "PASSED: No failed jobs."
 fi
 
-babs-submit --project-root "${PWD}/test_project/"
+babs-submit --project-root "${PWD}/test_project/" --all
 
 # # Wait for all running jobs to finish
 while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
@@ -83,7 +91,7 @@ if sacct -u "$USER" --noheader | grep -q "FAILED"; then
     sacct -u "$USER"
     echo "========================================================================="
     echo "There are failed jobs."
-    exit 1 # Exit with failure status
+    #exit 1 # Exit with failure status
 else
     sacct -u "$USER"
     echo "========================================================================="

@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: pennlinc/babs_testing:0.3
+    - image: pennlinc/slurm-docker-ci:0.9
 
 jobs:
   download_test_data:
