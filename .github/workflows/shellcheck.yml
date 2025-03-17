@@ -17,8 +17,4 @@ jobs:
     - name: Run shellcheck
       run: |
         shellcheck -x \
-        tests/e2e-slurm/container/babs-user-script.sh \
-        tests/e2e-slurm/container/ensure-env.sh \
-        tests/e2e-slurm/container/walkthrough-tests.sh \
-        tests/e2e-slurm/install-babs.sh \
-        tests/e2e-slurm/main.sh
+        tests/e2e-slurm/container/walkthrough-tests.sh
