@@ -19,26 +19,44 @@ import yaml
 from filelock import FileLock, Timeout
 
 # from datalad.interface.base import build_doc
-from babs.utils import (calcu_runtime, ceildiv, check_job_account,
-                        check_validity_unzipped_input_dataset,
-                        df_status_update, df_submit_update,
-                        generate_bashhead_resources, generate_cmd_datalad_run,
-                        generate_cmd_determine_zipfilename,
-                        generate_cmd_filterfile,
-                        generate_cmd_job_compute_space,
-                        generate_cmd_script_preamble, generate_cmd_set_envvar,
-                        generate_cmd_singularityRun_from_config,
-                        generate_cmd_unzip_inputds,
-                        generate_cmd_zipping_from_config,
-                        get_alert_message_in_log_files, get_cmd_cancel_job,
-                        get_config_msg_alert, get_git_show_ref_shasum,
-                        get_immediate_subdirectories, get_info_zip_foldernames,
-                        get_last_line, get_list_sub_ses, get_username,
-                        prepare_job_array_df, print_versions_from_yaml,
-                        read_job_status_csv, read_yaml, report_job_status,
-                        request_all_job_status, submit_array,
-                        submit_one_test_job, validate_type_session,
-                        validate_type_system, write_yaml)
+from babs.utils import (
+    calcu_runtime,
+    ceildiv,
+    check_job_account,
+    check_validity_unzipped_input_dataset,
+    df_status_update,
+    df_submit_update,
+    generate_bashhead_resources,
+    generate_cmd_datalad_run,
+    generate_cmd_determine_zipfilename,
+    generate_cmd_filterfile,
+    generate_cmd_job_compute_space,
+    generate_cmd_script_preamble,
+    generate_cmd_set_envvar,
+    generate_cmd_singularityRun_from_config,
+    generate_cmd_unzip_inputds,
+    generate_cmd_zipping_from_config,
+    get_alert_message_in_log_files,
+    get_cmd_cancel_job,
+    get_config_msg_alert,
+    get_git_show_ref_shasum,
+    get_immediate_subdirectories,
+    get_info_zip_foldernames,
+    get_last_line,
+    get_list_sub_ses,
+    get_username,
+    prepare_job_array_df,
+    print_versions_from_yaml,
+    read_job_status_csv,
+    read_yaml,
+    report_job_status,
+    request_all_job_status,
+    submit_array,
+    submit_one_test_job,
+    validate_type_session,
+    validate_type_system,
+    write_yaml,
+)
 
 
 # @build_doc
@@ -2506,8 +2524,7 @@ class Container:
         When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
         meaning, starting with space, a backward slash, a return, and a tab.
         """
-        from .constants import (OUTPUT_MAIN_FOLDERNAME,
-                                PATH_FS_LICENSE_IN_CONTAINER)
+        from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
 
         type_session = validate_type_session(type_session)
 
@@ -2990,6 +3007,7 @@ class Container:
         # Change path to a temporary job compute workspace:
         #   the path is based on what users provide in section 'job_compute_space' in YAML file:
         cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
+        print(f'COMPUTE SPACE {cmd_job_compute_space}')
         bash_file.write(cmd_job_compute_space)
 
         # Call `test_job.py`:
@@ -3011,7 +3029,8 @@ class Container:
         # Echo success:
         bash_file.write('\necho SUCCESS\n')
 
-        with open(fn_call_test_job, 'r') as f:
+        print('TEST JOB')
+        with open(fn_call_test_job) as f:
             print(f.read())
 
         proc_chmod_bashfile = subprocess.run(

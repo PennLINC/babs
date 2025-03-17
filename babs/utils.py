@@ -420,7 +420,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
 
     # Ensure that subject_selection_flag is not None before returning
     if subject_selection_flag is None:
-        subject_selection_flag = "--participant-id"
+        subject_selection_flag = '--participant-id'
     print(
         "'$SUBJECT_SELECTION_FLAG' not found in 'singularity_run' section of the YAML file. "
         "Using '--participant-id'."
@@ -541,8 +541,7 @@ def get_info_zip_foldernames(config):
     In fact, we use `OUTPUT_MAIN_FOLDERNAME` to define the 'outputs' string.
     """
 
-    from .constants import (OUTPUT_MAIN_FOLDERNAME,
-                            PLACEHOLDER_MK_SUB_OUTPUT_FOLDER)
+    from .constants import OUTPUT_MAIN_FOLDERNAME, PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
 
     # Sanity check: this section should exist:
     if 'zip_foldernames' not in config:
