@@ -2639,7 +2639,7 @@ class Container:
 
         # Write the head of the command `singularity run`:
         bash_file.write('mkdir -p ${PWD}/.git/tmp/wkdir\n')
-        cmd_head_singularityRun = 'singularity run --cleanenv'
+        cmd_head_singularityRun = 'singularity run --containall --writable-tmpfs'
         # binding:
         cmd_head_singularityRun += ' \\' + '\n\t' + '-B ${PWD}'
 
@@ -2668,9 +2668,9 @@ class Container:
         cmd_head_singularityRun += ' \\' + '\n\t'
         cmd_head_singularityRun += self.container_path_relToAnalysis
         cmd_head_singularityRun += ' \\' + '\n\t'
-        cmd_head_singularityRun += singuRun_input_dir  # inputs/data/<name>
+        cmd_head_singularityRun += '$PWD/' + singuRun_input_dir  # inputs/data/<name>
         cmd_head_singularityRun += ' \\' + '\n\t'
-        cmd_head_singularityRun += path_output_folder  # defined above
+        cmd_head_singularityRun += '$PWD/' + path_output_folder  # defined above
 
         # currently all BIDS App support `participant` positional argu:
         cmd_head_singularityRun += ' \\' + '\n\t'
