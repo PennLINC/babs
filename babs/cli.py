@@ -301,11 +301,11 @@ def babs_check_setup_cli():
         '--project_root',
         '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
-        default=os.getcwd()
+        default=os.getcwd(),
     )
     parser.add_argument(
         '--job_test',
@@ -359,11 +359,11 @@ def babs_submit_cli():
         '--project_root',
         '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
-        default=os.getcwd()
+        default=os.getcwd(),
     )
 
     # --count, --job: can only request one of them
@@ -509,11 +509,11 @@ def babs_status_cli():
         '--project_root',
         '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
-        default=os.getcwd()
+        default=os.getcwd(),
     )
     parser.add_argument(
         '--resubmit',
@@ -746,11 +746,11 @@ def babs_merge_cli():
         '--project_root',
         '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
-        default=os.getcwd()
+        default=os.getcwd(),
     )
     parser.add_argument(
         '--chunk-size',
@@ -811,11 +811,11 @@ def babs_unzip_cli():
         '--project_root',
         '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
-        default=os.getcwd()
+        default=os.getcwd(),
     )
     parser.add_argument(
         '--container_config_yaml_file',
