@@ -1,5 +1,6 @@
 # Arguments in `singularity run`:
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     --no-zipped: ""
     --dummy: "2"
     -v: ""
@@ -11,11 +12,10 @@ zip_foldernames:
 # How much cluster resources it needs:
 cluster_resources:
     interpreting_shell: /bin/bash
-    hard_memory_limit: 2G
 
 script_preamble: |
-    . ~/miniconda.env
-    conda activate babs
+    PATH=/opt/conda/envs/babs/bin:$PATH
+    which python
 
 # Where to run the jobs:
 job_compute_space: "/tmp"
