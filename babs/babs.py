@@ -1432,7 +1432,7 @@ class BABS:
                                     if self.type_session == 'multi-ses':
                                         to_print += ', ' + ses
                                     to_print += ', as it was pending and resubmit was requested.'
-                                    print(to_print, stacklevel=2)
+                                    print(to_print)
 
                                     # kill original one
                                     proc_kill = subprocess.run(
@@ -1536,7 +1536,7 @@ class BABS:
                                 if self.type_session == 'multi-ses':
                                     to_print += ', ' + ses
                                 to_print += ', as it failed and resubmit was requested.'
-                                print(to_print, stacklevel=2)
+                                print(to_print)
 
                                 # no need to kill original one!
                                 #   As it already failed and out of job queue...
