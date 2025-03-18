@@ -420,8 +420,10 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
 
     # Ensure that subject_selection_flag is not None before returning
     if subject_selection_flag is None:
-        raise ValueError(
-            "'$SUBJECT_SELECTION_FLAG' not found in `singularity_run` section of the YAML file."
+        subject_selection_flag = '--participant-label'
+        print(
+        "'$SUBJECT_SELECTION_FLAG' not found in `singularity_run` section of the YAML file. "
+        "Using --participant-label as the default subject selection flag."
         )
 
     # Finalize `singuRun_input_dir`:
