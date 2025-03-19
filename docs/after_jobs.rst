@@ -8,19 +8,19 @@ Step 3.1. Merge the results and provenance
 =============================================
 
 Once all jobs have finished, the results will be on different branches.
-Please use ``babs-merge`` to merge the results and provenance
+Please use ``babs merge`` to merge the results and provenance
 from all the successfully finished jobs:
 
 .. code-block:: bash
 
-    babs-merge \
+    babs merge \
         --project-root /path/to/my_BABS_project
 
 See :ref:`babs_merge_cli` for details.
 
-If ``babs-merge`` finishes successfully, you'll see::
-    
-    `babs-merge` was successful!
+If ``babs merge`` finishes successfully, you'll see::
+
+    `babs merge` was successful!
 
 Otherwise, there were some warnings or errors.
 

@@ -46,8 +46,8 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     """
     This is to get the path of input data.
 
-    Parameters:
-    ---------------
+    Parameters
+    ----------
     which_input: str
         'BIDS' - unzipped
         or 'fmriprep' or 'qsiprep' - zipped derivatives
@@ -58,8 +58,8 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     tmp_path_factory: fixture
         see: https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-tmp-path-factory
 
-    Returns:
-    -----------
+    Returns
+    -------
     path_in: str
         where is the input dataset
     """
@@ -143,8 +143,8 @@ def container_ds_path(where_now, tmp_path_factory):
     and name the container as those in `LIST_WHICH_BIDSAPP`. Tested that the same image
     can have different names in one datalad dataset.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     where_now: from a fixture; str or empty str ("")
         Depending on if on circleci, and singularity or docker is installed:
         - "on_circleci": will use pre-built sif file;
@@ -152,8 +152,8 @@ def container_ds_path(where_now, tmp_path_factory):
         - "on_local": will use `docker` to pull the container
     tmp_path_factory: fixture in pytest
 
-    Returns:
-    -----------
+    Returns
+    -------
     origin_container_ds: str
         path to the created container datalad dataset
     """
@@ -221,8 +221,8 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
     This is to get the container's config YAML file name,
     depending on the BIDS App and if there are two inputs (for fMRIPrep)
 
-    Parameters:
-    -------------
+    Parameters
+    ----------
     which_bidsapp: str
         name of the bidsapp
     which_input: str
@@ -233,8 +233,8 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
     type_system: str
         "sge" or "slurm"
 
-    Returns:
-    -----------
+    Returns
+    -------
     container_config_yaml_filename: str
         the filename, without the path.
     """
@@ -272,13 +272,13 @@ def if_command_installed(cmd):
     """
     This is to check if a command has been installed on the system
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     cmd: str
         the command you want to test. e.g., 'singularity'
 
-    Returns:
-    ---------
+    Returns
+    -------
     if_installed: bool
         True or False
     """

@@ -5,7 +5,7 @@ Overview of BABS
 
 BIDS App Bootstrap (BABS) is a user-friendly and generalizable Python package
 for reproducible image processing at scale.
-BABS facilitates the reproducible application of BIDS Apps to large-scale datasets. 
+BABS facilitates the reproducible application of BIDS Apps to large-scale datasets.
 
 BABS features several command-line interface programs (highlighted in blue):
 
@@ -21,24 +21,24 @@ BABS features several command-line interface programs (highlighted in blue):
 Please refer to :doc:`preparation` for how to prepare them.
 
 :bdg-success:`Step II.` The next step is to set up a BABS project.
-With these three inputs, :doc:`babs-init <babs-init>` initializes a BABS project.
+With these three inputs, :doc:`babs init <babs-init>` initializes a BABS project.
 It will clone input dataset(s) and containerized BIDS App. It will also
 generate scripts that will later be used internally. These scripts will
-complete the FAIRly big workflow framework. :doc:`babs-check-setup <babs-check-setup>` will then
+complete the FAIRly big workflow framework. :doc:`babs check-setup <babs-check-setup>` will then
 perform sanity checks and make sure the BABS project is ready for job running.
 Details about BABS project initiation and checks are on this page: :doc:`create_babs_project`.
 
 :bdg-success:`Step III.` The following step is to run the jobs for subjects (and sessions, if input is a multi-session dataset).
-You can iteratively call :doc:`babs-submit <babs-submit>` and :doc:`babs-status <babs-status>` to submit jobs, check existing
+You can iteratively call :doc:`babs submit <babs-submit>` and :doc:`babs status <babs-status>` to submit jobs, check existing
 jobs' status, and resubmit the jobs if failed or pending. To make it easy to handle large number
-of jobs, :doc:`babs-status <babs-status>` also checks the job status, audits outcomes of existing runs, and returns a summary.
+of jobs, :doc:`babs status <babs-status>` also checks the job status, audits outcomes of existing runs, and returns a summary.
 Details about job submission and status checking are on this page: :doc:`jobs`.
 The results for each subject (and session)
 will be zipped and pushed to a remote indexed archive (RIA) store as a new branch.
 Most importantly, all provenance is tracked by DataLad, including code (e.g., exact Singularity run command),
 input BIDS dataset(s), the BIDS App, and results.
 
-:bdg-success:`Step IV.` After all jobs have completed, you can use :doc:`babs-merge <babs-merge>` to merge results and provenance of successful jobs.
+:bdg-success:`Step IV.` After all jobs have completed, you can use :doc:`babs merge <babs-merge>` to merge results and provenance of successful jobs.
 After you clone and unzip the results from the BABS project, they are ready to be consumed!
 Details about results merging and consuming are on this page: :doc:`after_jobs`.
 

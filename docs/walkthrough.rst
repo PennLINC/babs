@@ -5,7 +5,7 @@ Example walkthrough
 .. contents:: Table of Contents
 
 .. developer's note:
-.. This walkthru is prepared: 
+.. This walkthru is prepared:
 ..  at: '/cbica/projects/BABS/babs_demo_prep'
 ..  using conda env 'babs_demo'
 .. TODO before copying anything to this doc:
@@ -15,7 +15,7 @@ In this example walkthrough, we will use toy BIDS data and a toy BIDS App
 to demonstrate how to use BABS.
 We use SGE clusters as examples here; adaptations to Slurm clusters will also be covered.
 
-By following the :doc:`the installation page <installation>`, 
+By following the :doc:`the installation page <installation>`,
 on the cluster, you should have successfully installed BABS and its dependent software
 (``DataLad``, ``Git``, ``git-annex``, ``datalad-container``)
 in a conda environment called ``babs``. In addition, because the toy BIDS data
@@ -89,7 +89,7 @@ would probably be different from yours due to different clusters, which is fine:
     install(ok): /cbica/projects/BABS/babs_demo/raw_BIDS_multi-ses (dataset)
 
 .. dropdown:: Why do I also see ``[INFO]`` messages?
-    
+
     It's normal to see additional messages from DataLad like below:
 
     ..  code-block:: console
@@ -122,13 +122,13 @@ see all-black images in image viewers.
     As this input BIDS dataset we use for this example walkthrough is available on OSF,
     by default, jobs will fetch the file contents from OSF via Internet connections.
     This would be a problem for clusters without Internet connection on compute nodes.
-    
+
     If the cluster you're using does not have Internet connection on compute nodes,
     to avoid issues when running the jobs,
     please fetch all the file contents now by running:
-    
+
     ..  code-block:: console
-    
+
         $ datalad get *
 
     You should see these printed messages from ``datalad`` at the end:
@@ -183,7 +183,7 @@ so no extra work needs to be done here.
     When providing the path to the input BIDS dataset,
     please do not use the OSF http link;
     instead, please use the path to the local copy of this dataset.
-    We will provide more guides when we reach that step. 
+    We will provide more guides when we reach that step.
 
 Step 1.2. Prepare DataLad dataset of containerized BIDS App
 -------------------------------------------------------------
@@ -237,11 +237,11 @@ Then create a DataLad dataset of this container (i.e., let DataLad track this Si
         create(ok): /cbica/projects/BABS/babs_demo/toybidsapp-container (dataset)
 
         # from `datalad containers-add`:
-        [INFO   ] Copying local file /cbica/projects/BABS/babs_demo/toybidsapp-container/../toybidsapp-0.0.7.sif to /cbica/projects/BABS/babs_demo/toybidsapp-container/.datalad/environments/toybidsapp-0-0-7/image 
-        add(ok): .datalad/environments/toybidsapp-0-0-7/image (file)                                                                                  
-        add(ok): .datalad/config (file)                                                                                                               
-        save(ok): . (dataset)                                                                                                                         
-        action summary:                                                                                                                               
+        [INFO   ] Copying local file /cbica/projects/BABS/babs_demo/toybidsapp-container/../toybidsapp-0.0.7.sif to /cbica/projects/BABS/babs_demo/toybidsapp-container/.datalad/environments/toybidsapp-0-0-7/image
+        add(ok): .datalad/environments/toybidsapp-0-0-7/image (file)
+        add(ok): .datalad/config (file)
+        save(ok): . (dataset)
+        action summary:
           add (ok: 2)
           save (ok: 1)
         add(ok): .datalad/environments/toybidsapp-0-0-7/image (file)
@@ -278,7 +278,7 @@ Below is an example YAML file for toy BIDS App:
 ..  `:lines:` is the line ranges in the original file
 ..  `:emphasize-lines:`: line # in the selected lines defined in `:lines:`
 
-.. literalinclude:: ../../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
+.. literalinclude:: ../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
    :language: yaml
    :lines: 21-
    :linenos:
@@ -304,15 +304,15 @@ You can copy the above content and save it as file ``config_toybidsapp_demo.yaml
 .. dropdown:: How to copy above content using ``Vim`` with correct indent?
 
     After copying above content, and initializing a new file using ``vim``, you need to enter::
-        
+
         :set paste
-        
+
     hit ``Enter`` key,
     hit ``i`` to start ``INSERT (paste)`` mode, then paste above content into the file. Otherwise, you'll see wrong indent.
     After pasting, hit ``escape`` key and enter::
-        
+
         :set nopaste
-    
+
     and hit ``Enter`` key to turn off pasting.
     You now can save this file by typing ``:w``. Close the file by entering ``:q`` and hitting ``Enter`` key.
 
@@ -323,7 +323,7 @@ There are several lines (highlighted above) that require customization based on 
     * Check out if line #13 ``interpreting_shell`` looks appropriate for your cluster.
       Some Slurm clusters may recommend adding ``-l`` at the end,
       i.e.,::
-        
+
         interpreting_shell: "/bin/bash -l"
 
       See :ref:`cluster-resources` for more explanations about this line.
@@ -343,7 +343,7 @@ There are several lines (highlighted above) that require customization based on 
 
       Please replace ``<partition_names>`` with the partition name(s) you would like to use.
       And please replace ``...`` with other lines with pre-defined keys from BABS,
-      such as ``interpreting_shell`` and ``hard_memory_limit``. 
+      such as ``interpreting_shell`` and ``hard_memory_limit``.
 
     * If needed, you may add more requests for other resources,
       e.g., runtime limit of 20min (``hard_runtime_limit: "00:20:00"``),
@@ -351,7 +351,7 @@ There are several lines (highlighted above) that require customization based on 
       Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
     * .. dropdown:: For Penn Medicine CUBIC cluster only:
-        
+
         You may need to add line #4-5 highlighted in the block below
         to avoid some compute nodes
         that currently have issues in file locks:
@@ -386,7 +386,7 @@ There are several lines (highlighted above) that require customization based on 
             script_preamble: |
                 source ${CONDA_PREFIX}/bin/activate babs
                 module load xxxx
-    
+
     * For more, please see: :ref:`script-preamble`.
 
 * Section ``job_compute_space``:
@@ -408,7 +408,7 @@ By now, you have prepared these in the ``~/babs_demo`` folder:
     config_toybidsapp_demo.yaml
     toybidsapp-container/
 
-.. developer's note: 
+.. developer's note:
 ..  It's optional to have cloned dataset ``raw_BIDS_multi-ses`` locally, as we can directly use its OSF link
 ..  for input dataset for BABS. Unless there is no internet connection on compute node.
 
@@ -422,10 +422,10 @@ Now you can start to use BABS for data analysis.
 Step 2. Create a BABS project
 =================================
 
-Step 2.1. Use ``babs-init`` to create a BABS project
+Step 2.1. Use ``babs init`` to create a BABS project
 -----------------------------------------------------------
 A BABS project is the place where all the inputs are cloned to, all scripts are generated,
-and results and provenance are saved. An example command of ``babs-init`` is as follows:
+and results and provenance are saved. An example command of ``babs init`` is as follows:
 
 .. developer's note: reset `$TEMPLATEFLOW_HOME` for now: `unset TEMPLATEFLOW_HOME`
 
@@ -434,7 +434,7 @@ and results and provenance are saved. An example command of ``babs-init`` is as 
     :emphasize-lines: 10
 
     $ cd ~/babs_demo
-    $ babs-init \
+    $ babs init \
         --where_project ${PWD} \
         --project_name my_BABS_project \
         --input BIDS https://osf.io/w2nu3/ \
@@ -461,14 +461,14 @@ As this input dataset is a multi-session dataset, you should specify this as ``-
 Finally, please change the cluster system type ``--type_system`` (highlighted line #10) to yours;
 currently BABS supports ``sge`` and ``slurm``.
 
-If ``babs-init`` succeeded, you should see this message at the end:
+If ``babs init`` succeeded, you should see this message at the end:
 
 ..  code-block:: console
 
-    `babs-init` was successful!
+    `babs init` was successful!
 
 
-.. dropdown:: Full printed messages from ``babs-init``
+.. dropdown:: Full printed messages from ``babs init``
 
     .. literalinclude:: walkthrough_babs-init_printed_messages.txt
        :language: console
@@ -476,13 +476,13 @@ If ``babs-init`` succeeded, you should see this message at the end:
 .. TODO before copying:
 ..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
 ..  2. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  3. annoying but not useful warning from git-annex 
+..  3. annoying but not useful warning from git-annex
 .. TODO after copying:
 ..  1. check the tracked changes!
 
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
-    You may receive this warning from ``babs-init`` if you did not set up environment variable ``$TEMPLATEFLOW_HOME``::
+    You may receive this warning from ``babs init`` if you did not set up environment variable ``$TEMPLATEFLOW_HOME``::
 
         UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up.
         Therefore, BABS will not bind its directory or inject this environment variable into the container when running the container. This may cause errors.
@@ -492,7 +492,7 @@ If ``babs-init`` succeeded, you should see this message at the end:
 
 
 It's very important to check if the generated ``singularity run`` command is what you desire.
-The command below can be found in the printed messages from ``babs-init``:
+The command below can be found in the printed messages from ``babs init``:
 
 ..  code-block:: console
 
@@ -581,16 +581,16 @@ the generated directives would be:
         │   └── README.md
         ├── input_ria
         └── output_ria
-    
+
     Here, ``analysis`` is a DataLad dataset that includes generated scripts in ``code/``,
     a cloned container DataLad dataset ``containers/``, and a cloned input dataset in ``inputs/data``.
     Input and output RIA stores (``input_ria`` and ``output_ria``) are
     DataLad siblings of the ``analysis`` dataset.
     When running jobs, inputs are cloned from input RIA store,
-    and results and provenance will be pushed to output RIA store. 
+    and results and provenance will be pushed to output RIA store.
 
 
-Step 2.2. Use ``babs-check-setup`` to make sure it's good to go
+Step 2.2. Use ``babs check-setup`` to make sure it's good to go
 --------------------------------------------------------------------
 It's important to let BABS check to be sure that the project has been initialized correctly. In addition,
 it's often a good idea to run a test job to make sure
@@ -605,7 +605,7 @@ Therefore, please make sure you switch to this directory before calling them.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs-check-setup \
+    $ babs check-setup \
         --project-root ${PWD} \
         --job-test
 
@@ -613,11 +613,11 @@ It might take a bit time to finish, depending on how busy your cluster is,
 and how much resources you requested in the YAML file - in this example,
 you only requested very minimal amount of resources.
 
-You'll see this message at the end if ``babs-check-setup`` was successful:
+You'll see this message at the end if ``babs check-setup`` was successful:
 
 ..  code-block:: console
 
-    `babs-check-setup` was successful!
+    `babs check-setup` was successful!
 
 Before moving on, please make sure you review the summarized information of designated environment,
 especially the version numbers:
@@ -634,7 +634,7 @@ especially the version numbers:
       git-annex: 'git-annex version: 10.20230215-gd24914f2a'
       datalad_containers: 'datalad_container 1.1.9'
 
-.. dropdown:: Full printed messages from ``babs-check-setup``
+.. dropdown:: Full printed messages from ``babs check-setup``
 
     .. literalinclude:: walkthrough_babs-check-setup_printed_messages.txt
        :language: console
@@ -643,7 +643,7 @@ especially the version numbers:
 .. TODO before copying:
 ..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
 ..  2. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  3. annoying but not useful warning from git-annex 
+..  3. annoying but not useful warning from git-annex
 .. TODO after copying:
 ..  1. check the tracked changes!
 
@@ -651,9 +651,9 @@ Now it's ready for job submissions.
 
 Step 3. Submit jobs and check job status
 ==========================================
-We'll iteratively use ``babs-submit`` and ``babs-status`` to submit jobs and check job status.
+We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and check job status.
 
-We first use ``babs-status`` to check the number of jobs we initially expect to finish successfully.
+We first use ``babs status`` to check the number of jobs we initially expect to finish successfully.
 In this example walkthrough, as no initial list was provided,
 BABS determines this number based on the number of sessions in the input BIDS dataset.
 We did not request extra filtering (based on required files) in our YAML file either,
@@ -662,7 +662,7 @@ so BABS will submit one job for each session.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs-status --project-root $PWD
+    $ babs status --project-root $PWD
 
 You'll see:
 
@@ -675,40 +675,40 @@ You'll see:
     There are in total of 6 jobs to complete.
     0 job(s) have been submitted; 6 job(s) haven't been submitted.
 
-Let's use ``babs-submit`` to submit one job and see if it will finish successfully.
-By default, ``babs-submit`` will only submit one job.
+Let's use ``babs submit`` to submit one job and see if it will finish successfully.
+By default, ``babs submit`` will only submit one job.
 If you would like to submit all jobs, you can use the ``--all`` argument.
 
 .. code-block:: console
 
-    $ babs-submit --project-root $PWD
+    $ babs submit --project-root $PWD
 
 You'll see something like this (the job ID will probably be different):
 
 ..  code-block:: console
 
     Job for sub-01, ses-A has been submitted (job ID: 4639278).
-    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done  is_failed   
+    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done  is_failed
     0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN    False        NaN  \
-    1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN   
-    2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN   
-    3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False        NaN   
-    4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN   
-    5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN   
+    1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
+    2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN
+    3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False        NaN
+    4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
+    5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN
 
-                    log_filename  last_line_stdout_file  alert_message  job_account  
-    0  toy_sub-01_ses-A.*4639278                    NaN            NaN          NaN  
-    1                        NaN                    NaN            NaN          NaN  
-    2                        NaN                    NaN            NaN          NaN  
-    3                        NaN                    NaN            NaN          NaN  
-    4                        NaN                    NaN            NaN          NaN  
-    5                        NaN                    NaN            NaN          NaN 
+                    log_filename  last_line_stdout_file  alert_message  job_account
+    0  toy_sub-01_ses-A.*4639278                    NaN            NaN          NaN
+    1                        NaN                    NaN            NaN          NaN
+    2                        NaN                    NaN            NaN          NaN
+    3                        NaN                    NaN            NaN          NaN
+    4                        NaN                    NaN            NaN          NaN
+    5                        NaN                    NaN            NaN          NaN
 
-You can check the job status via ``babs-status``:
+You can check the job status via ``babs status``:
 
 ..  code-block:: console
 
-    $ babs-status --project-root $PWD
+    $ babs status --project-root $PWD
 
 ..
    when pending::
@@ -748,9 +748,9 @@ Now, you can submit all other jobs by specifying ``--all``:
 
 .. code-block:: console
 
-    $ babs-submit --project-root $PWD --all
+    $ babs submit --project-root $PWD --all
 
-.. 
+..
     printed messages you'll see:
 
     Job for sub-01, ses-B has been submitted (job ID: 4648997).
@@ -758,23 +758,23 @@ Now, you can submit all other jobs by specifying ``--all``:
     Job for sub-02, ses-A has been submitted (job ID: 4649003).
     Job for sub-02, ses-B has been submitted (job ID: 4649006).
     Job for sub-02, ses-D has been submitted (job ID: 4649009).
-    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed   
+    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed
     0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN     True     False  \
-    1  sub-01  ses-B           True  4648997                 NaN             NaN       NaN    False       NaN   
-    2  sub-01  ses-C           True  4649000                 NaN             NaN       NaN    False       NaN   
-    3  sub-02  ses-A           True  4649003                 NaN             NaN       NaN    False       NaN   
-    4  sub-02  ses-B           True  4649006                 NaN             NaN       NaN    False       NaN   
-    5  sub-02  ses-D           True  4649009                 NaN             NaN       NaN    False       NaN   
+    1  sub-01  ses-B           True  4648997                 NaN             NaN       NaN    False       NaN
+    2  sub-01  ses-C           True  4649000                 NaN             NaN       NaN    False       NaN
+    3  sub-02  ses-A           True  4649003                 NaN             NaN       NaN    False       NaN
+    4  sub-02  ses-B           True  4649006                 NaN             NaN       NaN    False       NaN
+    5  sub-02  ses-D           True  4649009                 NaN             NaN       NaN    False       NaN
 
-                    log_filename last_line_stdout_file  alert_message  job_account  
-    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN          NaN  
-    1  toy_sub-01_ses-B.*4648997                   NaN            NaN          NaN  
-    2  toy_sub-01_ses-C.*4649000                   NaN            NaN          NaN  
-    3  toy_sub-02_ses-A.*4649003                   NaN            NaN          NaN  
-    4  toy_sub-02_ses-B.*4649006                   NaN            NaN          NaN  
-    5  toy_sub-02_ses-D.*4649009                   NaN            NaN          NaN 
+                    log_filename last_line_stdout_file  alert_message  job_account
+    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN          NaN
+    1  toy_sub-01_ses-B.*4648997                   NaN            NaN          NaN
+    2  toy_sub-01_ses-C.*4649000                   NaN            NaN          NaN
+    3  toy_sub-02_ses-A.*4649003                   NaN            NaN          NaN
+    4  toy_sub-02_ses-B.*4649006                   NaN            NaN          NaN
+    5  toy_sub-02_ses-D.*4649009                   NaN            NaN          NaN
 
-You can again call ``babs-status --project-root $PWD`` to check status.
+You can again call ``babs status --project-root $PWD`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
 
 ..  code-block:: console
@@ -819,27 +819,27 @@ If all jobs have finished successfully, you'll see:
 Step 4. After jobs have finished
 ===================================
 
-Step 4.1. Use ``babs-merge`` to merge all results and provenance
+Step 4.1. Use ``babs merge`` to merge all results and provenance
 --------------------------------------------------------------------
 After all jobs have finished successfully,
 we will merge all the results and provenance.
 Each job was executed on a different branch, so we must
 merge them together into the mainline branch.
 
-We now run ``babs-merge`` in the root directory of ``my_BABS_project``:
+We now run ``babs merge`` in the root directory of ``my_BABS_project``:
 
 ..  code-block:: console
 
-    $ babs-merge --project-root $PWD
+    $ babs merge --project-root $PWD
 
 If it was successful, you'll see this message at the end:
 
 ..  code-block:: console
 
-    `babs-merge` was successful!
+    `babs merge` was successful!
 
 
-.. dropdown:: Full printed messages from ``babs-merge``
+.. dropdown:: Full printed messages from ``babs merge``
 
     .. literalinclude:: walkthrough_babs-merge_printed_messages.txt
        :language: console
@@ -847,7 +847,7 @@ If it was successful, you'll see this message at the end:
 .. developer's note:
 .. TODO before copying:
 ..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  2. annoying but not useful warning from git-annex 
+..  2. annoying but not useful warning from git-annex
 .. TODO after copying:
 ..  1. check the tracked changes!
 
@@ -872,7 +872,7 @@ You'll see:
 
 ..  code-block:: console
 
-    [INFO   ] Configure additional publication dependency on "output-storage"                                                                           
+    [INFO   ] Configure additional publication dependency on "output-storage"
     configure-sibling(ok): . (sibling)
     install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project_outputs (dataset)
     action summary:
@@ -917,7 +917,7 @@ You'll see printed messages like this:
     # from unzip:
     Archive:  sub-01_ses-A_toybidsapp-0-0-7.zip
        creating: toybidsapp/
-     extracting: toybidsapp/num_nonhidden_files.txt 
+     extracting: toybidsapp/num_nonhidden_files.txt
 
 From the zip file, you got a folder called ``toybidsapp``.
 
