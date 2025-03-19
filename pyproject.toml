@@ -53,12 +53,12 @@ all = ["babs[dev,doc,maint,tests]"]
 
 [project.scripts]
 babs = "babs.cli:_main"
-babs-init = "babs.cli:babs_init_main"
-babs-check-setup = "babs.cli:babs_check_setup_main"
-babs-submit = "babs.cli:babs_submit_main"
-babs-status = "babs.cli:babs_status_main"
-babs-merge = "babs.cli:babs_merge_main"
-babs-unzip = "babs.cli:babs_unzip_main"
+babs-init = "babs.cli:_enter_init"
+babs-check-setup = "babs.cli:_enter_check_setup"
+babs-submit = "babs.cli:_enter_submit"
+babs-status = "babs.cli:_enter_status"
+babs-merge = "babs.cli:_enter_merge"
+babs-unzip = "babs.cli:_enter_unzip"
 
 
 #
