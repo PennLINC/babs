@@ -52,7 +52,7 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--inputs',
+        '--input',
         action='append',  # append each `--input` as a list;
         dest='input_dataset',
         # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
@@ -156,7 +156,6 @@ def _enter_init(argv=None):
         DeprecationWarning,
         stacklevel=2,
     )
-    _parse_init().print_help()
     options = _parse_init().parse_args(argv)
     args = vars(options).copy()
     babs_init_main(**args)

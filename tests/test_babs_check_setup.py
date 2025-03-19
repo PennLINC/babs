@@ -88,7 +88,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     babs_init_opts = argparse.Namespace(
         where_project=where_project,
         project_name=project_name,
-        input=input_ds_cli,
+        input_dataset=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
