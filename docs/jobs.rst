@@ -132,7 +132,7 @@ section **alert_log_messages** in the container's configuration YAML file.
 Job resubmission
 -----------------------
 You can also resubmit jobs that are failed or pending.
-See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs status` for more.
+See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 
 .. warning::
     Do NOT kill ``babs submit`` or ``babs status`` (especially with ``--resubmit*``)

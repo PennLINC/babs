@@ -7,7 +7,7 @@ Initialize a BABS project using ``babs init``
 
 After you've prepared the three things BABS requires (details see here: :doc:`preparation`),
 you can initialize a BABS project using ``babs init``. Please follow our documentation
-:doc:`babs init` describing how to use ``babs init``.
+:doc:`babs-init` describing how to use ``babs init``.
 
 If the BIDS App you'll use requires TemplateFlow, please make sure you've set up the
 environment variable ``TEMPLATEFLOW_HOME`` before running ``babs init``. See
