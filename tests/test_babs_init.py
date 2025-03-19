@@ -9,23 +9,21 @@ import pytest
 
 sys.path.append('..')
 sys.path.append('../babs')
-from babs.utils import read_yaml  # noqa
-from babs.cli import (  # noqa
-    babs_init_main,
-    babs_check_setup_main,
-)
 from get_data import (  # noqa
-    get_input_data,
-    container_ds_path,
-    where_now,
-    if_circleci,
-    get_container_config_yaml_filename,
-    __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH,
     TEMPLATEFLOW_HOME,
+    TOYBIDSAPP_VERSION_DASH,
+    __location__,
+    container_ds_path,
+    get_container_config_yaml_filename,
+    get_input_data,
+    if_circleci,
+    where_now,
 )
+
+from babs.cli import babs_check_setup_main, babs_init_main  # noqa
+from babs.utils import read_yaml  # noqa
 
 
 @pytest.mark.order(index=1)
@@ -64,8 +62,8 @@ def test_babs_init(
     """
     This is to test `babs-init` in different cases.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     which_bidsapp: str
         The name of a BIDS App. However here we only use `toybidsapp` to test, even though you
         specified e.g., fmriprep; we'll make sure the BIDS App to be tested is reflected in

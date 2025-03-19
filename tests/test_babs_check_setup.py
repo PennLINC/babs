@@ -10,22 +10,20 @@ import pytest
 
 sys.path.append('..')
 sys.path.append('../babs')
-from babs.cli import (  # noqa
-    babs_init_main,
-    babs_check_setup_main,
-)
 from get_data import (  # noqa
-    get_input_data,
-    container_ds_path,
-    where_now,
-    if_circleci,
-    get_container_config_yaml_filename,
-    __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH,
     TEMPLATEFLOW_HOME,
+    TOYBIDSAPP_VERSION_DASH,
+    __location__,
+    container_ds_path,
+    get_container_config_yaml_filename,
+    get_input_data,
+    if_circleci,
+    where_now,
 )
+
+from babs.cli import babs_check_setup_main, babs_init_main  # noqa
 
 
 @pytest.mark.order(index=2)
@@ -38,8 +36,8 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     Successful `babs-init` has been tested in `test_babs_init.py`.
     We won't test `--job-test` either as that requires installation of cluster simulation system.
 
-    Parameters:
-    ---------------
+    Parameters
+    ----------
     which_case: str
         'not_to_keep_failed': `container_ds` has wrong path;
         not to `--keep-if-failed` in `babs-init`

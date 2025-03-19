@@ -1,8 +1,8 @@
 babs package
-===========
+============
 
 Core Module
-----------
+-----------
 
 .. automodule:: babs.babs
    :members:
@@ -10,7 +10,7 @@ Core Module
    :show-inheritance:
 
 Utils Module
------------
+------------
 
 .. automodule:: babs.utils
    :members:
@@ -18,7 +18,7 @@ Utils Module
    :show-inheritance:
 
 CLI Module
----------
+----------
 
 .. automodule:: babs.cli
    :members:

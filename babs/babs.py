@@ -64,9 +64,10 @@ class BABS:
     """The BABS class is for babs projects of BIDS Apps"""
 
     def __init__(self, project_root, type_session, type_system):
-        """
-        Parameters:
-        ------------
+        """The BABS class is for babs projects of BIDS Apps.
+
+        Parameters
+        ----------
         project_root: str
             absolute path to the root of this babs project
         type_session: str
@@ -74,8 +75,8 @@ class BABS:
         type_system: str
             the type of job scheduling system, "sge" or "slurm"
 
-        Attributes:
-        ---------------
+        Attributes
+        ----------
         project_root: str
             absolute path to the root of this babs project
         type_session: str
@@ -162,15 +163,15 @@ class BABS:
         Save the current status of datalad dataset `analysis`
         Also checks that all the statuses returned are "ok" (or "notneeded")
 
-        Parameters:
-        ------------
+        Parameters
+        ----------
         path: str or list of str
             the path to the file(s) or folder(s) to save
         message: str or None
             commit message in `datalad save`
 
-        Notes:
-        ------------
+        Notes
+        -----
         If the path does not exist, the status will be "notneeded", and won't be error message
             And there won't be a commit with that message
         """
@@ -192,8 +193,8 @@ class BABS:
         This function relies on `git` and `datalad wtf`
         This needs to be done after the output RIA is created.
 
-        Parameters:
-        ------------
+        Parameters
+        ----------
         flag_output_ria_only: bool
             if only to get information on output RIA.
             This may expedite the process as other information requires
@@ -266,8 +267,8 @@ class BABS:
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         input_ds: class `Input_ds`
             Input dataset(s).
         container_name: str
@@ -613,13 +614,13 @@ class BABS:
         """
         If `babs-init` failed, this function cleans up the BABS project `babs-init` creates.
 
-        Parameters:
-        --------------
+        Parameters
+        ----------
         input_ds: class `Input_ds`
             information of input dataset(s)
 
-        Notes:
-        --------
+        Notes
+        -----
         Steps in `babs-init`:
         * create `analysis` datalad dataset
         * create input and output RIA
@@ -680,8 +681,8 @@ class BABS:
         """
         This function validates the setups by babs-init.
 
-        Parameters:
-        --------------
+        Parameters
+        ----------
         input_ds: class `Input_ds`
             information of input dataset(s)
         flag_job_test: bool
@@ -1095,8 +1096,8 @@ class BABS:
         """
         This function submits jobs and prints out job status.
 
-        Parameters:
-        -------------------
+        Parameters
+        ----------
         count: int
             number of jobs to be submitted
             default: 1
@@ -1201,8 +1202,8 @@ class BABS:
         """
         This function checks job status and resubmit jobs if requested.
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         flags_resubmit: list
             Under what condition to perform job resubmit.
             Element choices are: 'failed', 'pending'.
@@ -1738,8 +1739,8 @@ class BABS:
         """
         This function merges results and provenance from all successfully finished jobs.
 
-        Parameters:
-        ---------------
+        Parameters
+        ----------
         chunk_size: int
             Number of branches in a chunk when merging at a time.
         trial_run: bool
@@ -2017,8 +2018,8 @@ class BABS:
         2. Run scripts to unzip data
         3. Merge all branches of unzipping
 
-        Parameters:
-        --------------
+        Parameters
+        ----------
         config: dict
             loaded container config yaml file
         """
@@ -2049,13 +2050,13 @@ class Input_ds:
         """
         This is to initialize `Input_ds` class.
 
-        Parameters:
-        --------------
+        Parameters
+        ----------
         input_cli: nested list of strings
             see CLI `babs-init --input` for more
 
-        Attributes:
-        --------------
+        Attributes
+        ----------
         df: pandas DataFrame
             includes necessary information:
             - name: str: a name the user gives
@@ -2114,8 +2115,8 @@ class Input_ds:
             single-session data: column of 'sub_id';
             multi-session data: columns of 'sub_id' and 'ses_id'
 
-        Parameters:
-        ----------------
+        Parameters
+        ----------
         list_sub_file: str or None
             Path to the CSV file that lists the subject (and sessions) to analyze;
             or `None` if that CLI flag was not specified.
@@ -2177,8 +2178,8 @@ class Input_ds:
         """
         This is the assign the absolute path to input dataset
 
-        Parameters:
-        --------------
+        Parameters
+        ----------
         analysis_path: str
             absolute path to the `analysis` folder.
         """
@@ -2255,8 +2256,8 @@ class Input_ds:
             is consistent to this input dataset's name;
             Only checks the first zipfile.
 
-        Parameters:
-        ------------
+        Parameters
+        ----------
         type_session: str
             "multi-ses" or "single-ses"
         container_name: str
@@ -2360,14 +2361,14 @@ class System:
         """
         This is to initialize System class.
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         system_type: str
             Type of the cluster management system.
             Options are: "sge" and "slurm"
 
-        Attributes:
-        -------------
+        Attributes
+        ----------
         type: str
             Type of the cluster management system.
             Options are: "sge" and "slurm"
@@ -2412,8 +2413,8 @@ class Container:
         """
         This is to initialize Container class.
 
-        Parameters:
-        --------------
+        Parameters
+        ----------
         container_ds: str
             The path to the container datalad dataset as the input of `babs-init`.
             This container datalad ds is prepared by the user.
@@ -2424,8 +2425,8 @@ class Container:
         config_yaml_file: str
             The YAML file that contains the configurations of how to run the container
 
-        Attributes:
-        --------------
+        Attributes
+        ----------
         container_ds: str
             The path to the container datalad dataset as the input of `babs-init`.
             This container datalad ds is prepared by the user, not the cloned one.
@@ -2470,8 +2471,8 @@ class Container:
         """
         This is a sanity check to validate the cloned container ds.
 
-        Parameters:
-        ------------
+        Parameters
+        ----------
         analysis_path: str
             Absolute path to the `analysis` folder in a BABS project.
         """
@@ -2510,8 +2511,8 @@ class Container:
         """
         This is to generate a bash script that runs the BIDS App singularity image.
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         bash_path: str
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
@@ -2519,8 +2520,8 @@ class Container:
         type_session: str
             multi-ses or single-ses.
 
-        Notes:
-        --------------
+        Notes
+        -----
         When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
         meaning, starting with space, a backward slash, a return, and a tab.
         """
@@ -2726,8 +2727,8 @@ class Container:
         """
         This is to generate a bash script that runs jobs for each participant (or session).
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         bash_path: str
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
@@ -2961,8 +2962,8 @@ class Container:
         * `call_test_job.sh`    # just like `participant_job.sh`
         * `test_job.py`    # just like `container_zip.sh`
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         folder_check_setup: str
             The path to folder `check_setup`; generated scripts will locate in this folder
         system: class `System`
@@ -3063,8 +3064,8 @@ class Container:
         of job submission of one participant (or session),
         or test job submission in `babs-check-setup`.
 
-        Parameters:
-        -------------
+        Parameters
+        ----------
         yaml_path: str
             The path to the yaml file to be generated. It should be in the `analysis/code` folder.
             It has several fields: 1) cmd_template; 2) job_name_template
