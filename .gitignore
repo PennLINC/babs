@@ -103,7 +103,7 @@ build/
 
 # Sphinx documentation
 docs/build
-docs/source/generated
+docs/generated
 build/
 
 # Distribution / packaging

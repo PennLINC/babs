@@ -1,30 +1,31 @@
-Welcome to BABS's documentation!
-================================
 
-BABS (BIDS App Build System) is a tool for building and managing BIDS Apps.
+.. include:: ../../README.rst
+.. include:: links.rst
+
+Documentation
+==================
+
+Please follow the instructions in this documentation to use BABS.
+Currently there is no alternative usage of BABS.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-   readme
-   modules
-   contributing
-   authors
-   history
-
-Installation
-------------
-
-To install BABS, run:
-
-.. code-block:: console
-
-    $ pip install babs
+   overview
+   installation
+   preparation
+   create_babs_project
+   jobs
+   after_jobs
+   walkthrough
+   cli
+   developer
 
 Indices and tables
-==================
+====================
 
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+.. |---| unicode:: U+02014 .. em dash
