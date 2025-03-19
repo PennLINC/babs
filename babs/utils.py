@@ -2,7 +2,6 @@
 
 import copy
 import glob
-import json
 import os
 import os.path as op
 import re
@@ -2216,30 +2215,37 @@ def _request_all_job_status_slurm():
     """
     username = get_username()
     reportseff_proc = subprocess.run(
-        ['reportseff', '-u', username, '--format=json'],
+        [
+            'reportseff',
+            '-u',
+            username,
+            '--parsable',
+            '--format=JobID,State,StartTime,Elapsed,Account',
+        ],
         stdout=subprocess.PIPE,
     )
     reportseff_proc.check_returncode()
-    jobs_data = json.loads(reportseff_proc.stdout.decode('utf-8'))
 
-    # Convert reportseff output to match the expected DataFrame format
+    # Parse the pipe-delimited output
     jobs_list = []
-    for job in jobs_data:
+    for line in reportseff_proc.stdout.decode('utf-8').strip().split('\n'):
+        job_id, state, start_time, elapsed, account = line.split('|')
+
         # Split JobID into job_id and task_id if it's an array job
-        job_id = job['JobID'].split('_')[0]
-        task_id = job['JobID'].split('_')[1] if '_' in job['JobID'] else '1'
+        base_job_id = job_id.split('_')[0]
+        task_id = job_id.split('_')[1] if '_' in job_id else '1'
 
         job_dict = {
-            'JB_job_number': job['JobID'],  # Full job ID including task ID
-            'job_id': job_id,  # Base job ID without task ID
+            'JB_job_number': job_id,  # Full job ID including task ID
+            'job_id': base_job_id,  # Base job ID without task ID
             'task_id': task_id,  # Task ID for array jobs
-            '@state': 'running' if job['State'] == 'RUNNING' else 'pending',
-            'state': 'r' if job['State'] == 'RUNNING' else 'qw',
-            'job_state_category': 'running' if job['State'] == 'RUNNING' else 'pending',
-            'job_state_code': 'r' if job['State'] == 'RUNNING' else 'qw',
-            'JAT_start_time': job.get('StartTime', ''),
-            'duration': job.get('Elapsed', ''),
-            'job_account': job.get('Account', ''),  # For job accounting
+            '@state': 'running' if state == 'RUNNING' else 'pending',
+            'state': 'r' if state == 'RUNNING' else 'qw',
+            'job_state_category': 'running' if state == 'RUNNING' else 'pending',
+            'job_state_code': 'r' if state == 'RUNNING' else 'qw',
+            'JAT_start_time': start_time,
+            'duration': elapsed,
+            'job_account': account,  # For job accounting
         }
         jobs_list.append(job_dict)
 
