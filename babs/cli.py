@@ -33,8 +33,7 @@ def _parse_init():
     """
     parser = argparse.ArgumentParser(
         description=(
-            'babs init: Initialize a BABS project and bootstrap scripts '
-            'that will be used later.'
+            'babs init: Initialize a BABS project and bootstrap scripts that will be used later.'
         ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
@@ -55,6 +54,7 @@ def _parse_init():
     parser.add_argument(
         '--input',
         action='append',  # append each `--input` as a list;
+        dest='input_dataset',
         # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
         # ref: https://docs.python.org/3/library/argparse.html
         nargs=2,  # expect 2 arguments per `--input` from the command line;
@@ -152,8 +152,7 @@ def _enter_init(argv=None):
     Please use `babs init` instead.
     """
     warnings.warn(
-        "babs-validate is deprecated and will be removed in the future. "
-        "Please use babs validate.",
+        'babs-validate is deprecated and will be removed in the future. Please use babs validate.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -165,7 +164,7 @@ def _enter_init(argv=None):
 def babs_init_main(
     where_project: str,
     project_name: str,
-    input: list,
+    input_dataset: list,
     list_sub_file: str,
     container_ds: str,
     container_name: str,
@@ -182,7 +181,7 @@ def babs_init_main(
         absolute path to the directory where the project will be created
     project_name: str
         the babs project name
-    input: nested list
+    input_dataset: nested list
         for each sub-list:
             element 1: name of input datalad dataset (str)
             element 2: path to the input datalad dataset (str)
@@ -239,7 +238,7 @@ def babs_init_main(
     type_session = validate_type_session(type_session)
 
     # input dataset:
-    input_ds = Input_ds(input)
+    input_ds = Input_ds(input_dataset)
     input_ds.get_initial_inclu_df(list_sub_file, type_session)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
@@ -333,8 +332,8 @@ def _enter_check_setup(argv=None):
     Please use `babs check-setup` instead.
     """
     warnings.warn(
-        "babs-check-setup is deprecated and will be removed in the future. "
-        "Please use babs check-setup.",
+        'babs-check-setup is deprecated and will be removed in the future. '
+        'Please use babs check-setup.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -402,6 +401,7 @@ def _parse_submit():
     group.add_argument(
         '--all',
         action='store_true',
+        dest='submit_all',
         # ^^ if `--all` is specified, args.all = True; otherwise, False
         help="Request to run all jobs that haven't been submitted.",
     )
@@ -425,18 +425,18 @@ def _enter_submit(argv=None):
     Please use `babs submit` instead.
     """
     warnings.warn(
-        "babs-submit is deprecated and will be removed in the future. "
-        "Please use babs submit.",
+        'babs-submit is deprecated and will be removed in the future. Please use babs submit.',
         DeprecationWarning,
         stacklevel=2,
     )
     options = _parse_submit().parse_args(argv)
     babs_submit_main(**vars(options))
 
+
 def babs_submit_main(
     project_root: str,
     count: int,
-    all: bool,
+    submit_all: bool,
     job: list,
 ):
     """This is the core function of ``babs submit``.
@@ -445,7 +445,7 @@ def babs_submit_main(
     --------------
     project_root: str
         absolute path to the directory of BABS project
-    all: bool
+    submit_all : bool
         whether to submit all remaining jobs
     count: int or None
         number of jobs to be submitted
@@ -464,10 +464,12 @@ def babs_submit_main(
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
-    if all:  # if True:
+    if submit_all:  # if True:
         count = -1  # so that to submit all remaining jobs
+
     if count is None:
         count = 1  # if not to specify `--count`, change to 1
+
     # sanity check:
     if count == 0:
         raise Exception(
@@ -621,8 +623,7 @@ def _enter_status(argv=None):
     Please use `babs status` instead.
     """
     warnings.warn(
-        "babs-status is deprecated and will be removed in the future. "
-        "Please use babs status.",
+        'babs-status is deprecated and will be removed in the future. Please use babs status.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -844,8 +845,7 @@ def _enter_merge(argv=None):
     Please use `babs merge` instead.
     """
     warnings.warn(
-        "babs-merge is deprecated and will be removed in the future. "
-        "Please use babs merge.",
+        'babs-merge is deprecated and will be removed in the future. Please use babs merge.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -918,8 +918,7 @@ def _enter_unzip(argv=None):
     Please use `babs unzip` instead.
     """
     warnings.warn(
-        "babs-unzip is deprecated and will be removed in the future. "
-        "Please use babs unzip.",
+        'babs-unzip is deprecated and will be removed in the future. Please use babs unzip.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -1147,12 +1146,12 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
 
 
 COMMANDS = [
-    ("init", _parse_init, babs_init_main),
-    ("check-setup", _parse_check_setup, babs_check_setup_main),
-    ("submit", _parse_submit, babs_submit_main),
-    ("status", _parse_status, babs_status_main),
-    ("merge", _parse_merge, babs_merge_main),
-    ("unzip", _parse_unzip, babs_unzip_main),
+    ('init', _parse_init, babs_init_main),
+    ('check-setup', _parse_check_setup, babs_check_setup_main),
+    ('submit', _parse_submit, babs_submit_main),
+    ('status', _parse_status, babs_status_main),
+    ('merge', _parse_merge, babs_merge_main),
+    ('unzip', _parse_unzip, babs_unzip_main),
 ]
 
 
@@ -1170,9 +1169,9 @@ def _get_parser():
     """
     from babs import __version__
 
-    parser = argparse.ArgumentParser(prog="babs", allow_abbrev=False)
-    parser.add_argument("-v", "--version", action="version", version=f"babs v{__version__}")
-    subparsers = parser.add_subparsers(help="BABS commands")
+    parser = argparse.ArgumentParser(prog='babs', allow_abbrev=False)
+    parser.add_argument('-v', '--version', action='version', version=f'babs v{__version__}')
+    subparsers = parser.add_subparsers(help='BABS commands')
 
     for command, parser_func, run_func in COMMANDS:
         subparser = parser_func()
@@ -1202,5 +1201,5 @@ def _main(argv=None):
     """
     options = _get_parser().parse_args(argv)
     args = vars(options).copy()
-    args.pop("func")
+    args.pop('func')
     options.func(**args)
