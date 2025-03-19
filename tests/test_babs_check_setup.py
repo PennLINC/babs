@@ -1,4 +1,4 @@
-# This is to test `babs-check-setup`.
+# This is to test `babs check-setup`.
 
 import argparse
 import os
@@ -9,9 +9,8 @@ from unittest import mock
 import pytest
 
 sys.path.append('..')
-sys.path.append('../babs')
+
 from get_data import (  # noqa
-    INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
     TEMPLATEFLOW_HOME,
     TOYBIDSAPP_VERSION_DASH,
@@ -23,7 +22,7 @@ from get_data import (  # noqa
     where_now,
 )
 
-from babs.cli import babs_check_setup_main, babs_init_main  # noqa
+from babs.cli import _enter_check_setup, _enter_init  # noqa
 
 
 @pytest.mark.order(index=2)
@@ -32,19 +31,19 @@ from babs.cli import babs_check_setup_main, babs_init_main  # noqa
 )
 def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_path, if_circleci):
     """
-    This is to test `babs-check-setup` in different failed `babs-init` cases.
-    Successful `babs-init` has been tested in `test_babs_init.py`.
+    This is to test `babs check-setup` in different failed `babs init` cases.
+    Successful `babs init` has been tested in `test_babs_init.py`.
     We won't test `--job-test` either as that requires installation of cluster simulation system.
 
     Parameters
     ----------
     which_case: str
         'not_to_keep_failed': `container_ds` has wrong path;
-        not to `--keep-if-failed` in `babs-init`
-        'wrong_container_ds': `container_ds` has wrong path, `--keep-if-failed` in `babs-init`
-        'wrong_input_ds': `input ds` has wrong path, `--keep-if-failed` in `babs-init`
-        All cases have something going wrong, leading to `babs-init` failure;
-        Only in case `not_to_keep_failed`, flag `--keep-if-failed` in `babs-init` won't turn on,
+        not to `--keep-if-failed` in `babs init`
+        'wrong_container_ds': `container_ds` has wrong path, `--keep-if-failed` in `babs init`
+        'wrong_input_ds': `input ds` has wrong path, `--keep-if-failed` in `babs init`
+        All cases have something going wrong, leading to `babs init` failure;
+        Only in case `not_to_keep_failed`, flag `--keep-if-failed` in `babs init` won't turn on,
         so expected error will be: BABS project does not exist.
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
@@ -74,7 +73,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     os.environ['TEMPLATEFLOW_HOME'] = TEMPLATEFLOW_HOME
     assert os.getenv('TEMPLATEFLOW_HOME') is not None  # assert env var has been set
 
-    # Get the cli of `babs-init`:
+    # Get the cli of `babs init`:
     where_project = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
     project_root = op.join(where_project, project_name)
@@ -92,7 +91,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     babs_init_opts = argparse.Namespace(
         where_project=where_project,
         project_name=project_name,
-        input=input_ds_cli,
+        input_dataset=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
@@ -102,7 +101,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         keep_if_failed=True,
     )
 
-    # inject something wrong --> `babs-init` will fail:
+    # inject something wrong --> `babs init` will fail:
     babs_init_opts.container_ds = container_ds_path_wrong
     # `--keep-if-failed`:
     if which_case == 'not_to_keep_failed':
@@ -113,15 +112,15 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     elif which_case == 'wrong_container_ds':
         babs_init_opts.container_ds = container_ds_path_wrong
     elif which_case == 'wrong_input_ds':
-        babs_init_opts.input = input_ds_cli_wrong
+        babs_init_opts.input_dataset = input_ds_cli_wrong
 
-    # run `babs-init`:
+    # run `babs init`:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
-        babs_init_main()
+        _enter_init()
 
-    # Get cli of `babs-check-setup`:
+    # Get cli of `babs check-setup`:
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=False)
-    # Set up expected error message from `babs-check-setup`:
+    # Set up expected error message from `babs check-setup`:
     if which_case == 'not_to_keep_failed':
         error_type = Exception  # what's after `raise` in the source code
         error_msg = '`--project-root` does not exist!'
@@ -134,9 +133,9 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         error_msg = 'No such file or directory:'
         # ^^ No such file or directory: '/path/to/my_babs_project/analysis/inputs/data'
 
-    # Run `babs-check-setup`:
+    # Run `babs check-setup`:
     with mock.patch.object(
         argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
     ):
         with pytest.raises(error_type, match=error_msg):  # contains what pattern in error message
-            babs_check_setup_main()
+            _enter_check_setup()

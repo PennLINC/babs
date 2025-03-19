@@ -57,7 +57,7 @@ These YAML files can be customized for different clusters, including SGE and Slu
 .. developer's note: ^^ using main branch on github.
 
 
-Terminology when describing a YAML file: 
+Terminology when describing a YAML file:
 ------------------------------------------
 Below is an example "section" in a YAML file::
 
@@ -147,14 +147,14 @@ Basics - Manual of writing section ``singularity_run``
 
             * See below :ref:`advanced_manual_singularity_run` --> bullet point regarding
               ``--bids-filter-file`` for explanations.
-            * See :doc:`babs-init` for examples of ``--list_sub_file``/``--list-sub-file`` to filter subjects and sessions.
+            * See :doc:`babs init` for examples of ``--list_sub_file``/``--list-sub-file`` to filter subjects and sessions.
 
     * :octicon:`alert-fill` :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
       you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument input BIDS dataset.
       See :ref:`advanced_manual_singularity_run` --> bullet point "When more than one input dataset" for more.
 
 * What's the format I should follow when providing an argument?
-    
+
     * Say, you want to specify ``--my_argument its_value``, simply write as one of following format:
     * ``--my_argument: 'its_value'``    (value in single quotation marks)
     * ``--my_argument: "its_value"``    (value in double quotation marks)
@@ -176,14 +176,14 @@ Basics - Manual of writing section ``singularity_run``
 
     * Yes you can. However you need to follow a specific format.
     * This is because each YAML section will be read as a dictionary by BABS, so each *key* before ``:``
-      cannot be repeated, e.g., repeated key of ``-v`` in more than one line is not allowed. 
+      cannot be repeated, e.g., repeated key of ``-v`` in more than one line is not allowed.
     * If you need to specify repeated arguments, e.g., ``-v -v``,
       please specify it as ``-v : '-v'`` as in the example above;
     * For triple ``-v``, please specify as ``-v: '-v -v'``
 
 * Can I see the ``singularity run`` command that BABS generated?
 
-    * Yes you can! When running ``babs-init`` it will print out ``singularity run`` command for you to check. 
+    * Yes you can! When running ``babs init`` it will print out ``singularity run`` command for you to check.
 
 
 .. _advanced_manual_singularity_run:
@@ -197,7 +197,7 @@ Advanced - Manual of writing section ``singularity_run``
       it will be a good idea to quote it, e.g. in QSIPrep::
 
         --output-resolution: "2.0"
-    
+
     * This is especially encouraged when there are only numbers in the value (without letters).
       Quoting will make sure that when BABS generates scripts, it will keep the string format of the value
       and pass the value exactly as it is,
@@ -208,7 +208,7 @@ Advanced - Manual of writing section ``singularity_run``
     * You can use ``"$BABS_TMPDIR"``. It is a value placeholder recognized by BABS for temporary directory
       for holding intermediate results.
       Example would be::
-        
+
         -w: "$BABS_TMPDIR"
 
       By default BABS will automatically create such temporary directory if you use ``$BABS_TMPDIR``.
@@ -220,13 +220,13 @@ Advanced - Manual of writing section ``singularity_run``
     * You should provide it as you normally do when running the BIDS App:
       just provide the path to your FreeSurfer license on the cluster.
       For example::
-        
+
         --fs-license-file: "/path/to/freesurfer/license.txt"
 
     * When there is argument ``--fs-license-file`` in ``singularity_run`` section,
       BABS will bind this provided license file path to container in ``singularity run`` command, so that
       the BIDS App container can directly use that file (which is outside the container, on "host machine").
-    * Example generated ``singularity run`` by ``babs-init``::
+    * Example generated ``singularity run`` by ``babs init``::
 
         singualrity run ... \
             -B /path/to/freesurfer/license.txt:/SGLR/FREESURFER_HOME/license.txt \
@@ -236,31 +236,31 @@ Advanced - Manual of writing section ``singularity_run``
 
       After binding this license file, the value for ``--fs-license-file`` is changed to
       the path *within* the container by BABS.
-    
+
 
 * Can I use a job environment variable, e.g., number of CPUs?
 
-    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep), 
+    * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep),
       if you also use ``number_of_cpus`` in **cluster_resources** section (see below),
       then you can use environment variable for this Singularity run argument.
     * For *SGE* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
         --n_cpus: "$NSLOTS"
-      
+
     * For *Slurm* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
         --n_cpus: "$SLURM_CPUS_PER_TASK"
-    
+
 .. developer's note: for Slurm: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
-* When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument 
+* When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument
   ``input_dataset`` in the BIDS App, which dataset goes to another named argument.
 
   * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
-    
+
     * ``$INPUT_PATH`` is a key placeholder recognized by BABS
-    * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**, 
+    * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**,
       i.e., before other arguments.
 
   * How do you write the path to the input dataset? Here we use an example configuration YAML file of
@@ -269,16 +269,16 @@ Advanced - Manual of writing section ``singularity_run``
 
     * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
 
-        * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS`` 
+        * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS``
           which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
         * Note that you need to add ``inputs/data/`` before the dataset's name, and what you'll use for
-          ``<name>`` when calling ``babs-init --input <name> /path/to/BIDS`` should also be ``BIDS``.
+          ``<name>`` when calling ``babs init --input <name> /path/to/BIDS`` should also be ``BIDS``.
 
     * For the named argument ``--fs-subjects-dir``, say we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
 
         * For fMRIPrep version < 21.0, then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
         * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
-          in ``babs-init --input <name> /path/to/freesurfer_dataset``
+          in ``babs init --input <name> /path/to/freesurfer_dataset``
         * Note that, as this is a zipped dataset, you need to repeat ``freesurfer`` twice.
 
             * .. dropdown:: Why we need to repeat it twice?
@@ -286,36 +286,36 @@ Advanced - Manual of writing section ``singularity_run``
                   This is because, ``freesurfer`` dataset will locate at ``inputs/data/freesurfer``, and after unzipping
                   a subject's (or a session's) freesurfer zipped folder, there will be
                   another folder called ``freesurfer``, so the path to the unzipped folder will be ``inputs/data/freesurfer/freesurfer``.
-        
+
         * For fMRIPrep version >= 21.0, please refer to example YAML files for examples.
 
     * :octicon:`alert-fill` :bdg-warning:`warning` Please check :ref:`how-to-define-name-of-input-dataset` for
-      restrictions in naming each dataset when calling ``babs-init``!
-  
+      restrictions in naming each dataset when calling ``babs init``!
+
 .. Note to developers: It's probably not a good idea to use information from ``babs_proj_config.yaml``,
    e.g., ``path_data_rel`` to determine the path, as for zipped folder it will be ``inputs/data/freesurfer``,
    instead of ``inputs/data/freesurfer/freesurfer`` that user needs to specify here.
 
 * ``--bids-filter-file``: When will BABS automatically add it?
-    
+
     * When BIDS App is fMRIPrep or QSIPrep, and input BIDS dataset(s) are multi-session data.
     * How BABS determine it's fMRIPrep or QSIPrep?
 
-        * Based on ``container_name`` provided when calling ``babs-init``:
+        * Based on ``container_name`` provided when calling ``babs init``:
           If ``container_name`` contains ``fMRIPrep`` or ``QSIPrep`` (not case sensitive).
     * When BABS adds ``--bids-filter-file`` here for Singularity run,
       BABS will also automatically generate a filter file (JSON format) when running each session's data,
-      so that only data from a specific session will be included for analysis.   
+      so that only data from a specific session will be included for analysis.
 
-* Will BABS handle `TemplateFlow <https://www.templateflow.org/>`_ environment variable? 
+* Will BABS handle `TemplateFlow <https://www.templateflow.org/>`_ environment variable?
 
     * Yes, BABS assumes all BIDS Apps use TemplateFlow, and will handle its environment variable ``$TEMPLATEFLOW_HOME``
-      *if* this environmental variable exists in the terminal environment where ``babs-init`` will be run.
+      *if* this environmental variable exists in the terminal environment where ``babs init`` will be run.
     * For BIDS Apps that truly depend on TemplateFlow (e.g., fMRIPrep, QSIPrep, XCP-D),
-      before you run ``babs-init``, please make sure you:
-      
+      before you run ``babs init``, please make sure you:
+
         #. Find a directory for holding TemplateFlow's templates.
-    
+
             * If no (or not all necessary) TemplateFlow's templates has been downloaded
               in this directory, then this directory must be writable, so that when running the BIDS App,
               necessary templates can be downloaded in this directory;
@@ -323,10 +323,10 @@ Advanced - Manual of writing section ``singularity_run``
               then this directory should at least be readable.
         #. Export environment variable
            ``$TEMPLATEFLOW_HOME`` to set its value as the path to this directory you prepared.
-           This step should be done in the terminal environment where ``babs-init`` will be used.
+           This step should be done in the terminal environment where ``babs init`` will be used.
 
-    * If ``babs-init`` detects environment variable ``$TEMPLATEFLOW_HOME``, when generating ``singularity run`` command,
-      ``babs-init`` will:
+    * If ``babs init`` detects environment variable ``$TEMPLATEFLOW_HOME``, when generating ``singularity run`` command,
+      ``babs init`` will:
 
         #. Bind the path provided in this environment variable to the container;
         #. Set the corresponding environment variable *within* the container.
@@ -338,7 +338,7 @@ Advanced - Manual of writing section ``singularity_run``
                 -B /path/to/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \
                 --env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME \
                 ...
-      
+
       where ``/path/to/templateflow_home`` is the value of environment variable ``$TEMPLATEFLOW_HOME``.
 
 * How to specify multiple spaces in argument ``--output-spaces`` (e.g., in fMRIPrep)?
@@ -348,9 +348,9 @@ Advanced - Manual of writing section ``singularity_run``
       example::
 
         --output-spaces: "MNI152NLin6Asym:res-2 MNI152NLin2009cAsym"
-    
+
       Here, ``MNI152NLin6Asym:res-2`` and ``MNI152NLin2009cAsym`` are two example spaces.
-    
+
     * We recommend quoting this value if there are multiple spaces (like this example).
       This is because there is space in the value of this argument.
       Quoting makes sure that BABS will take
@@ -463,7 +463,7 @@ Example section **zip_foldernames** for ``fMRIPrep`` *BIDS* output layout:
 
     zip_foldernames:
         $TO_CREATE_FOLDER: "true"
-        fmriprep: "23-1-3"    
+        fmriprep: "23-1-3"
 
 Line #2 ``$TO_CREATE_FOLDER: "true"`` asks BABS to create an additional folder,
 i.e., ``fmriprep`` specified in line #3, to wrap all derivatives.
@@ -486,12 +486,12 @@ Other detailed instructions
 ---------------------------------
 
 * The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
-  
+
     * In example #1, you probably use ``fmriprep-20-2-3`` for *image NAME*;
     * In example #2, you probably use ``fmriprep-23-1-3`` for *image NAME*.
 
-* When calling ``babs-init``, argument ``--container-name`` should use the same version too, i.e.,
-  
+* When calling ``babs init``, argument ``--container-name`` should use the same version too, i.e.,
+
     * ``--container-name fmriprep-20-2-3`` in example #1;
     * ``--container-name fmriprep-23-1-3`` in example #2;
 
@@ -521,7 +521,7 @@ Example section **cluster_resources** for ``QSIPrep``:
         interpreting_shell: /bin/bash
         hard_memory_limit: 32G
         temporary_disk_space: 200G
-        number_of_cpus: "6" 
+        number_of_cpus: "6"
 
 These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` shown as below.
 This script could be found at: ``/path/to/my_BABS_project/analysis/code``.
@@ -620,7 +620,7 @@ Below is an example for **SGE** clusters::
 Note that:
 
 * Some clusters might not allow for specific settings (e.g. ``temporary_disk_space``).
-  If you get an error that the setting is not allowed, 
+  If you get an error that the setting is not allowed,
   simply remove the line that causes the issue.
 
 * Remember to add ``|`` after ``customized_text:``. This is to make sure
@@ -628,7 +628,7 @@ Note that:
 
 * As customized texts will be directly copied to the script ``participant_job.sh`` (without translation),
   please remember to add any necessary prefix before the option:
-  
+
     * ``#$`` for SGE clusters
     * ``#SBATCH`` for Slurm clusters
 
@@ -692,11 +692,11 @@ Section ``job_compute_space``
 The jobs will be computed in ephemeral (temporary) compute space. Specifically,
 this space could be temporary space on a cluster node, or some scratch space. It's totally fine (and recommended!)
 if the data or the directory in the space will be removed after the job finishes - all results will be pushed back
-to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates. 
+to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates.
 
 .. dropdown:: Why recommending space where data/directory will be automatically removed after the job finishes?
 
-    If a job fails, and if the data or the directory won't be automatically removed, 
+    If a job fails, and if the data or the directory won't be automatically removed,
     data will be accumulated and takes up space.
 
     We recommend using space that automatically cleans after the job finishes especially for large-scale dataset
@@ -722,7 +722,7 @@ You can also use an environment variable recognized by your clusters.
 .. job_compute_space: "/cbica/comp_space/$(basename $HOME)"   # PennMed CUBIC cluster compute space
 
 .. note::
-    
+
     Best to quote (``""``) the string of the path to the space as shown in the examples above.
 
 Notes:
@@ -763,7 +763,7 @@ In this example case, we specify that for the input raw BIDS dataset, which is a
 Notes:
 
 * If needed, you can change ``$INPUT_DATASET_#1`` to other index of input dataset (e.g., ``$INPUT_DATASET_#2``);
-* To determine the index of the input dataset to specify, please check the order of the datasets when you call ``babs-init --input``. This index starts from 1, and is a positive integer.
+* To determine the index of the input dataset to specify, please check the order of the datasets when you call ``babs init --input``. This index starts from 1, and is a positive integer.
 
     * For example, to use ``fMRIPrep`` with FreeSurfer results ingressed, you want to call command below,
       and you hope to filter subjects based on files in raw BIDS data (here named ``BIDS``),
@@ -771,7 +771,7 @@ Notes:
 
       .. code-block::
 
-            babs-init \
+            babs init \
                 ...
                 --input BIDS /path/to/BIDS \
                 --input freesurfer /path/to/freesurfer_outputs \

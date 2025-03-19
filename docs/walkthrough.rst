@@ -422,10 +422,10 @@ Now you can start to use BABS for data analysis.
 Step 2. Create a BABS project
 =================================
 
-Step 2.1. Use ``babs-init`` to create a BABS project
+Step 2.1. Use ``babs init`` to create a BABS project
 -----------------------------------------------------------
 A BABS project is the place where all the inputs are cloned to, all scripts are generated,
-and results and provenance are saved. An example command of ``babs-init`` is as follows:
+and results and provenance are saved. An example command of ``babs init`` is as follows:
 
 .. developer's note: reset `$TEMPLATEFLOW_HOME` for now: `unset TEMPLATEFLOW_HOME`
 
@@ -434,7 +434,7 @@ and results and provenance are saved. An example command of ``babs-init`` is as 
     :emphasize-lines: 10
 
     $ cd ~/babs_demo
-    $ babs-init \
+    $ babs init \
         --where_project ${PWD} \
         --project_name my_BABS_project \
         --input BIDS https://osf.io/w2nu3/ \
@@ -461,14 +461,14 @@ As this input dataset is a multi-session dataset, you should specify this as ``-
 Finally, please change the cluster system type ``--type_system`` (highlighted line #10) to yours;
 currently BABS supports ``sge`` and ``slurm``.
 
-If ``babs-init`` succeeded, you should see this message at the end:
+If ``babs init`` succeeded, you should see this message at the end:
 
 ..  code-block:: console
 
-    `babs-init` was successful!
+    `babs init` was successful!
 
 
-.. dropdown:: Full printed messages from ``babs-init``
+.. dropdown:: Full printed messages from ``babs init``
 
     .. literalinclude:: walkthrough_babs-init_printed_messages.txt
        :language: console
@@ -482,7 +482,7 @@ If ``babs-init`` succeeded, you should see this message at the end:
 
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
-    You may receive this warning from ``babs-init`` if you did not set up environment variable ``$TEMPLATEFLOW_HOME``::
+    You may receive this warning from ``babs init`` if you did not set up environment variable ``$TEMPLATEFLOW_HOME``::
 
         UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up.
         Therefore, BABS will not bind its directory or inject this environment variable into the container when running the container. This may cause errors.
@@ -492,7 +492,7 @@ If ``babs-init`` succeeded, you should see this message at the end:
 
 
 It's very important to check if the generated ``singularity run`` command is what you desire.
-The command below can be found in the printed messages from ``babs-init``:
+The command below can be found in the printed messages from ``babs init``:
 
 ..  code-block:: console
 
@@ -590,7 +590,7 @@ the generated directives would be:
     and results and provenance will be pushed to output RIA store.
 
 
-Step 2.2. Use ``babs-check-setup`` to make sure it's good to go
+Step 2.2. Use ``babs check-setup`` to make sure it's good to go
 --------------------------------------------------------------------
 It's important to let BABS check to be sure that the project has been initialized correctly. In addition,
 it's often a good idea to run a test job to make sure
@@ -605,7 +605,7 @@ Therefore, please make sure you switch to this directory before calling them.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs-check-setup \
+    $ babs check-setup \
         --project-root ${PWD} \
         --job-test
 
@@ -613,11 +613,11 @@ It might take a bit time to finish, depending on how busy your cluster is,
 and how much resources you requested in the YAML file - in this example,
 you only requested very minimal amount of resources.
 
-You'll see this message at the end if ``babs-check-setup`` was successful:
+You'll see this message at the end if ``babs check-setup`` was successful:
 
 ..  code-block:: console
 
-    `babs-check-setup` was successful!
+    `babs check-setup` was successful!
 
 Before moving on, please make sure you review the summarized information of designated environment,
 especially the version numbers:
@@ -634,7 +634,7 @@ especially the version numbers:
       git-annex: 'git-annex version: 10.20230215-gd24914f2a'
       datalad_containers: 'datalad_container 1.1.9'
 
-.. dropdown:: Full printed messages from ``babs-check-setup``
+.. dropdown:: Full printed messages from ``babs check-setup``
 
     .. literalinclude:: walkthrough_babs-check-setup_printed_messages.txt
        :language: console
@@ -651,9 +651,9 @@ Now it's ready for job submissions.
 
 Step 3. Submit jobs and check job status
 ==========================================
-We'll iteratively use ``babs-submit`` and ``babs-status`` to submit jobs and check job status.
+We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and check job status.
 
-We first use ``babs-status`` to check the number of jobs we initially expect to finish successfully.
+We first use ``babs status`` to check the number of jobs we initially expect to finish successfully.
 In this example walkthrough, as no initial list was provided,
 BABS determines this number based on the number of sessions in the input BIDS dataset.
 We did not request extra filtering (based on required files) in our YAML file either,
@@ -662,7 +662,7 @@ so BABS will submit one job for each session.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs-status --project-root $PWD
+    $ babs status --project-root $PWD
 
 You'll see:
 
@@ -675,13 +675,13 @@ You'll see:
     There are in total of 6 jobs to complete.
     0 job(s) have been submitted; 6 job(s) haven't been submitted.
 
-Let's use ``babs-submit`` to submit one job and see if it will finish successfully.
-By default, ``babs-submit`` will only submit one job.
+Let's use ``babs submit`` to submit one job and see if it will finish successfully.
+By default, ``babs submit`` will only submit one job.
 If you would like to submit all jobs, you can use the ``--all`` argument.
 
 .. code-block:: console
 
-    $ babs-submit --project-root $PWD
+    $ babs submit --project-root $PWD
 
 You'll see something like this (the job ID will probably be different):
 
@@ -704,11 +704,11 @@ You'll see something like this (the job ID will probably be different):
     4                        NaN                    NaN            NaN          NaN
     5                        NaN                    NaN            NaN          NaN
 
-You can check the job status via ``babs-status``:
+You can check the job status via ``babs status``:
 
 ..  code-block:: console
 
-    $ babs-status --project-root $PWD
+    $ babs status --project-root $PWD
 
 ..
    when pending::
@@ -748,7 +748,7 @@ Now, you can submit all other jobs by specifying ``--all``:
 
 .. code-block:: console
 
-    $ babs-submit --project-root $PWD --all
+    $ babs submit --project-root $PWD --all
 
 ..
     printed messages you'll see:
@@ -774,7 +774,7 @@ Now, you can submit all other jobs by specifying ``--all``:
     4  toy_sub-02_ses-B.*4649006                   NaN            NaN          NaN
     5  toy_sub-02_ses-D.*4649009                   NaN            NaN          NaN
 
-You can again call ``babs-status --project-root $PWD`` to check status.
+You can again call ``babs status --project-root $PWD`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
 
 ..  code-block:: console
@@ -819,27 +819,27 @@ If all jobs have finished successfully, you'll see:
 Step 4. After jobs have finished
 ===================================
 
-Step 4.1. Use ``babs-merge`` to merge all results and provenance
+Step 4.1. Use ``babs merge`` to merge all results and provenance
 --------------------------------------------------------------------
 After all jobs have finished successfully,
 we will merge all the results and provenance.
 Each job was executed on a different branch, so we must
 merge them together into the mainline branch.
 
-We now run ``babs-merge`` in the root directory of ``my_BABS_project``:
+We now run ``babs merge`` in the root directory of ``my_BABS_project``:
 
 ..  code-block:: console
 
-    $ babs-merge --project-root $PWD
+    $ babs merge --project-root $PWD
 
 If it was successful, you'll see this message at the end:
 
 ..  code-block:: console
 
-    `babs-merge` was successful!
+    `babs merge` was successful!
 
 
-.. dropdown:: Full printed messages from ``babs-merge``
+.. dropdown:: Full printed messages from ``babs merge``
 
     .. literalinclude:: walkthrough_babs-merge_printed_messages.txt
        :language: console
