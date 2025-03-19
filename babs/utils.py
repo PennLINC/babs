@@ -12,7 +12,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pkg_resources
+import importlib.resources
 import yaml
 from filelock import FileLock, Timeout
 from qstat import qstat  # https://github.com/relleums/qstat
@@ -29,7 +29,7 @@ def enablePrint():
 
 
 def get_datalad_version():
-    return pkg_resources.get_distribution('datalad').version
+    return importlib.resources.get_distribution('datalad').version
 
 
 def get_immediate_subdirectories(a_dir):
