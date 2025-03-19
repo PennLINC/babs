@@ -1,5 +1,5 @@
 # This python script will be copied to `analysis/code/check_setup` folder
-# and will be used during `babs-check-setup`
+# and will be used during `babs check-setup`
 
 import argparse
 import os

@@ -1,5 +1,5 @@
 ##################################################
-``babs-init``: Initialize a BABS project
+``babs init``: Initialize a BABS project
 ##################################################
 
 .. contents:: Table of Contents
@@ -10,12 +10,13 @@ Command-Line Arguments
 
 .. argparse::
    :ref: babs.cli.babs_init_cli
-   :prog: babs-init
+   :prog: babs
+   :path: init
 
    --input : @after
       Examples: ``--input BIDS /path/to/BIDS_datalad_dataset``;
       ``--input raw_BIDS https://osf.io/t8urc/``.
-      
+
       ``<name>`` is defined by yourself. Please see section
       :ref:`how-to-define-name-of-input-dataset` below for general guidelines
       and specific restrictions.
@@ -23,7 +24,7 @@ Command-Line Arguments
    --keep_if_failed, --keep-if-failed : @after
       These words below somehow refuse to appear in the built docs...
       Please refer to below section
-      here: :ref:`what-if-babs-init-fails` for details.   
+      here: :ref:`what-if-babs-init-fails` for details.
 
 
 **********************
@@ -39,7 +40,7 @@ Please see document :ref:`preparation` for how to prepare these inputs.
 .. _how-to-define-name-of-input-dataset:
 
 ---------------------------------------------------------------------------
-How to define the input dataset's name ``<name>`` in ``babs-init --input``?
+How to define the input dataset's name ``<name>`` in ``babs init --input``?
 ---------------------------------------------------------------------------
 
 **General guideline**: a string you think that's informative.
@@ -51,14 +52,14 @@ Examples are ``BIDS``, ``freesurfer``.
    please make sure the ``<name>`` are different for each dataset;
 2. If an input BIDS dataset is a **zipped dataset**, i.e., files are zipped files, such as BIDS data
    derivatives from another BABS project:
-   
+
     #. You must name it with pattern in the zip filenames
-       so that ``babs-init`` knows which zip file you want to use for a subject or session.
+       so that ``babs init`` knows which zip file you want to use for a subject or session.
        For example, one of your input dataset is BIDS derivates of fMRIPrep, which includes zip
        files of ``sub-xx*_freesurfer*.zip`` and ``sub-xx*_fmriprep*.zip``. If you'd like to feed
        ``freesurfer`` results zip files into current BABS project, then you should name this input
        dataset as ``freesurfer``. If you name it a random name like ``BIDS_derivatives``, as this
-       is not a pattern found in these zip files, ``babs-init`` will fail.
+       is not a pattern found in these zip files, ``babs init`` will fail.
     #. In addition, the zip files named with such pattern (e.g., ``*freesurfer*.zip``)
        should include a folder named
        as the same name too (e.g., a folder called ``freesurfer``).
@@ -78,32 +79,32 @@ Examples are ``BIDS``, ``freesurfer``.
 --------------------------------------------------------
 How is the list of subjects (and sessions) determined?
 --------------------------------------------------------
-A list of subjects (and sessions) will be determined when running ``babs-init``,
+A list of subjects (and sessions) will be determined when running ``babs init``,
 and will be saved in a CSV file called named ``sub_final_inclu.csv`` (for single-session dataset)
 or ``sub_ses_final_inclu.csv`` (for multiple-session dataset),
 located at ``/path/to/my_BABS_project/analysis/code``.
 
-**To filter subjects and sessions**, use ``babs-init`` with ``--list-sub-file /path/to/subject/list/csv/file``. Examples: `Single-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_single-ses.csv>`_, `Multi-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_multi-ses.csv>`_.
+**To filter subjects and sessions**, use ``babs init`` with ``--list-sub-file /path/to/subject/list/csv/file``. Examples: `Single-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_single-ses.csv>`_, `Multi-session example <https://github.com/PennLINC/babs/blob/ba32e8fd2d6473466d3c33a1b17dfffc4438d541/notebooks/initial_sub_list_multi-ses.csv>`_.
 
 See :ref:`list_included_subjects` for how this list is determined.
 
 .. _what-if-babs-init-fails:
 
 --------------------------------------------------------------------
-What if ``babs-init`` fails?
+What if ``babs init`` fails?
 --------------------------------------------------------------------
 
-If ``babs-init`` fails, by default it will remove ("clean up") the created, failed BABS project.
+If ``babs init`` fails, by default it will remove ("clean up") the created, failed BABS project.
 
-When this happens, if you hope to use ``babs-check-setup`` to debug what's wrong, you'll notice that
-the failed BABS project has been cleaned and it's not ready to run ``babs-check-setup`` yet. What you need
+When this happens, if you hope to use ``babs check-setup`` to debug what's wrong, you'll notice that
+the failed BABS project has been cleaned and it's not ready to run ``babs check-setup`` yet. What you need
 to do are as follows:
 
-#. Run ``babs-init`` with ``--keep-if-failed`` turned on.
+#. Run ``babs init`` with ``--keep-if-failed`` turned on.
 
     * In this way, the failed BABS project will be kept.
 
-#. Then you can run ``babs-check-setup`` for diagnosis.
+#. Then you can run ``babs check-setup`` for diagnosis.
 #. After you know what's wrong, please remove the failed BABS project
    with following commands::
 
@@ -123,19 +124,19 @@ to do are as follows:
     cd ..   # outside of `<project_root>`
     rm -rf <project_root>
 
-   If you don't remove the failed BABS project, you cannot overwrite it by running ``babs-init`` again.
+   If you don't remove the failed BABS project, you cannot overwrite it by running ``babs init`` again.
 
 
 **********************
 Example commands
 **********************
 
-Example ``babs-init`` command for toy BIDS App + multi-session data on 
+Example ``babs init`` command for toy BIDS App + multi-session data on
 an SGE cluster:
 
 .. code-block:: bash
 
-    babs-init \
+    babs init \
         --where_project /path/to/a/folder/holding/BABS/project \
         --project_name my_BABS_project \
         --input BIDS /path/to/BIDS_datalad_dataset \
@@ -152,7 +153,7 @@ Therefore, the 2nd input dataset should be named as 'freesurfer', a keyword in f
 
 .. code-block:: bash
 
-    babs-init \
+    babs init \
         ... \
         --input BIDS /path/to/BIDS_datalad_dataset \
         --input freesurfer /path/to/freesurfer_results_datalad_dataset \
@@ -165,7 +166,7 @@ Debugging
 ----------------------------------------
 Error when cloning an input dataset
 ----------------------------------------
-What happened: After ``babs-init`` prints out a message like this:
+What happened: After ``babs init`` prints out a message like this:
 ``Cloning input dataset #x: '/path/to/input_dataset'``, there was an error message that includes this information:
 ``err: 'fatal: repository '/path/to/input_dataset' does not exist'``.
 
@@ -174,7 +175,7 @@ there is no DataLad dataset there.
 
 How to solve the problem: Fix this path. To confirm the updated path is valid, you can try cloning
 it to a temporary directory with ``datalad clone /updated/path/to/input_dataset``. If it is successful,
-you can go ahead rerun ``babs-init``.
+you can go ahead rerun ``babs init``.
 
 **********************
 See also

@@ -89,7 +89,7 @@ def _parse_init():
         " Importantly, this should include the BIDS App's name"
         ' to make sure the bootstrap scripts are set up correctly;'
         ' Also, the version number should be added, too.'
-        ' ``babs-init`` is not case sensitive to this ``--container_name``.'
+        ' ``babs init`` is not case sensitive to this ``--container_name``.'
         ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.',
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True,
@@ -133,13 +133,13 @@ def _parse_init():
         '--keep-if-failed',
         action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help='If ``babs-init`` fails with error, whether to keep the created BABS project.'
+        help='If ``babs init`` fails with error, whether to keep the created BABS project.'
         " By default, you don't need to turn this option on."
-        ' However, when ``babs-init`` fails and you hope to use ``babs-check-setup``'
-        ' to diagnose, please turn it on to rerun ``babs-init``,'
-        ' then run ``babs-check-setup``.'
-        " Please refer to section below 'What if ``babs-init`` fails?' for details.",
-        #      ^^ in `babs-init.rst`, pointed to below section for more
+        ' However, when ``babs init`` fails and you hope to use ``babs check-setup``'
+        ' to diagnose, please turn it on to rerun ``babs init``,'
+        ' then run ``babs check-setup``.'
+        " Please refer to section below 'What if ``babs init`` fails?' for details.",
+        #      ^^ in `babs init.rst`, pointed to below section for more
     )
 
     return parser
@@ -203,7 +203,7 @@ def babs_init_main(
     type_system: str
         sge or slurm
     keep_if_failed: bool
-        If `babs-init` failed with error, whether to keep the created BABS project.
+        If `babs init` failed with error, whether to keep the created BABS project.
     """
     # =================================================================
     # Sanity checks:
@@ -219,7 +219,7 @@ def babs_init_main(
             + " `--where_project` '"
             + where_project
             + "'!"
-            + " `babs-init` won't proceed to overwrite this folder."
+            + " `babs init` won't proceed to overwrite this folder."
         )
 
     # check if `where_project` exists:
@@ -243,12 +243,12 @@ def babs_init_main(
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;
-    #           so better to just leave to the real cloning when `babs-init`;
+    #           so better to just leave to the real cloning when `babs init`;
     #       2) otherwise, if using "if `.datalad/config` exists" to check, then need to check
     #           if input dataset is local or not, and it's very tricky to check that...
     #       3) otherwise, if using "dlapi.status(dataset=the_input_ds)": will take long time
     #           for big dataset; in addition, also need to check if it's local or not...
-    # currently solution: add notes in Debugging in `babs-init` docs: `babs-init.rst`
+    # currently solution: add notes in Debugging in `babs init` docs: `babs init.rst`
 
     # Create an instance of babs class:
     babs_proj = BABS(project_root, type_session, type_system)
@@ -265,13 +265,13 @@ def babs_init_main(
 
     # Call method `babs_bootstrap()`:
     #   if success, good!
-    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs-init` creates!
+    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs init` creates!
     try:
         babs_proj.babs_bootstrap(
             input_ds, container_ds, container_name, container_config_yaml_file, system
         )
     except Exception:
-        print('\n`babs-init` failed! Below is the error message:')
+        print('\n`babs init` failed! Below is the error message:')
         traceback.print_exc()  # print out the traceback error messages
         if not keep_if_failed:
             # clean up:
@@ -279,14 +279,14 @@ def babs_init_main(
             babs_proj.clean_up(input_ds)
             print(
                 'Please check the error messages above!'
-                ' Then fix the problem, and rerun `babs-init`.'
+                ' Then fix the problem, and rerun `babs init`.'
             )
         else:
             print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
             print(
                 'Please check the error messages above!'
                 ' Then fix the problem, delete this failed BABS project,'
-                ' and rerun `babs-init`.'
+                ' and rerun `babs init`.'
             )
 
 
@@ -346,8 +346,8 @@ def babs_check_setup_main(
     job_test: bool,
 ):
     """
-    This is the core function of babs-check-setup,
-    which validates the setups by `babs-init`.
+    This is the core function of babs check-setup,
+    which validates the setups by `babs init`.
 
     project_root: str
         Absolute path to the root of BABS project.
@@ -522,7 +522,7 @@ def babs_submit_main(
 
         # sanity check:
         df_job_specified = check_df_job_specific(
-            df_job_specified, babs_proj.job_status_path_abs, babs_proj.type_session, 'babs-submit'
+            df_job_specified, babs_proj.job_status_path_abs, babs_proj.type_session, 'babs submit'
         )
     else:  # `job` is None:
         df_job_specified = None
@@ -597,7 +597,7 @@ def _parse_status():
         '--container-config-yaml-file',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
-        ' ``babs-status`` will use this section for failed job auditing,'
+        ' ``babs status`` will use this section for failed job auditing,'
         ' by checking if any defined alert messages'
         " can be found in failed jobs' log files.",
     )
@@ -640,7 +640,7 @@ def babs_status_main(
     reckless: bool = False,
 ):
     """
-    This is the core function of `babs-status`.
+    This is the core function of `babs status`.
 
     Parameters:
     --------------
@@ -654,7 +654,7 @@ def babs_status_main(
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
         It may include 'alert_log_messages' section
-        to be used by babs-status.
+        to be used by babs status.
     job_account: bool
         Whether to account failed jobs (e.g., using `qacct` for SGE),
         which may take some time.
@@ -664,7 +664,7 @@ def babs_status_main(
 
     Notes:
     -----------
-    NOTE: Not to include `reckless` in `babs-status` CLI for now.
+    NOTE: Not to include `reckless` in `babs status` CLI for now.
     If `reckless` is added in the future,
         please make sure you remove command `args.reckless = False` below!
     Below are commented:
@@ -702,7 +702,7 @@ def babs_status_main(
     # If `--job-account` is requested:
     if job_account:
         if 'failed' not in flags_resubmit:
-            print('`--job-account` was requested; `babs-status` may take longer time...')
+            print('`--job-account` was requested; `babs status` may take longer time...')
         else:
             # this is meaningless to run `job-account` if resubmitting anyway:
             print(
@@ -760,7 +760,7 @@ def babs_status_main(
             df_resubmit_job_specific,
             babs_proj.job_status_path_abs,
             babs_proj.type_session,
-            'babs-status',
+            'babs status',
         )
 
         if len(df_resubmit_job_specific) > 0:
@@ -983,18 +983,18 @@ def get_existing_babs_proj(project_root):
     """
 
     # Sanity check: the path `project_root` exists:
-    if os.path.exists(project_root) is False:
+    if not os.path.exists(project_root):
         raise Exception(
             '`--project-root` does not exist! Requested `--project-root` was: ' + project_root
         )
 
     # Read configurations of BABS project from saved yaml file:
     babs_proj_config_yaml = os.path.join(project_root, 'analysis/code/babs_proj_config.yaml')
-    if os.path.exists(babs_proj_config_yaml) is False:
+    if not os.path.exists(babs_proj_config_yaml):
         raise Exception(
-            '`babs-init` was not successful;'
+            '`babs init` was not successful;'
             " there is no 'analysis/code/babs_proj_config.yaml' file!"
-            ' Please rerun `babs-init` to finish the setup.'
+            ' Please rerun `babs init` to finish the setup.'
         )
 
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
@@ -1005,11 +1005,8 @@ def get_existing_babs_proj(project_root):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
             raise Exception(
-                "There is no section '"
-                + the_section
-                + "'"
-                + " in 'babs_proj_config.yaml' file in 'analysis/code' folder!"
-                + ' Please rerun `babs-init` to finish the setup.'
+                f"There is no section '{the_section}' in 'babs_proj_config.yaml' file "
+                "in 'analysis/code' folder! Please rerun `babs init` to finish the setup."
             )
 
     type_session = babs_proj_config['type_session']
@@ -1028,7 +1025,7 @@ def get_existing_babs_proj(project_root):
         raise Exception(
             "Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
             'does not include any input dataset!'
-            ' Something was wrong during `babs-init`...'
+            ' Something was wrong during `babs init`...'
         )
 
     input_cli = []  # to be a nested list
@@ -1061,7 +1058,7 @@ def get_existing_babs_proj(project_root):
 def check_df_job_specific(df, job_status_path_abs, type_session, which_function):
     """
     This is to perform sanity check on the pd.DataFrame `df`
-    which is used by `babs-submit --job` and `babs-status --resubmit-job`.
+    which is used by `babs submit --job` and `babs status --resubmit-job`.
     Sanity checks include:
     1. Remove any duplicated jobs in requests
     2. Check if requested jobs are part of the inclusion jobs to run
@@ -1076,7 +1073,7 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     type_session: str
         'single-ses' or 'multi-ses'
     which_function: str
-        'babs-status' or 'babs-submit'
+        'babs status' or 'babs submit'
         The warning message will be tailored based on this.
 
     Returns:
@@ -1091,7 +1088,7 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
 
     TODO:
     -------------
-    if `--job-csv` is added in `babs-submit`, update the `which_function`
+    if `--job-csv` is added in `babs submit`, update the `which_function`
     so that warnings/error messages are up-to-date (using `--job or --job-csv`)
     """
 
@@ -1099,9 +1096,9 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     df_unique = df.drop_duplicates(keep='first')  # default: keep='first'
     if df_unique.shape[0] != df.shape[0]:
         to_print = 'There are duplications in requested '
-        if which_function == 'babs-submit':
+        if which_function == 'babs submit':
             to_print += '`--job`'
-        elif which_function == 'babs-status':
+        elif which_function == 'babs status':
             to_print += '`--resubmit-job`'
         else:
             raise Exception('Invalid `which_function`: ' + which_function)
@@ -1125,9 +1122,9 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
             #           check-if-pandas-dataframe-is-subset-of-other-dataframe
             if len(df_intersection) != len(df):
                 to_print = 'Some of the subjects (and sessions) requested in '
-                if which_function == 'babs-submit':
+                if which_function == 'babs submit':
                     to_print += '`--job`'
-                elif which_function == 'babs-status':
+                elif which_function == 'babs status':
                     to_print += '`--resubmit-job`'
                 else:
                     raise Exception('Invalid `which_function`: ' + which_function)

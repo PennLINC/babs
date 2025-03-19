@@ -1,4 +1,4 @@
-# This is to test `babs-init`.
+# This is to test `babs init`.
 import argparse
 import os
 import os.path as op
@@ -59,7 +59,7 @@ def test_babs_init(
     if_circleci,
 ):
     """
-    This is to test `babs-init` in different cases.
+    This is to test `babs init` in different cases.
 
     Parameters:
     --------------
@@ -130,7 +130,7 @@ def test_babs_init(
     assert os.getenv('TEMPLATEFLOW_HOME') is not None  # assert env var has been set
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
-    # Get the cli of `babs-init`:
+    # Get the cli of `babs init`:
     where_project = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
     project_root = op.join(where_project, project_name)
@@ -149,14 +149,14 @@ def test_babs_init(
         keep_if_failed=False,
     )
 
-    # run `babs-init`:
+    # run `babs init`:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
         _enter_init()
 
     # ================== ASSERT ============================
-    # Assert by running `babs-check-setup`
+    # Assert by running `babs check-setup`
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=False)
-    # Run `babs-check-setup`:
+    # Run `babs check-setup`:
     with mock.patch.object(
         argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
     ):

@@ -29,7 +29,7 @@ Raw (unzipped) BIDS dataset, or zipped BIDS dataset?
     * Therefore, if you have a raw BIDS dataset, please do not include zipped files
       called ``sub-*.zip`` in this dataset.
 
-When running ``babs-init``, you will see printed messages describing each input BIDS dataset
+When running ``babs init``, you will see printed messages describing each input BIDS dataset
 was categorized as a raw (unzipped) dataset or a zipped dataset.
 
 .. _requirements_for_zipped_BIDS_derivatives_dataset:
@@ -39,7 +39,7 @@ Requirements for a zipped BIDS derivatives input dataset
 ==========================================================
 There are several requirements for zipped BIDS derivatives dataset:
 
-Note: an input dataset's name is defined when ``babs-init --name``.
+Note: an input dataset's name is defined when ``babs init --name``.
 
 -------------------------
 Naming zip files
@@ -52,7 +52,7 @@ Naming zip files
 
 * Similarly, for multi-session dataset, the zip filename should follow the pattern of
   ``sub-*_ses-*_<name>*.zip``
-* In this dataset, for each subject/session pair, 
+* In this dataset, for each subject/session pair,
   there should only be one zip file whose filename contains input dataset's name.
 
     * For example, say we have ``sub-01_ses-A_freesurfer-20-2-3.zip``,
@@ -75,7 +75,7 @@ For more explanations and examples, please refer to "See also" below.
 See also
 -------------------
 
-Notes in ``babs-init`` CLI: :ref:`how-to-define-name-of-input-dataset`
+Notes in ``babs init`` CLI: :ref:`how-to-define-name-of-input-dataset`
 
 
 ==================================================================
@@ -91,7 +91,7 @@ as input dataset for a new BABS project ("BABS project B"), you may follow these
 
     * If BABS project A is on the local file system that current directory has access to,
       you may clone the results from its output RIA by::
-        
+
         datalad clone ria+file:///absolute/path/to/my_BABS_project_A/output_ria#~data
 
     * For more details and/or other RIA scenarios,
@@ -113,14 +113,14 @@ as input dataset for a new BABS project ("BABS project B"), you may follow these
     datalad remove -d <cloned_results_of_BABS_project_A>
 
 #. :octicon:`alert-fill` :bdg-warning:`warning`
-   Please refer to docs listed below for detailed requirements before you run ``babs-init``:
+   Please refer to docs listed below for detailed requirements before you run ``babs init``:
 
     * :ref:`how-to-define-name-of-input-dataset`:
       for restrictions in naming a zipped dataset as input.
     * :ref:`requirements_for_zipped_BIDS_derivatives_dataset`:
       for requirements in zip files naming and their contents.
 
-.. Developer's Notes: In theory the user could directly provide ``ria+file://xxx/output_ria#~data`` as the path to the input dataset in ``babs-init``,
+.. Developer's Notes: In theory the user could directly provide ``ria+file://xxx/output_ria#~data`` as the path to the input dataset in ``babs init``,
 ..      but we hope they could test if this string is correct by letting them clone once.
 
 .. _example_input_BIDS_datasets_for_BABS:
