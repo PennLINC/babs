@@ -10,8 +10,7 @@ Command-Line Arguments
 
 .. argparse::
    :ref: babs.cli._parse_submit
-   :prog: babs
-   :path: submit
+   :prog: babs submit
    :nodefault:
    :nodefaultconst:
 

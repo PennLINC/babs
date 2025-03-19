@@ -10,8 +10,7 @@ Command-Line Arguments
 
 .. argparse::
    :ref: babs.cli._parse_check_setup
-   :prog: babs
-   :path: check-setup
+   :prog: babs check-setup
    :nodefault:
    :nodefaultconst:
 

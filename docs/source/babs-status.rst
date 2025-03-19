@@ -10,8 +10,7 @@ Command-Line Arguments
 
 .. argparse::
    :ref: babs.cli._parse_status
-   :prog: babs
-   :path: status
+   :prog: babs status
    :nodefault:
    :nodefaultconst:
 

@@ -10,8 +10,7 @@ Command-Line Arguments
 
 .. argparse::
    :ref: babs.cli._parse_init
-   :prog: babs
-   :path: init
+   :prog: babs init
 
    --input : @after
       Examples: ``--input BIDS /path/to/BIDS_datalad_dataset``;
