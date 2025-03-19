@@ -9,16 +9,16 @@ Step III: Job submission and job status
 *******************************************************
 List of included subjects (and sessions) to process
 *******************************************************
-``babs-init`` follows the steps below to determine the final list of included subjects (and sessions) to process:
+``babs init`` follows the steps below to determine the final list of included subjects (and sessions) to process:
 
 #. Determine an initial list:
 
-    * If ``--list-sub-file`` in ``babs-init`` is provided by the user, use it as initial list
+    * If ``--list-sub-file`` in ``babs init`` is provided by the user, use it as initial list
     * If not, BABS will list the subjects and sessions from the first input dataset, and use it as initial list
 
 #. Filter the initial list: Remove subjects (and sessions) which do not have the required files
    that are defined in :ref:`required_files` in ``--container-config-yaml-file``
-   provided when running ``babs-init``.
+   provided when running ``babs init``.
 
 Now, BABS gets the final included subjects (and sessions) to process.
 It saves this list into a CSV file, named ``sub_final_inclu.csv`` (for single-session dataset)
@@ -32,38 +32,38 @@ Recommended workflow of job submission and status checking
 ***************************************************************
 Processing large-scale datasets and handling hundreds or even thousands of jobs
 can be tough. We hope BABS can help this process.
-We recommend using ``babs-submit`` and ``babs-status`` in the following way;
-in short, it's a iteration between ``babs-submit`` and ``babs-status``:
+We recommend using ``babs submit`` and ``babs status`` in the following way;
+in short, it's a iteration between ``babs submit`` and ``babs status``:
 
-#. Check how many jobs need to run: run ``babs-status --project_root /path/to/my_BABS_project``.
+#. Check how many jobs need to run: run ``babs status --project_root /path/to/my_BABS_project``.
    This will return a summary that includes the number of jobs that are expected to complete.
    See :ref:`list_included_subjects` for how BABS determines this list of jobs to complete.
-#. You may submit several exemplar jobs with ``babs-submit``, then check job status
-   with ``babs-status`` to see if they finish successfully.
-#. If there are failed jobs, you can use ``babs-status`` to perform failed job auditing.
-   
+#. You may submit several exemplar jobs with ``babs submit``, then check job status
+   with ``babs status`` to see if they finish successfully.
+#. If there are failed jobs, you can use ``babs status`` to perform failed job auditing.
+
     * See :ref:`here <check-job-status-and-failed-job-auditing>` for example commands,
       and :ref:`here <setup-section-alert-log-messages>` for how to set it up.
     * Please make sure the job failures are related to subject- or session-specific problems,
       but not issues like "no enough memory or space" that other jobs could also encounter.
       Once you're sure about this, feel free to move on.
 
-#. You may start to iteratively call ``babs-submit`` and ``babs-status`` until all jobs finish.
+#. You may start to iteratively call ``babs submit`` and ``babs status`` until all jobs finish.
    See below for tips of each function.
 
 ==============================
-Tips of ``babs-submit``
+Tips of ``babs submit``
 ==============================
-You have several choices when running ``babs-submit``:
+You have several choices when running ``babs submit``:
 
 * Submit one or several specific jobs by ``--job``;
 * Submit N jobs (from the top of the list, jobs haven't been submitted yet) by ``--count N``;
 * If your clusters allow, and you're confident to run BIDS App on all remaining subjects (and sessions),
   you may submit all remaining jobs by ``--all``.
-  After then, only thing you need to do is to run ``babs-status`` once a while until all jobs finish.
+  After then, only thing you need to do is to run ``babs status`` once a while until all jobs finish.
 
 ==============================
-Tips of ``babs-status``
+Tips of ``babs status``
 ==============================
 
 .. _check-job-status-and-failed-job-auditing:
@@ -71,27 +71,27 @@ Tips of ``babs-status``
 Recommended way to check job status (including failed job auditing)
 ---------------------------------------------------------------------
 To check job status and perform failed job auditing,
-you can use two options of ``babs-status`` here:
+you can use two options of ``babs status`` here:
 
 * To save time,
   you may run::
-    
-    babs-status \
+
+    babs status \
         --project-root /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/my_yaml_file.yaml
-    
+
   i.e., using **alert_log_messages** in the YAML file for failed job auditing.
   See :ref:`the section below <setup-section-alert-log-messages>`
   for how to set up this section **alert_log_messages**.
   With the YAML file provided, this may take ~1.5 min for ~2500 jobs.
 * If time allows, and there are failed jobs without alert messages,
   you may add ``--job-account``::
-    
-    babs-status \
+
+    babs status \
         --project-root /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/my_yaml_file.yaml \
         --job-account
-        
+
   This will perform job account, thus it may take longer
   (e.g., ~0.5h for ~250 failed jobs without alert messages;
   also depending on the speed of the cluster).
@@ -103,7 +103,7 @@ Set up section ``alert_log_messages`` for failed job auditing
 -------------------------------------------------------------------
 If there are failed jobs, you may be wondering why they failed.
 A direct way to investigate is to check their log files, but it will take a lot of time to go through
-all failed jobs' log files. ``babs-status`` supports failed job auditing and summary
+all failed jobs' log files. ``babs status`` supports failed job auditing and summary
 by searching pre-defined alert messages in the failed jobs' log files.
 These alert messages are defined by you in the
 section **alert_log_messages** in the container's configuration YAML file.
@@ -117,43 +117,43 @@ section **alert_log_messages** in the container's configuration YAML file.
 * Do not worry if you do not cover all alert messages on the first try;
   you can add/change this section **alert_log_messages** in the YAML file anytime you want,
   and simply call::
-    
-    babs-status \
+
+    babs status \
         --project-root /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/updated_yaml_file.yaml
-    
+
   to ask BABS to find updated list of alert messages.
 * For more details about this section, please refer to :ref:`alert_log_messages`.
 
 .. developer's note: cannot use relative path like: `here <../../../notebooks/README.md>`_
-..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path 
+..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path
 ..  making it a broken link. Although the rendered path looks fine when building the docs *locally*
 
 Job resubmission
 -----------------------
 You can also resubmit jobs that are failed or pending.
-See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
+See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs status` for more.
 
 .. warning::
-    Do NOT kill ``babs-submit`` or ``babs-status`` (especially with ``--resubmit*``)
+    Do NOT kill ``babs submit`` or ``babs status`` (especially with ``--resubmit*``)
     when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
 
 .. _example_job_status_summary:
 
 *******************************************************
-Example job status summary from ``babs-status``
+Example job status summary from ``babs status``
 *******************************************************
 
 ..  code-block:: console
     :linenos:
 
-    $ babs-status \
+    $ babs status \
         --project_root /path/to/my_BABS_project \
         --container_config_yaml_file /path/to/config.yaml \
         --job-account
 
     Did not request resubmit based on job states (no `--resubmit`).
-    `--job-account` was requested; `babs-status` may take longer time...
+    `--job-account` was requested; `babs status` may take longer time...
 
     Job status:
     There are in total of 2565 jobs to complete.
@@ -201,16 +201,16 @@ in the last line of the printed message (line #27).
 *******************************************************
 Explanation on ``job_status.csv``
 *******************************************************
-As described above, BABS ``babs-status`` has provided a summary of all the jobs.
+As described above, BABS ``babs status`` has provided a summary of all the jobs.
 This summary is based on ``job_status.csv`` (located at: ``/path/to/my_BABS_project/analysis/code``).
 If you hope to dig out more information, you may take a look at this CSV file.
 
 .. note::
-    This ``job_status.csv`` file won't exist until the first time running ``babs-submit`` or ``babs-status``.
+    This ``job_status.csv`` file won't exist until the first time running ``babs submit`` or ``babs status``.
 
 .. warning::
     Do NOT make changes to ``job_status.csv`` by yourself!
-    Changes that are not made by ``babs-submit`` or ``babs-status`` may cause conflicts
+    Changes that are not made by ``babs submit`` or ``babs status`` may cause conflicts
     or confusions to BABS on the job status.
 
 ==============================
@@ -272,7 +272,7 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 * ``log_filename``: string or ``np.nan``, the filename of the log file in the format of
   ``<jobname>.*<jobid>``, e.g., ``fmr_sub-xx.*11111``.
   Replace ``.*`` with ``.o`` or ``.e`` to get corresponding log filename.
-  The path to the log files are indicated in the last line of printed message from ``babs-status``.
+  The path to the log files are indicated in the last line of printed message from ``babs status``.
   Before a job is submitted, ``log_filename = np.nan``.
 
     * The log files can be printed in the terminal via ``cat`` (printing the entire file),
@@ -286,20 +286,20 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 
     * Example ``alert_message``: ``'stdout file: fMRIPrep failed'`` (alert messages found);
       ``BABS: No alert message found in log files.`` (alert messages not found).
-    * This column of all submitted jobs will be updated every time ``babs-status`` is called.
+    * This column of all submitted jobs will be updated every time ``babs status`` is called.
       It will be updated based on current ``--container-config-yaml-file`` (if provided).
       if ``--container-config-yaml-file`` is not provided,
       column ``alert_message`` will be reset to ``np.nan``.
     * If a job hasn't been submitted, or ``--container-config-yaml-file`` was not specified
-      in ``babs-status``, ``alert_message = np.nan``.
+      in ``babs status``, ``alert_message = np.nan``.
 * ``job_account``: string or ``np.nan``, information extracted by running job account.
   This is designed for failed jobs that don't have alert message in the log files. More detailed explanation of how and what information is get by BABS can be found in :ref:`example_job_status_summary`. Other details about this column:
 
-    * This column is only updated when ``--job-account`` is requested in ``babs-status``
+    * This column is only updated when ``--job-account`` is requested in ``babs status``
       but ``--resubmit failed`` is not requested
     * For other jobs (not failed, or failed jobs but alert messages were found),
       ``job_account = np.nan``
-    * if ``babs-status`` was called again, but without ``--job-account``,
+    * if ``babs status`` was called again, but without ``--job-account``,
       the previous round's ``job_account`` column will be kept, unless the job was resubmitted.
       This is because the job ID did not change, so job account information should not change for a finished job.
 
@@ -308,23 +308,23 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 FAQ for job submission and status checking
 *******************************************************
 
-Q: In printed messages from ``babs-status``, what if the number of submitted jobs
+Q: In printed messages from ``babs status``, what if the number of submitted jobs
 does not match with the total number of jobs summarized under "Among submitted jobs"?
 
 A: This should happen infrequently. Those "missing" jobs may in some uncommon or brief states
-that BABS does not recognize. Please wait for a bit moment, and rerun ``babs-status``.
+that BABS does not recognize. Please wait for a bit moment, and rerun ``babs status``.
 
-.. developer's notes: if calling `babs-status` immediately after `babs-submit` on MSI Slurm cluster,
+.. developer's notes: if calling `babs status` immediately after `babs submit` on MSI Slurm cluster,
 ..  you may see this. This is because jobs are in atypical states `CF` (configuring).
-..  Just wait several sec and rerun `babs-status`.
+..  Just wait several sec and rerun `babs status`.
 
-Q: In ``job_status.csv``, why column ``alert_message`` is updated every time ``babs-status`` is called,
+Q: In ``job_status.csv``, why column ``alert_message`` is updated every time ``babs status`` is called,
 whereas column ``job_account`` is only updated when ``--job-account`` is called?
 
 A:
 
     #. ``alert_message`` is got from log files, which are dynamic as the jobs progress;
-       also, ``alert_log_messages`` in the yaml file can also be changed in each ``babs-status`` call.
+       also, ``alert_log_messages`` in the yaml file can also be changed in each ``babs status`` call.
        On the other hand, only failed jobs have ``job_account`` with actual contents,
        and job account won't change after a job is finished (though failed).
     #. Updating ``alert_message`` is quick, whereas running job account
@@ -333,13 +333,13 @@ A:
 Q: A job is done (i.e., ``is_done = True`` in ``job_status.csv``),
 but column ``last_line_stdout_file`` is not ``SUCCESS``?
 
-A: This should be an edge case. Simply run ``babs-status`` again,
+A: This should be an edge case. Simply run ``babs status`` again,
 and it might be updated with 'SUCCESS'.
 
 
 *******************************************************
 See also
 *******************************************************
-:doc:`babs-submit`
+:doc:`babs submit`
 
-:doc:`babs-status`
+:doc:`babs status`

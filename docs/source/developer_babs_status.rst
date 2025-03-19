@@ -1,5 +1,5 @@
 #########################################
-Developer's notes on ``babs-status``
+Developer's notes on ``babs status``
 #########################################
 
 ============================================================
@@ -35,7 +35,7 @@ Source code: ``babs/babs.py`` -> ``class BABS()`` --> ``def babs_status()``
                 * if ``qw``:
 
                     * resubmit if 'pending' in ``flags_resubmit``, or request specifically: resubmit and update ``df_job_updated``
-    
+
                 * if ``eqw``: just update the job state code/category in ``df_job_updated``
 
                     * currently does not support resubmission, won't support this feature until it has been tested
@@ -73,7 +73,7 @@ Summary:
 Resubmissions based on job's status
 =========================================
 
-Note: currently, ``babs-status`` CLI does not support ``--reckless``.
+Note: currently, ``babs status`` CLI does not support ``--reckless``.
 
 .. list-table:: Current BABS's responses when resubmission is requested
    :header-rows: 1
@@ -83,7 +83,7 @@ Note: currently, ``babs-status`` CLI does not support ``--reckless``.
      - progress of implementation in BABS
      - tested?
    * - not submitted
-     - warning: ``babs-submit`` first
+     - warning: ``babs submit`` first
      - added
      - edge case, not tested yet?
    * - submitted, qw
@@ -136,7 +136,7 @@ Note: ``0`` at the beginning: index of pd.DataFrame
 .. _how_to_test_out_babs_status:
 
 ====================================
-How to test out ``babs-status``
+How to test out ``babs status``
 ====================================
 
 ------------------------------------------
@@ -156,7 +156,7 @@ Change/Add these in ``participant_job.sh``:
 After these changes, ``datalad save -m "message"`` and ``datalad push --to input``
 
 ---------------------------------------------------------------------
-Create failed cases for testing ``babs-status`` failed job auditing
+Create failed cases for testing ``babs status`` failed job auditing
 ---------------------------------------------------------------------
 
 * Add ``sleep 3600`` to ``container_zip.sh``; make sure you ``datalad save`` the changes

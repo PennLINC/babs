@@ -1817,7 +1817,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     # Check if there is still jobs to submit:
     total_has_submitted = int(df_job['has_submitted'].sum())
     if total_has_submitted == df_job.shape[0]:  # all submitted
-        print('All jobs have already been submitted. ' + 'Use `babs-status` to check job status.')
+        print('All jobs have already been submitted. ' + 'Use `babs status` to check job status.')
         return df_job_submit
 
     # See if user has specified list of jobs to submit:
@@ -1858,7 +1858,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
                     ' has already been submitted,'
                     " so it won't be submitted again."
                     ' If you want to resubmit it,'
-                    ' please use `babs-status --resubmit`'
+                    ' please use `babs status --resubmit`'
                 )
                 print(to_print)
     else:  # taking into account the `count` argument
@@ -1873,7 +1873,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
 def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     """
     This is to submit one *test* job.
-    This is used by `babs-check-setup`.
+    This is used by `babs check-setup`.
 
     Parameters:
     ----------------
@@ -1955,7 +1955,7 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
 def create_job_status_csv(babs):
     """
     This is to create a CSV file of `job_status`.
-    This should be used by `babs-submit` and `babs-status`.
+    This should be used by `babs submit` and `babs status`.
 
     Parameters:
     ------------
@@ -2131,7 +2131,7 @@ def report_job_status(df, analysis_path, config_msg_alert):
                             "\nFor the failed job(s) that don't have alert message in log files,"
                             ' you may use `--job-account` to get more information'
                             ' about why they are failed.'
-                            ' Note that with `--job-account`, `babs-status` may take longer time.'
+                            ' Note that with `--job-account`, `babs status` may take longer time.'
                         )
                     else:
                         all_job_account = pdseries.tolist()
@@ -2834,7 +2834,7 @@ def print_versions_from_yaml(fn_yaml):
     This is to go thru information in `code/check_setup/check_env.yaml` saved by `test_job.py`.
     1. check if there is anything required but not installed
     2. print out the versions for user to visually check
-    This is used by `babs-check-setup`.
+    This is used by `babs check-setup`.
 
     Parameters:
     ----------------
@@ -2876,7 +2876,7 @@ def print_versions_from_yaml(fn_yaml):
 def get_git_show_ref_shasum(branch_name, the_path):
     """
     This is to get current commit's shasum by calling `git show-ref`.
-    This can be used by `babs-merge`.
+    This can be used by `babs merge`.
 
     Parameters:
     --------------

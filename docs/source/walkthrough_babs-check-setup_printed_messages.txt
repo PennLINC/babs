@@ -1,6 +1,6 @@
 Will check setups of BABS project located at: /cbica/projects/BABS/babs_demo/my_BABS_project
 Will submit a test job for testing; will take longer time.
-Below is the configuration information saved during `babs-init` in file 'analysis/code/babs_proj_config.yaml':
+Below is the configuration information saved during `babs init` in file 'analysis/code/babs_proj_config.yaml':
 
 type_session: multi-ses
 type_system: sge
@@ -56,7 +56,7 @@ version:
   git-annex: 'git-annex version: 10.20230215-gd24914f2a'
   datalad_containers: 'datalad_container 1.1.9'
 
-Please check if above versions are the ones you hope to use! If not, please change the version in the designated environment, or change the designated environment you hope to use in `--container-config-yaml-file` and rerun `babs-init`.
+Please check if above versions are the ones you hope to use! If not, please change the version in the designated environment, or change the designated environment you hope to use in `--container-config-yaml-file` and rerun `babs init`.
 ✓ All good in test job!
 
-`babs-check-setup` was successful!
+`babs check-setup` was successful!
