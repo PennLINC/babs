@@ -32,9 +32,7 @@ def _parse_init():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description=(
-            'babs init: Initialize a BABS project and bootstrap scripts that will be used later.'
-        ),
+        description='Initialize a BABS project and bootstrap scripts that will be used later.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -301,7 +299,7 @@ def _parse_check_setup():
     """
 
     parser = argparse.ArgumentParser(
-        description='babs check-setup: Validate setups by `babs init`.',
+        description='Validate setups created by ``babs init``.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -379,7 +377,7 @@ def _parse_submit():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description='babs submit: Submit jobs to cluster compute nodes.',
+        description='Submit jobs to cluster compute nodes.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -542,7 +540,7 @@ def _parse_status():
     """
 
     parser = argparse.ArgumentParser(
-        description='babs status: Check job status in a BABS project.',
+        description='Check job status in a BABS project.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -800,9 +798,7 @@ def _parse_merge():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description=(
-            'babs merge: Merge results and provenance from all successfully finished jobs.'
-        ),
+        description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -888,7 +884,7 @@ def _parse_unzip():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description='babs unzip: Unzip results zip files and extracts desired files',
+        description='Unzip results zip files and extracts desired files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
