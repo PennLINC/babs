@@ -15,8 +15,8 @@ Set up a BABS project
 .. toctree::
    :maxdepth: 1
 
-   babs init
-   babs check-setup
+   babs-init
+   babs-check-setup
 
 Submit jobs and check job status
 ==================================
@@ -24,8 +24,8 @@ Submit jobs and check job status
 .. toctree::
    :maxdepth: 1
 
-   babs submit
-   babs status
+   babs-submit
+   babs-status
 
 After jobs have finished
 ===========================
@@ -33,4 +33,4 @@ After jobs have finished
 .. toctree::
    :maxdepth: 1
 
-   babs merge
+   babs-merge

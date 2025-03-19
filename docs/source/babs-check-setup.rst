@@ -9,7 +9,7 @@ Command-Line Arguments
 **********************
 
 .. argparse::
-   :ref: babs.cli._get_parser
+   :ref: babs.cli._parse_check_setup
    :prog: babs
    :path: check-setup
    :nodefault:

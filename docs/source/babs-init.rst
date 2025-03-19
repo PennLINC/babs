@@ -9,7 +9,7 @@ Command-Line Arguments
 **********************
 
 .. argparse::
-   :ref: babs.cli.babs_init_cli
+   :ref: babs.cli._parse_init
    :prog: babs
    :path: init
 

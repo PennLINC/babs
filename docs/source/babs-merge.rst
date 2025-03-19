@@ -11,7 +11,7 @@ Command-Line Arguments
 **********************
 
 .. argparse::
-   :ref: babs.cli.babs_merge_cli
+   :ref: babs.cli._parse_merge
    :prog: babs
    :path: merge
 
