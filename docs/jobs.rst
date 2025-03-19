@@ -340,6 +340,6 @@ and it might be updated with 'SUCCESS'.
 *******************************************************
 See also
 *******************************************************
-:doc:`babs submit`
+:doc:`babs-submit`
 
-:doc:`babs status`
+:doc:`babs-status`
