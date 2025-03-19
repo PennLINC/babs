@@ -9,10 +9,10 @@ import subprocess
 import sys
 import warnings  # built-in, no need to install
 from datetime import datetime
+from importlib.metadata import version
 
 import numpy as np
 import pandas as pd
-import pkg_resources
 import yaml
 from filelock import FileLock, Timeout
 from qstat import qstat  # https://github.com/relleums/qstat
@@ -29,7 +29,7 @@ def enablePrint():
 
 
 def get_datalad_version():
-    return pkg_resources.get_distribution('datalad').version
+    return version('datalad')
 
 
 def get_immediate_subdirectories(a_dir):
