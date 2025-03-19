@@ -16,5 +16,4 @@ jobs:
     - uses: actions/checkout@v4
     - name: Run shellcheck
       run: |
-        shellcheck -x \
-        tests/e2e-slurm/container/walkthrough-tests.sh
+        git grep -l -E '^#!/bin/(ba|)sh' | xargs shellcheck -x
