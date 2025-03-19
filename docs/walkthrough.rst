@@ -278,7 +278,7 @@ Below is an example YAML file for toy BIDS App:
 ..  `:lines:` is the line ranges in the original file
 ..  `:emphasize-lines:`: line # in the selected lines defined in `:lines:`
 
-.. literalinclude:: ../../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
+.. literalinclude:: ../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
    :language: yaml
    :lines: 21-
    :linenos:

@@ -3,12 +3,12 @@
 #   Be careful when changing this file in this repo!!!
 #   as this file is used in `example walkthrough` docs
 #   and the line numbers there are fixed when rendered in the docs!
-#   please make sure you also update `docs/source/walkthrough.rst` too!!!
+#   please make sure you also update `docs/walkthrough.rst` too!!!
 # ===============================================================================
 
 # This is an example config YAML file for toy BIDS App "toy_bids_app" 0.0.7, for raw BIDS datasets.
 # This YAML file was originally prepared for Penn Med CUBIC SGE cluster,
-#   however with customization, this YAML file can also be applied to other clusters, including Slurm clusters. 
+#   however with customization, this YAML file can also be applied to other clusters, including Slurm clusters.
 # How to customize this YAML file for your case:
 #   please refer to the example walkthrough: https://pennlinc-babs.readthedocs.io/en/stable/walkthrough.html
 
@@ -39,4 +39,4 @@ script_preamble: |
     source ${CONDA_PREFIX}/bin/activate babs    # for Penn Med CUBIC cluster
 
 # Where to run the jobs:
-job_compute_space: "${CBICA_TMPDIR}"   # for Penn Med CUBIC cluster tmp space
+job_compute_space: "${CBICA_TMPDIR}" # for Penn Med CUBIC cluster tmp space

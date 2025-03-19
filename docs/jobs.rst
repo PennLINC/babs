@@ -125,14 +125,14 @@ section **alert_log_messages** in the container's configuration YAML file.
   to ask BABS to find updated list of alert messages.
 * For more details about this section, please refer to :ref:`alert_log_messages`.
 
-.. developer's note: cannot use relative path like: `here <../../../notebooks/README.md>`_
+.. developer's note: cannot use relative path like: `here <../../notebooks/README.md>`_
 ..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path
 ..  making it a broken link. Although the rendered path looks fine when building the docs *locally*
 
 Job resubmission
 -----------------------
 You can also resubmit jobs that are failed or pending.
-See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs status` for more.
+See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 
 .. warning::
     Do NOT kill ``babs submit`` or ``babs status`` (especially with ``--resubmit*``)
@@ -340,6 +340,6 @@ and it might be updated with 'SUCCESS'.
 *******************************************************
 See also
 *******************************************************
-:doc:`babs submit`
+:doc:`babs-submit`
 
-:doc:`babs status`
+:doc:`babs-status`

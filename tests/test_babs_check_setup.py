@@ -35,8 +35,8 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     Successful `babs init` has been tested in `test_babs_init.py`.
     We won't test `--job-test` either as that requires installation of cluster simulation system.
 
-    Parameters:
-    ---------------
+    Parameters
+    ----------
     which_case: str
         'not_to_keep_failed': `container_ds` has wrong path;
         not to `--keep-if-failed` in `babs init`

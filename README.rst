@@ -39,13 +39,13 @@ The *bioRxiv* version can be found `here <https://doi.org/10.1101/2023.08.16.552
 BABS programs
 ---------------------
 
-.. image:: https://github.com/PennLINC/babs/raw/main/docs/source/_static/babs_cli.png
+.. image:: https://github.com/PennLINC/babs/raw/main/docs/_static/babs_cli.png
 .. Note: this image is taken from the main branch, so it's normal that docs built from branches is not up-to-date.
-..  If using relative path, e.g., `_static/babs_cli.png`, although readthedocs front page would look good, GitHub front page cannot find that image!!! 
+..  If using relative path, e.g., `_static/babs_cli.png`, although readthedocs front page would look good, GitHub front page cannot find that image!!!
 
 Schematic of BABS workflow
 ----------------------------
-.. image:: https://github.com/PennLINC/babs/raw/main/docs/source/_static/babs_workflow.png
+.. image:: https://github.com/PennLINC/babs/raw/main/docs/_static/babs_workflow.png
 .. Note: this image is taken from the main branch, so it's normal that docs built from branches is not up-to-date.
 
 Background and Significance
@@ -59,7 +59,7 @@ Obtaining a faithful record of the audit trail is challenging - especially for l
 Recently, the `FAIRly big framework <https://doi.org/10.1038/s41597-022-01163-2>`_
 was introduced as a way to facilitate reproducible processing of large-scale data
 by leveraging `DataLad <https://www.datalad.org/>`_ - a version control system for data management.
-However, the current implementation of this framework remains challenging to general users. 
+However, the current implementation of this framework remains challenging to general users.
 
 BABS was developed to address these challenges
 and to facilitate the reproducible application of BIDS Apps to large-scale datasets.
