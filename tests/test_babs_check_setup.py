@@ -112,7 +112,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     elif which_case == 'wrong_container_ds':
         babs_init_opts.container_ds = container_ds_path_wrong
     elif which_case == 'wrong_input_ds':
-        babs_init_opts.input = input_ds_cli_wrong
+        babs_init_opts.input_dataset = input_ds_cli_wrong
 
     # run `babs-init`:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
