@@ -158,7 +158,7 @@ def _enter_init(argv=None):
     )
     options = _parse_init().parse_args(argv)
     args = vars(options).copy()
-    raise Exception(args
+    raise Exception(args)
     babs_init_main(**args)
 
 
