@@ -9,23 +9,17 @@ from unittest import mock
 import pytest
 
 sys.path.append('..')
-sys.path.append('../babs')
-from babs.cli import (  # noqa
-    babs_init_main,
-    babs_check_setup_main,
-)
+
 from get_data import (  # noqa
-    get_input_data,
-    container_ds_path,
-    where_now,
-    if_circleci,
-    get_container_config_yaml_filename,
-    __location__,
-    INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH,
     TEMPLATEFLOW_HOME,
+    TOYBIDSAPP_VERSION_DASH,
+    __location__,
+    get_container_config_yaml_filename,
+    get_input_data,
 )
+
+from babs.cli import _enter_check_setup, _enter_init  # noqa
 
 
 @pytest.mark.order(index=2)
@@ -119,7 +113,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
 
     # run `babs-init`:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
-        babs_init_main()
+        _enter_init()
 
     # Get cli of `babs-check-setup`:
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=False)
@@ -141,4 +135,4 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
     ):
         with pytest.raises(error_type, match=error_msg):  # contains what pattern in error message
-            babs_check_setup_main()
+            _enter_check_setup()
