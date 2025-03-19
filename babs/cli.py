@@ -52,7 +52,7 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--input',
+        '--inputs',
         action='append',  # append each `--input` as a list;
         dest='input_dataset',
         # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
