@@ -147,7 +147,6 @@ inline-quotes = "single"
 [tool.ruff.lint.extend-per-file-ignores]
 "*/test_*.py" = ["S101", "F811"]
 "docs/conf.py" = ["A001"]
-"docs/conf.py" = ["A001"]
 "docs/sphinxext/github_link.py" = ["BLE001"]
 
 [tool.ruff.format]
