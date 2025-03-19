@@ -31,7 +31,7 @@ Below is an example of building a Singularity image of toy BIDS App from
 `Docker Hub <https://hub.docker.com/r/pennlinc/toy_bids_app>`_:
 
 .. code-block:: console
-    
+
     toybidsapp_version="0.0.7"   # or the latest tagged version
     toybidsapp_version_dash="0-0-7"   # same version, just in different format: connected by dashes
     singularity build \
@@ -56,7 +56,7 @@ You may use DataLad command ``datalad containers-add`` to add the built Singular
 Note the last argument is the *image NAME* in the container DataLad dataset.
 This string can only have characters and dashes in it.
 Remember what you assign as the *image NAME* because you will copy it for argument
-``--container_ds`` when ``babs-init``.
+``--container_ds`` when ``babs init``.
 
 (Optional) Step 3. Delete the original sif file
 --------------------------------------------------

@@ -1,5 +1,5 @@
 Cloning output RIA to 'merge_ds'...
-[INFO   ] Configure additional publication dependency on "output-storage"                                                                           
+[INFO   ] Configure additional publication dependency on "output-storage"
 configure-sibling(ok): . (sibling)
 install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds (dataset)
 action summary:
@@ -52,20 +52,20 @@ dead here (recording state in git...)
 ok
 (recording state in git...)
 
-[INFO] Determine push target 
-[INFO] Push refspecs 
-[INFO] Determine push target 
-[INFO] Push refspecs 
-[INFO] Update availability information 
-[INFO] Start enumerating objects 
-[INFO] Start counting objects 
-[INFO] Start compressing objects 
-[INFO] Start writing objects 
-[INFO] Finished push of Dataset(/gpfs/fs001/cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds) 
-[INFO] Finished push of Dataset(/gpfs/fs001/cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds) 
+[INFO] Determine push target
+[INFO] Push refspecs
+[INFO] Determine push target
+[INFO] Push refspecs
+[INFO] Update availability information
+[INFO] Start enumerating objects
+[INFO] Start counting objects
+[INFO] Start compressing objects
+[INFO] Start writing objects
+[INFO] Finished push of Dataset(/gpfs/fs001/cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds)
+[INFO] Finished push of Dataset(/gpfs/fs001/cbica/projects/BABS/babs_demo/my_BABS_project/merge_ds)
 publish(ok): . (dataset) [refs/heads/git-annex->origin:refs/heads/git-annex 8fd488d..d8a14a5]
 action summary:
   publish (notneeded: 1, ok: 1)
 
 
-`babs-merge` was successful!
+`babs merge` was successful!

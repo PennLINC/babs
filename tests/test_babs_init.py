@@ -1,4 +1,4 @@
-# This is to test `babs-init`.
+# This is to test `babs init`.
 import argparse
 import os
 import os.path as op
@@ -8,24 +8,21 @@ from unittest import mock
 import pytest
 
 sys.path.append('..')
-sys.path.append('../babs')
-from babs.utils import read_yaml  # noqa
-from babs.cli import (  # noqa
-    babs_init_main,
-    babs_check_setup_main,
-)
 from get_data import (  # noqa
-    get_input_data,
-    container_ds_path,
-    where_now,
-    if_circleci,
-    get_container_config_yaml_filename,
-    __location__,
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
-    TOYBIDSAPP_VERSION_DASH,
     TEMPLATEFLOW_HOME,
+    TOYBIDSAPP_VERSION_DASH,
+    __location__,
+    container_ds_path,
+    get_container_config_yaml_filename,
+    get_input_data,
+    if_circleci,
+    where_now,
 )
+
+from babs.cli import _enter_check_setup, _enter_init  # noqa
+from babs.utils import read_yaml  # noqa
 
 
 @pytest.mark.order(index=1)
@@ -62,7 +59,7 @@ def test_babs_init(
     if_circleci,
 ):
     """
-    This is to test `babs-init` in different cases.
+    This is to test `babs init` in different cases.
 
     Parameters:
     --------------
@@ -133,7 +130,7 @@ def test_babs_init(
     assert os.getenv('TEMPLATEFLOW_HOME') is not None  # assert env var has been set
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
-    # Get the cli of `babs-init`:
+    # Get the cli of `babs init`:
     where_project = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
     project_root = op.join(where_project, project_name)
@@ -142,7 +139,7 @@ def test_babs_init(
     babs_init_opts = argparse.Namespace(
         where_project=where_project,
         project_name=project_name,
-        input=input_ds_cli,
+        input_dataset=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
@@ -152,18 +149,18 @@ def test_babs_init(
         keep_if_failed=False,
     )
 
-    # run `babs-init`:
+    # run `babs init`:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
-        babs_init_main()
+        _enter_init()
 
     # ================== ASSERT ============================
-    # Assert by running `babs-check-setup`
+    # Assert by running `babs check-setup`
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=False)
-    # Run `babs-check-setup`:
+    # Run `babs check-setup`:
     with mock.patch.object(
         argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
     ):
-        babs_check_setup_main()
+        _enter_check_setup()
 
     # Check if necessary commands in ``<container_name>-0-0-0_zip.sh`:
     # 1) for templateflow - for all BIDS Apps:

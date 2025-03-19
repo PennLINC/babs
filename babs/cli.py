@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import os.path as op
 import traceback
 import warnings
 
@@ -23,14 +22,17 @@ from babs.utils import (
 )
 
 
-# @build_doc
-def babs_init_cli():
-    """
-    Initialize a BABS project and bootstrap scripts that will be used later.
+def _parse_init():
+    """Create and configure the argument parser for the `babs init` command.
+
+    It includes a description and formatter class, and adds arguments for the command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description='``babs-init`` initializes a BABS project and bootstraps scripts'
-        ' that will be used later.',
+        description='Initialize a BABS project and bootstrap scripts that will be used later.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -50,6 +52,7 @@ def babs_init_cli():
     parser.add_argument(
         '--input',
         action='append',  # append each `--input` as a list;
+        dest='input_dataset',
         # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
         # ref: https://docs.python.org/3/library/argparse.html
         nargs=2,  # expect 2 arguments per `--input` from the command line;
@@ -84,7 +87,7 @@ def babs_init_cli():
         " Importantly, this should include the BIDS App's name"
         ' to make sure the bootstrap scripts are set up correctly;'
         ' Also, the version number should be added, too.'
-        ' ``babs-init`` is not case sensitive to this ``--container_name``.'
+        ' ``babs init`` is not case sensitive to this ``--container_name``.'
         ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.',
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True,
@@ -128,43 +131,55 @@ def babs_init_cli():
         '--keep-if-failed',
         action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help='If ``babs-init`` fails with error, whether to keep the created BABS project.'
+        help='If ``babs init`` fails with error, whether to keep the created BABS project.'
         " By default, you don't need to turn this option on."
-        ' However, when ``babs-init`` fails and you hope to use ``babs-check-setup``'
-        ' to diagnose, please turn it on to rerun ``babs-init``,'
-        ' then run ``babs-check-setup``.'
-        " Please refer to section below 'What if ``babs-init`` fails?' for details.",
-        #      ^^ in `babs-init.rst`, pointed to below section for more
+        ' However, when ``babs init`` fails and you hope to use ``babs check-setup``'
+        ' to diagnose, please turn it on to rerun ``babs init``,'
+        ' then run ``babs check-setup``.'
+        " Please refer to section below 'What if ``babs init`` fails?' for details.",
+        #      ^^ in `babs init.rst`, pointed to below section for more
     )
 
     return parser
 
-    # args = parser.parse_args()
-    # print(args.input)
 
-    # babs_init(args.where_project, args.project_name,
-    #           args.input, args.list_sub_file,
-    #           args.container_ds,
-    #           args.container_name, args.container_config_yaml_file,
-    #           args.type_session, args.type_system)
+def _enter_init(argv=None):
+    """Entry point for `babs-init` command.
 
-
-def babs_init_main():
-    # def babs_init(where_project, project_name,
-    #               input, list_sub_file,
-    #               container_ds,
-    #               container_name, container_config_yaml_file,
-    #               type_session, type_system):
+    This function is deprecated and will be removed in a future release.
+    Please use `babs init` instead.
     """
-    This is the core function of babs-init.
+    warnings.warn(
+        'babs-init is deprecated and will be removed in the future. Please use babs init.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    options = _parse_init().parse_args(argv)
+    args = vars(options).copy()
+    babs_init_main(**args)
 
-    Parameters:
-    --------------
+
+def babs_init_main(
+    where_project: str,
+    project_name: str,
+    input_dataset: list,
+    list_sub_file: str,
+    container_ds: str,
+    container_name: str,
+    container_config_yaml_file: str,
+    type_session: str,
+    type_system: str,
+    keep_if_failed: bool,
+):
+    """This is the core function of babs init.
+
+    Parameters
+    ----------
     where_project: str
         absolute path to the directory where the project will be created
     project_name: str
         the babs project name
-    input: nested list
+    input_dataset: nested list
         for each sub-list:
             element 1: name of input datalad dataset (str)
             element 2: path to the input datalad dataset (str)
@@ -186,30 +201,15 @@ def babs_init_main():
     type_system: str
         sge or slurm
     keep_if_failed: bool
-        If `babs-init` failed with error, whether to keep the created BABS project.
+        If `babs init` failed with error, whether to keep the created BABS project.
     """
-
-    # Get arguments:
-    args = babs_init_cli().parse_args()
-
-    where_project = args.where_project
-    project_name = args.project_name
-    input = args.input
-    list_sub_file = args.list_sub_file
-    container_ds = args.container_ds
-    container_name = args.container_name
-    container_config_yaml_file = args.container_config_yaml_file
-    type_session = args.type_session
-    type_system = args.type_system
-    keep_if_failed = args.keep_if_failed
-
     # =================================================================
     # Sanity checks:
     # =================================================================
-    project_root = op.join(where_project, project_name)
+    project_root = os.path.join(where_project, project_name)
 
     # check if it exists: if so, raise error
-    if op.exists(project_root):
+    if os.path.exists(project_root):
         raise Exception(
             "The folder `--project_name` '"
             + project_name
@@ -217,11 +217,11 @@ def babs_init_main():
             + " `--where_project` '"
             + where_project
             + "'!"
-            + " `babs-init` won't proceed to overwrite this folder."
+            + " `babs init` won't proceed to overwrite this folder."
         )
 
     # check if `where_project` exists:
-    if not op.exists(where_project):
+    if not os.path.exists(where_project):
         raise Exception('Path provided in `--where_project` does not exist!')
 
     # check if `where_project` is writable:
@@ -236,17 +236,17 @@ def babs_init_main():
     type_session = validate_type_session(type_session)
 
     # input dataset:
-    input_ds = Input_ds(input)
+    input_ds = Input_ds(input_dataset)
     input_ds.get_initial_inclu_df(list_sub_file, type_session)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;
-    #           so better to just leave to the real cloning when `babs-init`;
+    #           so better to just leave to the real cloning when `babs init`;
     #       2) otherwise, if using "if `.datalad/config` exists" to check, then need to check
     #           if input dataset is local or not, and it's very tricky to check that...
     #       3) otherwise, if using "dlapi.status(dataset=the_input_ds)": will take long time
     #           for big dataset; in addition, also need to check if it's local or not...
-    # currently solution: add notes in Debugging in `babs-init` docs: `babs-init.rst`
+    # currently solution: add notes in Debugging in `babs init` docs: `babs init.rst`
 
     # Create an instance of babs class:
     babs_proj = BABS(project_root, type_session, type_system)
@@ -263,13 +263,13 @@ def babs_init_main():
 
     # Call method `babs_bootstrap()`:
     #   if success, good!
-    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs-init` creates!
+    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs init` creates!
     try:
         babs_proj.babs_bootstrap(
             input_ds, container_ds, container_name, container_config_yaml_file, system
         )
     except Exception:
-        print('\n`babs-init` failed! Below is the error message:')
+        print('\n`babs init` failed! Below is the error message:')
         traceback.print_exc()  # print out the traceback error messages
         if not keep_if_failed:
             # clean up:
@@ -277,24 +277,29 @@ def babs_init_main():
             babs_proj.clean_up(input_ds)
             print(
                 'Please check the error messages above!'
-                ' Then fix the problem, and rerun `babs-init`.'
+                ' Then fix the problem, and rerun `babs init`.'
             )
         else:
             print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
             print(
                 'Please check the error messages above!'
                 ' Then fix the problem, delete this failed BABS project,'
-                ' and rerun `babs-init`.'
+                ' and rerun `babs init`.'
             )
 
 
-def babs_check_setup_cli():
-    """
-    This is the CLI for `babs-check-setup`.
+def _parse_check_setup():
+    """Create and configure the argument parser for the `babs check-setup` command.
+
+    It includes a description and formatter class, and adds arguments for the command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
     """
 
     parser = argparse.ArgumentParser(
-        description='``babs-check-setup`` validates setups by ``babs-init``.',
+        description='Validate setups created by ``babs init``.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -318,10 +323,29 @@ def babs_check_setup_cli():
     return parser
 
 
-def babs_check_setup_main():
+def _enter_check_setup(argv=None):
+    """Entry point for `babs-check-setup` command.
+
+    This function is deprecated and will be removed in a future release.
+    Please use `babs check-setup` instead.
     """
-    This is the core function of babs-check-setup,
-    which validates the setups by `babs-init`.
+    warnings.warn(
+        'babs-check-setup is deprecated and will be removed in the future. '
+        'Please use babs check-setup.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    options = _parse_check_setup().parse_args(argv)
+    babs_check_setup_main(**vars(options))
+
+
+def babs_check_setup_main(
+    project_root: str,
+    job_test: bool,
+):
+    """
+    This is the core function of babs check-setup,
+    which validates the setups by `babs init`.
 
     project_root: str
         Absolute path to the root of BABS project.
@@ -329,22 +353,17 @@ def babs_check_setup_main():
     job_test: bool
         Whether to submit and run a test job.
     """
-
-    # Get arguments:
-    args = babs_check_setup_cli().parse_args()
-
-    project_root = args.project_root
-
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, input_ds = get_existing_babs_proj(project_root)
 
     # Call method `babs_check_setup()`:
-    babs_proj.babs_check_setup(input_ds, args.job_test)
+    babs_proj.babs_check_setup(input_ds, job_test)
 
 
-def babs_submit_cli():
-    """
-    Submit jobs.
+def _parse_submit():
+    """Create and configure the argument parser for the `babs submit` command.
+
+    It includes a description and formatter class, and adds arguments for the command.
 
     Can choose one of these flags:
     --count <number of jobs to submit>  # should be larger than # of `--job`
@@ -352,9 +371,15 @@ def babs_submit_cli():
     --job sub-id ses-id   # can repeat
 
     If none of these flags are specified, will only submit one job array task.
-    """
 
-    parser = argparse.ArgumentParser(description='Submit jobs to cluster compute nodes.')
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        description='Submit jobs to cluster compute nodes.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         '--project_root',
         '--project-root',
@@ -366,8 +391,7 @@ def babs_submit_cli():
         default=os.getcwd(),
     )
 
-    # --count, --job: can only request one of them
-    # and none of them are required.
+    # --count, --job: can only request one of them and none of them are required.
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
         '--count', type=int, help='Number of jobs to submit. It should be a positive integer.'
@@ -375,6 +399,7 @@ def babs_submit_cli():
     group.add_argument(
         '--all',
         action='store_true',
+        dest='submit_all',
         # ^^ if `--all` is specified, args.all = True; otherwise, False
         help="Request to run all jobs that haven't been submitted.",
     )
@@ -390,23 +415,35 @@ def babs_submit_cli():
 
     return parser
 
-    # args = parser.parse_args()
 
-    # babs_submit(args.project_root,
-    #             args.count,  # if not provided, will be `None`
-    #             args.job)
+def _enter_submit(argv=None):
+    """Entry point for `babs-submit` command.
 
-
-def babs_submit_main():
-    # def babs_submit(project_root, count=None, job=None):
+    This function is deprecated and will be removed in a future release.
+    Please use `babs submit` instead.
     """
-    This is the core function of `babs-submit`.
+    warnings.warn(
+        'babs-submit is deprecated and will be removed in the future. Please use babs submit.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    options = _parse_submit().parse_args(argv)
+    babs_submit_main(**vars(options))
+
+
+def babs_submit_main(
+    project_root: str,
+    count: int,
+    submit_all: bool,
+    job: list,
+):
+    """This is the core function of ``babs submit``.
 
     Parameters:
     --------------
     project_root: str
         absolute path to the directory of BABS project
-    all: bool
+    submit_all : bool
         whether to submit all remaining jobs
     count: int or None
         number of jobs to be submitted
@@ -417,15 +454,6 @@ def babs_submit_main():
     job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
     """
-
-    # Get arguments:
-    args = babs_submit_cli().parse_args()
-
-    project_root = args.project_root
-    count = args.count
-    all = args.all
-    job = args.job
-
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
@@ -434,10 +462,12 @@ def babs_submit_main():
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
-    if all:  # if True:
+    if submit_all:  # if True:
         count = -1  # so that to submit all remaining jobs
+
     if count is None:
         count = 1  # if not to specify `--count`, change to 1
+
     # sanity check:
     if count == 0:
         raise Exception(
@@ -490,7 +520,7 @@ def babs_submit_main():
 
         # sanity check:
         df_job_specified = check_df_job_specific(
-            df_job_specified, babs_proj.job_status_path_abs, babs_proj.type_session, 'babs-submit'
+            df_job_specified, babs_proj.job_status_path_abs, babs_proj.type_session, 'babs submit'
         )
     else:  # `job` is None:
         df_job_specified = None
@@ -499,12 +529,20 @@ def babs_submit_main():
     babs_proj.babs_submit(count, df_job_specified)
 
 
-def babs_status_cli():
-    """
-    Check job status.
+def _parse_status():
+    """Create and configure the argument parser for the `babs status` command.
+
+    It includes a description and formatter class, and adds arguments for the command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
     """
 
-    parser = argparse.ArgumentParser(description='Check job status in a BABS project.')
+    parser = argparse.ArgumentParser(
+        description='Check job status in a BABS project.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         '--project_root',
         '--project-root',
@@ -557,7 +595,7 @@ def babs_status_cli():
         '--container-config-yaml-file',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
-        ' ``babs-status`` will use this section for failed job auditing,'
+        ' ``babs status`` will use this section for failed job auditing,'
         ' by checking if any defined alert messages'
         " can be found in failed jobs' log files.",
     )
@@ -576,9 +614,31 @@ def babs_status_cli():
     return parser
 
 
-def babs_status_main():
+def _enter_status(argv=None):
+    """Entry point for `babs-status` command.
+
+    This function is deprecated and will be removed in a future release.
+    Please use `babs status` instead.
     """
-    This is the core function of `babs-status`.
+    warnings.warn(
+        'babs-status is deprecated and will be removed in the future. Please use babs status.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    options = _parse_status().parse_args(argv)
+    babs_status_main(**vars(options))
+
+
+def babs_status_main(
+    project_root: str,
+    resubmit: list,
+    resubmit_job: list,
+    container_config_yaml_file: str,
+    job_account: bool,
+    reckless: bool = False,
+):
+    """
+    This is the core function of `babs status`.
 
     Parameters:
     --------------
@@ -592,14 +652,17 @@ def babs_status_main():
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
         It may include 'alert_log_messages' section
-        to be used by babs-status.
+        to be used by babs status.
     job_account: bool
         Whether to account failed jobs (e.g., using `qacct` for SGE),
         which may take some time.
+    reckless: bool
+        Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running.
+        This is hardcoded as False for now.
 
     Notes:
     -----------
-    NOTE: Not to include `reckless` in `babs-status` CLI for now.
+    NOTE: Not to include `reckless` in `babs status` CLI for now.
     If `reckless` is added in the future,
         please make sure you remove command `args.reckless = False` below!
     Below are commented:
@@ -607,18 +670,6 @@ def babs_status_main():
             Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
             This is used when `--resubmit-job`
     """
-
-    # Get arguments:
-    args = babs_status_cli().parse_args()
-    args.reckless = False  # WARNING: NOTE: hard-coded, as not supporting `--reckless` right now
-
-    project_root = args.project_root
-    resubmit = args.resubmit
-    resubmit_job = args.resubmit_job
-    reckless = args.reckless
-    container_config_yaml_file = args.container_config_yaml_file
-    job_account = args.job_account
-
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
@@ -649,7 +700,7 @@ def babs_status_main():
     # If `--job-account` is requested:
     if job_account:
         if 'failed' not in flags_resubmit:
-            print('`--job-account` was requested; `babs-status` may take longer time...')
+            print('`--job-account` was requested; `babs status` may take longer time...')
         else:
             # this is meaningless to run `job-account` if resubmitting anyway:
             print(
@@ -707,7 +758,7 @@ def babs_status_main():
             df_resubmit_job_specific,
             babs_proj.job_status_path_abs,
             babs_proj.type_session,
-            'babs-status',
+            'babs status',
         )
 
         if len(df_resubmit_job_specific) > 0:
@@ -729,17 +780,25 @@ def babs_status_main():
 
     # Call method `babs_status()`:
     babs_proj.babs_status(
-        flags_resubmit, df_resubmit_job_specific, reckless, container_config_yaml_file, job_account
+        flags_resubmit,
+        df_resubmit_job_specific,
+        reckless,
+        container_config_yaml_file,
+        job_account,
     )
 
 
-def babs_merge_cli():
-    """
-    CLI for merging results.
+def _parse_merge():
+    """Create and configure the argument parser for the `babs merge` command.
+
+    It includes a description and formatter class, and adds arguments for the command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description='``babs-merge`` merges results and provenance'
-        ' from all successfully finished jobs.',
+        description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -775,7 +834,26 @@ def babs_merge_cli():
     return parser
 
 
-def babs_merge_main():
+def _enter_merge(argv=None):
+    """Entry point for `babs-merge` command.
+
+    This function is deprecated and will be removed in a future release.
+    Please use `babs merge` instead.
+    """
+    warnings.warn(
+        'babs-merge is deprecated and will be removed in the future. Please use babs merge.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    options = _parse_merge().parse_args(argv)
+    babs_merge_main(**vars(options))
+
+
+def babs_merge_main(
+    project_root,
+    chunk_size,
+    trial_run,
+):
     """
     To merge results and provenance from all successfully finished jobs.
 
@@ -789,22 +867,24 @@ def babs_merge_main():
         Whether to run as a trial run which won't push the merging actions back to output RIA.
         This option should only be used by developers for testing purpose.
     """
-    # Get arguments:
-    args = babs_merge_cli().parse_args()
-    project_root = args.project_root
-
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Call method `babs_merge()`:
-    babs_proj.babs_merge(args.chunk_size, args.trial_run)
+    babs_proj.babs_merge(chunk_size, trial_run)
 
 
-def babs_unzip_cli():
-    """CLI for babs-unzip"""
+def _parse_unzip():
+    """Create and configure the argument parser for the `babs unzip` command.
 
+    It includes a description and formatter class, and adds arguments for the command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
     parser = argparse.ArgumentParser(
-        description='``babs-unzip`` unzips results zip files and extracts desired files',
+        description='Unzip results zip files and extracts desired files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -827,7 +907,25 @@ def babs_unzip_cli():
     return parser
 
 
-def babs_unzip_main():
+def _enter_unzip(argv=None):
+    """Entry point for `babs-unzip` command.
+
+    This function is deprecated and will be removed in a future release.
+    Please use `babs unzip` instead.
+    """
+    warnings.warn(
+        'babs-unzip is deprecated and will be removed in the future. Please use babs unzip.',
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    options = _parse_unzip().parse_args(argv)
+    babs_unzip_main(**vars(options))
+
+
+def babs_unzip_main(
+    project_root: str,
+    container_config_yaml_file: str,
+):
     """
     This is the core function of babs-unzip, which unzip results zip files
     and extracts desired files.
@@ -841,12 +939,6 @@ def babs_unzip_main():
         1. 'unzip_desired_filenames' - must be included
         2. 'rename_conflict_files' - optional
     """
-
-    # Get arguments:
-    args = babs_unzip_cli().parse_args()
-    project_root = args.project_root
-    container_config_yaml_file = args.container_config_yaml_file
-
     # container config:
     config = read_yaml(container_config_yaml_file)
     # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
@@ -887,18 +979,18 @@ def get_existing_babs_proj(project_root):
     """
 
     # Sanity check: the path `project_root` exists:
-    if op.exists(project_root) is False:
+    if not os.path.exists(project_root):
         raise Exception(
             '`--project-root` does not exist! Requested `--project-root` was: ' + project_root
         )
 
     # Read configurations of BABS project from saved yaml file:
-    babs_proj_config_yaml = op.join(project_root, 'analysis/code/babs_proj_config.yaml')
-    if op.exists(babs_proj_config_yaml) is False:
+    babs_proj_config_yaml = os.path.join(project_root, 'analysis/code/babs_proj_config.yaml')
+    if not os.path.exists(babs_proj_config_yaml):
         raise Exception(
-            '`babs-init` was not successful;'
+            '`babs init` was not successful;'
             " there is no 'analysis/code/babs_proj_config.yaml' file!"
-            ' Please rerun `babs-init` to finish the setup.'
+            ' Please rerun `babs init` to finish the setup.'
         )
 
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
@@ -909,11 +1001,8 @@ def get_existing_babs_proj(project_root):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
             raise Exception(
-                "There is no section '"
-                + the_section
-                + "'"
-                + " in 'babs_proj_config.yaml' file in 'analysis/code' folder!"
-                + ' Please rerun `babs-init` to finish the setup.'
+                f"There is no section '{the_section}' in 'babs_proj_config.yaml' file "
+                "in 'analysis/code' folder! Please rerun `babs init` to finish the setup."
             )
 
     type_session = babs_proj_config['type_session']
@@ -932,7 +1021,7 @@ def get_existing_babs_proj(project_root):
         raise Exception(
             "Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
             'does not include any input dataset!'
-            ' Something was wrong during `babs-init`...'
+            ' Something was wrong during `babs init`...'
         )
 
     input_cli = []  # to be a nested list
@@ -965,7 +1054,7 @@ def get_existing_babs_proj(project_root):
 def check_df_job_specific(df, job_status_path_abs, type_session, which_function):
     """
     This is to perform sanity check on the pd.DataFrame `df`
-    which is used by `babs-submit --job` and `babs-status --resubmit-job`.
+    which is used by `babs submit --job` and `babs status --resubmit-job`.
     Sanity checks include:
     1. Remove any duplicated jobs in requests
     2. Check if requested jobs are part of the inclusion jobs to run
@@ -980,7 +1069,7 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     type_session: str
         'single-ses' or 'multi-ses'
     which_function: str
-        'babs-status' or 'babs-submit'
+        'babs status' or 'babs submit'
         The warning message will be tailored based on this.
 
     Returns:
@@ -995,7 +1084,7 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
 
     TODO:
     -------------
-    if `--job-csv` is added in `babs-submit`, update the `which_function`
+    if `--job-csv` is added in `babs submit`, update the `which_function`
     so that warnings/error messages are up-to-date (using `--job or --job-csv`)
     """
 
@@ -1003,9 +1092,9 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     df_unique = df.drop_duplicates(keep='first')  # default: keep='first'
     if df_unique.shape[0] != df.shape[0]:
         to_print = 'There are duplications in requested '
-        if which_function == 'babs-submit':
+        if which_function == 'babs submit':
             to_print += '`--job`'
-        elif which_function == 'babs-status':
+        elif which_function == 'babs status':
             to_print += '`--resubmit-job`'
         else:
             raise Exception('Invalid `which_function`: ' + which_function)
@@ -1029,9 +1118,9 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
             #           check-if-pandas-dataframe-is-subset-of-other-dataframe
             if len(df_intersection) != len(df):
                 to_print = 'Some of the subjects (and sessions) requested in '
-                if which_function == 'babs-submit':
+                if which_function == 'babs submit':
                     to_print += '`--job`'
-                elif which_function == 'babs-status':
+                elif which_function == 'babs status':
                     to_print += '`--resubmit-job`'
                 else:
                     raise Exception('Invalid `which_function`: ' + which_function)
@@ -1049,5 +1138,61 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     return df
 
 
-# if __name__ == "__main__":
-#     babs_check_setup_main()
+COMMANDS = [
+    ('init', _parse_init, babs_init_main),
+    ('check-setup', _parse_check_setup, babs_check_setup_main),
+    ('submit', _parse_submit, babs_submit_main),
+    ('status', _parse_status, babs_status_main),
+    ('merge', _parse_merge, babs_merge_main),
+    ('unzip', _parse_unzip, babs_unzip_main),
+]
+
+
+def _get_parser():
+    """Create the general `babs` parser object.
+
+    This function sets up the argument parser for the `babs` command-line interface.
+    It includes a version argument and dynamically adds subparsers for each command
+    defined in the COMMANDS list.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+        The argument parser for the "babs" CLI.
+    """
+    from babs import __version__
+
+    parser = argparse.ArgumentParser(prog='babs', allow_abbrev=False)
+    parser.add_argument('-v', '--version', action='version', version=f'babs v{__version__}')
+    subparsers = parser.add_subparsers(help='BABS commands')
+
+    for command, parser_func, run_func in COMMANDS:
+        subparser = parser_func()
+        subparser.set_defaults(func=run_func)
+        subparsers.add_parser(
+            command,
+            parents=[subparser],
+            help=subparser.description,
+            add_help=False,
+            allow_abbrev=False,
+        )
+
+    return parser
+
+
+def _main(argv=None):
+    """Entry point for `babs` CLI.
+
+    Parameters
+    ----------
+    argv : list, optional
+        List of command-line arguments. If None, defaults to `sys.argv`.
+
+    Returns
+    -------
+    None
+    """
+    options = _get_parser().parse_args(argv)
+    args = vars(options).copy()
+    args.pop('func')
+    options.func(**args)
