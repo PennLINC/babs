@@ -972,6 +972,7 @@ def generate_cmd_job_compute_space(config):
         "# The path is specified according to 'job_compute_space'"
         " in container's configuration YAML file.\n"
     )
+    cmd += 'mkdir -p ' + config['job_compute_space'] + '\n'
     cmd += 'cd ' + config['job_compute_space'] + '\n'
 
     return cmd
