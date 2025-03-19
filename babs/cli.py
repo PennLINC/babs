@@ -156,6 +156,7 @@ def _enter_init(argv=None):
         DeprecationWarning,
         stacklevel=2,
     )
+    _parse_init().print_help()
     options = _parse_init().parse_args(argv)
     args = vars(options).copy()
     babs_init_main(**args)
