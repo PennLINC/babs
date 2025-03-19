@@ -61,8 +61,8 @@ def test_babs_init(
     """
     This is to test `babs init` in different cases.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     which_bidsapp: str
         The name of a BIDS App. However here we only use `toybidsapp` to test, even though you
         specified e.g., fmriprep; we'll make sure the BIDS App to be tested is reflected in

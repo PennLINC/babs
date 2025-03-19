@@ -439,8 +439,8 @@ def babs_submit_main(
 ):
     """This is the core function of ``babs submit``.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     project_root: str
         absolute path to the directory of BABS project
     submit_all : bool
@@ -640,8 +640,8 @@ def babs_status_main(
     """
     This is the core function of `babs status`.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     project_root: str
         absolute path to the directory of BABS project
     resubmit: nested list or None
@@ -660,8 +660,8 @@ def babs_status_main(
         Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running.
         This is hardcoded as False for now.
 
-    Notes:
-    -----------
+    Notes
+    -----
     NOTE: Not to include `reckless` in `babs status` CLI for now.
     If `reckless` is added in the future,
         please make sure you remove command `args.reckless = False` below!
@@ -857,8 +857,8 @@ def babs_merge_main(
     """
     To merge results and provenance from all successfully finished jobs.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     project_root: str
         Absolute path to the root of BABS project.
     chunk_size: int
@@ -964,14 +964,14 @@ def get_existing_babs_proj(project_root):
     based on existing yaml file `babs_proj_config.yaml`.
     This should be used by `babs_submit()` and `babs_status`.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     project_root: str
         absolute path to the directory of BABS project
         TODO: accept relative path too, like datalad's `-d`
 
-    Returns:
-    --------------
+    Returns
+    -------
     babs_proj: class `BABS`
         information about a BABS project
     input_ds: class `Input_ds`
@@ -1059,8 +1059,8 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     1. Remove any duplicated jobs in requests
     2. Check if requested jobs are part of the inclusion jobs to run
 
-    Parameters:
-    ------------------
+    Parameters
+    ----------
     df: pd.DataFrame
         i.e., `df_job_specific`
         list of sub_id (and ses_id, if multi-ses) that the user requests to submit or resubmit
@@ -1072,18 +1072,18 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
         'babs status' or 'babs submit'
         The warning message will be tailored based on this.
 
-    Returns:
-    ----------------
+    Returns
+    -------
     df: pd.DataFrame
         after removing duplications, if there is
 
-    Notes:
-    --------------
+    Notes
+    -----
     The `job_status.csv` file must present before running this function!
     Please use `create_job_status_csv()` from `utils.py` to create
 
-    TODO:
-    -------------
+    TODO
+    ----
     if `--job-csv` is added in `babs submit`, update the `which_function`
     so that warnings/error messages are up-to-date (using `--job or --job-csv`)
     """

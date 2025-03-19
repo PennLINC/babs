@@ -45,15 +45,15 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
     * if it's multi-ses: subject + session should both appear
     * if it's single-ses: there should be sub folder, but no ses folder
 
-    Parameters:
-    ------------------
+    Parameters
+    ----------
     input_ds: class `Input_ds`
         info on input dataset(s)
     type_session: str
         multi-ses or single-ses
 
-    Notes:
-    -----------
+    Notes
+    -----
     Tested with multi-ses and single-ses data;
         made sure that only single-ses data + type_session = "multi-ses" raise error.
     TODO: add above tests to pytests
@@ -114,13 +114,13 @@ def if_input_ds_from_osf(path_in):
     This is to check if the input datalad dataset is from OSF.
     Checking is based on the pattern of the path's string. Might not be robust!
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     path_in: str
         path to the input dataset
 
-    Returns:
-    --------
+    Returns
+    -------
     if_osf: bool
         the input dataset is from OSF (True) or not (False)
     """
@@ -185,15 +185,15 @@ def read_yaml(fn, if_filelock=False):
     """
     This is to read yaml file.
 
-    Parameters:
-    ---------------
+    Parameters
+    ----------
     fn: str
         path to the yaml file
     if_filelock: bool
         whether to use filelock
 
-    Returns:
-    ------------
+    Returns
+    -------
     config: dict
         content of the yaml file
     """
@@ -225,8 +225,8 @@ def write_yaml(config, fn, if_filelock=False):
     """
     This is to write contents into yaml file.
 
-    Parameters:
-    ---------------
+    Parameters
+    ----------
     config: dict
         the content to write into yaml file
     fn: str
@@ -267,8 +267,8 @@ def replace_placeholder_from_config(value):
     """
     Replace the placeholder in values in container config yaml file
 
-    Parameters:
-    -------------
+    Parameters
+    ----------
     value: str (or number)
         the value (v.s. key) in the input container config yaml file. Read in by babs.
         Okay to be a number; we will change it to str.
@@ -286,15 +286,16 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     This is to generate command (in strings) of singularity run
     from config read from container config yaml file.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
     input_ds: class `Input_ds`
         input dataset(s) information
-    Returns:
-    ---------
+
+    Returns
+    -------
     cmd: str
         It's part of the singularity run command; it is generated
         based on section `singularity_run` in the yaml file.
@@ -459,14 +460,14 @@ def generate_cmd_set_envvar(env_var_name):
     and to get the env var value for later use: binding the path (env var value).
     Call this function for `TEMPLATEFLOW_HOME`.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     env_var_name: str
         The name of the environment variable to be injected into the container
         e.g., "TEMPLATEFLOW_HOME"
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         argument `--env` of `singularity run`
         e.g., `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`
@@ -514,14 +515,14 @@ def get_info_zip_foldernames(config):
     2. whether the user requests creating a sub-folder
     3. path to the output dir to be used in the `singularity run`
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns:
-    ---------
+    Returns
+    -------
     dict_zip_foldernames: dict
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
     if_mk_folder: bool
@@ -530,15 +531,14 @@ def get_info_zip_foldernames(config):
         output folder used in `singularity run` of the BIDS App.
         see examples below.
 
+    Notes
+    -----
+    In fact, we use `OUTPUT_MAIN_FOLDERNAME` to define the 'outputs' string.
+
     Examples `path_output_folder` of BIDS App:
-    -------------------------------------------------
     In `zip_foldernames` section:
     1. No placeholder:                  outputs
     2. placeholder = true & 1 folder:   outputs/<foldername>
-
-    Notes:
-    ----------
-    In fact, we use `OUTPUT_MAIN_FOLDERNAME` to define the 'outputs' string.
     """
 
     from .constants import OUTPUT_MAIN_FOLDERNAME, PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
@@ -602,16 +602,16 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
     """
     This is to generate bash command to zip BIDS App outputs.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     dict_zip_foldernames: dictionary
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
         got from `get_info_zip_foldernames()`.
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns:
-    ---------
+    Returns
+    -------
     cmd: str
         It's part of the `<containerName_zip.sh>`; it is generated
         based on section `zip_foldernames` in the yaml file.
@@ -709,15 +709,15 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
     This is to generate command in `<containerName>_zip.sh` to unzip
     a specific input dataset if needed.
 
-    Parameters:
-    -------------
+    Parameters
+    ----------
     input_ds: class `Input_ds`
         information about input dataset(s)
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns:
-    ---------
+    Returns
+    -------
     cmd: str
         It's part of the `<containerName_zip.sh>`.
         Example of Way #1:
@@ -796,23 +796,23 @@ def generate_one_bashhead_resources(system, key, value):
     This is to generate one command in the head of the bash file
     for requesting cluster resources.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     system: class `System`
         information about cluster management system
     value: str or number
         value of a key in section `cluster_resources` container's config yaml
         if it's number, will be changed to a string.
 
-    Returns:
-    -----------
+    Returns
+    -------
     cmd: str
         one command of requesting cluster resource.
         This does not include "\n" at the end.
         e.g., "#$ -S /bin/bash".
 
-    Notes:
-    ---------
+    Notes
+    -----
     For interpreting shell, regardless of system type,
     it will be '#!' + the value user provided.
     """
@@ -848,16 +848,16 @@ def generate_bashhead_resources(system, config):
     This is to generate the directives ("head of the bash file")
     for requesting cluster resources, specifying interpreting shell, etc.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     system: class `System`
         information about cluster management system
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file and the system's dict.
@@ -909,14 +909,14 @@ def generate_cmd_script_preamble(config):
     This is to generate bash cmd based on `script_preamble`
     from the `container_config_yaml_file`
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file.
@@ -947,14 +947,14 @@ def generate_cmd_job_compute_space(config):
     This is to generate bash cmd based on `job_compute_space`
     from the `container_config_yaml_file`
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file.
@@ -984,20 +984,20 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     This command should be generated after `datalad get -n <input_ds>`,
     i.e., after there is list of data in <input_ds> folder
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     input_ds: class Input_ds
         information about input dataset(s)
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns:
-    -----------
+    Returns
+    -------
     cmd: str
         the bash command used in `participant_job.sh`
 
-    Notes:
-    -----------
+    Notes
+    -----
     ref: `bootstrap-fmriprep-ingressed-fs.sh`
     """
 
@@ -1079,8 +1079,8 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     This is to generate the command of `datalad run`
     included in `participant_job.sh`.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     container: class `Container`
         Information about the container
     input_ds: class `Input_ds`
@@ -1088,13 +1088,13 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         `datalad run`, part of the `participant_job.sh`.
 
-    Notes:
-    ----------
+    Notes
+    -----
     Needs to quote any globs (`*`) in `-i` (or `-o`)!!
         Otherwise, after expansion by DataLad, some values might miss `-i` (or `-o`)!
     """
@@ -1167,8 +1167,8 @@ def get_list_sub_ses(input_ds, config, babs):
     """
     This is to get the list of subjects (and sessions) to analyze.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     input_ds: class `Input_ds`
         information about input dataset(s)
     config: config from class `Container`
@@ -1176,8 +1176,8 @@ def get_list_sub_ses(input_ds, config, babs):
     babs: class `BABS`
         information about the BABS project.
 
-    Returns:
-    -----------
+    Returns
+    -------
     single-ses project: a list of subjects
     multi-ses project: a dict of subjects and their sessions
     """
@@ -1583,8 +1583,8 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
     """
     This is to submit a job array based on template yaml file.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
     type_session: str
@@ -1596,8 +1596,8 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
     flag_print_message: bool
         to print a message (True) or not (False)
 
-    Returns:
-    ------------------
+    Returns
+    -------
     job_id: int
         the int version of ID of the submitted job.
     job_id_str: str
@@ -1609,8 +1609,8 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
         Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>';
         user needs to replace '*' with 'o', 'e', etc
 
-    Notes:
-    -----------------
+    Notes
+    -----
     see `Container.generate_job_submit_template()`
     for details about template yaml file.
     """
@@ -1681,8 +1681,9 @@ def df_submit_update(
     a lot of fields will be reset. For other cases (e.g., to update job status
     to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
-    Parameters:
-    ----------------
+
+    Parameters
+    ----------
     df_job_submit: pd.DataFrame
         dataframe of the submitted job
     job_id: int
@@ -1699,8 +1700,8 @@ def df_submit_update(
         whether the job auditing fields need to be reset to np.nan
         (fields include last_line_stdout_file, alert_message, and job_account).
 
-    Returns:
-    ------------------
+    Returns
+    -------
     df_job_submit: pd.DataFrame
         dataframe of the submitted job, updated
     """
@@ -1739,8 +1740,8 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
     to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     df_jobs: pd.DataFrame
         dataframe of jobs and their status
     df_job_submit: pd.DataFrame
@@ -1753,8 +1754,8 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
         whether the job auditing fields need to be reset to np.nan
         (fields include last_line_stdout_file, alert_message, and job_account).
 
-    Returns:
-    ------------------
+    Returns
+    -------
     df_jobs: pd.DataFrame
         dataframe of jobs and their status, updated
     """
@@ -1796,8 +1797,8 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     """
     This is to prepare the df_job_submit to be submitted.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     df_job: pd.DataFrame
         dataframe of jobs and their status
     df_job_specified: pd.DataFrame
@@ -1807,8 +1808,8 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     type_session: str
         type of session, can be "single-ses" or "multi-ses"
 
-    Returns:
-    ------------------
+    Returns
+    -------
     df_job_submit: pd.DataFrame
         list of job indices to be submitted,
         these are indices from the full job status dataframe `df_job`
@@ -1875,8 +1876,8 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     This is to submit one *test* job.
     This is used by `babs check-setup`.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
     type_system: str
@@ -1884,8 +1885,8 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     flag_print_message: bool
         to print a message (True) or not (False)
 
-    Returns:
-    -----------
+    Returns
+    -------
     job_id: int
         the int version of ID of the submitted job.
     job_id_str: str
@@ -1894,8 +1895,8 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
         log filename of this job.
         Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
 
-    Notes:
-    -----------------
+    Notes
+    -----
     see `Container.generate_test_job_submit_template()`
     for details about template yaml file.
     """
@@ -1957,8 +1958,8 @@ def create_job_status_csv(babs):
     This is to create a CSV file of `job_status`.
     This should be used by `babs submit` and `babs status`.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     babs: class `BABS`
         information about a BABS project.
     """
@@ -2007,13 +2008,13 @@ def read_job_status_csv(csv_path):
     """
     This is to read the CSV file of `job_status`.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     csv_path: str
         path to the `job_status.csv`
 
-    Returns:
-    -----------
+    Returns
+    -------
     df: pandas dataframe
         loaded dataframe
     """
@@ -2042,8 +2043,8 @@ def report_job_status(df, analysis_path, config_msg_alert):
     This is to report the job status
     based on the dataframe loaded from `job_status.csv`.
 
-    Parameters:
-    -------------
+    Parameters
+    ----------
     df: pandas dataframe
         loaded dataframe from `job_status.csv`
     analysis_path: str
@@ -2164,13 +2165,13 @@ def request_all_job_status(type_system):
     This is to get all jobs' status
     using `qstat` for SGE clusters and `squeue` for Slurm
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     type_system: str
         the type of job scheduling system, "sge" or "slurm"
 
-    Returns:
-    --------------
+    Returns
+    -------
     df: pd.DataFrame
         All jobs' status, including running and pending (waiting) jobs'.
         If there is no job in the queue, df will be an empty DataFrame
@@ -2330,21 +2331,21 @@ def calcu_runtime(start_time_str):
     """
     This is to calculate the duration time of running.
 
-    Parameters:
-    -----------------
+    Parameters
+    ----------
     start_time_str: str
         The value in column 'JAT_start_time' for a specific job.
         Can be got via `df.at['2820901', 'JAT_start_time']`
         Example on CUBIC: ''
 
-    Returns:
-    -----------------
+    Returns
+    -------
     duration_time_str: str
         Duration time of running.
         Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
 
-    Notes:
-    ---------
+    Notes
+    -----
     TODO: add type_system if needed
     Currently we don't need to add `type_system`. Whether 'duration' has been returned
     is checked before current function is called.
@@ -2374,13 +2375,13 @@ def get_last_line(fn):
     """
     This is to get the last line of a text file, e.g., `stdout` file
 
-    Parameters:
-    --------------------
+    Parameters
+    ----------
     fn: str
         path to the text file.
 
-    Returns:
-    --------------------
+    Returns
+    -------
     last_line: str or np.nan (if the log file haven't existed yet, or no valid line yet)
         last line of the text file.
     """
@@ -2404,14 +2405,14 @@ def get_config_msg_alert(container_config_yaml_file):
     """
     To extract the configs of alert msgs in log files.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     container_config_yaml_file: str or None
         path to the config yaml file of containers, which might includes
         a section of `alert_log_messages`
 
-    Returns:
-    ---------------
+    Returns
+    -------
     config_msg_alert: dict or None
     """
 
@@ -2463,8 +2464,8 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     """
     This is to get any alert message in log files of a job.
 
-    Parameters:
-    -----------------
+    Parameters
+    ----------
     config_msg_alert: dict or None
         section 'alert_log_messages' in container config yaml file
         that includes what alert messages to look for in log files.
@@ -2472,8 +2473,8 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         Absolute path to a job's log files. It should have `*` to be replaced with `o` or `e`
         Example: /path/to/analysis/logs/toy_sub-0000.*11111
 
-    Returns:
-    ----------------
+    Returns
+    -------
     alert_message: str or np.nan
         If config_msg_alert is None, or log file does not exist yet,
             `alert_message` will be `np.nan`;
@@ -2490,8 +2491,8 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
         np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
         Otherwise, True or False based on if any log files were found
 
-    Notes:
-    -----------------
+    Notes
+    -----
     An edge case (not a bug): On cubic cluster, some info will be printed to 'stderr' file
     before 'stdout' file have any printed messages. So 'alert_message' column may say
     'BABS: No alert' but 'last_line_stdout_file' is still 'NaN'
@@ -2562,8 +2563,8 @@ def get_username():
     This is to get the current username.
     This will be used for job accounting, e.g., `qacct`.
 
-    Returns:
-    -----------
+    Returns
+    -------
     username_lowercase: str
 
     NOTE: only support SGE now.
@@ -2581,8 +2582,8 @@ def check_job_account(job_id_str, job_name, username_lowercase, type_system):
     This is to get information for a finished job
     by calling job account command, e.g., `qacct` for SGE, `sacct` for Slurm
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     job_id_str: str
         string version of ID of the job
     job_name: str
@@ -2592,8 +2593,8 @@ def check_job_account(job_id_str, job_name, username_lowercase, type_system):
     type_system: str
         the type of job scheduling system, "sge" or "slurm"
 
-    Returns:
-    ------------
+    Returns
+    -------
     msg_toreturn: str
         The message got from `qacct` field `failed`, if that's not 0
         - If `qacct` was successful:
@@ -2602,8 +2603,8 @@ def check_job_account(job_id_str, job_name, username_lowercase, type_system):
         - If `qacct` was NOT successful:
             - use `msg_failed_to_call_qacct`
 
-    Notes:
-    ----------
+    Notes
+    -----
     This can only apply to jobs that are out of the queue; but not
     jobs under qw, r, etc, or does not exist (not submitted);
     Also, the current username should be the same one as that used for job submission.
@@ -2802,18 +2803,18 @@ def get_cmd_cancel_job(type_system):
     (i.e., deleting a job from the queue).
     This is dependent on cluster system.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     type_system: str
         the type of job scheduling system, "sge" or "slurm"
 
-    Returns:
-    --------------
+    Returns
+    -------
     cmd: str
         the command for canceling a job
 
-    Notes:
-    ----------------
+    Notes
+    -----
     On SGE clusters, we use `qdel <job_id>` to cancel a job;
     On Slurm clusters, we use `scancel <job_id>` to cancel a job.
     """
@@ -2836,13 +2837,13 @@ def print_versions_from_yaml(fn_yaml):
     2. print out the versions for user to visually check
     This is used by `babs check-setup`.
 
-    Parameters:
-    ----------------
+    Parameters
+    ----------
     fn_yaml: str
         path to the yaml file (usually is `code/check_setup/check_env.yaml`)
 
-    Returns:
-    ------------
+    Returns
+    -------
     flag_writable: bool
         if the workspace is writable
     flag_all_installed: bool
@@ -2878,21 +2879,22 @@ def get_git_show_ref_shasum(branch_name, the_path):
     This is to get current commit's shasum by calling `git show-ref`.
     This can be used by `babs merge`.
 
-    Parameters:
-    --------------
+    Parameters
+    ----------
     branch_name: str
         string name of the branch where you want to run `git show-ref` for
     the_path: str
         path to the git (or datalad) repository
 
-    Returns:
-    -------------
+    Returns
+    -------
     git_ref: str
         current commit's shasum of this branch in this git repo
     msg: str
         the string got by `git show-ref`, before split by space and '\n'.
-    Notes:
-    -------
+
+    Notes
+    -----
     bash version would be:
     `git show-ref ${git_default_branchname} | cut -d ' ' -f1 | head -n 1`
     Here, `cut` means split, `-f1` is to get the first split in each element in the list;
