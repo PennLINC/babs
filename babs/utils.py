@@ -2,6 +2,7 @@
 
 import copy
 import glob
+import json
 import os
 import os.path as op
 import re
@@ -16,7 +17,6 @@ import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
 from qstat import qstat  # https://github.com/relleums/qstat
-from reportseff import Reportseff
 
 
 # Disable the behavior of printing messages:
@@ -2212,12 +2212,15 @@ def _request_all_job_status_sge():
 def _request_all_job_status_slurm():
     """
     This is to get all jobs' status for Slurm
-    using the reportseff Python API.
+    by calling `reportseff`.
     """
-
     username = get_username()
-    reportseff = Reportseff(user=username)
-    jobs_data = reportseff.get_jobs()
+    reportseff_proc = subprocess.run(
+        ['reportseff', '-u', username, '--format=json'],
+        stdout=subprocess.PIPE,
+    )
+    reportseff_proc.check_returncode()
+    jobs_data = json.loads(reportseff_proc.stdout.decode('utf-8'))
 
     # Convert reportseff output to match the expected DataFrame format
     jobs_list = []
