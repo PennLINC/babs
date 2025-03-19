@@ -41,7 +41,7 @@ in short, it's a iteration between ``babs-submit`` and ``babs-status``:
 #. You may submit several exemplar jobs with ``babs-submit``, then check job status
    with ``babs-status`` to see if they finish successfully.
 #. If there are failed jobs, you can use ``babs-status`` to perform failed job auditing.
-   
+
     * See :ref:`here <check-job-status-and-failed-job-auditing>` for example commands,
       and :ref:`here <setup-section-alert-log-messages>` for how to set it up.
     * Please make sure the job failures are related to subject- or session-specific problems,
@@ -75,23 +75,23 @@ you can use two options of ``babs-status`` here:
 
 * To save time,
   you may run::
-    
+
     babs-status \
         --project-root /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/my_yaml_file.yaml
-    
+
   i.e., using **alert_log_messages** in the YAML file for failed job auditing.
   See :ref:`the section below <setup-section-alert-log-messages>`
   for how to set up this section **alert_log_messages**.
   With the YAML file provided, this may take ~1.5 min for ~2500 jobs.
 * If time allows, and there are failed jobs without alert messages,
   you may add ``--job-account``::
-    
+
     babs-status \
         --project-root /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/my_yaml_file.yaml \
         --job-account
-        
+
   This will perform job account, thus it may take longer
   (e.g., ~0.5h for ~250 failed jobs without alert messages;
   also depending on the speed of the cluster).
@@ -117,16 +117,16 @@ section **alert_log_messages** in the container's configuration YAML file.
 * Do not worry if you do not cover all alert messages on the first try;
   you can add/change this section **alert_log_messages** in the YAML file anytime you want,
   and simply call::
-    
+
     babs-status \
         --project-root /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/updated_yaml_file.yaml
-    
+
   to ask BABS to find updated list of alert messages.
 * For more details about this section, please refer to :ref:`alert_log_messages`.
 
-.. developer's note: cannot use relative path like: `here <../../../notebooks/README.md>`_
-..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path 
+.. developer's note: cannot use relative path like: `here <../../notebooks/README.md>`_
+..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path
 ..  making it a broken link. Although the rendered path looks fine when building the docs *locally*
 
 Job resubmission
