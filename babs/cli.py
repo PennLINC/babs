@@ -152,13 +152,12 @@ def _enter_init(argv=None):
     Please use `babs init` instead.
     """
     warnings.warn(
-        'babs-validate is deprecated and will be removed in the future. Please use babs validate.',
+        'babs-init is deprecated and will be removed in the future. Please use babs init.',
         DeprecationWarning,
         stacklevel=2,
     )
     options = _parse_init().parse_args(argv)
     args = vars(options).copy()
-    raise Exception(args)
     babs_init_main(**args)
 
 
