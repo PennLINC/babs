@@ -18,7 +18,7 @@ We use SGE clusters as examples here; adaptations to Slurm clusters will also be
 By following the :doc:`the installation page <installation>`,
 on the cluster, you should have successfully installed BABS and its dependent software
 (``DataLad``, ``Git``, ``git-annex``, ``datalad-container``)
-in a conda environment called ``babs``. In addition, because the toy BIDS data
+in an environment called ``babs``. In addition, because the toy BIDS data
 you'll use is on OSF, you also need to install ``datalad-osf``.
 
 Here is the list of software versions we used to prepare this walkthrough.
