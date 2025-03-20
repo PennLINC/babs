@@ -19,7 +19,6 @@ dependencies = [
     "pyyaml >= 6.0",
     "qstat >= 0.0.5",
     "regex",
-    "reportseff",
     "tqdm",
 ]
 

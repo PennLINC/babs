@@ -2,7 +2,6 @@
 
 import copy
 import glob
-import json
 import os
 import os.path as op
 import re
@@ -2210,43 +2209,36 @@ def _request_all_job_status_sge():
 
 
 def _request_all_job_status_slurm():
-    """
-    This is to get all jobs' status for Slurm
-    by calling `reportseff`.
+    """Get all jobs' status for Slurm using squeue.
+
+    Returns
+    -------
+    list
+        List of dictionaries containing job information
     """
     username = get_username()
-    reportseff_proc = subprocess.run(
-        ['reportseff', '-u', username, '--format=json'],
+    squeue_proc = subprocess.run(
+        ['squeue', '-u', username, '-o', '%i|%t|%j', '--noheader'],
         stdout=subprocess.PIPE,
+        text=True,
     )
-    reportseff_proc.check_returncode()
-    jobs_data = json.loads(reportseff_proc.stdout.decode('utf-8'))
+    squeue_proc.check_returncode()
 
-    # Convert reportseff output to match the expected DataFrame format
+    # Convert squeue output to list of jobs
     jobs_list = []
-    for job in jobs_data:
+    for line in squeue_proc.stdout.splitlines():
+        if not line.strip():
+            continue
+        job_id_raw, state, name = line.strip().split('|')
         # Split JobID into job_id and task_id if it's an array job
-        job_id = job['JobID'].split('_')[0]
-        task_id = job['JobID'].split('_')[1] if '_' in job['JobID'] else '1'
+        if '_' in job_id_raw:
+            job_id, task_id = job_id_raw.split('_')
+        else:
+            job_id, task_id = job_id_raw, '1'
 
-        job_dict = {
-            'JB_job_number': job['JobID'],  # Full job ID including task ID
-            'job_id': job_id,  # Base job ID without task ID
-            'task_id': task_id,  # Task ID for array jobs
-            '@state': 'running' if job['State'] == 'RUNNING' else 'pending',
-            'state': 'r' if job['State'] == 'RUNNING' else 'qw',
-            'job_state_category': 'running' if job['State'] == 'RUNNING' else 'pending',
-            'job_state_code': 'r' if job['State'] == 'RUNNING' else 'qw',
-            'JAT_start_time': job.get('StartTime', ''),
-            'duration': job.get('Elapsed', ''),
-            'job_account': job.get('Account', ''),  # For job accounting
-        }
-        jobs_list.append(job_dict)
+        jobs_list.append({'job_id': job_id, 'task_id': task_id, 'state': state, 'name': name})
 
-    df = pd.DataFrame(jobs_list)
-    if not df.empty:
-        df = df.set_index('JB_job_number')
-    return df
+    return jobs_list
 
 
 def calcu_runtime(start_time_str):
