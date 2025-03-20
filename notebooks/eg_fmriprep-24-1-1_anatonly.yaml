@@ -12,7 +12,7 @@
 
 # Arguments in `singularity run`:
 singularity_run:
-		$SUBJECT_SELECTION_FLAG: "--participant-label"
+	$SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
