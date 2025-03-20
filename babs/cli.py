@@ -996,7 +996,7 @@ def get_existing_babs_proj(project_root):
     # Sanity check: the path `project_root` exists:
     if not os.path.exists(project_root):
         raise Exception(
-            '`project_root` does not exist! Requested `project_root` was: ' + project_root
+            f'`project_root` does not exist! Requested `project_root` was: {project_root}'
         )
 
     # Read configurations of BABS project from saved yaml file:
