@@ -12,7 +12,7 @@
 
 # Arguments in `singularity run`:
 singularity_run:
-	$SUBJECT_SELECTION_FLAG: "--participant-label"
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
     --fs-license-file: --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
@@ -47,9 +47,9 @@ cluster_resources:
 # Necessary commands to be run first:
 #   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
-		source ${CONDA_PREFIX}/bin/activate babs # you may need to change this to work with your environment manager.
-        source xxxx    # [FIX ME or DELETE ME] source any necessary program
-        module load xxxx # [FIX ME or DELETE ME] source any necessary program
+    source ${CONDA_PREFIX}/bin/activate babs # you may need to change this to work with your environment manager.
+    source xxxx    # [FIX ME or DELETE ME] source any necessary program
+    module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
 job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
