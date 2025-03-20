@@ -28,3 +28,4 @@ dependencies:
       - pytest-timeout>=2.2.0
       - pytest-xdist
       - git+https://github.com/pennlinc/babs.git
+      - datalad-osf
