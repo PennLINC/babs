@@ -26,8 +26,28 @@ def test_workspace(tmp_path):
 
 @pytest.fixture
 def babs_instance(test_workspace):
-    """Create a BABS instance for testing"""
-    return BABS(project_root=str(test_workspace), type_session='single-ses', type_system='slurm')
+    """Create a BABS instance for testing with required attributes initialized.
+
+    Parameters
+    ----------
+    test_workspace : Path
+        Path to the temporary test workspace
+
+    Returns
+    -------
+    BABS
+        A BABS instance configured for testing with required attributes
+    """
+    babs = BABS(project_root=str(test_workspace), type_session='single-ses', type_system='slurm')
+
+    # Set required attributes for template generation
+    babs.analysis_path = str(test_workspace)
+    babs.input_ria_url = 'ria+file:///path/to/input/ria'
+    babs.analysis_dataset_id = 'test_dataset'
+    babs.output_ria_data_dir = str(test_workspace / 'output_ria')
+    babs.job_submit_path_abs = str(test_workspace / 'code' / 'job_submit.csv')
+
+    return babs
 
 
 def run_shellcheck(script_path):
@@ -196,11 +216,11 @@ def test_test_job_script_generation(babs_instance, test_config, test_workspace):
 
 
 def test_template_generation_with_different_systems(babs_instance, test_config, test_workspace):
-    """Test job submission template generation for different cluster systems.
+    """Test job submission template generation for SLURM cluster system.
 
     This test verifies that job submission templates are correctly generated
-    for both SGE and SLURM cluster systems, with appropriate system-specific
-    commands and configurations.
+    for SLURM cluster system, with appropriate system-specific commands
+    and configurations.
 
     Parameters
     ----------
@@ -214,31 +234,13 @@ def test_template_generation_with_different_systems(babs_instance, test_config, 
     Notes
     -----
     The test:
-    1. Generates templates for both SGE and SLURM systems
-    2. Verifies SGE-specific content (qsub, -N)
-    3. Verifies SLURM-specific content (sbatch, --job-name)
-    4. Ensures system-specific commands are correctly used
+    1. Generates template for SLURM system
+    2. Verifies SLURM-specific content (sbatch, --job-name)
+    3. Ensures system-specific commands are correctly used
     """
     # Create necessary directories
     code_dir = test_workspace / 'code'
     code_dir.mkdir()
-
-    # Test with SGE
-    sge_system = System('sge')
-    sge_container = Container(
-        container_ds=str(code_dir), container_name='toybidsapp', config_yaml_file=str(test_config)
-    )
-
-    sge_yaml_path = code_dir / 'submit_job_template_sge.yaml'
-    sge_container.generate_job_submit_template(
-        yaml_path=str(sge_yaml_path), babs=babs_instance, system=sge_system, test=False
-    )
-
-    # Check SGE-specific content
-    with open(sge_yaml_path) as f:
-        sge_content = f.read()
-    assert 'qsub' in sge_content
-    assert '-N' in sge_content
 
     # Test with SLURM
     slurm_system = System('slurm')

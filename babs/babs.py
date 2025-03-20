@@ -10,6 +10,7 @@ import tempfile
 import time
 import warnings
 from datetime import datetime
+from importlib.resources import files
 from urllib.parse import urlparse
 
 import datalad.api as dlapi
@@ -2806,14 +2807,11 @@ class Container:
 
         # Section 1: Command for submitting the job: ---------------------------
         # Flags when submitting the job:
-        if system.type == 'sge':
-            submit_head = 'qsub -cwd'
-            env_flags = '-v DSLOCKFILE=' + babs.analysis_path + '/.SGE_datalad_lock'
-        elif system.type == 'slurm':
+        if system.type == 'slurm':
             submit_head = 'sbatch'
             env_flags = '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
         else:
-            warnings.warn('not supporting systems other than sge...', stacklevel=2)
+            warnings.warn('not supporting systems other than slurm...', stacklevel=2)
 
         # Check if the bash file already exist:
         if op.exists(yaml_path):
@@ -2827,9 +2825,6 @@ class Container:
             pushgitremote = babs.output_ria_data_dir
 
         # Generate the command:
-        # TODO: TBD: adding below to `dict_cluster_systems.yaml` or another YAML file?
-        if system.type == 'sge':
-            name_flag_str = ' -N '
         if system.type == 'slurm':
             name_flag_str = ' --job-name '
 
@@ -2841,10 +2836,7 @@ class Container:
             job_name = self.container_name[0:3]
 
         # Now, we can define stdout and stderr file names/paths:
-        if system.type == 'sge':
-            # sge clusters only need logs folder path; filename is not needed:
-            eo_args = '-e ' + babs.analysis_path + '/logs ' + '-o ' + babs.analysis_path + '/logs'
-        elif system.type == 'slurm':
+        if system.type == 'slurm':
             # slurm clusters also need exact filenames:
             eo_args = (
                 '-e '
@@ -2861,7 +2853,8 @@ class Container:
                 array_args = '--array=1-${max_array}'
 
         # Render the template
-        env = Environment(loader=FileSystemLoader('babs/templates'), autoescape=True)
+        template_dir = files('babs.templates')
+        env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
         template = env.get_template('job_submit.yaml.jinja2')
 
         with open(yaml_path, 'w') as f:
