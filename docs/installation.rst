@@ -18,30 +18,30 @@ Currently, BABS is **not** compatible with:
 * local computers where a job scheduling system or Singularity software is not installed;
 * computing nodes without job scheduling systems.
 
-Step 1. Prepare a conda environment for BABS
-=============================================
+Step 1. Choose an environment manager for BABS
+===============================================
+For this, we strongly recommend `miniforge/mamba <https://github.com/conda-forge/miniforge>`_
+or optionally `micromamba <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`_.
+These packages work the same as ``conda``, but they are open-source and will never move to a pay-structure as
+anaconda has recently done.
 
-After installing conda, let's initialize a new environment (e.g., named ``babs``)
-where we can install BABS:: 
+Step 2. Install BABS and dependent software
+============================================
 
-    conda create -n babs python=3.9.16
-    conda activate babs
+We have a `yaml` file on our repo for easily installing BABS and its dependencies with a single command::
 
-Step 2. Install dependent software
-=====================================
+    # Get the evironment_hpc.yaml file from github:
+    wget https://raw.githubusercontent.com/PennLINC/babs/refs/heads/main/environment_hpc.yml
 
-Required dependencies
-------------------------------
-BABS is dependent on ``DataLad``, DataLad extension ``datalad-container``, ``Git``, and ``git-annex``.
-Below is an example way of installing dependent software on Linux system::
+    # Install into a new environment called babs:
+    mamba create -f evironment_hpc.yml
 
-    # Install DataLad, Git, and git-annex:
-    conda install -c conda-forge datalad git git-annex
+    # Activate the environment:
+    mamba activate babs
 
-    # Install datalad-container:
-    pip install datalad_container
-
-If commands above do not work out, please refer to `Installation reference`_ for alternative and updated ways.
+.. note::
+    If you are using ``conda`` or ``micromamba`` instead of ``mamba``, simply replace ``mamba``
+    with either ``conda`` or ``micromamba`` in the commands above.
 
 Before proceeding, make sure your ``Git`` identity has been configured.
 You can check whether this has already been done via::
@@ -57,13 +57,13 @@ If this returns nothing, you need to configure your ``Git`` identity::
 Please replace ``"John Doe"`` and ``johndoe@example.com`` with your name and your email.
 You only need to do this step once on a given system.
 
-.. developer's note: 
+.. developer's note:
 ..  ref: https://psychoinformatics-de.github.io/rdm-course/01-content-tracking-with-datalad/index.html#setting-up
 ..  ref: https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup
 
-Optional dependencies
--------------------------------
-Besides required software listed above, you also need to install ``datalad-osf`` only if:
+Optional: set-up ``datalad-osf``
+---------------------------------
+You also need to configure ``datalad-osf`` only if:
 
 * if you're an end user and your input DataLad dataset is on OSF;
 
@@ -71,21 +71,12 @@ Besides required software listed above, you also need to install ``datalad-osf``
 
 * or if you're a developer and you will be running our ``pytest``;
 
-How to install ``datalad-osf``::
-
-    # Install datalad-osf:
-    pip install datalad-osf
+How to configure ``datalad-osf``::
 
     # Provide your OSF credentials  - this step is very important!
     datalad osf-credentials --method userpassword
 
-
-Installation reference
----------------------------
-
-- ``DataLad``, ``Git``, and ``git-annex``: https://handbook.datalad.org/en/latest/intro/installation.html
-- ``datalad-container``: https://github.com/datalad/datalad-container
-- (optional) ``datalad-osf``: http://docs.datalad.org/projects/osf/en/latest/settingup.html
+For up-to-date information on configuring ``datalad-osf`` see: http://docs.datalad.org/projects/osf/en/latest/settingup.html
 
 Check if you have everything installed and up-to-date
 --------------------------------------------------------
@@ -96,65 +87,34 @@ Check if you have everything installed and up-to-date
 
 Check dependencies' versions using commands below::
 
-    # required dependencies:
+    # dependencies:
     datalad --version
     git --version
     git-annex version
     datalad containers-add --version
-
-    # optional dependencies:
     datalad osf-credentials --version
 
-
-Step 3. Install BABS
-============================
-
-Way 1: Install from PyPI (recommended way for end users)
--------------------------------------------------------------
-
-To install BABS from `PyPI <https://pypi.org/project/babs/>`_::
-
-    pip install babs
-
-If you have already installed BABS but now hope to upgrade it::
-
-    pip install --upgrade babs
-
-Way 2: Install from GitHub
------------------------------
-
-.. warning::
-
-    The version you will install from GitHub might be an unstable version.
-    Therefore installing from GitHub is not the recommended way for **end users**,
-    unless you're specifically looking for an unstable version
-    that's not available on PyPI.
-
-To install BABS from `GitHub <https://github.com/PennLINC/babs>`_::
-
-    git clone https://github.com/PennLINC/babs.git
-    cd babs
-    pip install .   # for end user
-
-    # You may remove the original source code if you are an end user:
-    cd ..
-    rm -r babs
-
-If you are a developer, and if there is any update in the source code locally,
-you may update the installation with::
-
-    # Suppose you are in root directory of babs source code:
-    pip install -e .    # for developer to update
-
-If you are a developer and you'd like to run our ``pytest`` locally, please install BABS in the following way
-so that necessary packages for our testing infrastructure will also be installed: ``pip install -e .[tests]``.
-
-Step 4. (Optional) Check BABS version
-======================================
-
-You can use command below to check the BABS version you installed::
-
+    # babs
     pip show babs
 
-.. developer's note: above command works for both installation ways:
-..  install from pypi and install from github
+It is a good idea to use the versions at or above the versions listed:
+
+.. developer's note: these were installed on 3/19/2025.
+
+..  code-block:: console
+
+    $ python --version
+    Python 3.11.11
+    $ datalad --version
+    datalad 1.1.5
+    $ git --version
+    git version 2.49.0
+    $ git-annex version
+    git-annex version: 10.20230626-g8594d49
+    $ datalad containers-add --version
+    datalad_container 1.2.5
+    $ datalad osf-credentials --version
+    datalad_osf 0.3.0
+    $ pip show babs
+    Name: babs
+    Version: 0.0.9

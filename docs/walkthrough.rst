@@ -18,30 +18,30 @@ We use SGE clusters as examples here; adaptations to Slurm clusters will also be
 By following the :doc:`the installation page <installation>`,
 on the cluster, you should have successfully installed BABS and its dependent software
 (``DataLad``, ``Git``, ``git-annex``, ``datalad-container``)
-in a conda environment called ``babs``. In addition, because the toy BIDS data
+in an environment called ``babs``. In addition, because the toy BIDS data
 you'll use is on OSF, you also need to install ``datalad-osf``.
 
 Here is the list of software versions we used to prepare this walkthrough.
 It is a good idea to use the versions at or above the versions listed:
 
-.. developer's note: these were installed on 4/19/2023.
+.. developer's note: these were installed on 3/19/2025.
 
 ..  code-block:: console
 
     $ python --version
-    Python 3.9.16
+    Python 3.11.11
     $ datalad --version
-    datalad 0.18.3
+    datalad 1.1.5
     $ git --version
-    git version 2.34.1
+    git version 2.49.0
     $ git-annex version
-    git-annex version: 10.20230215-gd24914f2a
+    git-annex version: 10.20230626-g8594d49
     $ datalad containers-add --version
-    datalad_container 1.1.9
+    datalad_container 1.2.5
     $ datalad osf-credentials --version
-    datalad_osf 0.2.3.1
+    datalad_osf 0.3.0
 
-We used ``BABS version 0.0.3`` to prepare this example walkthrough.
+We used ``BABS version 0.0.9`` to prepare this example walkthrough.
 We encourage you to use the **latest BABS version available on PyPI**.
 There might be minor differences in the printed messages or generated code,
 however you can still follow the same steps instructed here.
@@ -51,7 +51,7 @@ To check your BABS's version, you can run this command:
 
     $ pip show babs
     Name: babs
-    Version: x.x.x   # e.g., 0.0.3
+    Version: x.x.x   # e.g., 0.0.9
     ...
 
 Let's create a folder called ``babs_demo`` in root directory
@@ -59,7 +59,7 @@ as the working directory in this example walkthrough:
 
 ..  code-block:: console
 
-    $ conda activate babs
+    $ mamba activate babs
     $ mkdir -p ~/babs_demo
     $ cd babs_demo
 
@@ -375,7 +375,7 @@ There are several lines (highlighted above) that require customization based on 
 * Section ``script_preamble``:
 
     * You might need to adjust the highlighted line #18 of the ``source`` command
-      based on your cluster and conda environment name.
+      based on your cluster and environment name.
 
     * You might need to add another line to ``module load`` any necessary modules,
       such as ``singularity``.
@@ -629,10 +629,10 @@ especially the version numbers:
     workspace_writable: true
     which_python: '/cbica/projects/BABS/miniconda3/envs/babs/bin/python'
     version:
-      datalad: 'datalad 0.18.3'
-      git: 'git version 2.34.1'
-      git-annex: 'git-annex version: 10.20230215-gd24914f2a'
-      datalad_containers: 'datalad_container 1.1.9'
+      datalad: 'datalad 1.1.5'
+      git: 'git version 2.49.0'
+      git-annex: 'git-annex version: 10.20230626-g8594d49'
+      datalad_containers: 'datalad_container 1.2.5'
 
 .. dropdown:: Full printed messages from ``babs check-setup``
 
