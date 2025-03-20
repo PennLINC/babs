@@ -96,3 +96,25 @@ Check dependencies' versions using commands below::
 
     # babs
     pip show babs
+
+It is a good idea to use the versions at or above the versions listed:
+
+.. developer's note: these were installed on 3/19/2025.
+
+..  code-block:: console
+
+    $ python --version
+    Python 3.11.11
+    $ datalad --version
+    datalad 1.1.5
+    $ git --version
+    git version 2.49.0
+    $ git-annex version
+    git-annex version: 10.20230626-g8594d49
+    $ datalad containers-add --version
+    datalad_container 1.2.5
+    $ datalad osf-credentials --version
+    datalad_osf 0.3.0
+    $ pip show babs
+    Name: babs
+    Version: 0.0.9
