@@ -2643,14 +2643,13 @@ class Container:
         # binding:
         cmd_head_singularityRun += ' \\' + '\n\t' + '-B ${PWD}'
 
-        # check if `templateflow_home` needs to be bound:
-        if templateflow_home is not None:
-            # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
-            # for multiple bindings: multiple `-B` or separate path with comma (too long)
-            cmd_head_singularityRun += ' \\' + '\n\t' + '-B '
-            cmd_head_singularityRun += templateflow_home + ':'
-            cmd_head_singularityRun += templateflow_in_container
-            # ^^ bind to dir in container
+        # `templateflow_home` needs to be bound with `--containall`:
+        # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
+        # for multiple bindings: multiple `-B` or separate path with comma (too long)
+        cmd_head_singularityRun += ' \\' + '\n\t' + '-B '
+        cmd_head_singularityRun += templateflow_home + ':'
+        cmd_head_singularityRun += templateflow_in_container
+        # ^^ bind to dir in container
 
         # check if `freesurfer_home` needs to be bound:
         if flag_fs_license is True:
