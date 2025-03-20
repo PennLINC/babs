@@ -2634,13 +2634,15 @@ class Container:
         # Environment variables in container:
         # get environment variables to be injected into container and whose value to be bound:
         cmd_env_templateflow, templateflow_home, templateflow_in_container = (
-            generate_cmd_set_envvar('TEMPLATEFLOW_HOME')  # templateflow_home = None here
+            generate_cmd_set_envvar('TEMPLATEFLOW_HOME')
         )
-        templateflow_home = '${TEMPLATEFLOW_HOME}'  # had to be defined here
+        # With `--containall`, templateflow_home=None
+        # from running generate_cmd_set_envvar('TEMPLATEFLOW_HOME'), had to be defined here:
+        templateflow_home = '${TEMPLATEFLOW_HOME}'
 
         # Write the head of the command `singularity run`:
         bash_file.write('mkdir -p ${PWD}/.git/tmp/wkdir\n')
-        bash_file.write('export TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME\n')
+        bash_file.write('export TEMPLATEFLOW_HOME=${HOME}/TEMPLATEFLOW_HOME_TEMP \n')
         bash_file.write('mkdir -p ${TEMPLATEFLOW_HOME}\n')
         cmd_head_singularityRun = 'singularity run --containall --writable-tmpfs'
         # binding:
