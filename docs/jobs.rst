@@ -35,7 +35,7 @@ can be tough. We hope BABS can help this process.
 We recommend using ``babs submit`` and ``babs status`` in the following way;
 in short, it's a iteration between ``babs submit`` and ``babs status``:
 
-#. Check how many jobs need to run: run ``babs status --project_root /path/to/my_BABS_project``.
+#. Check how many jobs need to run: run ``babs status /path/to/my_BABS_project``.
    This will return a summary that includes the number of jobs that are expected to complete.
    See :ref:`list_included_subjects` for how BABS determines this list of jobs to complete.
 #. You may submit several exemplar jobs with ``babs submit``, then check job status
@@ -77,7 +77,7 @@ you can use two options of ``babs status`` here:
   you may run::
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/my_yaml_file.yaml
 
   i.e., using **alert_log_messages** in the YAML file for failed job auditing.
@@ -88,7 +88,7 @@ you can use two options of ``babs status`` here:
   you may add ``--job-account``::
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/my_yaml_file.yaml \
         --job-account
 
@@ -119,7 +119,7 @@ section **alert_log_messages** in the container's configuration YAML file.
   and simply call::
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/updated_yaml_file.yaml
 
   to ask BABS to find updated list of alert messages.
@@ -148,7 +148,7 @@ Example job status summary from ``babs status``
     :linenos:
 
     $ babs status \
-        --project_root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --container_config_yaml_file /path/to/config.yaml \
         --job-account
 

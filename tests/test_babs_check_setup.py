@@ -123,7 +123,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     # Set up expected error message from `babs check-setup`:
     if which_case == 'not_to_keep_failed':
         error_type = Exception  # what's after `raise` in the source code
-        error_msg = '`--project-root` does not exist!'
+        error_msg = '`project_root` does not exist!'
         # ^^ see `get_existing_babs_proj()` in CLI
     elif which_case == 'wrong_container_ds':
         error_type = AssertionError  # error from `assert`
