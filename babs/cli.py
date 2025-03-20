@@ -49,7 +49,6 @@ def _parse_init():
             'Absolute path to the directory where the BABS project will be located. '
             'This folder will be automatically created.'
         ),
-        required=True,
     )
     parser.add_argument(
         '--input',
