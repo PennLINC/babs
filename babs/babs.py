@@ -2774,15 +2774,18 @@ class Container:
         bash_file.write('pushgitremote="$2"\t# i.e., `output_ria`\n')
         bash_file.write('SUBJECT_CSV="$3"\n')
         bash_file.write('\n')
+        python_filter = (
+            'python -c "import sys, re; pattern = '
+            "r'{0}-[a-zA-Z0-9]+(?=,|$)'; "
+            'matches = re.findall(pattern, sys.stdin.read()); '
+            'print(matches[0] if len(matches) == 1 else raise '
+            "ValueError('Expected 1 match, check your csv row'))"
+        ).format
         bash_file.write(
             'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)\n'
         )
-        bash_file.write(
-            'subid=$(echo "$subject_row" | sed -n \'s/^.*\\(sub-[A-Za-z0-9]*\\).*$/\\1/p\')\n'
-        )
-        bash_file.write(
-            'sesid=$(echo "$subject_row" | sed -n \'s/^.*\\(ses-[A-Za-z0-9]*\\).*$/\\1/p\')\n'
-        )
+        bash_file.write(f'subid=$(echo "$subject_row" | {python_filter("sub")}\n')
+        bash_file.write(f'sesid=$(echo "$subject_row" | {python_filter("ses")}\n')
 
         # Change path to a temporary job compute workspace:
         #   the path is based on what users provide in section 'job_compute_space' in YAML file:
