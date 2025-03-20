@@ -18,7 +18,7 @@ from babs.utils import (
     get_datalad_version,
     read_job_status_csv,
     read_yaml,
-    validate_type_session,
+    validate_processing_level,
 )
 
 
@@ -222,7 +222,7 @@ def babs_init_main(
     print('DataLad version: ' + get_datalad_version())
 
     # validate `processing_level`:
-    processing_level = validate_type_session(processing_level)
+    processing_level = validate_processing_level(processing_level)
 
     # input dataset:
     input_ds = Input_ds(input_dataset)
@@ -246,7 +246,7 @@ def babs_init_main(
     # print out key information for visual check:
     print('')
     print('project_root of this BABS project: ' + babs_proj.project_root)
-    print('type of data of this BABS project: ' + babs_proj.processing_level)
+    print('processing level of this BABS project: ' + babs_proj.processing_level)
     print('job scheduling system of this BABS project: ' + babs_proj.type_system)
     print('')
 
@@ -479,7 +479,7 @@ def babs_submit_main(
                 'There should be '
                 + str(expected_len)
                 + ' arguments in `--job`,'
-                + ' as input dataset(s) is '
+                + ' as processing level is '
                 + babs_proj.processing_level
                 + '!'
             )
@@ -716,7 +716,7 @@ def babs_status_main(
                 'There should be '
                 + str(expected_len)
                 + ' arguments in `--resubmit-job`,'
-                + ' as input dataset(s) is '
+                + ' as processing level is '
                 + babs_proj.processing_level
                 + '!'
             )

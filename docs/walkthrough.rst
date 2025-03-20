@@ -457,7 +457,7 @@ For container, you will use the DataLad-tracked ``toybidsapp-container`` and the
 It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--container_name`` (line #7)
 is consistent with the image name you specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
-As this input dataset is a multi-session dataset, you should specify this as ``--processing_level session`` (line #9).
+If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session`` (line #9).
 Finally, please change the cluster system type ``--type_system`` (highlighted line #10) to yours;
 currently BABS supports ``sge`` and ``slurm``.
 

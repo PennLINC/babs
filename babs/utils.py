@@ -134,27 +134,14 @@ def if_input_ds_from_osf(path_in):
     return if_osf
 
 
-def validate_type_session(processing_level):
+def validate_processing_level(processing_level):
     """
     This is to validate variable `processing_level`'s value
     If it's one of supported string, change to the standard string
     if not, raise error message.
     """
-    if processing_level in ['subject', 'single_ses', 'single-session', 'single_session']:
-        processing_level = 'subject'
-    elif processing_level in [
-        'session',
-        'multi_ses',
-        'multiple-ses',
-        'multiple_ses',
-        'multi-session',
-        'multi_session',
-        'multiple-session',
-        'multiple_session',
-    ]:
-        processing_level = 'session'
-    else:
-        raise Exception('`processing_level = ' + processing_level + '` is not allowed!')
+    if processing_level not in ['subject', 'session']:
+        raise ValueError(f'`processing_level = {processing_level}` is not allowed!')
 
     return processing_level
 

@@ -53,7 +53,7 @@ from babs.utils import (
     request_all_job_status,
     submit_array,
     submit_one_test_job,
-    validate_type_session,
+    validate_processing_level,
     validate_type_system,
     write_yaml,
 )
@@ -125,7 +125,7 @@ class BABS:
         """
 
         # validation:
-        processing_level = validate_type_session(processing_level)
+        processing_level = validate_processing_level(processing_level)
         type_system = validate_type_system(type_system)
 
         # attributes:
@@ -2143,7 +2143,7 @@ class Input_ds:
             if 'ses_id' not in list(self.initial_inclu_df.columns):
                 raise Exception(
                     "There is no 'ses_id' column in `list_sub_file`!"
-                    ' It is expected as this is a multi-session dataset.'
+                    ' It is expected as user requested to process data on a session-wise basis.'
                 )
 
         # Sanity check: no repeated sub (or sessions):
@@ -2527,7 +2527,7 @@ class Container:
         """
         from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
 
-        processing_level = validate_type_session(processing_level)
+        processing_level = validate_processing_level(processing_level)
 
         # Check if the folder exist; if not, create it:
         bash_dir = op.dirname(bash_path)
