@@ -219,7 +219,7 @@ def babs_init_main(
         )
 
     # check if parent directory is writable:
-    if not project_root.parent.writable():
+    if not os.access(project_root.parent, os.W_OK):
         raise ValueError(
             f"The parent folder '{project_root.parent}' is not writable! "
             "`babs init` won't proceed."
