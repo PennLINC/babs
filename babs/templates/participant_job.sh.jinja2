@@ -1,19 +1,13 @@
 {{ cmd_bashhead_resources }}
 
-
-# Script preambles:
 {{ cmd_script_preamble }}
-
-# Basic info for the run:
-echo Starting directory "$PWD"
-echo python located at $(which python)
 
 # Fail whenever something is fishy, use -x to get verbose logfiles:
 set -e -u -x
 
 # Inputs of the bash script:
-dssource="$1" # i.e., `input_ria`
-pushgitremote="$2" # i.e., `output_ria`
+dssource="$1"	# i.e., `input_ria`
+pushgitremote="$2"	# i.e., `output_ria`
 SUBJECT_CSV="$3"
 
 subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)
@@ -30,13 +24,15 @@ varname_jobid='JOB_ID'
 {% elif system.type == 'slurm' %}
 varname_jobid='SLURM_ARRAY_JOB_ID'
 {% endif %}
+
 {% if type_session == 'multi-ses' %}
 BRANCH="job-${varname_jobid}-${subid}-${sesid}"
 {% else %}
 BRANCH="job-${varname_jobid}-${subid}"
 {% endif %}
-mkdir "${BRANCH}"
-cd "${BRANCH}"
+
+mkdir ${BRANCH}
+cd ${BRANCH}
 
 # datalad clone the input ria:
 echo '# Clone the data from input RIA:'
@@ -58,10 +54,10 @@ echo "# Pull down the input subject (or dataset) but don't retrieve data content
 {% for i in range(input_ds.num_ds) %}
 {% if not input_ds.df.loc[i, 'is_zipped'] %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs -r rm -rf)
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
 {% else %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type f -name 'sub*' | grep -v "$subid" | xargs -r rm -f)
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -f `ls sub-*.zip | grep -v ${subid}`)
 {% endif %}
 {% endfor %}
 
@@ -83,8 +79,8 @@ flock $DSLOCKFILE git push outputstore
 # Delete:
 echo "echo 'Delete temporary directory:'"
 echo ${BRANCH}
-{% for dataset in input_datasets %}
-datalad drop -d {{ dataset.path }} -r --reckless availability --reckless modification
+{% for i in range(input_ds.num_ds) %}
+datalad drop -d {{ input_ds.df.loc[i, 'path_now_rel'] }} -r --reckless availability --reckless modification
 {% endfor %}
 
 datalad drop -r . --reckless availability --reckless modification

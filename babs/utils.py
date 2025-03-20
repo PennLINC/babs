@@ -55,8 +55,8 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
     type_session: str
         multi-ses or single-ses
 
-    Notes:
-    -----------
+    Notes
+    -----
     Tested with multi-ses and single-ses data;
         made sure that only single-ses data + type_session = "multi-ses" raise error.
     TODO: add above tests to pytests
@@ -895,8 +895,8 @@ def generate_cmd_script_preamble(config):
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns:
-    --------
+    Returns
+    -------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file.
@@ -924,14 +924,14 @@ def generate_cmd_job_compute_space(config):
     This is to generate bash cmd based on `job_compute_space`
     from the `container_config_yaml_file`
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file.
@@ -968,13 +968,13 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns:
-    --------
+    Returns
+    -------
     cmd: str
         the bash command used in `participant_job.sh`
 
-    Notes:
-    ------
+    Notes
+    -----
     ref: `bootstrap-fmriprep-ingressed-fs.sh`
     """
 
@@ -1050,8 +1050,8 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     This is to generate the command of `datalad run`
     included in `participant_job.sh`.
 
-    Parameters:
-    ------------
+    Parameters
+    ----------
     container: class `Container`
         Information about the container
     input_ds: class `InputDatasets`
@@ -1059,8 +1059,8 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns:
-    ------------
+    Returns
+    -------
     cmd: str
         `datalad run`, part of the `participant_job.sh`.
 
