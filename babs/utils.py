@@ -2948,5 +2948,5 @@ class ToDict(Action):
             elif name == 'preprocessed':
                 raise parser.error("The 'preprocessed' derivative is reserved for internal use.")
 
-            d[name] = loc
+            d[name] = str(loc)
         setattr(namespace, self.dest, d)
