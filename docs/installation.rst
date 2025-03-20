@@ -21,7 +21,7 @@ Currently, BABS is **not** compatible with:
 Step 1. Choose an environment manager for BABS
 =============================================
 For this, we strongly recommend `miniforge/mamba <https://github.com/conda-forge/miniforge>`_
-or optionally `micromamba <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html`_.
+or optionally `micromamba <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`_.
 These packages work the same as ``conda``, but they are open-source and will never move to a pay-structure as
 anaconda has recently done.
 
