@@ -10,6 +10,7 @@ import sys
 import warnings  # built-in, no need to install
 from datetime import datetime
 from importlib.metadata import version
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -2925,3 +2926,21 @@ def ceildiv(a, b):
       ...is-there-a-ceiling-equivalent-of-operator-in-python
     """
     return -(a // -b)
+
+
+def _path_does_not_exist(path, parser):
+    """Ensure a given path does not exist."""
+    if path is None:
+        raise parser.error('The path is required.')
+    elif Path(path).exists():
+        raise parser.error(f'The path <{path}> already exists.')
+
+    return Path(path).absolute()
+
+
+def _path_exists(path, parser):
+    """Ensure a given path exists."""
+    if path is None or not Path(path).exists():
+        raise parser.error(f'The path <{path}> does not exist.')
+
+    return Path(path).absolute()

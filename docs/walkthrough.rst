@@ -435,14 +435,13 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
     $ cd ~/babs_demo
     $ babs init \
-        --where_project ${PWD} \
-        --project_name my_BABS_project \
         --input BIDS https://osf.io/w2nu3/ \
         --container_ds ${PWD}/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file ${PWD}/config_toybidsapp_demo.yaml \
         --type_session multi-ses \
-        --type_system sge
+        --type_system sge \
+        ${PWD}/my_BABS_project
 
 .. dropdown:: If there is no Internet connection on compute nodes
 
