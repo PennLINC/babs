@@ -80,7 +80,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
     container_config_yaml_filename = 'example_container_' + which_bidsapp + '.yaml'
     container_config_yaml_filename = get_container_config_yaml_filename(
-        which_bidsapp, which_input, if_two_input=False, type_system='slurm'
+        which_bidsapp, which_input, if_two_input=False, queue='slurm'
     )  # TODO: also test slurm!
     container_config_yaml_file = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
@@ -97,7 +97,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         type_session=type_session,
-        type_system='slurm',
+        queue='slurm',
         keep_if_failed=True,
     )
 

@@ -53,8 +53,8 @@ from babs.utils import (
     request_all_job_status,
     submit_array,
     submit_one_test_job,
+    validate_queue,
     validate_type_session,
-    validate_type_system,
     write_yaml,
 )
 
@@ -63,7 +63,7 @@ from babs.utils import (
 class BABS:
     """The BABS class is for babs projects of BIDS Apps"""
 
-    def __init__(self, project_root, type_session, type_system):
+    def __init__(self, project_root, type_session, queue):
         """The BABS class is for babs projects of BIDS Apps.
 
         Parameters
@@ -72,7 +72,7 @@ class BABS:
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
-        type_system: str
+        queue: str
             the type of job scheduling system, "sge" or "slurm"
 
         Attributes
@@ -81,7 +81,7 @@ class BABS:
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
-        type_system: str
+        queue: str
             the type of job scheduling system, "sge" or "slurm"
         config_path: str
             path to the config yaml file
@@ -126,12 +126,12 @@ class BABS:
 
         # validation:
         type_session = validate_type_session(type_session)
-        type_system = validate_type_system(type_system)
+        queue = validate_queue(queue)
 
         # attributes:
         self.project_root = project_root
         self.type_session = type_session
-        self.type_system = type_system
+        self.queue = queue
 
         self.analysis_path = op.join(project_root, 'analysis')
         self.analysis_datalad_handle = None
@@ -334,7 +334,7 @@ class BABS:
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
         babs_proj_config_file = open(self.config_path, 'w')
         babs_proj_config_file.write("type_session: '" + self.type_session + "'\n")
-        babs_proj_config_file.write("type_system: '" + self.type_system + "'\n")
+        babs_proj_config_file.write("queue: '" + self.queue + "'\n")
         # input_ds:
         babs_proj_config_file.write('input_ds:\n')  # input dataset's name(s)
         for i_ds in range(0, input_ds.num_ds):
@@ -988,7 +988,7 @@ class BABS:
                 ' will be able to finish successfully.'
             )
 
-            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.type_system)
+            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.queue)
             log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
             o_fn = log_fn.replace('.*', '.o') + '_1'  # add task_id of test job "_1"
             # write this information in a YAML file:
@@ -1013,7 +1013,7 @@ class BABS:
             while not flag_done:
                 time.sleep(sleeptime)
                 # check the job status
-                df_all_job_status = request_all_job_status(self.type_system)
+                df_all_job_status = request_all_job_status(self.queue)
                 d_now_str = str(datetime.now())
                 to_print = d_now_str + ': '
                 if job_id_str + '_1' in df_all_job_status.index.to_list():  # Add task_id
@@ -1138,7 +1138,7 @@ class BABS:
                     job_id, _, task_id_list, log_filename_list = submit_array(
                         self.analysis_path,
                         self.type_session,
-                        self.type_system,
+                        self.queue,
                         maxarray,
                     )
                     # Update `analysis/code/job_submit.csv` with new status
@@ -1261,7 +1261,7 @@ class BABS:
                 df_job_updated = df_job.copy()
 
                 # Get all jobs' status:
-                df_all_job_status = request_all_job_status(self.type_system)
+                df_all_job_status = request_all_job_status(self.queue)
 
                 # For jobs that have been submitted but not successful yet:
                 # Update job status, and resubmit if requested:
@@ -1379,7 +1379,7 @@ class BABS:
 
                                 #     # kill original one
                                 #     proc_kill = subprocess.run(
-                                #         [get_cmd_cancel_job(self.type_system),
+                                #         [get_cmd_cancel_job(self.queue),
                                 #          job_id_str],  # e.g., `qdel <job_id>`
                                 #         stdout=subprocess.PIPE
                                 #     )
@@ -1388,7 +1388,7 @@ class BABS:
                                 #     job_id_updated, _, log_filename = \
                                 #         submit_one_job(self.analysis_path,
                                 #                        self.type_session,
-                                #                        self.type_system,
+                                #                        self.queue,
                                 #                        sub, ses)
                                 #     # update fields:
                                 #     df_job_updated = df_update_one_job(
@@ -1438,7 +1438,7 @@ class BABS:
                                     # kill original one
                                     proc_kill = subprocess.run(
                                         [
-                                            get_cmd_cancel_job(self.type_system),
+                                            get_cmd_cancel_job(self.queue),
                                             job_id_str,
                                         ],  # e.g., `qdel <job_id>`
                                         stdout=subprocess.PIPE,
@@ -1484,7 +1484,7 @@ class BABS:
 
                             #     #     # kill original one
                             #     #     proc_kill = subprocess.run(
-                            #     #         [get_cmd_cancel_job(self.type_system),
+                            #     #         [get_cmd_cancel_job(self.queue),
                             #     #          job_id_str],   # e.g., `qdel <job_id>`
                             #     #         stdout=subprocess.PIPE
                             #     #     )
@@ -1493,7 +1493,7 @@ class BABS:
                             #     #     job_id_updated, _, log_filename = \
                             #     #         submit_one_job(self.analysis_path,
                             #     #                        self.type_session,
-                            #     #                        self.type_system,
+                            #     #                        self.queue,
                             #     #                        sub, ses)
                             #     #     # update fields:
                             #     #     df_job_updated = df_update_one_job(
@@ -1559,7 +1559,7 @@ class BABS:
                                         job_id_str,
                                         job_name,
                                         username_lowercase,
-                                        self.type_system,
+                                        self.queue,
                                     )
                                     raise Exception('This should be impossible to reach')
                                     # df_job_updated.at[i_job, 'job_account'] = msg_job_account
@@ -1573,7 +1573,7 @@ class BABS:
                     job_id, _, task_id_list, log_filename_list = submit_array(
                         self.analysis_path,
                         self.type_session,
-                        self.type_system,
+                        self.queue,
                         maxarray,
                     )
                     # Update `analysis/code/job_submit.csv` with new status
@@ -1665,7 +1665,7 @@ class BABS:
 
                     #     # kill original one
                     #     proc_kill = subprocess.run(
-                    #         [get_cmd_cancel_job(self.type_system),
+                    #         [get_cmd_cancel_job(self.queue),
                     #          job_id_str],   # e.g., `qdel <job_id>`
                     #         stdout=subprocess.PIPE
                     #     )
@@ -1674,7 +1674,7 @@ class BABS:
                     #     job_id_updated, _, log_filename = \
                     #         submit_one_job(self.analysis_path,
                     #                        self.type_session,
-                    #                        self.type_system,
+                    #                        self.queue,
                     #                        sub, ses)
                     #     # update fields:
                     #     df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
@@ -2377,7 +2377,7 @@ class System:
             for how to run this type of cluster.
         """
         # validate and assign to attribute `type`:
-        self.type = validate_type_system(system_type)
+        self.type = validate_queue(system_type)
 
         # get attribute `dict` - the guidance dict for how to run this type of cluster:
         self.get_dict()

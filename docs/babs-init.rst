@@ -143,7 +143,7 @@ an SGE cluster:
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file /path/to/container_toybidsapp.yaml \
         --type_session multi-ses \
-        --type_system sge
+        --queue sge
 
 Example command if you have more than one input datasets, e.g., raw BIDS data, and fMRIPrep
 with FreeSurfer results ingressed. The 2nd dataset is also result from another BABS project -

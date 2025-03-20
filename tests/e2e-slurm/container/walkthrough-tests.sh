@@ -36,7 +36,7 @@ babs init \
     --container_name toybidsapp-0-0-7 \
     --container_config_yaml_file "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
     --type_session multi-ses \
-    --type_system slurm
+    --queue slurm
 
 echo "PASSED: babs init"
 echo "Check setup, without job"
