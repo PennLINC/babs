@@ -39,7 +39,7 @@ INFO_2ND_INPUT_DATA = {
 
 # env variables
 # TEMPLATEFLOW_HOME = '/test/templateflow_home'
-TEMPLATEFLOW_HOME = os.getenv('HOME') + 'TEMPLATEFLOW_HOME_TEMP'
+TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'
 # ====================================================================
 
 
