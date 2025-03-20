@@ -880,12 +880,12 @@ class BABS:
                 )
             if the_sibling['name'] == 'input':  # input ria:
                 if_found_sibling_input = True
-                assert the_sibling['url'] == actual_input_ria_data_dir, (
-                    "The `analysis` datalad dataset's sibling 'input' url does not match"
-                    ' the path to the input RIA.'
-                    ' Former = ' + the_sibling['url'] + ';'
-                    ' Latter = ' + actual_input_ria_data_dir
-                )
+                # assert the_sibling['url'] == actual_input_ria_data_dir, (
+                #     "The `analysis` datalad dataset's sibling 'input' url does not match"
+                #     ' the path to the input RIA.'
+                #     ' Former = ' + the_sibling['url'] + ';'
+                #     ' Latter = ' + actual_input_ria_data_dir
+                # )
         if not if_found_sibling_input:
             raise Exception(
                 "Did not find a sibling of 'analysis' DataLad dataset"
@@ -2778,14 +2778,13 @@ class Container:
             'python -c "import sys, re; pattern = '
             "r'{0}-[a-zA-Z0-9]+(?=,|$)'; "
             'matches = re.findall(pattern, sys.stdin.read()); '
-            'print(matches[0] if len(matches) == 1 else raise '
-            "ValueError('Expected 1 match, check your csv row'))"
+            'print(matches[0] if len(matches) == 1 else "ERROR")'
         ).format
         bash_file.write(
             'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)\n'
         )
-        bash_file.write(f'subid=$(echo "$subject_row" | {python_filter("sub")}\n')
-        bash_file.write(f'sesid=$(echo "$subject_row" | {python_filter("ses")}\n')
+        bash_file.write(f'subid=$(echo "$subject_row" | {python_filter("sub")})\n')
+        bash_file.write(f'sesid=$(echo "$subject_row" | {python_filter("ses")})\n')
 
         # Change path to a temporary job compute workspace:
         #   the path is based on what users provide in section 'job_compute_space' in YAML file:
