@@ -55,11 +55,11 @@ All pytest are defined in ``tests/test_*.py``. To run tests defined in a specifi
 
 To run tests for a specific case (defined in ``@pytest.mark.parametrize()``)::
 
-    pytest -sv tests/<test_*.py>::<test_function_name>[toybidsapp-BIDS-single-ses-False-False]
+    pytest -sv tests/<test_*.py>::<test_function_name>[toybidsapp-BIDS-subject-False-False]
     # please replace `<*>` with actual file or function names;
     # `[*]` is the combination of the parameters; above is just an example.
 
-    # e.g.: pytest -sv tests/test_babs_init.py::test_babs_init[toybidsapp-BIDS-single-ses-False-False]
+    # e.g.: pytest -sv tests/test_babs_init.py::test_babs_init[toybidsapp-BIDS-subject-False-False]
 
 All command-line flags of ``pytest`` can be found `here <https://docs.pytest.org/en/stable/reference/reference.html#command-line-flags>`_
 

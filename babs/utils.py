@@ -36,31 +36,31 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
-def check_validity_unzipped_input_dataset(input_ds, type_session):
+def check_validity_unzipped_input_dataset(input_ds, processing_level):
     """
     Check if each of the unzipped input datasets is valid.
     Here we only check the "unzipped" datasets;
     the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
 
-    * if it's multi-ses: subject + session should both appear
-    * if it's single-ses: there should be sub folder, but no ses folder
+    * if it's session: subject + session should both appear
+    * if it's subject: there should be sub folder, but no ses folder
 
     Parameters
     ----------
     input_ds: class `Input_ds`
         info on input dataset(s)
-    type_session: str
-        multi-ses or single-ses
+    processing_level: str
+        session or subject
 
     Notes
     -----
-    Tested with multi-ses and single-ses data;
-        made sure that only single-ses data + type_session = "multi-ses" raise error.
+    Tested with session and subject data;
+        made sure that only subject data + processing_level = "session" raise error.
     TODO: add above tests to pytests
     """
 
-    if type_session not in ['multi-ses', 'single-ses']:
-        raise Exception('invalid `type_session`!')
+    if processing_level not in ['session', 'subject']:
+        raise Exception('invalid `processing_level`!')
 
     if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
@@ -83,8 +83,8 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
                     + "'!"
                 )
 
-            # For multi-ses: also check if there is session in each sub-*:
-            if type_session == 'multi-ses':
+            # For session: also check if there is session in each sub-*:
+            if processing_level == 'session':
                 for sub_temp in list_subs:  # every sub- folder should contain a session folder
                     if sub_temp[0] == '.':  # hidden folder
                         continue  # skip it
@@ -134,16 +134,16 @@ def if_input_ds_from_osf(path_in):
     return if_osf
 
 
-def validate_type_session(type_session):
+def validate_type_session(processing_level):
     """
-    This is to validate variable `type_session`'s value
+    This is to validate variable `processing_level`'s value
     If it's one of supported string, change to the standard string
     if not, raise error message.
     """
-    if type_session in ['single-ses', 'single_ses', 'single-session', 'single_session']:
-        type_session = 'single-ses'
-    elif type_session in [
-        'multi-ses',
+    if processing_level in ['subject', 'single_ses', 'single-session', 'single_session']:
+        processing_level = 'subject'
+    elif processing_level in [
+        'session',
         'multi_ses',
         'multiple-ses',
         'multiple_ses',
@@ -152,11 +152,11 @@ def validate_type_session(type_session):
         'multiple-session',
         'multiple_session',
     ]:
-        type_session = 'multi-ses'
+        processing_level = 'session'
     else:
-        raise Exception('`type_session = ' + type_session + '` is not allowed!')
+        raise Exception('`processing_level = ' + processing_level + '` is not allowed!')
 
-    return type_session
+    return processing_level
 
 
 def validate_type_system(type_system):
@@ -598,7 +598,7 @@ def get_info_zip_foldernames(config):
     return dict_zip_foldernames, if_mk_folder, path_output_folder
 
 
-def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
+def generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level):
     """
     This is to generate bash command to zip BIDS App outputs.
 
@@ -607,8 +607,8 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
     dict_zip_foldernames: dictionary
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
         got from `get_info_zip_foldernames()`.
-    type_session: str
-        "multi-ses" or "single-ses"
+    processing_level: str
+        "session" or "subject"
 
     Returns
     -------
@@ -623,7 +623,7 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
     cmd = 'cd ' + OUTPUT_MAIN_FOLDERNAME + '\n'
 
     # 7z:
-    if type_session == 'multi-ses':
+    if processing_level == 'session':
         str_sesid = '_${sesid}'
     else:
         str_sesid = ''
@@ -646,7 +646,7 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
         value_temp = value
 
         cmd += '7z a ../${subid}' + str_sesid + '_' + key + '-' + value + '.zip' + ' ' + key + '\n'
-        # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is multi-ses
+        # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is session
 
     # return to original dir:
     cmd += 'cd ..\n'
@@ -704,7 +704,7 @@ echo "}" >> ${filterfile}
     return cmd
 
 
-def generate_cmd_unzip_inputds(input_ds, type_session):
+def generate_cmd_unzip_inputds(input_ds, processing_level):
     """
     This is to generate command in `<containerName>_zip.sh` to unzip
     a specific input dataset if needed.
@@ -713,8 +713,8 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
     ----------
     input_ds: class `Input_ds`
         information about input dataset(s)
-    type_session: str
-        "multi-ses" or "single-ses"
+    processing_level: str
+        "session" or "subject"
 
     Returns
     -------
@@ -754,7 +754,7 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
             # Way #2: get the tag in the zipfilename ---------------------------------------------
             #   but need to assume it's consistent across all zipfilename...
             # # get the zip filename:
-            # if type_session == "multi-ses":
+            # if processing_level == "session":
             #     list_zipfiles = \
             #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
             #                           "sub-*_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
@@ -762,7 +762,7 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
             #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds]
             #                         + "'," + " the zip file(s) does not follow the pattern of "
             #                         + "'sub-*_ses-*_'" + input_ds.df["name"][i_ds] + "*.zip")
-            # elif type_session == "single-ses":
+            # elif processing_level == "subject":
             #     list_zipfiles = \
             #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
             #                           "sub-*_" + input_ds.df["name"][i_ds] + "*.zip"))
@@ -771,7 +771,7 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
             #                          + "'," + " the zip file(s) does not follow the pattern of "
             #                         + "'sub-*_'" + input_ds.df["name"][i_ds] + "*.zip")
             # else:
-            #     raise Exception("invalid `type_session`: " + type_session)
+            #     raise Exception("invalid `processing_level`: " + processing_level)
 
             # # assume all the zip filenames are regular, so only check out the first one:
 
@@ -780,10 +780,10 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
             #                           temp_filename)
             # temp_pattern = temp_regex.group(0)   # e.g., "fmriprep-0.0.0.zip"
             # # ^^ .group(1) will be "-0.0.0"
-            # if type_session == "multi-ses":
+            # if processing_level == "session":
             #     cmd += "\n7z x ${subid}_${sesid}_" + \
             #         temp_pattern
-            # elif type_session == "single-ses":
+            # elif processing_level == "subject":
             #     cmd += "\n7z x ${subid}_" + temp_pattern
 
             cmd += '\ncd $wd\n'
@@ -978,7 +978,7 @@ def generate_cmd_job_compute_space(config):
     return cmd
 
 
-def generate_cmd_determine_zipfilename(input_ds, type_session):
+def generate_cmd_determine_zipfilename(input_ds, processing_level):
     """
     This is to generate bash cmd that determines the path to the zipfile of a specific
     subject (or session). This command will be used in `participant_job.sh`.
@@ -989,8 +989,8 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     ----------
     input_ds: class Input_ds
         information about input dataset(s)
-    type_session: str
-        "multi-ses" or "single-ses"
+    processing_level: str
+        "session" or "subject"
 
     Returns
     -------
@@ -1019,7 +1019,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
                 + '/${subid}_'
             )
 
-            if type_session == 'multi-ses':
+            if processing_level == 'session':
                 cmd += '${sesid}_'
 
             cmd += '*' + input_ds.df['name'][i_ds] + '*.zip' + " | cut -d '@' -f 1 || true)" + '\n'
@@ -1037,7 +1037,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
             cmd += (
                 "\techo 'No input zipfile of " + input_ds.df['name'][i_ds] + ' found for ${subid}'
             )
-            if type_session == 'multi-ses':
+            if processing_level == 'session':
                 cmd += ' ${sesid}'
             cmd += "'" + '\n'
             cmd += '\t' + 'exit 99' + '\n'
@@ -1053,7 +1053,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
                 + input_ds.df['name'][i_ds]
                 + ' found for ${subid}'
             )
-            if type_session == 'multi-ses':
+            if processing_level == 'session':
                 cmd += ' ${sesid}'
             cmd += "'" + '\n'
             cmd += '\t' + 'exit 98' + '\n'
@@ -1075,7 +1075,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     return cmd
 
 
-def generate_cmd_datalad_run(container, input_ds, type_session):
+def generate_cmd_datalad_run(container, input_ds, processing_level):
     """
     This is to generate the command of `datalad run`
     included in `participant_job.sh`.
@@ -1086,8 +1086,8 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         Information about the container
     input_ds: class `Input_ds`
         Information about input dataset(s)
-    type_session: str
-        "multi-ses" or "single-ses"
+    processing_level: str
+        "session" or "subject"
 
     Returns
     -------
@@ -1112,9 +1112,9 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     for i_ds in range(0, input_ds.num_ds):
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped
             # input: a subject or session folder
-            if type_session == 'multi-ses':
+            if processing_level == 'session':
                 cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/${subid}/${sesid} \\\n'
-            elif type_session == 'single-ses':
+            elif processing_level == 'subject':
                 cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/${subid} \\\n'
 
             # input: also the json file:
@@ -1140,7 +1140,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
 
     # output: each zipped file
     fixed_cmd = '\t-o ${subid}_'
-    if type_session == 'multi-ses':
+    if processing_level == 'session':
         fixed_cmd += '${sesid}_'
 
     for key, value in container.config['zip_foldernames'].items():
@@ -1148,13 +1148,13 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
 
     # message:
     cmd += '\t-m "' + container.container_name + ' ${subid}'
-    if type_session == 'multi-ses':
+    if processing_level == 'session':
         cmd += ' ${sesid}'
     cmd += '"' + ' \\\n'
 
     # the real command:
     cmd += '\t"' + 'bash ./code/' + container.container_name + '_zip.sh' + ' ${subid}'
-    if type_session == 'multi-ses':
+    if processing_level == 'session':
         cmd += ' ${sesid}'
     for i_ds in range(0, input_ds.num_ds):
         if input_ds.df['is_zipped'][i_ds] is True:  # is zipped:
@@ -1179,8 +1179,8 @@ def get_list_sub_ses(input_ds, config, babs):
 
     Returns
     -------
-    single-ses project: a list of subjects
-    multi-ses project: a dict of subjects and their sessions
+    subject project: a list of subjects
+    session project: a dict of subjects and their sessions
     """
 
     # Get the initial list of subjects (and sessions): -------------------------------
@@ -1193,10 +1193,10 @@ def get_list_sub_ses(input_ds, config, babs):
             'Using the subjects (sessions) list provided in `list_sub_file`'
             ' as the initial inclusion list.'
         )
-        if babs.type_session == 'single-ses':
+        if babs.processing_level == 'subject':
             subs = list(input_ds.initial_inclu_df['sub_id'])
             # ^^ turn into a list
-        elif babs.type_session == 'multi-ses':
+        elif babs.processing_level == 'session':
             dict_sub_ses = (
                 input_ds.initial_inclu_df.groupby('sub_id')['ses_id'].apply(list).to_dict()
             )
@@ -1221,14 +1221,14 @@ def get_list_sub_ses(input_ds, config, babs):
             subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
         else:  # zipped:
             # full paths to the zip files:
-            if babs.type_session == 'single-ses':
+            if babs.processing_level == 'subject':
                 full_paths = glob.glob(
                     input_ds.df['path_now_abs'][i_ds]
                     + '/sub-*_'
                     + input_ds.df['name'][i_ds]
                     + '*.zip'
                 )
-            elif babs.type_session == 'multi-ses':
+            elif babs.processing_level == 'session':
                 full_paths = glob.glob(
                     input_ds.df['path_now_abs'][i_ds]
                     + '/sub-*_ses-*'
@@ -1243,8 +1243,8 @@ def get_list_sub_ses(input_ds, config, babs):
             # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
             subs = sorted(set(subs))  # `list(set())`: acts like "unique"
 
-        # if it's multi-ses, get list of sessions for each subject:
-        if babs.type_session == 'multi-ses':
+        # if it's session, get list of sessions for each subject:
+        if babs.processing_level == 'session':
             # a nested list of sub and ses:
             #   first level is sub; second level is sess of a sub
             list_sub_ses = [None] * len(subs)  # predefine a list
@@ -1285,12 +1285,12 @@ def get_list_sub_ses(input_ds, config, babs):
     #   ------------------------------------------------------------------------
     # remove existing csv files first:
     temp_files = glob.glob(op.join(babs.analysis_path, 'code/sub_*missing_required_file.csv'))
-    # ^^ single-ses: `sub_missing*`; multi-ses: `sub_ses_missing*`
+    # ^^ subject: `sub_missing*`; session: `sub_ses_missing*`
     if len(temp_files) > 0:
         for temp_file in temp_files:
             os.remove(temp_file)
     temp_files = []  # clear
-    # for multi-ses:
+    # for session:
     fn_csv_sub_delete = op.join(babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv')
     if op.exists(fn_csv_sub_delete):
         os.remove(fn_csv_sub_delete)
@@ -1325,7 +1325,7 @@ def get_list_sub_ses(input_ds, config, babs):
 
         # for the designated ds, iterate all subjects (or sessions),
         #   remove if does not have the required files, and save to a list -> a csv
-        if babs.type_session == 'single-ses':
+        if babs.processing_level == 'subject':
             subs_missing = []
             which_dataset_missing = []
             which_file_missing = []
@@ -1383,7 +1383,7 @@ def get_list_sub_ses(input_ds, config, babs):
 
             # TODO: when having two unzipped input datasets, test if above works as expected!
             #   esp: removing missing subs (esp missing lists in two input ds are different)
-            #   for both 1) single-ses; 2) multi-ses data!
+            #   for both 1) subject; 2) session data!
 
             # save `subs_missing` into a csv file:
             if len(subs_missing) > 0:  # there is missing one
@@ -1414,7 +1414,7 @@ def get_list_sub_ses(input_ds, config, babs):
             else:
                 print('All subjects have required files.')
 
-        elif babs.type_session == 'multi-ses':
+        elif babs.processing_level == 'session':
             subs_missing = []  # elements can repeat if more than one ses in a sub has missing file
             sess_missing = []
             which_dataset_missing = []
@@ -1545,7 +1545,7 @@ def get_list_sub_ses(input_ds, config, babs):
         )
 
     # Save the final list of sub/ses in a CSV file:
-    if babs.type_session == 'single-ses':
+    if babs.processing_level == 'subject':
         fn_csv_final = op.join(
             babs.analysis_path, babs.list_sub_path_rel
         )  # "code/sub_final_inclu.csv"
@@ -1554,7 +1554,7 @@ def get_list_sub_ses(input_ds, config, babs):
         print(
             'The final list of included subjects has been saved to this CSV file: ' + fn_csv_final
         )
-    elif babs.type_session == 'multi-ses':
+    elif babs.processing_level == 'session':
         fn_csv_final = op.join(
             babs.analysis_path, babs.list_sub_path_rel
         )  # "code/sub_ses_final_inclu.csv"
@@ -1574,13 +1574,13 @@ def get_list_sub_ses(input_ds, config, babs):
         )
 
     # Return: -------------------------------------------------------
-    if babs.type_session == 'single-ses':
+    if babs.processing_level == 'subject':
         return subs
-    elif babs.type_session == 'multi-ses':
+    elif babs.processing_level == 'session':
         return dict_sub_ses
 
 
-def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_message=True):
+def submit_array(analysis_path, processing_level, type_system, maxarray, flag_print_message=True):
     """
     This is to submit a job array based on template yaml file.
 
@@ -1588,8 +1588,8 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
     ----------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
-    type_session: str
-        multi-ses or single-ses
+    processing_level: str
+        session or subject
     type_system: str
         the type of job scheduling system, "sge" or "slurm"
     maxarray: str
@@ -1631,9 +1631,9 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
     job_name = job_name_template.replace('${max_array}', str(int(maxarray) - 1))
 
     # COMMENT OUT BECAUSE sub and ses AREN'T NEEDED FOR JOB SUBMISSION
-    # if type_session == "single-ses":
+    # if processing_level == "subject":
     #     sub_list_path = op.join(analysis_path, "code", "sub_final_inclu.csv")
-    # elif type_session == "multi-ses":
+    # elif processing_level == "session":
     #     sub_list_path = op.join(analysis_path, "code", "sub_ses_final_inclu.csv")
     # print(cmd)
 
@@ -1794,7 +1794,7 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
     return df_jobs
 
 
-def prepare_job_array_df(df_job, df_job_specified, count, type_session):
+def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
     """
     This is to prepare the df_job_submit to be submitted.
 
@@ -1806,8 +1806,8 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
         dataframe of jobs to be submitted (specified by user)
     count: int
         number of jobs to be submitted
-    type_session: str
-        type of session, can be "single-ses" or "multi-ses"
+    processing_level: str
+        type of session, can be "subject" or "session"
 
     Returns
     -------
@@ -1829,11 +1829,11 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
         job_ind_list = []
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
-            if type_session == 'single-ses':
+            if processing_level == 'subject':
                 sub = df_job_specified.at[j_job, 'sub_id']
                 ses = None
                 temp = df_job['sub_id'] == sub
-            elif type_session == 'multi-ses':
+            elif processing_level == 'session':
                 sub = df_job_specified.at[j_job, 'sub_id']
                 ses = df_job_specified.at[j_job, 'ses_id']
                 temp = (df_job['sub_id'] == sub) & (df_job['ses_id'] == ses)
@@ -1844,7 +1844,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
             # #   ^^ can be removed as done in `core_functions.py`
             # assert_msg = "There are duplications in `job_status.csv`" \
             #     + " for " + sub
-            # if self.type_session == "multi-ses":
+            # if self.processing_level == "session":
             #     assert_msg += ", " + ses
             # assert len(i_job) == 1, assert_msg + "!"
             i_job = i_job[0]  # take the element out of the list
@@ -1854,7 +1854,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
                 job_ind_list.append(i_job)
             else:
                 to_print = 'The job for ' + sub
-                if type_session == 'multi-ses':
+                if processing_level == 'session':
                     to_print += ', ' + ses
                 to_print += (
                     ' has already been submitted,'

@@ -56,11 +56,11 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     which_bidsapp = 'toybidsapp'
     assert which_bidsapp in LIST_WHICH_BIDSAPP
     which_input = 'BIDS'
-    type_session = 'multi-ses'
+    processing_level = 'session'
     if_input_local = False
 
     # Get the path to input dataset:
-    path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
+    path_in = get_input_data(which_input, processing_level, if_input_local, tmp_path_factory)
     input_ds_cli = [[which_input, path_in]]
     input_ds_cli_wrong = [[which_input, '/random/path/to/input_ds']]
 
@@ -96,7 +96,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         container_ds=container_ds_path,
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
-        type_session=type_session,
+        processing_level=processing_level,
         type_system='slurm',
         keep_if_failed=True,
     )

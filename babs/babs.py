@@ -63,15 +63,15 @@ from babs.utils import (
 class BABS:
     """The BABS class is for babs projects of BIDS Apps"""
 
-    def __init__(self, project_root, type_session, type_system):
+    def __init__(self, project_root, processing_level, type_system):
         """The BABS class is for babs projects of BIDS Apps.
 
         Parameters
         ----------
         project_root: str
             absolute path to the root of this babs project
-        type_session: str
-            whether the input dataset is "multi-ses" or "single-ses"
+        processing_level: str
+            whether the input dataset is "session" or "subject"
         type_system: str
             the type of job scheduling system, "sge" or "slurm"
 
@@ -79,8 +79,8 @@ class BABS:
         ----------
         project_root: str
             absolute path to the root of this babs project
-        type_session: str
-            whether the input dataset is "multi-ses" or "single-ses"
+        processing_level: str
+            whether the input dataset is "session" or "subject"
         type_system: str
             the type of job scheduling system, "sge" or "slurm"
         config_path: str
@@ -112,7 +112,7 @@ class BABS:
         list_sub_path_abs: str
             Absolute path of `list_sub_path_rel`.
             Example: '/path/to/analysis/code/sub_final_inclu.csv' for singl-ses dataset;
-                '/path/to/analysis/code/sub_ses_final_inclu.csv' for multi-ses dataset.
+                '/path/to/analysis/code/sub_ses_final_inclu.csv' for session dataset.
         job_status_path_rel: str
             Path to the `job_status.csv` file.
             This is relative to `analysis` folder.
@@ -125,12 +125,12 @@ class BABS:
         """
 
         # validation:
-        type_session = validate_type_session(type_session)
+        processing_level = validate_type_session(processing_level)
         type_system = validate_type_system(type_system)
 
         # attributes:
         self.project_root = project_root
-        self.type_session = type_session
+        self.processing_level = processing_level
         self.type_system = type_system
 
         self.analysis_path = op.join(project_root, 'analysis')
@@ -148,9 +148,9 @@ class BABS:
         self.analysis_dataset_id = None  # to update later
 
         # attribute `list_sub_path_*`:
-        if self.type_session == 'single-ses':
+        if self.processing_level == 'subject':
             self.list_sub_path_rel = 'code/sub_final_inclu.csv'
-        elif self.type_session == 'multi-ses':
+        elif self.processing_level == 'session':
             self.list_sub_path_rel = 'code/sub_ses_final_inclu.csv'
         self.list_sub_path_abs = op.join(self.analysis_path, self.list_sub_path_rel)
 
@@ -333,7 +333,7 @@ class BABS:
         print('Save BABS project configurations in a YAML file ...')
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
         babs_proj_config_file = open(self.config_path, 'w')
-        babs_proj_config_file.write("type_session: '" + self.type_session + "'\n")
+        babs_proj_config_file.write("processing_level: '" + self.processing_level + "'\n")
         babs_proj_config_file.write("type_system: '" + self.type_system + "'\n")
         # input_ds:
         babs_proj_config_file.write('input_ds:\n')  # input dataset's name(s)
@@ -425,11 +425,11 @@ class BABS:
         print('\nChecking whether each input dataset is a zipped or unzipped dataset...')
         input_ds.check_if_zipped()
         # sanity checks:
-        input_ds.check_validity_zipped_input_dataset(self.type_session)
+        input_ds.check_validity_zipped_input_dataset(self.processing_level)
 
         # Check validity of unzipped ds:
-        #   if multi-ses, has `ses-*` in each `sub-*`; if single-ses, has a `sub-*`
-        check_validity_unzipped_input_dataset(input_ds, self.type_session)
+        #   if session, has `ses-*` in each `sub-*`; if subject, has a `sub-*`
+        check_validity_unzipped_input_dataset(input_ds, self.processing_level)
 
         # Update input ds information in `babs_proj_config.yaml`:
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)
@@ -487,7 +487,7 @@ class BABS:
         print('\nGenerating a bash script for running container and zipping the outputs...')
         print('This bash script will be named as `' + container_name + '_zip.sh`')
         bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
-        container.generate_bash_run_bidsapp(bash_path, input_ds, self.type_session)
+        container.generate_bash_run_bidsapp(bash_path, input_ds, self.processing_level)
         self.datalad_save(
             path='code/' + container_name + '_zip.sh',
             message='Generate script of running container',
@@ -500,7 +500,7 @@ class BABS:
         print('\nGenerating a bash script for running jobs at participant (or session) level...')
         print('This bash script will be named as `participant_job.sh`')
         bash_path = op.join(self.analysis_path, 'code', 'participant_job.sh')
-        container.generate_bash_participant_job(bash_path, input_ds, self.type_session, system)
+        container.generate_bash_participant_job(bash_path, input_ds, self.processing_level, system)
 
         # also, generate a bash script of a test job used by `babs check-setup`:
         path_check_setup = op.join(self.analysis_path, 'code/check_setup')
@@ -822,7 +822,7 @@ class BABS:
             'participant_job.sh',
             'submit_job_template.yaml',
         ]
-        if self.type_session == 'single-ses':
+        if self.processing_level == 'subject':
             list_files_code.append('sub_final_inclu.csv')
         else:
             list_files_code.append('sub_ses_final_inclu.csv')
@@ -1104,7 +1104,7 @@ class BABS:
             negative value: to submit all jobs
         df_job_specified: pd.DataFrame or None
             list of specified job(s) to submit.
-            columns: 'sub_id' (and 'ses_id', if multi-ses)
+            columns: 'sub_id' (and 'ses_id', if session)
             If `--job` was not specified in `babs submit`, it will be None.
         """
 
@@ -1129,7 +1129,7 @@ class BABS:
                 # create and save a job array df to submit
                 # (based either on df_job_specified or count):
                 df_job_submit = prepare_job_array_df(
-                    df_job, df_job_specified, count, self.type_session
+                    df_job, df_job_specified, count, self.processing_level
                 )
                 # only run `babs submit` when there are subjects/sessions not yet submitted
                 if df_job_submit.shape[0] > 0:
@@ -1137,7 +1137,7 @@ class BABS:
                     # run array submission
                     job_id, _, task_id_list, log_filename_list = submit_array(
                         self.analysis_path,
-                        self.type_session,
+                        self.processing_level,
                         self.type_system,
                         maxarray,
                     )
@@ -1210,7 +1210,7 @@ class BABS:
             CLI does not support 'stalled' right now, as it's not tested.
         df_resubmit_task_specific: pd.DataFrame or None
             list of specified job(s) to resubmit, requested by `--resubmit-job`
-            columns: 'sub_id' (and 'ses_id', if multi-ses)
+            columns: 'sub_id' (and 'ses_id', if session)
             if `--resubmit-job` was not specified in `babs status`, it will be None.
         reckless: bool
             Whether to resubmit jobs listed in `df_resubmit_task_specific`,
@@ -1281,12 +1281,12 @@ class BABS:
 
                     # did_resubmit = False   # reset: did not resubmit this job
 
-                    if self.type_session == 'single-ses':
+                    if self.processing_level == 'subject':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = None
                         branchname = 'job-' + job_id_str + '-' + sub
                         # e.g., job-00000-sub-01
-                    elif self.type_session == 'multi-ses':
+                    elif self.processing_level == 'session':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = df_job.at[i_task, 'ses_id']
                         branchname = 'job-' + job_id_str + '-' + sub + '-' + ses
@@ -1295,9 +1295,9 @@ class BABS:
                     # Check if resubmission of this task is requested:
                     if_request_resubmit_this_task = False
                     if df_resubmit_task_specific is not None:
-                        if self.type_session == 'single-ses':
+                        if self.processing_level == 'subject':
                             temp = df_resubmit_task_specific['sub_id'] == sub
-                        elif self.type_session == 'multi-ses':
+                        elif self.processing_level == 'session':
                             temp = (df_resubmit_task_specific['sub_id'] == sub) & (
                                 df_resubmit_task_specific['ses_id'] == ses
                             )
@@ -1306,7 +1306,7 @@ class BABS:
                             if_request_resubmit_this_task = True
                             # print("debugging purpose: request to resubmit job: " + sub + ", "
                             #  + ses)
-                            # ^^ only for multi-ses!
+                            # ^^ only for session!
 
                     # Update the "last_line_stdout_file":
                     df_job_updated.at[i_task, 'last_line_stdout_file'] = get_last_line(o_fn)
@@ -1352,7 +1352,7 @@ class BABS:
                                 if if_request_resubmit_this_task & (not reckless):
                                     # requested resubmit, but without `reckless`: print msg
                                     to_print = 'Although resubmission for job: ' + sub
-                                    if self.type_session == 'multi-ses':
+                                    if self.processing_level == 'session':
                                         to_print += ', ' + ses
                                     to_print += (
                                         ' was requested, as this job is running,'
@@ -1370,7 +1370,7 @@ class BABS:
                                 #     # did_resubmit = True
                                 #     # print a message:
                                 #     to_print = "Resubmit job for " + sub
-                                #     if self.type_session == "multi-ses":
+                                #     if self.processing_level == "session":
                                 #         to_print += ", " + ses
                                 #     to_print += ", although it was running," \
                                 #         + " resubmit for this job was requested" \
@@ -1387,7 +1387,7 @@ class BABS:
                                 #     # submit new one:
                                 #     job_id_updated, _, log_filename = \
                                 #         submit_one_job(self.analysis_path,
-                                #                        self.type_session,
+                                #                        self.processing_level,
                                 #                        self.type_system,
                                 #                        sub, ses)
                                 #     # update fields:
@@ -1430,7 +1430,7 @@ class BABS:
 
                                     # print a message:
                                     to_print = 'Resubmit job for ' + sub
-                                    if self.type_session == 'multi-ses':
+                                    if self.processing_level == 'session':
                                         to_print += ', ' + ses
                                     to_print += ', as it was pending and resubmit was requested.'
                                     print(to_print)
@@ -1465,7 +1465,7 @@ class BABS:
                             #         #   but currently not support resubmitting stalled jobs:
                             #         #   print warning msg:
                             #         to_print = "Although resubmission for job: " + sub
-                            #         if self.type_session == "multi-ses":
+                            #         if self.processing_level == "session":
                             #             to_print += ", " + ses
                             #         to_print += " was requested, as this job is stalled" \
                             #             + " (e.g., job state code 'eqw' on SGE)," \
@@ -1476,7 +1476,7 @@ class BABS:
                             #     #     # did_resubmit = True
                             #     #     # print a message:
                             #     #     to_print = "Resubmit job for " + sub
-                            #     #     if self.type_session == "multi-ses":
+                            #     #     if self.processing_level == "session":
                             #     #         to_print += ", " + ses
                             #     #     to_print += ",
                             #     #     as it was stalled and resubmit was requested."
@@ -1492,7 +1492,7 @@ class BABS:
                             #     #     # submit new one:
                             #     #     job_id_updated, _, log_filename = \
                             #     #         submit_one_job(self.analysis_path,
-                            #     #                        self.type_session,
+                            #     #                        self.processing_level,
                             #     #                        self.type_system,
                             #     #                        sub, ses)
                             #     #     # update fields:
@@ -1534,7 +1534,7 @@ class BABS:
 
                                 # print a message:
                                 to_print = 'Resubmit job for ' + sub
-                                if self.type_session == 'multi-ses':
+                                if self.processing_level == 'session':
                                     to_print += ', ' + ses
                                 to_print += ', as it failed and resubmit was requested.'
                                 print(to_print)
@@ -1572,7 +1572,7 @@ class BABS:
                     # run array submission
                     job_id, _, task_id_list, log_filename_list = submit_array(
                         self.analysis_path,
-                        self.type_session,
+                        self.processing_level,
                         self.type_system,
                         maxarray,
                     )
@@ -1607,12 +1607,12 @@ class BABS:
                     log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
                     o_fn = log_fn.replace('.*', '.o')
 
-                    if self.type_session == 'single-ses':
+                    if self.processing_level == 'subject':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = None
                         branchname = 'job-' + job_id_str + '-' + sub
                         # e.g., job-00000-sub-01
-                    elif self.type_session == 'multi-ses':
+                    elif self.processing_level == 'session':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = df_job.at[i_task, 'ses_id']
                         branchname = 'job-' + job_id_str + '-' + sub + '-' + ses
@@ -1621,9 +1621,9 @@ class BABS:
                     # Check if resubmission of this job is requested:
                     if_request_resubmit_this_task = False
                     if df_resubmit_task_specific is not None:
-                        if self.type_session == 'single-ses':
+                        if self.processing_level == 'subject':
                             temp = df_resubmit_task_specific['sub_id'] == sub
-                        elif self.type_session == 'multi-ses':
+                        elif self.processing_level == 'session':
                             temp = (df_resubmit_task_specific['sub_id'] == sub) & (
                                 df_resubmit_task_specific['ses_id'] == ses
                             )
@@ -1632,12 +1632,12 @@ class BABS:
                             if_request_resubmit_this_task = True
                             # print("debugging purpose: request to resubmit job:" + sub + ", "
                             #  + ses)
-                            # ^^ only for multi-ses
+                            # ^^ only for session
 
                     # if want to resubmit, but `--reckless` is NOT specified: print msg:
                     if if_request_resubmit_this_task & (not reckless):
                         to_print = 'Although resubmission for job: ' + sub
-                        if self.type_session == 'multi-ses':
+                        if self.processing_level == 'session':
                             to_print += ', ' + ses
                         to_print += (
                             " was requested, as this job is done, BABS won't resubmit this job."
@@ -1654,7 +1654,7 @@ class BABS:
                     #     # did_resubmit = True
                     #     # print a message:
                     #     to_print = "Resubmit job for " + sub
-                    #     if self.type_session == "multi-ses":
+                    #     if self.processing_level == "session":
                     #         to_print += ", " + ses
                     #     to_print += ", although it is done," \
                     #         + " resubmit for this job was requested" \
@@ -1673,7 +1673,7 @@ class BABS:
                     #     # submit new one:
                     #     job_id_updated, _, log_filename = \
                     #         submit_one_job(self.analysis_path,
-                    #                        self.type_session,
+                    #                        self.processing_level,
                     #                        self.type_system,
                     #                        sub, ses)
                     #     # update fields:
@@ -1699,9 +1699,9 @@ class BABS:
                     # only keep those not submitted:
                     df_job_not_submitted = df_job[~df_job['has_submitted']]
                     # only keep columns of `sub_id` and `ses_id`:
-                    if self.type_session == 'single-ses':
+                    if self.processing_level == 'subject':
                         df_job_not_submitted_slim = df_job_not_submitted[['sub_id']]
-                    elif self.type_session == 'multi-ses':
+                    elif self.processing_level == 'session':
                         df_job_not_submitted_slim = df_job_not_submitted[['sub_id', 'ses_id']]
 
                     # check if `--resubmit-job` was requested for any these jobs:
@@ -2108,7 +2108,7 @@ class Input_ds:
         # Initialize other attributes: ------------------------------
         self.initial_inclu_df = None
 
-    def get_initial_inclu_df(self, list_sub_file, type_session):
+    def get_initial_inclu_df(self, list_sub_file, processing_level):
         """
         Define attribute `initial_inclu_df`, a pandas DataFrame or None
             based on `list_sub_file`
@@ -2120,10 +2120,10 @@ class Input_ds:
         list_sub_file: str or None
             Path to the CSV file that lists the subject (and sessions) to analyze;
             or `None` if that CLI flag was not specified.
-            single-ses data: column of 'sub_id';
-            multi-ses data: columns of 'sub_id' and 'ses_id'
-        type_session: str
-            "multi-ses" or "single-ses"
+            subject data: column of 'sub_id';
+            session data: columns of 'sub_id' and 'ses_id'
+        processing_level: str
+            "session" or "subject"
         """
         # Get the initial included sub/ses list from `list_sub_file` CSV:
         if list_sub_file is None:  # if not to specify that flag in CLI, it'll be `None`
@@ -2133,13 +2133,13 @@ class Input_ds:
                 raise Exception('`list_sub_file` does not exists! Please check: ' + list_sub_file)
             else:  # exists:
                 self.initial_inclu_df = pd.read_csv(list_sub_file)
-                self.validate_initial_inclu_df(type_session)
+                self.validate_initial_inclu_df(processing_level)
 
-    def validate_initial_inclu_df(self, type_session):
+    def validate_initial_inclu_df(self, processing_level):
         # Sanity check: there are expected column(s):
         if 'sub_id' not in list(self.initial_inclu_df.columns):
             raise Exception("There is no 'sub_id' column in `list_sub_file`!")
-        if type_session == 'multi-ses':
+        if processing_level == 'session':
             if 'ses_id' not in list(self.initial_inclu_df.columns):
                 raise Exception(
                     "There is no 'ses_id' column in `list_sub_file`!"
@@ -2147,11 +2147,11 @@ class Input_ds:
                 )
 
         # Sanity check: no repeated sub (or sessions):
-        if type_session == 'single-ses':
+        if processing_level == 'subject':
             # there should only be one occurrence per sub:
             if len(set(self.initial_inclu_df['sub_id'])) != len(self.initial_inclu_df['sub_id']):
                 raise Exception("There are repeated 'sub_id' in" + '`list_sub_file`!')
-        elif type_session == 'multi-ses':
+        elif processing_level == 'session':
             # there should not be repeated combinations of `sub_id` and `ses_id`:
             after_dropping = self.initial_inclu_df.drop_duplicates(
                 subset=['sub_id', 'ses_id'], keep='first'
@@ -2165,12 +2165,12 @@ class Input_ds:
                 self.initial_inclu_df = after_dropping
 
         # Sort:
-        if type_session == 'single-ses':
+        if processing_level == 'subject':
             # sort:
             self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id'])
             # reset the index, and remove the additional colume:
             self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(columns=['index'])
-        elif type_session == 'multi-ses':
+        elif processing_level == 'session':
             self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id', 'ses_id'])
             self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(columns=['index'])
 
@@ -2246,20 +2246,20 @@ class Input_ds:
             else:  # unzipped ds:
                 self.df.loc[i_ds, 'path_data_rel'] = self.df.loc[i_ds, 'path_now_rel']
 
-    def check_validity_zipped_input_dataset(self, type_session):
+    def check_validity_zipped_input_dataset(self, processing_level):
         """
         This is to perform two sanity checks on each zipped input dataset:
         1) sanity check on the zip filename:
-            if multi-ses: sub-*_ses-*_<input_ds_name>*.zip
-            if single-ses: sub-*_<input_ds_name>*.zip
+            if session: sub-*_ses-*_<input_ds_name>*.zip
+            if subject: sub-*_<input_ds_name>*.zip
         2) sanity check to make sure the 1st level folder in zipfile
             is consistent to this input dataset's name;
             Only checks the first zipfile.
 
         Parameters
         ----------
-        type_session: str
-            "multi-ses" or "single-ses"
+        processing_level: str
+            "session" or "subject"
         container_name: str
             Name of the container
         """
@@ -2272,7 +2272,7 @@ class Input_ds:
         for i_ds in range(0, self.num_ds):
             if self.df.loc[i_ds, 'is_zipped'] is True:  # zipped ds
                 # Sanity check #1: zip filename: ----------------------------------
-                if type_session == 'multi-ses':
+                if processing_level == 'session':
                     # check if matches the pattern of `sub-*_ses-*_<input_ds_name>*.zip`:
                     temp_list = glob.glob(
                         self.df.loc[i_ds, 'path_now_abs']
@@ -2293,7 +2293,7 @@ class Input_ds:
                             + self.df.loc[i_ds, 'name']
                             + "*.zip'"
                         )
-                elif type_session == 'single-ses':
+                elif processing_level == 'subject':
                     temp_list = glob.glob(
                         self.df.loc[i_ds, 'path_now_abs']
                         + '/sub-*_'
@@ -2320,7 +2320,7 @@ class Input_ds:
                     # if len(temp_list_2) > 0:   # exists:
                     #     raise Exception("In zipped input dataset #" + str(i_ds + 1)
                     #                     + " (named '" + self.df["name"][i_ds] + "'),"
-                    #                     + " as it's a single-ses dataset,"
+                    #                     + " as it's a subject dataset,"
                     #                     + " zip filename should not contain"
                     #                     + " '_ses-*_'")
 
@@ -2507,7 +2507,7 @@ class Container:
             # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
         f.close()
 
-    def generate_bash_run_bidsapp(self, bash_path, input_ds, type_session):
+    def generate_bash_run_bidsapp(self, bash_path, input_ds, processing_level):
         """
         This is to generate a bash script that runs the BIDS App singularity image.
 
@@ -2517,8 +2517,8 @@ class Container:
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
             input dataset(s) information
-        type_session: str
-            multi-ses or single-ses.
+        processing_level: str
+            session or subject.
 
         Notes
         -----
@@ -2527,7 +2527,7 @@ class Container:
         """
         from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
 
-        type_session = validate_type_session(type_session)
+        processing_level = validate_type_session(processing_level)
 
         # Check if the folder exist; if not, create it:
         bash_dir = op.dirname(bash_path)
@@ -2593,7 +2593,7 @@ class Container:
         bash_file.write('\nsubid="$1"\n')
         count_inputs_bash += 1
 
-        if type_session == 'multi-ses':
+        if processing_level == 'session':
             # also have the input of `sesid`:
             bash_file.write('sesid="$2"\n')
             count_inputs_bash += 1
@@ -2613,7 +2613,7 @@ class Container:
 
         # Check if `--bids-filter-file "${filterfile}"` is needed:
         flag_filterfile = False
-        if type_session == 'multi-ses':
+        if processing_level == 'session':
             if any(ele in self.container_name.lower() for ele in ['fmriprep', 'qsiprep']):
                 # ^^ if the container_name contains `fmriprep` or `qsiprep`:
                 # ^^ case insensitive (as have changed to lower case), accept "fMRIPrep-0-0-0"
@@ -2625,7 +2625,7 @@ class Container:
                 bash_file.write(cmd_filterfile)
 
         # Check if any dataset is zipped; if so, add commands of unzipping:
-        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, type_session)
+        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, processing_level)
         if len(cmd_unzip_inputds) > 0:  # not "":
             bash_file.write(cmd_unzip_inputds)
 
@@ -2696,7 +2696,7 @@ class Container:
         print(cmd_head_singularityRun + cmd_singularity_flags)
 
         # Zip:
-        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
+        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level)
         bash_file.write(cmd_zip)
 
         # Delete folders and files:
@@ -2723,7 +2723,7 @@ class Container:
         )
         proc_chmod_bashfile.check_returncode()
 
-    def generate_bash_participant_job(self, bash_path, input_ds, type_session, system):
+    def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
         """
         This is to generate a bash script that runs jobs for each participant (or session).
 
@@ -2733,15 +2733,15 @@ class Container:
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
             input dataset(s) information
-        type_session: str
-            "multi-ses" or "single-ses".
+        processing_level: str
+            "session" or "subject".
         system: class `System`
             information on cluster management system
         """
 
         # Sanity check:
-        if type_session not in ['multi-ses', 'single-ses']:
-            raise Exception('Invalid `type_session`: ' + type_session)
+        if processing_level not in ['session', 'subject']:
+            raise Exception('Invalid `processing_level`: ' + processing_level)
 
         # Check if the bash file already exist:
         if op.exists(bash_path):
@@ -2800,9 +2800,9 @@ class Container:
         elif system.type == 'slurm':
             varname_jobid = 'SLURM_ARRAY_JOB_ID'
 
-        if type_session == 'multi-ses':
+        if processing_level == 'session':
             bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}-${sesid}"' + '\n')
-        elif type_session == 'single-ses':
+        elif processing_level == 'subject':
             bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}"' + '\n')
 
         bash_file.write('mkdir ${BRANCH}' + '\n')
@@ -2833,8 +2833,8 @@ class Container:
         )
         for i_ds in range(0, input_ds.num_ds):
             if input_ds.df.loc[i_ds, 'is_zipped'] is False:  # unzipped ds:
-                # seems regardless of multi-ses or not
-                #   as for multi-ses, it might uses other ses's data e.g., anat?
+                # seems regardless of session or not
+                #   as for session, it might uses other ses's data e.g., anat?
                 bash_file.write(
                     'datalad get -n "'
                     + input_ds.df.loc[i_ds, 'path_now_rel']
@@ -2890,12 +2890,12 @@ class Container:
                 """
 
         # determine the zip filename:
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, processing_level)
         bash_file.write(cmd_determine_zipfilename)
 
         # `datalad run`:
         bash_file.write('\n# datalad run:\n')
-        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, type_session)
+        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, processing_level)
         bash_file.write(cmd_datalad_run)
 
         # Finish up:

@@ -142,7 +142,7 @@ an SGE cluster:
         --container_ds /path/to/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file /path/to/container_toybidsapp.yaml \
-        --type_session multi-ses \
+        --processing_level session \
         --type_system sge
 
 Example command if you have more than one input datasets, e.g., raw BIDS data, and fMRIPrep

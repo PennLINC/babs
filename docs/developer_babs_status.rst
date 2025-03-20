@@ -89,7 +89,7 @@ Note: currently, ``babs status`` CLI does not support ``--reckless``.
    * - submitted, qw
      - resubmit
      - added
-     - tested with multi-ses data
+     - tested with session data
    * - submitted, running
      - 1. CLI does not allow ``--reckless``;
        2. if ``--resubmit-job`` of a running job, warning, not to resubmit
@@ -103,7 +103,7 @@ Note: currently, ``babs status`` CLI does not support ``--reckless``.
    * - submitted, failed
      - resubmit
      - added
-     - tested with multi-ses data
+     - tested with session data
    * - submitted, is_done
      - 1. CLI does not allow ``--reckless``;
        2. if ``--resubmit-job`` of a finished job, warning, not to resubmit

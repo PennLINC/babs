@@ -99,24 +99,13 @@ def _parse_init():
         ' of how to run the BIDS App container',
     )
     parser.add_argument(
-        '--type_session',
-        '--type-session',
+        '--processing_level',
+        '--processing-level',
         choices=[
-            'single-ses',
-            'single_ses',
-            'single-session',
-            'single_session',
-            'multi-ses',
-            'multi_ses',
-            'multiple-ses',
-            'multiple_ses',
-            'multi-session',
-            'multi_session',
-            'multiple-session',
-            'multiple_session',
+            'subject',
+            'session',
         ],
-        help="Whether the input dataset is single-session ['single-ses'] "
-        "or multiple-session ['multi-ses']",
+        help='Whether jobs should be run on a per-subject or per-session (within subject) basis.',
         required=True,
     )
     parser.add_argument(
@@ -167,7 +156,7 @@ def babs_init_main(
     container_ds: str,
     container_name: str,
     container_config_yaml_file: str,
-    type_session: str,
+    processing_level: str,
     type_system: str,
     keep_if_failed: bool,
 ):
@@ -186,8 +175,8 @@ def babs_init_main(
     list_sub_file: str or None
         Path to the CSV file that lists the subject (and sessions) to analyze;
         or `None` if CLI's flag isn't specified
-        single-ses data: column of 'sub_id';
-        multi-ses data: columns of 'sub_id' and 'ses_id'
+        subject data: column of 'sub_id';
+        session data: columns of 'sub_id' and 'ses_id'
     container_ds: str
         path to the container datalad dataset
     container_name: str
@@ -196,8 +185,8 @@ def babs_init_main(
     container_config_yaml_file: str
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container
-    type_session: str
-        multi-ses or single-ses
+    processing_level: str
+        session or subject
     type_system: str
         sge or slurm
     keep_if_failed: bool
@@ -232,12 +221,12 @@ def babs_init_main(
     #   if no datalad is installed, will raise error
     print('DataLad version: ' + get_datalad_version())
 
-    # validate `type_session`:
-    type_session = validate_type_session(type_session)
+    # validate `processing_level`:
+    processing_level = validate_type_session(processing_level)
 
     # input dataset:
     input_ds = Input_ds(input_dataset)
-    input_ds.get_initial_inclu_df(list_sub_file, type_session)
+    input_ds.get_initial_inclu_df(list_sub_file, processing_level)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;
@@ -249,7 +238,7 @@ def babs_init_main(
     # currently solution: add notes in Debugging in `babs init` docs: `babs init.rst`
 
     # Create an instance of babs class:
-    babs_proj = BABS(project_root, type_session, type_system)
+    babs_proj = BABS(project_root, processing_level, type_system)
 
     # Validate system's type name `type_system`:
     system = System(type_system)
@@ -257,7 +246,7 @@ def babs_init_main(
     # print out key information for visual check:
     print('')
     print('project_root of this BABS project: ' + babs_proj.project_root)
-    print('type of data of this BABS project: ' + babs_proj.type_session)
+    print('type of data of this BABS project: ' + babs_proj.processing_level)
     print('job scheduling system of this BABS project: ' + babs_proj.type_system)
     print('')
 
@@ -452,7 +441,7 @@ def babs_submit_main(
             into `babs_submit()`
         any negative int will be treated as submitting all jobs that haven't been submitted.
     job: nested list or None
-        For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
+        For each sub-list, the length should be 1 (for subject) or 2 (for session)
     """
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
@@ -480,9 +469,9 @@ def babs_submit_main(
         count = -1  # just in case; make sure all specified jobs will be submitted
 
         # sanity check:
-        if babs_proj.type_session == 'single-ses':
+        if babs_proj.processing_level == 'subject':
             expected_len = 1
-        elif babs_proj.type_session == 'multi-ses':
+        elif babs_proj.processing_level == 'session':
             expected_len = 2
         for i_job in range(0, len(job)):
             # expected length in each sub-list:
@@ -491,36 +480,39 @@ def babs_submit_main(
                 + str(expected_len)
                 + ' arguments in `--job`,'
                 + ' as input dataset(s) is '
-                + babs_proj.type_session
+                + babs_proj.processing_level
                 + '!'
             )
             # 1st argument:
             assert job[i_job][0][0:4] == 'sub-', (
                 'The 1st argument of `--job`' + " should be 'sub-*'!"
             )
-            if babs_proj.type_session == 'multi-ses':
+            if babs_proj.processing_level == 'session':
                 # 2nd argument:
                 assert job[i_job][1][0:4] == 'ses-', (
                     'The 2nd argument of `--job`' + " should be 'ses-*'!"
                 )
 
         # turn into a pandas DataFrame:
-        if babs_proj.type_session == 'single-ses':
+        if babs_proj.processing_level == 'subject':
             df_job_specified = pd.DataFrame(
                 None, index=list(range(0, len(job))), columns=['sub_id']
             )
-        elif babs_proj.type_session == 'multi-ses':
+        elif babs_proj.processing_level == 'session':
             df_job_specified = pd.DataFrame(
                 None, index=list(range(0, len(job))), columns=['sub_id', 'ses_id']
             )
         for i_job in range(0, len(job)):
             df_job_specified.at[i_job, 'sub_id'] = job[i_job][0]
-            if babs_proj.type_session == 'multi-ses':
+            if babs_proj.processing_level == 'session':
                 df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
 
         # sanity check:
         df_job_specified = check_df_job_specific(
-            df_job_specified, babs_proj.job_status_path_abs, babs_proj.type_session, 'babs submit'
+            df_job_specified,
+            babs_proj.job_status_path_abs,
+            babs_proj.processing_level,
+            'babs submit',
         )
     else:  # `job` is None:
         df_job_specified = None
@@ -647,7 +639,7 @@ def babs_status_main(
     resubmit: nested list or None
         each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
-        For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
+        For each sub-list, the length should be 1 (for subject) or 2 (for session)
     container_config_yaml_file: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
@@ -713,9 +705,9 @@ def babs_status_main(
     # If `resubmit-job` is requested:
     if resubmit_job is not None:
         # sanity check:
-        if babs_proj.type_session == 'single-ses':
+        if babs_proj.processing_level == 'subject':
             expected_len = 1
-        elif babs_proj.type_session == 'multi-ses':
+        elif babs_proj.processing_level == 'session':
             expected_len = 2
 
         for i_job in range(0, len(resubmit_job)):
@@ -725,39 +717,39 @@ def babs_status_main(
                 + str(expected_len)
                 + ' arguments in `--resubmit-job`,'
                 + ' as input dataset(s) is '
-                + babs_proj.type_session
+                + babs_proj.processing_level
                 + '!'
             )
             # 1st argument:
             assert resubmit_job[i_job][0][0:4] == 'sub-', (
                 'The 1st argument of `--resubmit-job`' + " should be 'sub-*'!"
             )
-            if babs_proj.type_session == 'multi-ses':
+            if babs_proj.processing_level == 'session':
                 # 2nd argument:
                 assert resubmit_job[i_job][1][0:4] == 'ses-', (
                     'The 2nd argument of `--resubmit-job`' + " should be 'ses-*'!"
                 )
 
         # turn into a pandas DataFrame:
-        if babs_proj.type_session == 'single-ses':
+        if babs_proj.processing_level == 'subject':
             df_resubmit_job_specific = pd.DataFrame(
                 None, index=list(range(0, len(resubmit_job))), columns=['sub_id']
             )
-        elif babs_proj.type_session == 'multi-ses':
+        elif babs_proj.processing_level == 'session':
             df_resubmit_job_specific = pd.DataFrame(
                 None, index=list(range(0, len(resubmit_job))), columns=['sub_id', 'ses_id']
             )
 
         for i_job in range(0, len(resubmit_job)):
             df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
-            if babs_proj.type_session == 'multi-ses':
+            if babs_proj.processing_level == 'session':
                 df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
 
         # sanity check:
         df_resubmit_job_specific = check_df_job_specific(
             df_resubmit_job_specific,
             babs_proj.job_status_path_abs,
-            babs_proj.type_session,
+            babs_proj.processing_level,
             'babs status',
         )
 
@@ -996,7 +988,7 @@ def get_existing_babs_proj(project_root):
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
 
     # make sure the YAML file has necessary sections:
-    list_sections = ['type_session', 'type_system', 'input_ds', 'container']
+    list_sections = ['processing_level', 'type_system', 'input_ds', 'container']
     for i in range(0, len(list_sections)):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
@@ -1005,11 +997,11 @@ def get_existing_babs_proj(project_root):
                 "in 'analysis/code' folder! Please rerun `babs init` to finish the setup."
             )
 
-    type_session = babs_proj_config['type_session']
+    processing_level = babs_proj_config['processing_level']
     type_system = babs_proj_config['type_system']
 
     # Get the class `BABS`:
-    babs_proj = BABS(project_root, type_session, type_system)
+    babs_proj = BABS(project_root, processing_level, type_system)
 
     # update key information including `output_ria_data_dir`:
     babs_proj.wtf_key_info(flag_output_ria_only=True)
@@ -1051,7 +1043,7 @@ def get_existing_babs_proj(project_root):
     return babs_proj, input_ds
 
 
-def check_df_job_specific(df, job_status_path_abs, type_session, which_function):
+def check_df_job_specific(df, job_status_path_abs, processing_level, which_function):
     """
     This is to perform sanity check on the pd.DataFrame `df`
     which is used by `babs submit --job` and `babs status --resubmit-job`.
@@ -1063,11 +1055,11 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     ----------
     df: pd.DataFrame
         i.e., `df_job_specific`
-        list of sub_id (and ses_id, if multi-ses) that the user requests to submit or resubmit
+        list of sub_id (and ses_id, if session) that the user requests to submit or resubmit
     job_status_path_abs: str
         absolute path to the `job_status.csv`
-    type_session: str
-        'single-ses' or 'multi-ses'
+    processing_level: str
+        'subject' or 'session'
     which_function: str
         'babs status' or 'babs submit'
         The warning message will be tailored based on this.
