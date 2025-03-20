@@ -8,8 +8,10 @@ import re
 import subprocess
 import sys
 import warnings  # built-in, no need to install
+from argparse import Action
 from datetime import datetime
 from importlib.metadata import version
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -47,7 +49,7 @@ def check_validity_unzipped_input_dataset(input_ds, type_session):
 
     Parameters
     ----------
-    input_ds: class `Input_ds`
+    input_ds: class `InputDatasets`
         info on input dataset(s)
     type_session: str
         multi-ses or single-ses
@@ -291,7 +293,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     config: dictionary
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
-    input_ds: class `Input_ds`
+    input_ds: class `InputDatasets`
         input dataset(s) information
 
     Returns
@@ -711,7 +713,7 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
 
     Parameters
     ----------
-    input_ds: class `Input_ds`
+    input_ds: class `InputDatasets`
         information about input dataset(s)
     type_session: str
         "multi-ses" or "single-ses"
@@ -987,7 +989,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
 
     Parameters
     ----------
-    input_ds: class Input_ds
+    input_ds: class InputDatasets
         information about input dataset(s)
     type_session: str
         "multi-ses" or "single-ses"
@@ -1084,7 +1086,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
     ----------
     container: class `Container`
         Information about the container
-    input_ds: class `Input_ds`
+    input_ds: class `InputDatasets`
         Information about input dataset(s)
     type_session: str
         "multi-ses" or "single-ses"
@@ -1170,7 +1172,7 @@ def get_list_sub_ses(input_ds, config, babs):
 
     Parameters
     ----------
-    input_ds: class `Input_ds`
+    input_ds: class `InputDatasets`
         information about input dataset(s)
     config: config from class `Container`
         container's yaml file that's read into python
@@ -2925,3 +2927,26 @@ def ceildiv(a, b):
       ...is-there-a-ceiling-equivalent-of-operator-in-python
     """
     return -(a // -b)
+
+
+class ToDict(Action):
+    """A custom argparse "store" action to handle a list of key=value pairs."""
+
+    def __call__(self, parser, namespace, values, option_string=None):  # noqa: U100
+        """Call the argument."""
+        d = {}
+        for spec in values:
+            try:
+                name, loc = spec.split('=')
+                loc = Path(loc)
+            except ValueError:
+                loc = Path(spec)
+                name = loc.name
+
+            if name in d:
+                raise parser.error(f'Received duplicate derivative name: {name}')
+            elif name == 'preprocessed':
+                raise parser.error("The 'preprocessed' derivative is reserved for internal use.")
+
+            d[name] = loc
+        setattr(namespace, self.dest, d)
