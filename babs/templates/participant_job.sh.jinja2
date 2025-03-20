@@ -1,0 +1,94 @@
+{{ cmd_bashhead_resources }}
+
+{{ cmd_script_preamble }}
+
+# Fail whenever something is fishy, use -x to get verbose logfiles:
+set -e -u -x
+
+# Inputs of the bash script:
+dssource="$1"	# i.e., `input_ria`
+pushgitremote="$2"	# i.e., `output_ria`
+SUBJECT_CSV="$3"
+
+subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)
+subid=$(echo "$subject_row" | python -c "import sys, re; pattern = r'sub-[a-zA-Z0-9]+(?=,|$)'; matches = re.findall(pattern, sys.stdin.read()); print(matches[0] if len(matches) == 1 else 'ERROR')")
+sesid=$(echo "$subject_row" | python -c "import sys, re; pattern = r'ses-[a-zA-Z0-9]+(?=,|$)'; matches = re.findall(pattern, sys.stdin.read()); print(matches[0] if len(matches) == 1 else 'ERROR')")
+
+{{ cmd_job_compute_space }}
+
+# Setups: ---------------------------------------------------------------
+# set up the branch:
+echo '# Branch name (also used as temporary directory):'
+{% if system.type == 'sge' %}
+varname_jobid='JOB_ID'
+{% elif system.type == 'slurm' %}
+varname_jobid='SLURM_ARRAY_JOB_ID'
+{% endif %}
+
+{% if type_session == 'multi-ses' %}
+BRANCH="job-${varname_jobid}-${subid}-${sesid}"
+{% else %}
+BRANCH="job-${varname_jobid}-${subid}"
+{% endif %}
+
+mkdir ${BRANCH}
+cd ${BRANCH}
+
+# datalad clone the input ria:
+echo '# Clone the data from input RIA:'
+datalad clone "${dssource}" ds
+cd ds
+
+# set up the result deposition:
+echo '# Register output RIA as remote for result deposition:'
+git remote add outputstore "${pushgitremote}"
+
+# set up a new branch:
+echo "# Create a new branch for this job's results:"
+git checkout -b "${BRANCH}"
+
+# Start of the application-specific code: ------------------------------
+
+# pull down input data (but don't retrieve the data content) and remove other sub's data:
+echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
+{% for i in range(input_ds.num_ds) %}
+{% if not input_ds.df.loc[i, 'is_zipped'] %}
+datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
+{% else %}
+datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}"
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -f `ls sub-*.zip | grep -v ${subid}`)
+{% endif %}
+{% endfor %}
+
+{{ cmd_determine_zipfilename }}
+
+# datalad run:
+echo '# datalad run:'
+{{ cmd_datalad_run }}
+
+# Finish up:
+# push result file content to output RIA storage:
+echo '# Push result file content to output RIA storage:'
+datalad push --to output-storage
+
+# push the output branch:
+echo '# Push the branch with provenance records:'
+flock $DSLOCKFILE git push outputstore
+
+# Delete:
+echo "echo 'Delete temporary directory:'"
+echo ${BRANCH}
+{% for i in range(input_ds.num_ds) %}
+datalad drop -d {{ input_ds.df.loc[i, 'path_now_rel'] }} -r --reckless availability --reckless modification
+{% endfor %}
+
+datalad drop -r . --reckless availability --reckless modification
+
+git annex dead here
+
+# cd out of $BRANCH:
+cd ../..
+rm -rf $BRANCH
+
+echo SUCCESS
