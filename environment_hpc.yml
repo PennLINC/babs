@@ -27,5 +27,5 @@ dependencies:
       - pytest-env==1.1.3
       - pytest-timeout>=2.2.0
       - pytest-xdist
-      - git+https://github.com/pennlinc/babs.git
       - datalad-osf
+      - git+https://github.com/pennlinc/babs.git
