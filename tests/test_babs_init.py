@@ -3,6 +3,7 @@ import argparse
 import os
 import os.path as op
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -133,7 +134,7 @@ def test_babs_init(
     # Get the cli of `babs init`:
     project_parent = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
-    project_root = op.join(project_parent, project_name)
+    project_root = Path(op.join(project_parent, project_name))
     container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
 
     babs_init_opts = argparse.Namespace(
