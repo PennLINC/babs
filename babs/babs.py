@@ -2053,7 +2053,7 @@ class InputDatasets:
         Parameters
         ----------
         datasets : dict
-            see CLI `babs init --input` for more
+            see CLI `babs init --datasets` for more
 
         Attributes
         ----------
