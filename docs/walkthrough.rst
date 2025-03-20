@@ -431,7 +431,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 ..  code-block:: console
     :linenos:
-    :emphasize-lines: 10
+    :emphasize-lines: 9
 
     $ cd ~/babs_demo
     $ babs init \
