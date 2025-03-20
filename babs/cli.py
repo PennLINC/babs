@@ -212,13 +212,13 @@ def babs_init_main(
             "`babs init` won't proceed to overwrite this folder."
         )
 
-    # check if `where_project` exists:
+    # check if parent directory exists:
     if not project_root.parent.exists():
         raise ValueError(
             f"The parent folder '{project_root.parent}' does not exist! `babs init` won't proceed."
         )
 
-    # check if `where_project` is writable:
+    # check if parent directory is writable:
     if not project_root.parent.writable():
         raise ValueError(
             f"The parent folder '{project_root.parent}' is not writable! "

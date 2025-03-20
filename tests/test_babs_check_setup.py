@@ -74,9 +74,9 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     assert os.getenv('TEMPLATEFLOW_HOME') is not None  # assert env var has been set
 
     # Get the cli of `babs init`:
-    where_project = tmp_path.absolute().as_posix()  # turn into a string
+    project_parent = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
-    project_root = op.join(where_project, project_name)
+    project_root = op.join(project_parent, project_name)
     container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
     container_config_yaml_filename = 'example_container_' + which_bidsapp + '.yaml'
     container_config_yaml_filename = get_container_config_yaml_filename(
@@ -89,8 +89,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
 
     # below are all correct options:
     babs_init_opts = argparse.Namespace(
-        where_project=where_project,
-        project_name=project_name,
+        project_root=project_root,
         input_dataset=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
