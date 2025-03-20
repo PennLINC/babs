@@ -10,7 +10,6 @@ import tempfile
 import time
 import warnings
 from datetime import datetime
-from importlib.resources import files
 from urllib.parse import urlparse
 
 import datalad.api as dlapi
@@ -18,7 +17,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, PackageLoader
 
 # from datalad.interface.base import build_doc
 from babs.utils import (
@@ -2639,29 +2638,22 @@ class Container:
         print(cmd_singularity_flags)
 
     def generate_bash_participant_job(self, bash_path, input_ds, type_session, system):
-        """
-        This is to generate a bash script that runs jobs for each participant (or session).
+        """Generate bash script for participant job.
 
         Parameters
         ----------
-        bash_path: str
-            The path to the bash file to be generated. It should be in the `analysis/code` folder.
-        input_ds: class `Input_ds`
-            input dataset(s) information
-        type_session: str
-            "multi-ses" or "single-ses".
-        system: class `System`
-            information on cluster management system
+        bash_path : str
+            Path to the output bash script
+        input_ds : Input_ds
+            Input dataset object
+        type_session : str
+            Type of session ('single-ses' or 'multi-ses')
+        system : System
+            System object containing system-specific information
         """
-        from jinja2 import Environment, FileSystemLoader
-
-        # Sanity check:
-        if type_session not in ['multi-ses', 'single-ses']:
-            raise Exception('Invalid `type_session`: ' + type_session)
-
-        # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
+        # Render the template
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        template = env.get_template('participant_job.sh.jinja2')
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
@@ -2677,10 +2669,6 @@ class Container:
 
         # Generate datalad run command:
         cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, type_session)
-
-        # Render the template
-        env = Environment(loader=FileSystemLoader('babs/templates'), autoescape=True)
-        template = env.get_template('participant_job.sh.jinja2')
 
         with open(bash_path, 'w') as f:
             f.write(
@@ -2704,21 +2692,18 @@ class Container:
         proc_chmod_bashfile.check_returncode()
 
     def generate_bash_test_job(self, folder_check_setup, system):
-        """
-        This is to generate two scripts that run a *test* job,
-        which will be used by `babs check-setup`.
-        Scripts to generate:
-        * `call_test_job.sh`    # just like `participant_job.sh`
-        * `test_job.py`    # just like `container_zip.sh`
+        """Generate bash script for test job.
 
         Parameters
         ----------
-        folder_check_setup: str
-            The path to folder `check_setup`; generated scripts will locate in this folder
-        system: class `System`
-            information on cluster management system
+        folder_check_setup : str
+            Path to the check_setup folder
+        system : System
+            System object containing system-specific information
         """
-        from jinja2 import Environment, FileSystemLoader
+        # Render the template
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        template = env.get_template('test_job.sh.jinja2')
 
         fn_call_test_job = op.join(folder_check_setup, 'call_test_job.sh')
         fn_test_job = op.join(folder_check_setup, 'test_job.py')
@@ -2738,10 +2723,6 @@ class Container:
 
         # Change path to a temporary job compute workspace:
         cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
-
-        # Render the template
-        env = Environment(loader=FileSystemLoader('babs/templates'), autoescape=True)
-        template = env.get_template('test_job.sh.jinja2')
 
         with open(fn_call_test_job, 'w') as f:
             f.write(
@@ -2803,7 +2784,7 @@ class Container:
             flag to set to True if generating the test job submit template
             for `babs check-setup`.
         """
-        from jinja2 import Environment, FileSystemLoader
+        from jinja2 import Environment
 
         # Section 1: Command for submitting the job: ---------------------------
         # Flags when submitting the job:
@@ -2853,8 +2834,7 @@ class Container:
                 array_args = '--array=1-${max_array}'
 
         # Render the template
-        template_dir = files('babs.templates')
-        env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         template = env.get_template('job_submit.yaml.jinja2')
 
         with open(yaml_path, 'w') as f:
