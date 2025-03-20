@@ -15,7 +15,7 @@ singularity_run:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
-    --fs-license-file: --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
+    --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
     --output-spaces: "func T1w MNI152NLin6Asym:res-2"
     --force-bbr: ""
     --skip-bids-validation: ""
