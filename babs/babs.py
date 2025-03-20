@@ -2634,24 +2634,26 @@ class Container:
         # Environment variables in container:
         # get environment variables to be injected into container and whose value to be bound:
         cmd_env_templateflow, templateflow_home, templateflow_in_container = (
-            generate_cmd_set_envvar('TEMPLATEFLOW_HOME')
+            generate_cmd_set_envvar('TEMPLATEFLOW_HOME')  # templateflow_home = None here
         )
+        templateflow_home = '${TEMPLATEFLOW_HOME}'  # had to be defined here
 
         # Write the head of the command `singularity run`:
         bash_file.write('mkdir -p ${PWD}/.git/tmp/wkdir\n')
-        bash_file.write('export TEMPLATEFLOW_HOME=${HOME}/templateflow_home_temp\n')
+        bash_file.write('export TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME\n')
         bash_file.write('mkdir -p ${TEMPLATEFLOW_HOME}\n')
         cmd_head_singularityRun = 'singularity run --containall --writable-tmpfs'
         # binding:
         cmd_head_singularityRun += ' \\' + '\n\t' + '-B ${PWD}'
 
-        # `templateflow_home` needs to be bound with `--containall`:
-        # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
-        # for multiple bindings: multiple `-B` or separate path with comma (too long)
-        cmd_head_singularityRun += ' \\' + '\n\t' + '-B '
-        cmd_head_singularityRun += templateflow_home + ':'
-        cmd_head_singularityRun += templateflow_in_container
-        # ^^ bind to dir in container
+        # check if `templateflow_home` needs to be bound:
+        if templateflow_home is not None:
+            # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
+            # for multiple bindings: multiple `-B` or separate path with comma (too long)
+            cmd_head_singularityRun += ' \\' + '\n\t' + '-B '
+            cmd_head_singularityRun += templateflow_home + ':'
+            cmd_head_singularityRun += templateflow_in_container
+            # ^^ bind to dir in container
 
         # check if `freesurfer_home` needs to be bound:
         if flag_fs_license is True:
@@ -2662,7 +2664,7 @@ class Container:
 
         # inject env variable into container:
         if templateflow_home is not None:
-            # add `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`:
+            # add `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`:
             cmd_head_singularityRun += ' \\' + '\n\t'
             cmd_head_singularityRun += cmd_env_templateflow
 
