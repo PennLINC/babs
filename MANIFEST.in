@@ -5,6 +5,7 @@ include LICENSE
 # necessary files in babs/:
 #   by default it only includes *.py
 recursive-include babs *.yaml
+recursive-include babs/templates *.jinja2
 
 # versioneer
 include babs/_version.py
