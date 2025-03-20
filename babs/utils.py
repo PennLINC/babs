@@ -49,8 +49,8 @@ def check_validity_unzipped_input_dataset(input_ds, processing_level):
     ----------
     input_ds: class `Input_ds`
         info on input dataset(s)
-    processing_level: str
-        session or subject
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
 
     Notes
     -----
@@ -607,8 +607,8 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level):
     dict_zip_foldernames: dictionary
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
         got from `get_info_zip_foldernames()`.
-    processing_level: str
-        "session" or "subject"
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
 
     Returns
     -------
@@ -713,8 +713,8 @@ def generate_cmd_unzip_inputds(input_ds, processing_level):
     ----------
     input_ds: class `Input_ds`
         information about input dataset(s)
-    processing_level: str
-        "session" or "subject"
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
 
     Returns
     -------
@@ -989,8 +989,8 @@ def generate_cmd_determine_zipfilename(input_ds, processing_level):
     ----------
     input_ds: class Input_ds
         information about input dataset(s)
-    processing_level: str
-        "session" or "subject"
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
 
     Returns
     -------
@@ -1086,8 +1086,8 @@ def generate_cmd_datalad_run(container, input_ds, processing_level):
         Information about the container
     input_ds: class `Input_ds`
         Information about input dataset(s)
-    processing_level: str
-        "session" or "subject"
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
 
     Returns
     -------
@@ -1588,8 +1588,8 @@ def submit_array(analysis_path, processing_level, type_system, maxarray, flag_pr
     ----------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
-    processing_level: str
-        session or subject
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     type_system: str
         the type of job scheduling system, "sge" or "slurm"
     maxarray: str
@@ -1806,8 +1806,8 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
         dataframe of jobs to be submitted (specified by user)
     count: int
         number of jobs to be submitted
-    processing_level: str
-        type of session, can be "subject" or "session"
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
 
     Returns
     -------

@@ -51,8 +51,8 @@ def get_input_data(which_input, processing_level, if_input_local, tmp_path_facto
     which_input: str
         'BIDS' - unzipped
         or 'fmriprep' or 'qsiprep' - zipped derivatives
-    processing_level: str
-        'subject' or 'session'
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     if_input_local: bool
         if the input dataset is local [True] or remote (e.g., on OSF) [False]
     tmp_path_factory: fixture

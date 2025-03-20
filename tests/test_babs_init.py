@@ -70,8 +70,8 @@ def test_babs_init(
         It must be one of the string in `LIST_WHICH_BIDSAPP`.
     which_input: str
         which input dataset. Options see keys in `origin_input_dataset.yaml`
-    processing_level: str
-        session or subject
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     if_input_local: bool
         whether the input dataset is a local copy (True), or it's remote (False)
     if_two_input: bool

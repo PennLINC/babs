@@ -70,8 +70,8 @@ class BABS:
         ----------
         project_root: str
             absolute path to the root of this babs project
-        processing_level: str
-            whether the input dataset is "session" or "subject"
+        processing_level : {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
         type_system: str
             the type of job scheduling system, "sge" or "slurm"
 
@@ -79,8 +79,8 @@ class BABS:
         ----------
         project_root: str
             absolute path to the root of this babs project
-        processing_level: str
-            whether the input dataset is "session" or "subject"
+        processing_level : {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
         type_system: str
             the type of job scheduling system, "sge" or "slurm"
         config_path: str
@@ -2122,8 +2122,8 @@ class Input_ds:
             or `None` if that CLI flag was not specified.
             subject data: column of 'sub_id';
             session data: columns of 'sub_id' and 'ses_id'
-        processing_level: str
-            "session" or "subject"
+        processing_level : {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
         """
         # Get the initial included sub/ses list from `list_sub_file` CSV:
         if list_sub_file is None:  # if not to specify that flag in CLI, it'll be `None`
@@ -2258,8 +2258,8 @@ class Input_ds:
 
         Parameters
         ----------
-        processing_level: str
-            "session" or "subject"
+        processing_level : {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
         container_name: str
             Name of the container
         """
@@ -2517,8 +2517,8 @@ class Container:
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
             input dataset(s) information
-        processing_level: str
-            session or subject.
+        processing_level : {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
 
         Notes
         -----
@@ -2733,8 +2733,8 @@ class Container:
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
         input_ds: class `Input_ds`
             input dataset(s) information
-        processing_level: str
-            "session" or "subject".
+        processing_level : {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
         system: class `System`
             information on cluster management system
         """

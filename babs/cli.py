@@ -185,8 +185,8 @@ def babs_init_main(
     container_config_yaml_file: str
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container
-    processing_level: str
-        session or subject
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     type_system: str
         sge or slurm
     keep_if_failed: bool
@@ -1058,8 +1058,8 @@ def check_df_job_specific(df, job_status_path_abs, processing_level, which_funct
         list of sub_id (and ses_id, if session) that the user requests to submit or resubmit
     job_status_path_abs: str
         absolute path to the `job_status.csv`
-    processing_level: str
-        'subject' or 'session'
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     which_function: str
         'babs status' or 'babs submit'
         The warning message will be tailored based on this.
