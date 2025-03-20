@@ -20,7 +20,7 @@ Currently, BABS is **not** compatible with:
 
 Step 1. Choose an environment manager for BABS
 =============================================
-For this, we stongly recommend `miniforge/mamba <https://github.com/conda-forge/miniforge>`_
+For this, we strongly recommend `miniforge/mamba <https://github.com/conda-forge/miniforge>`_
 or optionally `micromamba <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html`_.
 These packages work the same as ``conda``, but they are open-source and will never move to a pay-structure as
 anaconda has recently done.
@@ -33,7 +33,7 @@ We have a `yaml` file on our repo for easily installing BABS and its dependencie
     # Get the evironment_hpc.yaml file from github:
     wget https://raw.githubusercontent.com/PennLINC/babs/refs/heads/main/environment_hpc.yml
 
-    # Install into a new evironment called babs:
+    # Install into a new environment called babs:
     mamba create -f evironment_hpc.yml
 
     # Activate the environment:
