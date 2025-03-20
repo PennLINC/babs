@@ -2580,6 +2580,9 @@ class Container:
         cmd_env_templateflow, templateflow_home, templateflow_in_container = (
             generate_cmd_set_envvar('TEMPLATEFLOW_HOME')
         )
+        # With `--containall`, templateflow_home=None
+        # from running generate_cmd_set_envvar('TEMPLATEFLOW_HOME'), had to be defined here:
+        templateflow_home = '${TEMPLATEFLOW_HOME}'
 
         # Generate zip command
         cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
