@@ -38,7 +38,8 @@ INFO_2ND_INPUT_DATA = {
 }
 
 # env variables
-TEMPLATEFLOW_HOME = '/test/templateflow_home'
+# TEMPLATEFLOW_HOME = '/test/templateflow_home'
+TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'  # $HOME is '/root'
 # ====================================================================
 
 
