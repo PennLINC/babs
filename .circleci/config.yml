@@ -16,7 +16,7 @@ jobs:
           path: /home/circleci/src/babs
       - restore_cache:
           keys:
-            - test-data-v1
+            - test-data-v2
       - run:
           name: Download test datasets
           command: |
@@ -30,7 +30,7 @@ jobs:
             echo "Contents of test_data directory:"
             ls -la /home/circleci/test_data/
       - save_cache:
-          key: test-data-v1
+          key: test-data-v2
           paths:
             - /home/circleci/test_data
 
@@ -43,7 +43,7 @@ jobs:
           path: /home/circleci/src/babs
       - restore_cache:
           keys:
-            - test-data-v1
+            - test-data-v2
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
@@ -62,7 +62,7 @@ jobs:
           path: /home/circleci/src/babs
       - restore_cache:
           keys:
-            - test-data-v1
+            - test-data-v2
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
