@@ -28,7 +28,7 @@ datalad containers-add \
     toybidsapp-0-0-7
 popd
 
-babs-init \
+babs init \
     --where_project "${PWD}" \
     --project_name $SUBPROJECT_NAME \
     --input BIDS "${DATA_DIR}/BIDS_multi-ses" \
@@ -38,15 +38,15 @@ babs-init \
     --type_session multi-ses \
     --type_system slurm
 
-echo "PASSED: babs-init"
+echo "PASSED: babs init"
 echo "Check setup, without job"
-babs-check-setup --project_root "${PWD}"/test_project/
+babs check-setup --project_root "${PWD}"/test_project/
 echo "PASSED: Check setup, without job"
 
-babs-check-setup --project_root "${PWD}"/test_project/ --job-test
+babs check-setup --project_root "${PWD}"/test_project/ --job-test
 echo "Job submitted: Check setup, with job"
 
-babs-status --project_root "${PWD}"/test_project/
+babs status --project_root "${PWD}"/test_project/
 
 # Wait for all running jobs to finish
 while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
@@ -70,7 +70,7 @@ else
     echo "PASSED: No failed jobs."
 fi
 
-babs-submit --project-root "${PWD}/test_project/" --all
+babs submit --project-root "${PWD}/test_project/" --all
 
 # # Wait for all running jobs to finish
 while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
@@ -81,8 +81,8 @@ while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
 done
 
 echo "========================================================================="
-echo "babs-status:"
-babs-status --project_root "${PWD}"/test_project/
+echo "babs status:"
+babs status --project_root "${PWD}"/test_project/
 echo "========================================================================="
 
 # Check for failed jobs TODO see above
@@ -98,5 +98,5 @@ else
     echo "PASSED: No failed jobs."
 fi
 
-babs-merge --project_root "${PWD}"/test_project/
+babs merge --project_root "${PWD}"/test_project/
 echo "PASSED: e2e walkthrough successful!"
