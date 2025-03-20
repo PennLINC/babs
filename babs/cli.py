@@ -44,7 +44,7 @@ def _parse_init():
     parser.add_argument(
         'project_root',
         type=PathDoesNotExist,
-        metavar='project',
+        metavar='PATH',
         help=(
             'Absolute path to the directory where the BABS project will be located. '
             'This folder will be automatically created.'
@@ -306,11 +306,13 @@ def _parse_check_setup():
     PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
         'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
+        nargs='?',
         default=os.getcwd(),
         type=PathExists,
     )
@@ -385,11 +387,13 @@ def _parse_submit():
     PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
         'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
+        nargs='?',
         default=os.getcwd(),
         type=PathExists,
     )
@@ -548,11 +552,13 @@ def _parse_status():
     PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
         'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
+        nargs='?',
         default=os.getcwd(),
         type=PathExists,
     )
@@ -807,11 +813,13 @@ def _parse_merge():
     PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
         'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
+        nargs='?',
         default=os.getcwd(),
         type=PathExists,
     )
@@ -894,11 +902,13 @@ def _parse_unzip():
     PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
         'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
+        nargs='?',
         default=os.getcwd(),
         type=PathExists,
     )
