@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
-from jinja2 import Environment, FileSystemLoader, PackageLoader
+from jinja2 import Environment, PackageLoader
 
 # from datalad.interface.base import build_doc
 from babs.utils import (
@@ -333,7 +333,7 @@ class BABS:
         print('Save BABS project configurations in a YAML file ...')
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
 
-        env = Environment(loader=FileSystemLoader('babs/templates'), autoescape=True)
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         template = env.get_template('babs_proj_config.yaml.jinja2')
 
         with open(self.config_path, 'w') as f:
@@ -2511,7 +2511,7 @@ class Container:
         type_session: str
             multi-ses or single-ses.
         """
-        from jinja2 import Environment, FileSystemLoader
+        from jinja2 import Environment
 
         from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
 
@@ -2585,7 +2585,7 @@ class Container:
         cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
 
         # Render the template
-        env = Environment(loader=FileSystemLoader('babs/templates'), autoescape=True)
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         template = env.get_template('bidsapp_run.sh.jinja2')
 
         with open(bash_path, 'w') as f:
