@@ -62,7 +62,7 @@ You only need to do this step once on a given system.
 ..  ref: https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup
 
 Optional: set-up ``datalad-osf``
--------------------------------
+---------------------------------
 You also need to configure ``datalad-osf`` only if:
 
 * if you're an end user and your input DataLad dataset is on OSF;
