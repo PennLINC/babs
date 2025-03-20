@@ -2779,6 +2779,7 @@ class Container:
             "r'{0}-[a-zA-Z0-9]+(?=,|$)'; "
             'matches = re.findall(pattern, sys.stdin.read()); '
             "print(matches[0] if len(matches) == 1 else 'ERROR')"
+            '"'
         ).format
         bash_file.write(
             'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)\n'
