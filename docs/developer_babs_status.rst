@@ -119,13 +119,13 @@ Example ``job_status.tsv``
 
 When this TSV was just initialized::
 
-    sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message,job_account
+    participant_id,session_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message,job_account
     sub-01,ses-A,False,-1,,,,False,,,,,
 
 
 when ``print(df)`` by python::
 
-        sub_id ses_id  has_submitted  job_id  job_state_category  job_state_code  \
+        participant_id session_id  has_submitted  job_id  job_state_category  job_state_code  \
     0  sub-01  ses-A          False      -1                 NaN             NaN
 
         duration  is_done  is_failed  log_filename  last_line_stdout_file  alert_message  job_account

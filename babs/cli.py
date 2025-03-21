@@ -511,16 +511,16 @@ def babs_submit_main(
         # turn into a pandas DataFrame:
         if babs_proj.type_session == 'single-ses':
             df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=['sub_id']
+                None, index=list(range(0, len(job))), columns=['participant_id']
             )
         elif babs_proj.type_session == 'multi-ses':
             df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=['sub_id', 'ses_id']
+                None, index=list(range(0, len(job))), columns=['participant_id', 'session_id']
             )
         for i_job in range(0, len(job)):
-            df_job_specified.at[i_job, 'sub_id'] = job[i_job][0]
+            df_job_specified.at[i_job, 'participant_id'] = job[i_job][0]
             if babs_proj.type_session == 'multi-ses':
-                df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
+                df_job_specified.at[i_job, 'session_id'] = job[i_job][1]
 
         # sanity check:
         df_job_specified = check_df_job_specific(
@@ -745,17 +745,19 @@ def babs_status_main(
         # turn into a pandas DataFrame:
         if babs_proj.type_session == 'single-ses':
             df_resubmit_job_specific = pd.DataFrame(
-                None, index=list(range(0, len(resubmit_job))), columns=['sub_id']
+                None, index=list(range(0, len(resubmit_job))), columns=['participant_id']
             )
         elif babs_proj.type_session == 'multi-ses':
             df_resubmit_job_specific = pd.DataFrame(
-                None, index=list(range(0, len(resubmit_job))), columns=['sub_id', 'ses_id']
+                None,
+                index=list(range(0, len(resubmit_job))),
+                columns=['participant_id', 'session_id'],
             )
 
         for i_job in range(0, len(resubmit_job)):
-            df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
+            df_resubmit_job_specific.at[i_job, 'participant_id'] = resubmit_job[i_job][0]
             if babs_proj.type_session == 'multi-ses':
-                df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
+                df_resubmit_job_specific.at[i_job, 'session_id'] = resubmit_job[i_job][1]
 
         # sanity check:
         df_resubmit_job_specific = check_df_job_specific(
@@ -1067,7 +1069,7 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     ----------
     df: pd.DataFrame
         i.e., `df_job_specific`
-        list of sub_id (and ses_id, if multi-ses) that the user requests to submit or resubmit
+        list of participant_id (and session_id, if multi-ses) that the user requests to submit or resubmit
     job_status_path_abs: str
         absolute path to the `job_status.tsv`
     type_session: str

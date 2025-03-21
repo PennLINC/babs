@@ -1391,7 +1391,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     list(
                         zip(subs_missing, which_dataset_missing, which_file_missing, strict=False)
                     ),
-                    columns=['sub_id', 'input_dataset_name', 'missing_required_file'],
+                    columns=['participant_id', 'input_dataset_name', 'missing_required_file'],
                 )
                 fn_tsv_missing = op.join(babs.analysis_path, 'code/sub_missing_required_file.tsv')
                 df_missing.to_csv(fn_tsv_missing, sep='\t', index=False)
@@ -1493,8 +1493,8 @@ def get_list_sub_ses(input_ds, config, babs):
                         )
                     ),
                     columns=[
-                        'sub_id',
-                        'ses_id',
+                        'participant_id',
+                        'session_id',
                         'input_dataset_name',
                         'missing_required_file',
                     ],
@@ -1523,7 +1523,7 @@ def get_list_sub_ses(input_ds, config, babs):
             # save deleted subjects into a list:
             if len(subs_delete) > 0:
                 df_sub_delete = pd.DataFrame(
-                    list(zip(subs_delete, strict=False)), columns=['sub_id']
+                    list(zip(subs_delete, strict=False)), columns=['participant_id']
                 )
                 fn_tsv_sub_delete = op.join(
                     babs.analysis_path, 'code/sub_missing_any_ses_required_file.tsv'
@@ -1764,14 +1764,16 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
     """
     # Updating df_jobs
     for _, row in df_job_submit.iterrows():
-        sub_id = row['sub_id']
+        participant_id = row['participant_id']
 
-        if 'ses_id' in df_jobs.columns:
-            ses_id = row['ses_id']
+        if 'session_id' in df_jobs.columns:
+            session_id = row['session_id']
             # Locate the corresponding rows in df_jobs
-            mask = (df_jobs['sub_id'] == sub_id) & (df_jobs['ses_id'] == ses_id)
-        elif 'ses_id' not in df_jobs.columns:
-            mask = df_jobs['sub_id'] == sub_id
+            mask = (df_jobs['participant_id'] == participant_id) & (
+                df_jobs['session_id'] == session_id
+            )
+        elif 'session_id' not in df_jobs.columns:
+            mask = df_jobs['participant_id'] == participant_id
 
         # Update df_jobs fields based on the latest info in df_job_submit
         df_jobs.loc[mask, 'job_id'] = row['job_id']
@@ -1832,13 +1834,13 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
         for j_job in range(0, df_job_specified.shape[0]):
             # find the index in the full `df_job`:
             if type_session == 'single-ses':
-                sub = df_job_specified.at[j_job, 'sub_id']
+                sub = df_job_specified.at[j_job, 'participant_id']
                 ses = None
-                temp = df_job['sub_id'] == sub
+                temp = df_job['participant_id'] == sub
             elif type_session == 'multi-ses':
-                sub = df_job_specified.at[j_job, 'sub_id']
-                ses = df_job_specified.at[j_job, 'ses_id']
-                temp = (df_job['sub_id'] == sub) & (df_job['ses_id'] == ses)
+                sub = df_job_specified.at[j_job, 'participant_id']
+                ses = df_job_specified.at[j_job, 'session_id']
+                temp = (df_job['participant_id'] == sub) & (df_job['session_id'] == ses)
 
             # dj: should we keep this part?
             i_job = df_job.index[temp].to_list()

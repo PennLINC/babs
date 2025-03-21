@@ -251,7 +251,7 @@ or of a session of a subject (multiple-session dataset).
 Below is description of each column.
 Note: ``np.nan`` means numpy's NaN if loading the TSV file into Python.
 
-* ``sub_id`` (and ``ses_id`` in multiple-session dataset): string, the subject ID (and session ID)
+* ``participant_id`` (and ``session_id`` in multiple-session dataset): string, the subject ID (and session ID)
   for a job.
 * ``has_submitted``: bool (True or False), whether a job has been submitted.
 * ``job_id``: integer (usually positive), ID of a job. Before a job is submitted, ``job_id = -1``.

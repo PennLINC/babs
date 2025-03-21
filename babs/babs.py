@@ -1104,7 +1104,7 @@ class BABS:
             negative value: to submit all jobs
         df_job_specified: pd.DataFrame or None
             list of specified job(s) to submit.
-            columns: 'sub_id' (and 'ses_id', if multi-ses)
+            columns: 'participant_id' (and 'session_id', if multi-ses)
             If `--job` was not specified in `babs submit`, it will be None.
         """
 
@@ -1210,7 +1210,7 @@ class BABS:
             CLI does not support 'stalled' right now, as it's not tested.
         df_resubmit_task_specific: pd.DataFrame or None
             list of specified job(s) to resubmit, requested by `--resubmit-job`
-            columns: 'sub_id' (and 'ses_id', if multi-ses)
+            columns: 'participant_id' (and 'session_id', if multi-ses)
             if `--resubmit-job` was not specified in `babs status`, it will be None.
         reckless: bool
             Whether to resubmit jobs listed in `df_resubmit_task_specific`,
@@ -1282,13 +1282,13 @@ class BABS:
                     # did_resubmit = False   # reset: did not resubmit this job
 
                     if self.type_session == 'single-ses':
-                        sub = df_job.at[i_task, 'sub_id']
+                        sub = df_job.at[i_task, 'participant_id']
                         ses = None
                         branchname = 'job-' + job_id_str + '-' + sub
                         # e.g., job-00000-sub-01
                     elif self.type_session == 'multi-ses':
-                        sub = df_job.at[i_task, 'sub_id']
-                        ses = df_job.at[i_task, 'ses_id']
+                        sub = df_job.at[i_task, 'participant_id']
+                        ses = df_job.at[i_task, 'session_id']
                         branchname = 'job-' + job_id_str + '-' + sub + '-' + ses
                         # e.g., job-00000-sub-01-ses-B
 
@@ -1296,10 +1296,10 @@ class BABS:
                     if_request_resubmit_this_task = False
                     if df_resubmit_task_specific is not None:
                         if self.type_session == 'single-ses':
-                            temp = df_resubmit_task_specific['sub_id'] == sub
+                            temp = df_resubmit_task_specific['participant_id'] == sub
                         elif self.type_session == 'multi-ses':
-                            temp = (df_resubmit_task_specific['sub_id'] == sub) & (
-                                df_resubmit_task_specific['ses_id'] == ses
+                            temp = (df_resubmit_task_specific['participant_id'] == sub) & (
+                                df_resubmit_task_specific['session_id'] == ses
                             )
 
                         if any(temp):  # any matched; `temp` is pd.Series of True or False
@@ -1608,13 +1608,13 @@ class BABS:
                     o_fn = log_fn.replace('.*', '.o')
 
                     if self.type_session == 'single-ses':
-                        sub = df_job.at[i_task, 'sub_id']
+                        sub = df_job.at[i_task, 'participant_id']
                         ses = None
                         branchname = 'job-' + job_id_str + '-' + sub
                         # e.g., job-00000-sub-01
                     elif self.type_session == 'multi-ses':
-                        sub = df_job.at[i_task, 'sub_id']
-                        ses = df_job.at[i_task, 'ses_id']
+                        sub = df_job.at[i_task, 'participant_id']
+                        ses = df_job.at[i_task, 'session_id']
                         branchname = 'job-' + job_id_str + '-' + sub + '-' + ses
                         # e.g., job-00000-sub-01-ses-B
 
@@ -1622,10 +1622,10 @@ class BABS:
                     if_request_resubmit_this_task = False
                     if df_resubmit_task_specific is not None:
                         if self.type_session == 'single-ses':
-                            temp = df_resubmit_task_specific['sub_id'] == sub
+                            temp = df_resubmit_task_specific['participant_id'] == sub
                         elif self.type_session == 'multi-ses':
-                            temp = (df_resubmit_task_specific['sub_id'] == sub) & (
-                                df_resubmit_task_specific['ses_id'] == ses
+                            temp = (df_resubmit_task_specific['participant_id'] == sub) & (
+                                df_resubmit_task_specific['session_id'] == ses
                             )
 
                         if any(temp):  # any matched; `temp` is pd.Series of True or False
@@ -1698,11 +1698,13 @@ class BABS:
                 if df_resubmit_task_specific is not None:
                     # only keep those not submitted:
                     df_job_not_submitted = df_job[~df_job['has_submitted']]
-                    # only keep columns of `sub_id` and `ses_id`:
+                    # only keep columns of `participant_id` and `session_id`:
                     if self.type_session == 'single-ses':
-                        df_job_not_submitted_slim = df_job_not_submitted[['sub_id']]
+                        df_job_not_submitted_slim = df_job_not_submitted[['participant_id']]
                     elif self.type_session == 'multi-ses':
-                        df_job_not_submitted_slim = df_job_not_submitted[['sub_id', 'ses_id']]
+                        df_job_not_submitted_slim = df_job_not_submitted[
+                            ['participant_id', 'session_id']
+                        ]
 
                     # check if `--resubmit-job` was requested for any these jobs:
                     df_intersection = df_resubmit_task_specific.merge(df_job_not_submitted_slim)
