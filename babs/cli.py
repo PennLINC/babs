@@ -801,7 +801,8 @@ def _parse_merge():
         description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    parser.add_argument(
+    user_args = parser.add_argument_group('User arguments')
+    user_args.add_argument(
         '--project_root',
         '--project-root',
         help=(
@@ -811,7 +812,8 @@ def _parse_merge():
         ),
         default=os.getcwd(),
     )
-    parser.add_argument(
+    dev_args = parser.add_argument_group('Developer arguments')
+    dev_args.add_argument(
         '--chunk-size',
         '--chunk_size',
         type=int,
@@ -821,7 +823,7 @@ def _parse_merge():
     )
     # Matt: 5000 is not good, 2000 is appropriate.
     #   Smaller chunk is, more merging commits which is fine.
-    parser.add_argument(
+    dev_args.add_argument(
         '--trial-run',
         '--trial_run',
         action='store_true',

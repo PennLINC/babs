@@ -14,6 +14,8 @@ Command-Line Arguments
    :ref: babs.cli._parse_merge
    :prog: babs merge
 
+   Developer arguments : @skip
+
 **********************
 Example commands
 **********************
