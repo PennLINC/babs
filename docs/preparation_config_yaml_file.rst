@@ -251,6 +251,13 @@ Advanced - Manual of writing section ``singularity_run``
 
         --n_cpus: "$SLURM_CPUS_PER_TASK"
 
+    * Not sure how many CPUs or other resources you need?
+      You can run ``babs submit --count N`` with the first N (10-20) subjects and then use
+      [``reportseff``](<https://github.com/troycomi/reportseff>)_ or ``seff_array`` to check the resource
+      usage. You can then edit the resources in the ``<bids_app>_zip.sh`` and ``participant_job.sh`` in
+      the ``analysis/code`` folder. Make sure to run ``babs sync-code`` after editing the files before
+      re-submitting with ``babs submit --all``.
+
 .. developer's note: for Slurm: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
