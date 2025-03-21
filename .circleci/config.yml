@@ -85,9 +85,7 @@ jobs:
           name: clean up test artifacts
           command: |
             TEST_ARTIFACTS_DIR=/home/circleci/testing/test_project/analysis
-            rm -rf $TEST_ARTIFACTS_DIR/inputs/data/BIDS/.git
-            rm -rf $TEST_ARTIFACTS_DIR/containers/*
-            rm -rf $TEST_ARTIFACTS_DIR/.git
+            find $TEST_ARTIFACTS_DIR -type d -name ".git" -exec rm -rf {} +
 
       - store_artifacts:
           path: /home/circleci/testing/test_project/analysis
