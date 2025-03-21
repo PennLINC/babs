@@ -71,12 +71,19 @@ jobs:
             -t pennlinc/slurm-docker-ci:unstable \
             -f Dockerfile_testing .
 
+            # Make a directory that will hold the test artifacts
+            mkdir -p /home/circleci/testing
             docker run -it \
                 -v ${PWD}:/tests \
+                -v /home/circleci/testing:/test-temp:rw \
                 -h slurmctl --cap-add sys_admin \
                 --privileged \
                 pennlinc/slurm-docker-ci:unstable \
                 /tests/tests/e2e-slurm/container/walkthrough-tests.sh
+
+      - store_artifacts:
+          path: /home/circleci/testing/test_project/analysis
+          destination: test-artifacts
 
   deployable: # checkpoint of deployable: requires all success
     <<: *dockersetup

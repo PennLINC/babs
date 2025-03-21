@@ -17,7 +17,7 @@ if [ ! -d "${DATA_DIR}/BIDS_multi-ses" ]; then
     datalad clone osf://w2nu3/ BIDS_multi-ses
 fi
 
-mkdir /test-temp
+# This will be mounted in the container to hold the test artifacts
 pushd /test-temp
 
 # Singularity image created by root, then chowned to this user, and datalad must be run as this user
