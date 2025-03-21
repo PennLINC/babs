@@ -1,7 +1,7 @@
 .. _babs-sync-code:
 
 babs sync-code
-=============
+==============
 
 .. program:: babs sync-code
 
@@ -69,6 +69,6 @@ Notes
 See Also
 --------
 
-- :ref:`babs-init`
-- :ref:`babs-submit`
-- :ref:`babs-status` 
+- :doc:`babs-init`
+- :doc:`babs-submit`
+- :doc:`babs-status`
