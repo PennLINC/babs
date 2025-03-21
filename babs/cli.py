@@ -834,43 +834,6 @@ def _parse_merge():
     return parser
 
 
-def _parse_merge_doc():
-    """Create and configure the argument parser for the `babs merge` command documentation.
-
-    This version excludes developer-only parameters.
-
-    Returns
-    -------
-    argparse.ArgumentParser
-    """
-    parser = argparse.ArgumentParser(
-        description='Merge results and provenance from all successfully finished jobs.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        '--project_root',
-        '--project-root',
-        help=(
-            'Absolute path to the root of BABS project. '
-            "For example, '/path/to/my_BABS_project/' "
-            '(default is current working directory).'
-        ),
-        default=os.getcwd(),
-    )
-    parser.add_argument(
-        '--chunk-size',
-        '--chunk_size',
-        type=int,
-        default=2000,
-        help='Number of branches in a chunk when merging at a time.'
-        ' We recommend using default value.',
-    )
-    # Note: --trial-run parameter is deliberately omitted from documentation
-    # as it is for developers only
-
-    return parser
-
-
 def _enter_merge(argv=None):
     """Entry point for `babs-merge` command.
 
