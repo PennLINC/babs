@@ -1805,6 +1805,7 @@ class BABS:
         #   i.e., cannot find the branch to merge.
 
         if len(list_branches_jobs) == 0:
+            raise Exception(list_branches_all)
             raise Exception(
                 'There is no successfully finished job yet. Please run `babs submit` first.'
             )
