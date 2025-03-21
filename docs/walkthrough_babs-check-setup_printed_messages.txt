@@ -2,7 +2,7 @@ Will check setups of BABS project located at: /cbica/projects/BABS/babs_demo/my_
 Will submit a test job for testing; will take longer time.
 Below is the configuration information saved during `babs init` in file 'analysis/code/babs_proj_config.yaml':
 
-type_session: multi-ses
+processing_level: session
 type_system: sge
 input_ds:
   $INPUT_DATASET_#1:

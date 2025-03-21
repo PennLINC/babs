@@ -1,7 +1,7 @@
 DataLad version: 0.18.3
 
 project_root of this BABS project: /cbica/projects/BABS/babs_demo/my_BABS_project
-type of data of this BABS project: multi-ses
+type of data of this BABS project: session
 job scheduling system of this BABS project: sge
 
 

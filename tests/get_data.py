@@ -33,7 +33,7 @@ FN_TOYBIDSAPP_SIF_CIRCLECI = op.join(
 ORIGIN_INPUT_DATA = read_yaml(op.join(__location__, 'origin_input_dataset.yaml'))
 INFO_2ND_INPUT_DATA = {
     'which_input': 'fmriprep',
-    # "type_session": this should be consistent with the first dataset
+    # "processing_level": this should be consistent with the first dataset
     'if_input_local': False,
 }
 
@@ -43,7 +43,7 @@ TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'  # $HOME is '/root'
 # ====================================================================
 
 
-def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
+def get_input_data(which_input, processing_level, if_input_local, tmp_path_factory):
     """
     This is to get the path of input data.
 
@@ -52,8 +52,8 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     which_input: str
         'BIDS' - unzipped
         or 'fmriprep' or 'qsiprep' - zipped derivatives
-    type_session: str
-        'single-ses' or 'multi-ses'
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     if_input_local: bool
         if the input dataset is local [True] or remote (e.g., on OSF) [False]
     tmp_path_factory: fixture
@@ -67,7 +67,7 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     # Check if we're on CircleCI - always use cached data on CircleCI
     env_circleci = os.getenv('CIRCLECI')
     if env_circleci:
-        cached_path = op.join('/home/circleci/test_data', f'{which_input}_{type_session}')
+        cached_path = op.join('/home/circleci/test_data', f'{which_input}_{processing_level}')
         if op.exists(cached_path):
             return cached_path
         else:
@@ -79,9 +79,9 @@ def get_input_data(which_input, type_session, if_input_local, tmp_path_factory):
     # For non-CircleCI environments
     if not if_input_local:
         # directly grab from pre-defined YAML file:
-        path_in = ORIGIN_INPUT_DATA[which_input][type_session]
+        path_in = ORIGIN_INPUT_DATA[which_input][processing_level]
     else:
-        origin_in = ORIGIN_INPUT_DATA[which_input][type_session]
+        origin_in = ORIGIN_INPUT_DATA[which_input][processing_level]
         # create a temporary folder:
         path_in_pathlib = tmp_path_factory.mktemp(which_input)
         # turn into a string of absolute path (but seems not necessary):
