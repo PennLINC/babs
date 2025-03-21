@@ -29,7 +29,6 @@ singularity_run:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
     fmriprep_func: "24-1-1"   # folder 'fmriprep_func' will be zipped into 'sub-xx_(ses-yy_)fmriprep_func-24-1-1.zip'
-    freesurfer: "24-1-1"   # folder 'freesurfer' will be zipped into 'sub-xx_(ses-yy_)freesurfer-20-2-3.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
