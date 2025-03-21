@@ -139,7 +139,7 @@ an SGE cluster:
         --datasets BIDS=/path/to/BIDS_datalad_dataset \
         --container_ds /path/to/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
-        --container_config_yaml_file /path/to/container_toybidsapp.yaml \
+        --container_config /path/to/container_toybidsapp.yaml \
         --type_session multi-ses \
         --type_system sge \
         /path/to/a/folder/holding/BABS/project/my_BABS_project
