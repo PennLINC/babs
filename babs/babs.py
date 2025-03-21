@@ -68,7 +68,7 @@ class BABS:
 
         Parameters
         ----------
-        project_root: str
+        project_root: Path
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
@@ -129,17 +129,17 @@ class BABS:
         type_system = validate_type_system(type_system)
 
         # attributes:
-        self.project_root = project_root
+        self.project_root = str(project_root)
         self.type_session = type_session
         self.type_system = type_system
 
-        self.analysis_path = op.join(project_root, 'analysis')
+        self.analysis_path = op.join(self.project_root, 'analysis')
         self.analysis_datalad_handle = None
 
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
 
-        self.input_ria_path = op.join(project_root, 'input_ria')
-        self.output_ria_path = op.join(project_root, 'output_ria')
+        self.input_ria_path = op.join(self.project_root, 'input_ria')
+        self.output_ria_path = op.join(self.project_root, 'output_ria')
 
         self.input_ria_url = 'ria+file://' + self.input_ria_path
         self.output_ria_url = 'ria+file://' + self.output_ria_path

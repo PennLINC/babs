@@ -4,17 +4,17 @@ import argparse
 import os
 import traceback
 import warnings
+from functools import partial
+from pathlib import Path
 
 import pandas as pd
 from filelock import FileLock, Timeout
 
 from babs.babs import BABS, InputDatasets, System
-
-# import sys
-# from datalad.interface.base import build_doc
-# from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import (
     ToDict,
+    _path_does_not_exist,
+    _path_exists,
     create_job_status_csv,
     get_datalad_version,
     read_job_status_csv,
@@ -36,19 +36,16 @@ def _parse_init():
         description='Initialize a BABS project and bootstrap scripts that will be used later.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    PathDoesNotExist = partial(_path_does_not_exist, parser=parser)
+
     parser.add_argument(
-        '--where_project',
-        '--where-project',
-        help='Absolute path to the directory where the babs project will locate',
-        required=True,
-    )
-    parser.add_argument(
-        '--project_name',
-        '--project-name',
-        help='The name of the babs project; '
-        'this folder will be automatically created in the directory'
-        ' specified in ``--where_project``.',
-        required=True,
+        'project_root',
+        type=PathDoesNotExist,
+        metavar='PATH',
+        help=(
+            'Absolute path to the directory where the BABS project will be located. '
+            'This folder will be automatically created.'
+        ),
     )
     parser.add_argument(
         '--datasets',
@@ -159,8 +156,7 @@ def _enter_init(argv=None):
 
 
 def babs_init_main(
-    where_project: str,
-    project_name: str,
+    project_root: Path,
     datasets: dict,
     list_sub_file: str,
     container_ds: str,
@@ -174,10 +170,9 @@ def babs_init_main(
 
     Parameters
     ----------
-    where_project: str
-        absolute path to the directory where the project will be created
-    project_name: str
-        the babs project name
+    project_root : pathlib.Path
+        The path to the directory where the BABS project will be located.
+        This folder will be automatically created.
     datasets : dictionary
         Keys are the names of the input BIDS datasets, and values are the paths to the input BIDS
         datasets.
@@ -204,27 +199,25 @@ def babs_init_main(
     # =================================================================
     # Sanity checks:
     # =================================================================
-    project_root = os.path.join(where_project, project_name)
-
     # check if it exists: if so, raise error
-    if os.path.exists(project_root):
-        raise Exception(
-            "The folder `--project_name` '"
-            + project_name
-            + "' already exists in the directory"
-            + " `--where_project` '"
-            + where_project
-            + "'!"
-            + " `babs init` won't proceed to overwrite this folder."
+    if project_root.exists():
+        raise ValueError(
+            f"The project folder '{project_root}' already exists! "
+            "`babs init` won't proceed to overwrite this folder."
         )
 
-    # check if `where_project` exists:
-    if not os.path.exists(where_project):
-        raise Exception('Path provided in `--where_project` does not exist!')
+    # check if parent directory exists:
+    if not project_root.parent.exists():
+        raise ValueError(
+            f"The parent folder '{project_root.parent}' does not exist! `babs init` won't proceed."
+        )
 
-    # check if `where_project` is writable:
-    if not os.access(where_project, os.W_OK):
-        raise Exception('Path provided in `--where_project` is not writable!')
+    # check if parent directory is writable:
+    if not os.access(project_root.parent, os.W_OK):
+        raise ValueError(
+            f"The parent folder '{project_root.parent}' is not writable! "
+            "`babs init` won't proceed."
+        )
 
     # print datalad version:
     #   if no datalad is installed, will raise error
@@ -264,7 +257,11 @@ def babs_init_main(
     #   if failed, and if not `keep_if_failed`: delete the BABS project `babs init` creates!
     try:
         babs_proj.babs_bootstrap(
-            input_ds, container_ds, container_name, container_config_yaml_file, system
+            input_ds,
+            container_ds,
+            container_name,
+            container_config_yaml_file,
+            system,
         )
     except Exception:
         print('\n`babs init` failed! Below is the error message:')
@@ -300,15 +297,18 @@ def _parse_check_setup():
         description='Validate setups created by ``babs init``.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
-        '--project_root',
-        '--project-root',
+        'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
-        default=os.getcwd(),
+        nargs='?',
+        default=Path.cwd(),
+        type=PathExists,
     )
     parser.add_argument(
         '--job_test',
@@ -378,15 +378,18 @@ def _parse_submit():
         description='Submit jobs to cluster compute nodes.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
-        '--project_root',
-        '--project-root',
+        'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
-        default=os.getcwd(),
+        nargs='?',
+        default=Path.cwd(),
+        type=PathExists,
     )
 
     # --count, --job: can only request one of them and none of them are required.
@@ -536,20 +539,22 @@ def _parse_status():
     -------
     argparse.ArgumentParser
     """
-
     parser = argparse.ArgumentParser(
         description='Check job status in a BABS project.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
-        '--project_root',
-        '--project-root',
+        'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
-        default=os.getcwd(),
+        nargs='?',
+        default=Path.cwd(),
+        type=PathExists,
     )
     parser.add_argument(
         '--resubmit',
@@ -799,15 +804,18 @@ def _parse_merge():
         description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
-        '--project_root',
-        '--project-root',
+        'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
-        default=os.getcwd(),
+        nargs='?',
+        default=Path.cwd(),
+        type=PathExists,
     )
     parser.add_argument(
         '--chunk-size',
@@ -885,15 +893,18 @@ def _parse_unzip():
         description='Unzip results zip files and extracts desired files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    PathExists = partial(_path_exists, parser=parser)
     parser.add_argument(
-        '--project_root',
-        '--project-root',
+        'project_root',
+        metavar='PATH',
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
-        default=os.getcwd(),
+        nargs='?',
+        default=Path.cwd(),
+        type=PathExists,
     )
     parser.add_argument(
         '--container_config_yaml_file',
@@ -979,7 +990,7 @@ def get_existing_babs_proj(project_root):
     # Sanity check: the path `project_root` exists:
     if not os.path.exists(project_root):
         raise Exception(
-            '`--project-root` does not exist! Requested `--project-root` was: ' + project_root
+            f'`project_root` does not exist! Requested `project_root` was: {project_root}'
         )
 
     # Read configurations of BABS project from saved yaml file:

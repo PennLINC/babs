@@ -27,13 +27,12 @@ Example commands
 Basic use
 -------------
 
-When only providing the required argument ``--project-root``,
+When only providing the required argument ``project_root``,
 you'll only get job status summary (i.e., number of jobs finished/pending/running/failed):
 
 .. code-block:: bash
 
-    babs status \
-        --project-root /path/to/my_BABS_project
+    babs status /path/to/my_BABS_project
 
 Failed job auditing
 ------------------------
@@ -42,7 +41,7 @@ Only use alert messages in log files for failed job auditing:
 .. code-block:: bash
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/container_config.yaml
 
 Use alert messages in log files + Perform job account for jobs
@@ -51,7 +50,7 @@ without alert messages in log files:
 .. code-block:: bash
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --container-config-yaml-file /path/to/container_config.yaml \
         --job-account
 
@@ -72,7 +71,7 @@ Resubmit all the failed jobs:
 .. code-block:: bash
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --resubmit failed
 
 Resubmit specific jobs that failed or are pending:
@@ -83,7 +82,7 @@ and you hope to resubmit them:
 .. code-block:: bash
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --resubmit-job sub-01 \
         --resubmit-job sub-02
 
@@ -93,7 +92,7 @@ and you hope to resubmit them:
 .. code-block:: bash
 
     babs status \
-        --project-root /path/to/my_BABS_project \
+        /path/to/my_BABS_project \
         --resubmit-job sub-01 ses-A \
         --resubmit-job sub-02 ses-B
 

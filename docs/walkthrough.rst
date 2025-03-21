@@ -431,18 +431,17 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 ..  code-block:: console
     :linenos:
-    :emphasize-lines: 10
+    :emphasize-lines: 9
 
     $ cd ~/babs_demo
     $ babs init \
-        --where_project ${PWD} \
-        --project_name my_BABS_project \
         --datasets BIDS=https://osf.io/w2nu3/ \
         --container_ds ${PWD}/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file ${PWD}/config_toybidsapp_demo.yaml \
         --type_session multi-ses \
-        --type_system sge
+        --type_system sge \
+        ${PWD}/my_BABS_project
 
 .. dropdown:: If there is no Internet connection on compute nodes
 
@@ -599,14 +598,14 @@ that the environment and cluster resources specified in the YAML file are workab
 Note that starting from this step in this example walkthrough, without further instructions,
 all BABS functions will be called from where the BABS project
 is located: ``~/babs_demo/my_BABS_project``.
-This is to make sure you can directly use ``${PWD}`` for argument ``--project-root``.
+This is to make sure you can directly use ``${PWD}`` for argument ``project_root``.
 Therefore, please make sure you switch to this directory before calling them.
 
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
     $ babs check-setup \
-        --project-root ${PWD} \
+        ${PWD} \
         --job-test
 
 It might take a bit time to finish, depending on how busy your cluster is,
@@ -662,7 +661,7 @@ so BABS will submit one job for each session.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs status --project-root $PWD
+    $ babs status $PWD
 
 You'll see:
 
@@ -681,7 +680,7 @@ If you would like to submit all jobs, you can use the ``--all`` argument.
 
 .. code-block:: console
 
-    $ babs submit --project-root $PWD
+    $ babs submit $PWD
 
 You'll see something like this (the job ID will probably be different):
 
@@ -708,7 +707,7 @@ You can check the job status via ``babs status``:
 
 ..  code-block:: console
 
-    $ babs status --project-root $PWD
+    $ babs status $PWD
 
 ..
    when pending::
@@ -748,7 +747,7 @@ Now, you can submit all other jobs by specifying ``--all``:
 
 .. code-block:: console
 
-    $ babs submit --project-root $PWD --all
+    $ babs submit $PWD --all
 
 ..
     printed messages you'll see:
@@ -774,7 +773,7 @@ Now, you can submit all other jobs by specifying ``--all``:
     4  toy_sub-02_ses-B.*4649006                   NaN            NaN          NaN
     5  toy_sub-02_ses-D.*4649009                   NaN            NaN          NaN
 
-You can again call ``babs status --project-root $PWD`` to check status.
+You can again call ``babs status $PWD`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
 
 ..  code-block:: console
@@ -830,7 +829,7 @@ We now run ``babs merge`` in the root directory of ``my_BABS_project``:
 
 ..  code-block:: console
 
-    $ babs merge --project-root $PWD
+    $ babs merge $PWD
 
 If it was successful, you'll see this message at the end:
 
