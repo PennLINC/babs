@@ -25,8 +25,6 @@ Example commands
     babs merge \
         --project-root /path/to/my_BABS_project
 
-It's usually not necessary to add the ``--chunk-size`` argument,
-as it's mainly for developers to use.
 
 **********************
 Detailed description

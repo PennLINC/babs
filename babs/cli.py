@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import sys
 import traceback
 import warnings
 
@@ -833,14 +832,6 @@ def _parse_merge():
         ' This option should only be used by developers for testing purpose.'
         " Users: please don't turn this on!",
     )
-    # Remove arguments dynamically when Sphinx is running
-    if 'sphinx-build' in sys.argv[0]:
-        parser._actions = [a for a in parser._actions if a.dest not in ['trial_run', 'trial-run']]
-        parser._option_string_actions = {
-            k: v
-            for k, v in parser._option_string_actions.items()
-            if v.dest not in ['trial_run', 'trial-run']
-        }
 
     return parser
 
