@@ -32,7 +32,7 @@ babs init \
     --datasets BIDS="${DATA_DIR}/BIDS_multi-ses" \
     --container_ds "${PWD}"/toybidsapp-container \
     --container_name toybidsapp-0-0-7 \
-    --container_config_yaml_file "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
+    --container_config "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
     --type_session multi-ses \
     --type_system slurm \
     "${PWD}/${SUBPROJECT_NAME}"
