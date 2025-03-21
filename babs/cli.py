@@ -1069,7 +1069,8 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     ----------
     df: pd.DataFrame
         i.e., `df_job_specific`
-        list of participant_id (and session_id, if multi-ses) that the user requests to submit or resubmit
+        list of participant_id (and session_id, if multi-ses)
+        that the user requests to submit or resubmit
     job_status_path_abs: str
         absolute path to the `job_status.tsv`
     type_session: str
