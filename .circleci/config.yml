@@ -86,6 +86,7 @@ jobs:
           when: always
           command: |
             TEST_ARTIFACTS_DIR=/home/circleci/testing/test_project/analysis
+            chmod -R 777 $TEST_ARTIFACTS_DIR
             # Find and remove all .git directories recursively
             find $TEST_ARTIFACTS_DIR -type d -name ".git" -exec rm -rf {} +
             # Also remove any .git files

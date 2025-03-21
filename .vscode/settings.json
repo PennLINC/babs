@@ -19,5 +19,13 @@
             "source.fixAll": "explicit",
             "source.organizeImports": "explicit"
         }
+    },
+    "[jinja]": {
+        "editor.formatOnSave": false,
+        "editor.wordWrap": "off"
+    },
+    "[jinja-html]": {
+        "editor.formatOnSave": false,
+        "editor.wordWrap": "off"
     }
 }
