@@ -17,7 +17,4 @@ datalad run \
 	-o ${subid}{% if type_session == 'multi-ses' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip \
 {% endfor %}
 	-m "{{ container.container_name }} ${subid}{% if type_session == 'multi-ses' %} ${sesid}{% endif %}" \
-	"bash ./code/{{ container.container_name }}_zip.sh \
-		${subid}{% if type_session == 'multi-ses' %} ${sesid}{% endif %}\
-{% for dataset in input_datasets %}{% if dataset.is_zipped %} \
-		${ {{ dataset.name }}_ZIP}{%- endif -%}{%- endfor -%}"
+	"bash ./code/{{ container.container_name }}_zip.sh ${subid}{% if type_session == 'multi-ses' %} ${sesid}{% endif %} {% for dataset in input_datasets %}{% if dataset.is_zipped %} ${ {{ dataset.name }}_ZIP}{%endif%}{%endfor%}"

@@ -58,10 +58,10 @@ echo "# Pull down the input subject (or dataset) but don't retrieve data content
 {% for i in range(input_ds.num_ds) %}
 {% if not input_ds.df.loc[i, 'is_zipped'] %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf $(find . -type d -name 'sub*' | grep -v $subid))
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs -r rm -rf)
 {% else %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -f $(ls sub-*.zip | grep -v ${subid}))
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type f -name 'sub*' | grep -v "$subid" | xargs -r rm -f)
 {% endif %}
 {% endfor %}
 

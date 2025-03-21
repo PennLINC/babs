@@ -95,6 +95,7 @@ jobs:
             sudo find $TEST_ARTIFACTS_DIR -type f -name ".gitignore" -exec rm -f {} +
             # Remove any .gitattributes files
             sudo find $TEST_ARTIFACTS_DIR -type f -name ".gitattributes" -exec rm -f {} +
+            sudo find $TEST_ARTIFACTS_DIR/inputs/data -type d -name "sub-*" -exec rm -rf {} +
 
       - store_artifacts:
           path: /home/circleci/testing/test_project/analysis
