@@ -1,5 +1,10 @@
 {{ cmd_bashhead_resources }}
 
+# Basic info for the run:
+echo Starting directory "$PWD"
+echo python located at $(which python)
+
+# Script preambles:
 {{ cmd_script_preamble }}
 
 # Fail whenever something is fishy, use -x to get verbose logfiles:

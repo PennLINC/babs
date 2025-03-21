@@ -81,6 +81,14 @@ jobs:
                 pennlinc/slurm-docker-ci:unstable \
                 /tests/tests/e2e-slurm/container/walkthrough-tests.sh
 
+      - run:
+          name: clean up test artifacts
+          command: |
+            TEST_ARTIFACTS_DIR=/home/circleci/testing/test_project/analysis
+            rm -rf $TEST_ARTIFACTS_DIR/inputs/data/BIDS/.git
+            rm -rf $TEST_ARTIFACTS_DIR/containers/*
+            rm -rf $TEST_ARTIFACTS_DIR/.git
+
       - store_artifacts:
           path: /home/circleci/testing/test_project/analysis
           destination: test-artifacts
