@@ -7,7 +7,7 @@ from unittest import mock
 
 import pytest
 
-sys.path.append("..")
+sys.path.append('..')
 from get_data import (  # noqa
     INFO_2ND_INPUT_DATA,
     LIST_WHICH_BIDSAPP,
@@ -28,29 +28,29 @@ from babs.utils import read_yaml  # noqa
 @pytest.mark.order(index=1)
 @pytest.mark.parametrize(
     (
-        "which_bidsapp",
-        "which_input",
-        "processing_level",
-        "if_input_local",
-        "if_two_input",
+        'which_bidsapp',
+        'which_input',
+        'processing_level',
+        'if_input_local',
+        'if_two_input',
     ),
     #  test toybidsapp: BIDS/zipped x single/session:
     #    the input data will also be remote by default:
     [
-        ("toybidsapp", "BIDS", "subject", False, False),
-        ("toybidsapp", "BIDS", "session", False, False),
-        ("toybidsapp", "fmriprep", "subject", False, False),
-        ("toybidsapp", "fmriprep", "session", False, False),
+        ('toybidsapp', 'BIDS', 'subject', False, False),
+        ('toybidsapp', 'BIDS', 'session', False, False),
+        ('toybidsapp', 'fmriprep', 'subject', False, False),
+        ('toybidsapp', 'fmriprep', 'session', False, False),
         # test if input is local:
-        ("toybidsapp", "BIDS", "subject", True, False),
+        ('toybidsapp', 'BIDS', 'subject', True, False),
         # test fmriprep: single/session
-        ("fmriprep", "BIDS", "subject", False, False),
-        ("fmriprep", "BIDS", "session", False, False),
+        ('fmriprep', 'BIDS', 'subject', False, False),
+        ('fmriprep', 'BIDS', 'session', False, False),
         # test qsiprep session: remove sessions without dMRI
-        ("qsiprep", "BIDS", "session", False, False),
+        ('qsiprep', 'BIDS', 'session', False, False),
         # test 2 input datasets (2nd one will be zipped fmriprep derivatives):
-        ("fmriprep", "BIDS", "subject", False, True),
-        ("fmriprep", "BIDS", "session", False, True),
+        ('fmriprep', 'BIDS', 'subject', False, True),
+        ('fmriprep', 'BIDS', 'session', False, True),
     ],
 )
 def test_babs_init(
@@ -104,52 +104,48 @@ def test_babs_init(
     input_ds_cli = {which_input: path_in}
     if if_two_input:
         # get another input dataset: qsiprep derivatives
-        assert (
-            INFO_2ND_INPUT_DATA["which_input"] != which_input
-        )  # avoid repeated input ds name
+        assert INFO_2ND_INPUT_DATA['which_input'] != which_input  # avoid repeated input ds name
         path_in_2nd = get_input_data(
-            INFO_2ND_INPUT_DATA["which_input"],
+            INFO_2ND_INPUT_DATA['which_input'],
             processing_level,  # should be consistent with the 1st dataset
-            INFO_2ND_INPUT_DATA["if_input_local"],
+            INFO_2ND_INPUT_DATA['if_input_local'],
             tmp_path_factory,
         )
-        input_ds_cli[INFO_2ND_INPUT_DATA["which_input"]] = path_in_2nd
+        input_ds_cli[INFO_2ND_INPUT_DATA['which_input']] = path_in_2nd
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
     assert op.exists(container_ds_path)
-    assert op.exists(op.join(container_ds_path, ".datalad/config"))
+    assert op.exists(op.join(container_ds_path, '.datalad/config'))
 
     # Preparation of freesurfer: for fmriprep and qsiprep:
     # check if `--fs-license-file` is included in YAML file:
     container_config_yaml_filename = get_container_config_yaml_filename(
-        which_bidsapp, which_input, if_two_input, type_system="slurm"
+        which_bidsapp, which_input, if_two_input, type_system='slurm'
     )  # TODO: also test slurm!
     container_config_yaml_file = op.join(
-        op.dirname(__location__), "notebooks", container_config_yaml_filename
+        op.dirname(__location__), 'notebooks', container_config_yaml_filename
     )
     assert op.exists(container_config_yaml_file)
     container_config_yaml = read_yaml(container_config_yaml_file)
 
-    if "--fs-license-file" in container_config_yaml["singularity_run"]:
+    if '--fs-license-file' in container_config_yaml['singularity_run']:
         # ^^ this way is consistent with BABS re: how to determine if fs license is needed;
         flag_requested_fs_license = True
-        str_fs_license_file = container_config_yaml["singularity_run"][
-            "--fs-license-file"
-        ]
+        str_fs_license_file = container_config_yaml['singularity_run']['--fs-license-file']
     else:
         flag_requested_fs_license = False
-        str_fs_license_file = ""
+        str_fs_license_file = ''
 
     # Preparation of env variable `TEMPLATEFLOW_HOME`:
-    os.environ["TEMPLATEFLOW_HOME"] = TEMPLATEFLOW_HOME
-    assert os.getenv("TEMPLATEFLOW_HOME") is not None  # assert env var has been set
+    os.environ['TEMPLATEFLOW_HOME'] = TEMPLATEFLOW_HOME
+    assert os.getenv('TEMPLATEFLOW_HOME') is not None  # assert env var has been set
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
     # Get the cli of `babs init`:
     where_project = tmp_path.absolute().as_posix()  # turn into a string
-    project_name = "my_babs_project"
+    project_name = 'my_babs_project'
     project_root = op.join(where_project, project_name)
-    container_name = which_bidsapp + "-" + TOYBIDSAPP_VERSION_DASH
+    container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
 
     babs_init_opts = argparse.Namespace(
         where_project=where_project,
@@ -160,24 +156,20 @@ def test_babs_init(
         container_name=container_name,
         container_config_yaml_file=container_config_yaml_file,
         processing_level=processing_level,
-        type_system="slurm",
+        type_system='slurm',
         keep_if_failed=False,
     )
 
     # run `babs init`:
-    with mock.patch.object(
-        argparse.ArgumentParser, "parse_args", return_value=babs_init_opts
-    ):
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
         _enter_init()
 
     # ================== ASSERT ============================
     # Assert by running `babs check-setup`
-    babs_check_setup_opts = argparse.Namespace(
-        project_root=project_root, job_test=False
-    )
+    babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=False)
     # Run `babs check-setup`:
     with mock.patch.object(
-        argparse.ArgumentParser, "parse_args", return_value=babs_check_setup_opts
+        argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
     ):
         _enter_check_setup()
 
@@ -190,39 +182,31 @@ def test_babs_init(
     # 3) for freesurfer: flag `--fs-license-file`
 
     # first, read in `<container_name>-0-0-0_zip.sh`:
-    fn_bash_container_zip = op.join(
-        project_root, "analysis/code", container_name + "_zip.sh"
-    )
+    fn_bash_container_zip = op.join(project_root, 'analysis/code', container_name + '_zip.sh')
     file_bash_container_zip = open(fn_bash_container_zip)
     lines_bash_container_zip = file_bash_container_zip.readlines()
     file_bash_container_zip.close()
     # check:
     if_bind_templateflow = False  # `singularity run -B` to bind a path to container
     if_bind_freesurfer = False
-    str_bind_freesurfer = (
-        "-B " + str_fs_license_file + ":/SGLR/FREESURFER_HOME/license.txt"
-    )
+    str_bind_freesurfer = '-B ' + str_fs_license_file + ':/SGLR/FREESURFER_HOME/license.txt'
     print(str_bind_freesurfer)  # FOR DEBUGGING
 
-    if_set_singu_templateflow = (
-        False  # `singularity run --env` to set env var within container
-    )
+    if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
     if_generate_bidsfilterfile = False
     if_flag_bidsfilterfile = False
     if_flag_fs_license = False
-    flag_fs_license = "--fs-license-file /SGLR/FREESURFER_HOME/license.txt"
+    flag_fs_license = '--fs-license-file /SGLR/FREESURFER_HOME/license.txt'
     for line in lines_bash_container_zip:
-        if "--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME" in line:
+        if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
             if_set_singu_templateflow = True
-        if all(
-            ele in line for ele in ["-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME"]
-        ):
+        if all(ele in line for ele in ['-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME']):
             # previously, `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
             # but now change to new bind, `-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME \`
             if_bind_templateflow = True
         if str_bind_freesurfer in line:
             if_bind_freesurfer = True
-        if "filterfile=${PWD}/${sesid}_filter.json" in line:
+        if 'filterfile=${PWD}/${sesid}_filter.json' in line:
             if_generate_bidsfilterfile = True
         if '--bids-filter-file "${filterfile}"' in line:
             if_flag_bidsfilterfile = True
@@ -241,14 +225,14 @@ def test_babs_init(
         " with `--env` in '" + container_name + "_zip.sh'."
     )
     # 2) BIDS filter file: only when qsiprep/fmriprep & session:
-    if (which_bidsapp in ["qsiprep", "fmriprep"]) & (processing_level == "session"):
+    if (which_bidsapp in ['qsiprep', 'fmriprep']) & (processing_level == 'session'):
         assert if_generate_bidsfilterfile, (
             "This is BIDS App '"
             + which_bidsapp
             + "' and "
             + processing_level
-            + ","
-            + " however, filterfile to be used in `--bids-filter-file` was not generated"
+            + ','
+            + ' however, filterfile to be used in `--bids-filter-file` was not generated'
             + " in '"
             + container_name
             + "_zip.sh'."
@@ -258,8 +242,8 @@ def test_babs_init(
             + which_bidsapp
             + "' and "
             + processing_level
-            + ","
-            + " however, flag `--bids-filter-file` was not included in `singularity run`"
+            + ','
+            + ' however, flag `--bids-filter-file` was not included in `singularity run`'
             + " in '"
             + container_name
             + "_zip.sh'."
@@ -270,8 +254,8 @@ def test_babs_init(
             + which_bidsapp
             + "' and "
             + processing_level
-            + ","
-            + " so `--bids-filter-file` should not be generated or used in `singularity run`"
+            + ','
+            + ' so `--bids-filter-file` should not be generated or used in `singularity run`'
             + " in '"
             + container_name
             + "_zip.sh'."
@@ -285,29 +269,27 @@ def test_babs_init(
         )
         assert if_flag_fs_license, (
             "`--fs-license-file` was requested in container's YAML file,"
-            " but flag `" + flag_fs_license + "` was not found in the `singularity run`"
+            ' but flag `' + flag_fs_license + '` was not found in the `singularity run`'
             " in '" + container_name + "_zip.sh'."
             " Path to YAML file: '" + container_config_yaml_file + "'."
         )
 
     # Check `sub_ses_final_inclu.csv`:
     #   if qsiprep + session:  one session without dMRI should not be included
-    if (which_bidsapp == "qsiprep") & (processing_level == "session"):
+    if (which_bidsapp == 'qsiprep') & (processing_level == 'session'):
         # load `sub_ses_final_inclu.csv`:
-        fn_list_final_inclu = op.join(
-            project_root, "analysis/code", "sub_ses_final_inclu.csv"
-        )
+        fn_list_final_inclu = op.join(project_root, 'analysis/code', 'sub_ses_final_inclu.csv')
         file_list_final_inclu = open(fn_list_final_inclu)
         lines_list_final_inclu = file_list_final_inclu.readlines()
         file_list_final_inclu.close()
         for line in lines_list_final_inclu:
             if_inclu_missing_session = False
-            if "sub-02,ses-A" in line:
+            if 'sub-02,ses-A' in line:
                 if_inclu_missing_session = True
         assert not if_inclu_missing_session, (
             "'sub-02,ses-A' without dMRI was included in the BABS project of "
             + which_bidsapp
-            + ", "
+            + ', '
             + processing_level
         )
 

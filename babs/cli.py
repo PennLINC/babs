@@ -33,97 +33,97 @@ def _parse_init():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description="Initialize a BABS project and bootstrap scripts that will be used later.",
+        description='Initialize a BABS project and bootstrap scripts that will be used later.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--where_project",
-        "--where-project",
-        help="Absolute path to the directory where the babs project will locate",
+        '--where_project',
+        '--where-project',
+        help='Absolute path to the directory where the babs project will locate',
         required=True,
     )
     parser.add_argument(
-        "--project_name",
-        "--project-name",
-        help="The name of the babs project; "
-        "this folder will be automatically created in the directory"
-        " specified in ``--where_project``.",
+        '--project_name',
+        '--project-name',
+        help='The name of the babs project; '
+        'this folder will be automatically created in the directory'
+        ' specified in ``--where_project``.',
         required=True,
     )
     parser.add_argument(
-        "--datasets",
+        '--datasets',
         action=ToDict,
-        metavar="NAME=PATH",
+        metavar='NAME=PATH',
         type=str,
-        nargs="+",
+        nargs='+',
         help=(
-            "Input BIDS datasets. "
-            "These must be provided as named folders "
-            "(e.g., `--datasets smriprep=/path/to/smriprep`)."
+            'Input BIDS datasets. '
+            'These must be provided as named folders '
+            '(e.g., `--datasets smriprep=/path/to/smriprep`).'
         ),
         required=True,
     )
     parser.add_argument(
-        "--list_sub_file",
-        "--list-sub-file",  # optional flag
+        '--list_sub_file',
+        '--list-sub-file',  # optional flag
         type=str,
-        help="Path to the CSV file that lists the subject (and sessions) to analyze; "
-        " If there is no such file, please not to specify this flag."
+        help='Path to the CSV file that lists the subject (and sessions) to analyze; '
+        ' If there is no such file, please not to specify this flag.'
         " Single-session data: column of 'sub_id';"
         " Multi-session data: columns of 'sub_id' and 'ses_id'.",
     )
     parser.add_argument(
-        "--container_ds",
-        "--container-ds",
-        help="Path to the container DataLad dataset",
+        '--container_ds',
+        '--container-ds',
+        help='Path to the container DataLad dataset',
         required=True,
     )
     parser.add_argument(
-        "--container_name",
-        "--container-name",
-        help="The name of the BIDS App container, i.e.,"
-        " the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``."
+        '--container_name',
+        '--container-name',
+        help='The name of the BIDS App container, i.e.,'
+        ' the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``.'
         " Importantly, this should include the BIDS App's name"
-        " to make sure the bootstrap scripts are set up correctly;"
-        " Also, the version number should be added, too."
-        " ``babs init`` is not case sensitive to this ``--container_name``."
-        " Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.",
+        ' to make sure the bootstrap scripts are set up correctly;'
+        ' Also, the version number should be added, too.'
+        ' ``babs init`` is not case sensitive to this ``--container_name``.'
+        ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.',
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True,
     )
     parser.add_argument(
-        "--container_config_yaml_file",
-        "--container-config-yaml-file",
-        help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container",
+        '--container_config_yaml_file',
+        '--container-config-yaml-file',
+        help='Path to a YAML file that contains the configurations'
+        ' of how to run the BIDS App container',
     )
     parser.add_argument(
-        "--processing_level",
-        "--processing-level",
+        '--processing_level',
+        '--processing-level',
         choices=[
-            "subject",
-            "session",
+            'subject',
+            'session',
         ],
-        help="Whether jobs should be run on a per-subject or per-session (within subject) basis.",
+        help='Whether jobs should be run on a per-subject or per-session (within subject) basis.',
         required=True,
     )
     parser.add_argument(
-        "--type_system",
-        "--type-system",
-        choices=["sge", "slurm"],
-        help="The name of the job scheduling type_system that you will use.",
+        '--type_system',
+        '--type-system',
+        choices=['sge', 'slurm'],
+        help='The name of the job scheduling type_system that you will use.',
         required=True,
     )
     parser.add_argument(
-        "--keep_if_failed",
-        "--keep-if-failed",
-        action="store_true",
+        '--keep_if_failed',
+        '--keep-if-failed',
+        action='store_true',
         # ^^ if `--keep-if-failed` is specified, args.keep_if_failed = True; otherwise, False
-        help="If ``babs init`` fails with error, whether to keep the created BABS project."
+        help='If ``babs init`` fails with error, whether to keep the created BABS project.'
         " By default, you don't need to turn this option on."
-        " However, when ``babs init`` fails and you hope to use ``babs check-setup``"
-        " to diagnose, please turn it on to rerun ``babs init``,"
-        " then run ``babs check-setup``."
+        ' However, when ``babs init`` fails and you hope to use ``babs check-setup``'
+        ' to diagnose, please turn it on to rerun ``babs init``,'
+        ' then run ``babs check-setup``.'
         " Please refer to section below 'What if ``babs init`` fails?' for details.",
         #      ^^ in `babs init.rst`, pointed to below section for more
     )
@@ -138,7 +138,7 @@ def _enter_init(argv=None):
     Please use `babs init` instead.
     """
     warnings.warn(
-        "babs-init is deprecated and will be removed in the future. Please use babs init.",
+        'babs-init is deprecated and will be removed in the future. Please use babs init.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -209,15 +209,15 @@ def babs_init_main(
 
     # check if `where_project` exists:
     if not os.path.exists(where_project):
-        raise Exception("Path provided in `--where_project` does not exist!")
+        raise Exception('Path provided in `--where_project` does not exist!')
 
     # check if `where_project` is writable:
     if not os.access(where_project, os.W_OK):
-        raise Exception("Path provided in `--where_project` is not writable!")
+        raise Exception('Path provided in `--where_project` is not writable!')
 
     # print datalad version:
     #   if no datalad is installed, will raise error
-    print("DataLad version: " + get_datalad_version())
+    print('DataLad version: ' + get_datalad_version())
 
     # validate `processing_level`:
     processing_level = validate_processing_level(processing_level)
@@ -242,11 +242,11 @@ def babs_init_main(
     system = System(type_system)
 
     # print out key information for visual check:
-    print("")
-    print("project_root of this BABS project: " + babs_proj.project_root)
-    print("processing level of this BABS project: " + babs_proj.processing_level)
-    print("job scheduling system of this BABS project: " + babs_proj.type_system)
-    print("")
+    print('')
+    print('project_root of this BABS project: ' + babs_proj.project_root)
+    print('processing level of this BABS project: ' + babs_proj.processing_level)
+    print('job scheduling system of this BABS project: ' + babs_proj.type_system)
+    print('')
 
     # Call method `babs_bootstrap()`:
     #   if success, good!
@@ -256,24 +256,22 @@ def babs_init_main(
             input_ds, container_ds, container_name, container_config_yaml_file, system
         )
     except Exception:
-        print("\n`babs init` failed! Below is the error message:")
+        print('\n`babs init` failed! Below is the error message:')
         traceback.print_exc()  # print out the traceback error messages
         if not keep_if_failed:
             # clean up:
-            print("\nCleaning up created BABS project...")
+            print('\nCleaning up created BABS project...')
             babs_proj.clean_up(input_ds)
             print(
-                "Please check the error messages above!"
-                " Then fix the problem, and rerun `babs init`."
+                'Please check the error messages above!'
+                ' Then fix the problem, and rerun `babs init`.'
             )
         else:
+            print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
             print(
-                "\n`--keep-if-failed` is requested, so not to clean up created BABS project."
-            )
-            print(
-                "Please check the error messages above!"
-                " Then fix the problem, delete this failed BABS project,"
-                " and rerun `babs init`."
+                'Please check the error messages above!'
+                ' Then fix the problem, delete this failed BABS project,'
+                ' and rerun `babs init`.'
             )
 
 
@@ -288,25 +286,25 @@ def _parse_check_setup():
     """
 
     parser = argparse.ArgumentParser(
-        description="Validate setups created by ``babs init``.",
+        description='Validate setups created by ``babs init``.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--project_root",
-        "--project-root",
+        '--project_root',
+        '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
         default=os.getcwd(),
     )
     parser.add_argument(
-        "--job_test",
-        "--job-test",
-        action="store_true",
+        '--job_test',
+        '--job-test',
+        action='store_true',
         # ^^ if `--job-test` is specified, args.job_test = True; otherwise, False
-        help="Whether to submit and run a test job. Will take longer time if doing so.",
+        help='Whether to submit and run a test job. Will take longer time if doing so.',
     )
 
     return parser
@@ -319,8 +317,8 @@ def _enter_check_setup(argv=None):
     Please use `babs check-setup` instead.
     """
     warnings.warn(
-        "babs-check-setup is deprecated and will be removed in the future. "
-        "Please use babs check-setup.",
+        'babs-check-setup is deprecated and will be removed in the future. '
+        'Please use babs check-setup.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -366,16 +364,16 @@ def _parse_submit():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description="Submit jobs to cluster compute nodes.",
+        description='Submit jobs to cluster compute nodes.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--project_root",
-        "--project-root",
+        '--project_root',
+        '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
         default=os.getcwd(),
     )
@@ -383,25 +381,25 @@ def _parse_submit():
     # --count, --job: can only request one of them and none of them are required.
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
-        "--count",
+        '--count',
         type=int,
-        help="Number of jobs to submit. It should be a positive integer.",
+        help='Number of jobs to submit. It should be a positive integer.',
     )
     group.add_argument(
-        "--all",
-        action="store_true",
-        dest="submit_all",
+        '--all',
+        action='store_true',
+        dest='submit_all',
         # ^^ if `--all` is specified, args.all = True; otherwise, False
         help="Request to run all jobs that haven't been submitted.",
     )
     group.add_argument(
-        "--job",
-        action="append",  # append each `--job` as a list;
-        nargs="+",
-        help="The subject ID (and session ID) whose job to be submitted."
-        " Can repeat to submit more than one job."
-        " Format would be `--job sub-xx` for single-session dataset,"
-        " and `--job sub-xx ses-yy` for multiple-session dataset.",
+        '--job',
+        action='append',  # append each `--job` as a list;
+        nargs='+',
+        help='The subject ID (and session ID) whose job to be submitted.'
+        ' Can repeat to submit more than one job.'
+        ' Format would be `--job sub-xx` for single-session dataset,'
+        ' and `--job sub-xx ses-yy` for multiple-session dataset.',
     )
 
     return parser
@@ -414,7 +412,7 @@ def _enter_submit(argv=None):
     Please use `babs submit` instead.
     """
     warnings.warn(
-        "babs-submit is deprecated and will be removed in the future. Please use babs submit.",
+        'babs-submit is deprecated and will be removed in the future. Please use babs submit.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -462,8 +460,8 @@ def babs_submit_main(
     # sanity check:
     if count == 0:
         raise Exception(
-            "`--count 0` is not valid! Please specify a positive integer. "
-            "To submit all jobs, please do not specify `--count`."
+            '`--count 0` is not valid! Please specify a positive integer. '
+            'To submit all jobs, please do not specify `--count`.'
         )
 
     # Actions on `job`:
@@ -471,50 +469,50 @@ def babs_submit_main(
         count = -1  # just in case; make sure all specified jobs will be submitted
 
         # sanity check:
-        if babs_proj.processing_level == "subject":
+        if babs_proj.processing_level == 'subject':
             expected_len = 1
-        elif babs_proj.processing_level == "session":
+        elif babs_proj.processing_level == 'session':
             expected_len = 2
         for i_job in range(0, len(job)):
             # expected length in each sub-list:
             assert len(job[i_job]) == expected_len, (
-                "There should be "
+                'There should be '
                 + str(expected_len)
-                + " arguments in `--job`,"
-                + " as processing level is "
+                + ' arguments in `--job`,'
+                + ' as processing level is '
                 + babs_proj.processing_level
-                + "!"
+                + '!'
             )
             # 1st argument:
-            assert job[i_job][0][0:4] == "sub-", (
-                "The 1st argument of `--job`" + " should be 'sub-*'!"
+            assert job[i_job][0][0:4] == 'sub-', (
+                'The 1st argument of `--job`' + " should be 'sub-*'!"
             )
-            if babs_proj.processing_level == "session":
+            if babs_proj.processing_level == 'session':
                 # 2nd argument:
-                assert job[i_job][1][0:4] == "ses-", (
-                    "The 2nd argument of `--job`" + " should be 'ses-*'!"
+                assert job[i_job][1][0:4] == 'ses-', (
+                    'The 2nd argument of `--job`' + " should be 'ses-*'!"
                 )
 
         # turn into a pandas DataFrame:
-        if babs_proj.processing_level == "subject":
+        if babs_proj.processing_level == 'subject':
             df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=["sub_id"]
+                None, index=list(range(0, len(job))), columns=['sub_id']
             )
-        elif babs_proj.processing_level == "session":
+        elif babs_proj.processing_level == 'session':
             df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=["sub_id", "ses_id"]
+                None, index=list(range(0, len(job))), columns=['sub_id', 'ses_id']
             )
         for i_job in range(0, len(job)):
-            df_job_specified.at[i_job, "sub_id"] = job[i_job][0]
-            if babs_proj.processing_level == "session":
-                df_job_specified.at[i_job, "ses_id"] = job[i_job][1]
+            df_job_specified.at[i_job, 'sub_id'] = job[i_job][0]
+            if babs_proj.processing_level == 'session':
+                df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
 
         # sanity check:
         df_job_specified = check_df_job_specific(
             df_job_specified,
             babs_proj.job_status_path_abs,
             babs_proj.processing_level,
-            "babs submit",
+            'babs submit',
         )
     else:  # `job` is None:
         df_job_specified = None
@@ -534,45 +532,45 @@ def _parse_status():
     """
 
     parser = argparse.ArgumentParser(
-        description="Check job status in a BABS project.",
+        description='Check job status in a BABS project.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--project_root",
-        "--project-root",
+        '--project_root',
+        '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
         default=os.getcwd(),
     )
     parser.add_argument(
-        "--resubmit",
-        action="append",  # append each `--resubmit` as a list;
+        '--resubmit',
+        action='append',  # append each `--resubmit` as a list;
         # ref: https://docs.python.org/3/library/argparse.html
         nargs=1,  # expect 1 argument per `--resubmit` from the command line;
-        choices=["failed", "pending"],
+        choices=['failed', 'pending'],
         # NOTE: ^^ not to include 'stalled' as it has not been tested yet.
-        metavar=("condition to resubmit"),
-        help="Resubmit jobs with what kind of status."
-        " ``failed``: Jobs that failed, i.e.,"
-        " jobs that are out of queue but do not have results pushed to output RIA."
-        " The list of failed jobs can also be found by filtering jobs with"
+        metavar=('condition to resubmit'),
+        help='Resubmit jobs with what kind of status.'
+        ' ``failed``: Jobs that failed, i.e.,'
+        ' jobs that are out of queue but do not have results pushed to output RIA.'
+        ' The list of failed jobs can also be found by filtering jobs with'
         " ``'is_failed' = True`` in ``job_status.csv``;"
-        " ``pending``: Jobs that are pending (without error) in the queue."
+        ' ``pending``: Jobs that are pending (without error) in the queue.'
         " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm.",
     )
     # "'stalled': the previous submitted job is pending with error in the queue "
     # "(example qstat code: 'eqw')."
 
     parser.add_argument(
-        "--resubmit-job",
-        action="append",  # append each `--resubmit-job` as a list;
-        nargs="+",
-        help="The subject ID (and session ID) whose job to be resubmitted."
-        " You can repeat this argument many times to request resubmissions of more than one job."
-        " Currently, only pending or failed jobs in the request will be resubmitted.",
+        '--resubmit-job',
+        action='append',  # append each `--resubmit-job` as a list;
+        nargs='+',
+        help='The subject ID (and session ID) whose job to be resubmitted.'
+        ' You can repeat this argument many times to request resubmissions of more than one job.'
+        ' Currently, only pending or failed jobs in the request will be resubmitted.',
     )
     # ^^ NOTE: not to include 'stalled' jobs here;
     # ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
@@ -585,24 +583,24 @@ def _parse_status():
     #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
     #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
-        "--container_config_yaml_file",
-        "--container-config-yaml-file",
-        help="Path to a YAML file that contains the configurations"
-        " of how to run the BIDS App container. It may include ``alert_log_messages`` section."
-        " ``babs status`` will use this section for failed job auditing,"
-        " by checking if any defined alert messages"
+        '--container_config_yaml_file',
+        '--container-config-yaml-file',
+        help='Path to a YAML file that contains the configurations'
+        ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
+        ' ``babs status`` will use this section for failed job auditing,'
+        ' by checking if any defined alert messages'
         " can be found in failed jobs' log files.",
     )
     parser.add_argument(
-        "--job_account",
-        "--job-account",
-        action="store_true",
+        '--job_account',
+        '--job-account',
+        action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
-        help="Whether to account failed jobs, which may take some time."
-        " When using ``--job-account``, please also add ``--container_config_yaml_file``."
-        " If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)"
-        " is also requested,"
-        " this ``--job-account`` will be skipped.",
+        help='Whether to account failed jobs, which may take some time.'
+        ' When using ``--job-account``, please also add ``--container_config_yaml_file``.'
+        ' If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)'
+        ' is also requested,'
+        ' this ``--job-account`` will be skipped.',
     )
 
     return parser
@@ -615,7 +613,7 @@ def _enter_status(argv=None):
     Please use `babs status` instead.
     """
     warnings.warn(
-        "babs-status is deprecated and will be removed in the future. Please use babs status.",
+        'babs-status is deprecated and will be removed in the future. Please use babs status.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -684,94 +682,92 @@ def babs_status_main(
 
         # print message:
         print(
-            "Will resubmit jobs if " + " or ".join(flags_resubmit) + "."
+            'Will resubmit jobs if ' + ' or '.join(flags_resubmit) + '.'
         )  # e.g., `failed`; `failed or pending`
 
     else:  # `resubmit` is None:
-        print("Did not request resubmit based on job states (no `--resubmit`).")
+        print('Did not request resubmit based on job states (no `--resubmit`).')
         flags_resubmit = []  # empty list
 
     # If `--job-account` is requested:
     if job_account:
-        if "failed" not in flags_resubmit:
-            print(
-                "`--job-account` was requested; `babs status` may take longer time..."
-            )
+        if 'failed' not in flags_resubmit:
+            print('`--job-account` was requested; `babs status` may take longer time...')
         else:
             # this is meaningless to run `job-account` if resubmitting anyway:
             print(
-                "Although `--job-account` was requested,"
-                " as `--resubmit failed` was also requested,"
+                'Although `--job-account` was requested,'
+                ' as `--resubmit failed` was also requested,'
                 " it's meaningless to run job account on previous failed jobs,"
-                " so will skip `--job-account`"
+                ' so will skip `--job-account`'
             )
 
     # If `resubmit-job` is requested:
     if resubmit_job is not None:
         # sanity check:
-        if babs_proj.processing_level == "subject":
+        if babs_proj.processing_level == 'subject':
             expected_len = 1
-        elif babs_proj.processing_level == "session":
+        elif babs_proj.processing_level == 'session':
             expected_len = 2
 
         for i_job in range(0, len(resubmit_job)):
             # expected length in each sub-list:
             assert len(resubmit_job[i_job]) == expected_len, (
-                "There should be "
+                'There should be '
                 + str(expected_len)
-                + " arguments in `--resubmit-job`,"
-                + " as processing level is "
+                + ' arguments in `--resubmit-job`,'
+                + ' as processing level is '
                 + babs_proj.processing_level
-                + "!"
+                + '!'
             )
             # 1st argument:
-            assert resubmit_job[i_job][0][0:4] == "sub-", (
-                "The 1st argument of `--resubmit-job`" + " should be 'sub-*'!"
+            assert resubmit_job[i_job][0][0:4] == 'sub-', (
+                'The 1st argument of `--resubmit-job`' + " should be 'sub-*'!"
             )
-            if babs_proj.processing_level == "session":
+            if babs_proj.processing_level == 'session':
                 # 2nd argument:
-                assert resubmit_job[i_job][1][0:4] == "ses-", (
-                    "The 2nd argument of `--resubmit-job`" + " should be 'ses-*'!"
+                assert resubmit_job[i_job][1][0:4] == 'ses-', (
+                    'The 2nd argument of `--resubmit-job`' + " should be 'ses-*'!"
                 )
 
         # turn into a pandas DataFrame:
-        if babs_proj.processing_level == "subject":
+        if babs_proj.processing_level == 'subject':
             df_resubmit_job_specific = pd.DataFrame(
-                None, index=list(range(0, len(resubmit_job))), columns=["sub_id"]
+                None, index=list(range(0, len(resubmit_job))), columns=['sub_id']
             )
-        elif babs_proj.processing_level == "session":
+        elif babs_proj.processing_level == 'session':
             df_resubmit_job_specific = pd.DataFrame(
                 None,
                 index=list(range(0, len(resubmit_job))),
-                columns=["sub_id", "ses_id"],
+                columns=['sub_id', 'ses_id'],
             )
 
         for i_job in range(0, len(resubmit_job)):
-            df_resubmit_job_specific.at[i_job, "sub_id"] = resubmit_job[i_job][0]
-            if babs_proj.processing_level == "session":
-                df_resubmit_job_specific.at[i_job, "ses_id"] = resubmit_job[i_job][1]
+            df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
+            if babs_proj.processing_level == 'session':
+                df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
 
         # sanity check:
         df_resubmit_job_specific = check_df_job_specific(
             df_resubmit_job_specific,
             babs_proj.job_status_path_abs,
             babs_proj.processing_level,
-            "babs status",
+            'babs status',
         )
 
         if len(df_resubmit_job_specific) > 0:
             if reckless:  # if `--reckless`:
                 print(
-                    "Will resubmit all the job(s) listed in `--resubmit-job`,"
+                    'Will resubmit all the job(s) listed in `--resubmit-job`,'
                     " even if they're done or running."
                 )
             else:
                 print(
-                    "Will resubmit the job(s) listed in `--resubmit-job`,"
+                    'Will resubmit the job(s) listed in `--resubmit-job`,'
                     " if they're pending or failed."
                 )  # not to include 'stalled'
         else:  # in theory should not happen, but just in case:
-            raise Exception("There is no valid job in --resubmit-job!")
+            raise Exception('There is no valid job in --resubmit-job!')
 
     else:  # `--resubmit-job` is None:
         df_resubmit_job_specific = None
@@ -796,36 +792,36 @@ def _parse_merge():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description="Merge results and provenance from all successfully finished jobs.",
+        description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--project_root",
-        "--project-root",
+        '--project_root',
+        '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
         default=os.getcwd(),
     )
     parser.add_argument(
-        "--chunk-size",
-        "--chunk_size",
+        '--chunk-size',
+        '--chunk_size',
         type=int,
         default=2000,
-        help="Number of branches in a chunk when merging at a time."
-        " We recommend using default value.",
+        help='Number of branches in a chunk when merging at a time.'
+        ' We recommend using default value.',
     )
     # Matt: 5000 is not good, 2000 is appropriate.
     #   Smaller chunk is, more merging commits which is fine.
     parser.add_argument(
-        "--trial-run",
-        "--trial_run",
-        action="store_true",
+        '--trial-run',
+        '--trial_run',
+        action='store_true',
         # ^^ if `--trial-run` is specified, args.trial_run = True; otherwise, False
         help="Whether to run as a trial run which won't push the merge back to output RIA."
-        " This option should only be used by developers for testing purpose."
+        ' This option should only be used by developers for testing purpose.'
         " Users: please don't turn this on!",
     )
 
@@ -839,7 +835,7 @@ def _enter_merge(argv=None):
     Please use `babs merge` instead.
     """
     warnings.warn(
-        "babs-merge is deprecated and will be removed in the future. Please use babs merge.",
+        'babs-merge is deprecated and will be removed in the future. Please use babs merge.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -882,24 +878,24 @@ def _parse_unzip():
     argparse.ArgumentParser
     """
     parser = argparse.ArgumentParser(
-        description="Unzip results zip files and extracts desired files",
+        description='Unzip results zip files and extracts desired files',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        "--project_root",
-        "--project-root",
+        '--project_root',
+        '--project-root',
         help=(
-            "Absolute path to the root of BABS project. "
+            'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
-            "(default is current working directory)."
+            '(default is current working directory).'
         ),
         default=os.getcwd(),
     )
     parser.add_argument(
-        "--container_config_yaml_file",
-        "--container-config-yaml-file",
-        help="Path to a YAML file of the BIDS App container that contains information of"
-        " what files to unzip etc.",
+        '--container_config_yaml_file',
+        '--container-config-yaml-file',
+        help='Path to a YAML file of the BIDS App container that contains information of'
+        ' what files to unzip etc.',
     )
 
     return parser
@@ -912,7 +908,7 @@ def _enter_unzip(argv=None):
     Please use `babs unzip` instead.
     """
     warnings.warn(
-        "babs-unzip is deprecated and will be removed in the future. Please use babs unzip.",
+        'babs-unzip is deprecated and will be removed in the future. Please use babs unzip.',
         DeprecationWarning,
         stacklevel=2,
     )
@@ -942,10 +938,10 @@ def babs_unzip_main(
     # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
 
     # Sanity checks:
-    if "unzip_desired_filenames" not in config:
+    if 'unzip_desired_filenames' not in config:
         raise Exception(
             "Section 'unzip_desired_filenames' is not included"
-            " in `--container_config_yaml_file`. This section is required."
+            ' in `--container_config_yaml_file`. This section is required.'
             " Path to this YAML file: '" + container_config_yaml_file + "'."
         )
 
@@ -979,25 +975,22 @@ def get_existing_babs_proj(project_root):
     # Sanity check: the path `project_root` exists:
     if not os.path.exists(project_root):
         raise Exception(
-            "`--project-root` does not exist! Requested `--project-root` was: "
-            + project_root
+            '`--project-root` does not exist! Requested `--project-root` was: ' + project_root
         )
 
     # Read configurations of BABS project from saved yaml file:
-    babs_proj_config_yaml = os.path.join(
-        project_root, "analysis/code/babs_proj_config.yaml"
-    )
+    babs_proj_config_yaml = os.path.join(project_root, 'analysis/code/babs_proj_config.yaml')
     if not os.path.exists(babs_proj_config_yaml):
         raise Exception(
-            "`babs init` was not successful;"
+            '`babs init` was not successful;'
             " there is no 'analysis/code/babs_proj_config.yaml' file!"
-            " Please rerun `babs init` to finish the setup."
+            ' Please rerun `babs init` to finish the setup.'
         )
 
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
 
     # make sure the YAML file has necessary sections:
-    list_sections = ["processing_level", "type_system", "input_ds", "container"]
+    list_sections = ['processing_level', 'type_system', 'input_ds', 'container']
     for i in range(0, len(list_sections)):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
@@ -1006,8 +999,8 @@ def get_existing_babs_proj(project_root):
                 "in 'analysis/code' folder! Please rerun `babs init` to finish the setup."
             )
 
-    processing_level = babs_proj_config["processing_level"]
-    type_system = babs_proj_config["type_system"]
+    processing_level = babs_proj_config['processing_level']
+    type_system = babs_proj_config['type_system']
 
     # Get the class `BABS`:
     babs_proj = BABS(project_root, processing_level, type_system)
@@ -1016,21 +1009,19 @@ def get_existing_babs_proj(project_root):
     babs_proj.wtf_key_info(flag_output_ria_only=True)
 
     # Get information for input dataset:
-    input_ds_yaml = babs_proj_config["input_ds"]
+    input_ds_yaml = babs_proj_config['input_ds']
     # sanity check:
     if len(input_ds_yaml) == 0:  # there was no input ds:
         raise Exception(
             "Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
-            "does not include any input dataset!"
-            " Something was wrong during `babs init`..."
+            'does not include any input dataset!'
+            ' Something was wrong during `babs init`...'
         )
 
     datasets = {}  # to be a nested list
     for i_ds in range(0, len(input_ds_yaml)):
-        ds_index_str = "$INPUT_DATASET_#" + str(i_ds + 1)
-        datasets[input_ds_yaml[ds_index_str]["name"]] = input_ds_yaml[ds_index_str][
-            "path_in"
-        ]
+        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
+        datasets[input_ds_yaml[ds_index_str]['name']] = input_ds_yaml[ds_index_str]['path_in']
 
     # Get the class `InputDatasets`:
     input_ds = InputDatasets(datasets)
@@ -1039,14 +1030,14 @@ def get_existing_babs_proj(project_root):
     input_ds.assign_path_now_abs(babs_proj.analysis_path)
     # 2. `path_data_rel` and `is_zipped`:
     for i_ds in range(0, input_ds.num_ds):
-        ds_index_str = "$INPUT_DATASET_#" + str(i_ds + 1)
+        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
         # `path_data_rel`:
-        input_ds.df.loc[i_ds, "path_data_rel"] = babs_proj_config["input_ds"][
-            ds_index_str
-        ]["path_data_rel"]
+        input_ds.df.loc[i_ds, 'path_data_rel'] = babs_proj_config['input_ds'][ds_index_str][
+            'path_data_rel'
+        ]
         # `is_zipped`:
-        input_ds.df.loc[i_ds, "is_zipped"] = babs_proj_config["input_ds"][ds_index_str][
-            "is_zipped"
+        input_ds.df.loc[i_ds, 'is_zipped'] = babs_proj_config['input_ds'][ds_index_str][
+            'is_zipped'
         ]
 
     return babs_proj, input_ds
@@ -1090,23 +1081,23 @@ def check_df_job_specific(df, job_status_path_abs, processing_level, which_funct
     """
 
     # 1. Sanity check: there should not be duplications in `df`:
-    df_unique = df.drop_duplicates(keep="first")  # default: keep='first'
+    df_unique = df.drop_duplicates(keep='first')  # default: keep='first'
     if df_unique.shape[0] != df.shape[0]:
-        to_print = "There are duplications in requested "
-        if which_function == "babs submit":
-            to_print += "`--job`"
-        elif which_function == "babs status":
-            to_print += "`--resubmit-job`"
+        to_print = 'There are duplications in requested '
+        if which_function == 'babs submit':
+            to_print += '`--job`'
+        elif which_function == 'babs status':
+            to_print += '`--resubmit-job`'
         else:
-            raise Exception("Invalid `which_function`: " + which_function)
-        to_print += " . Only the first occuration(s) will be kept..."
+            raise Exception('Invalid `which_function`: ' + which_function)
+        to_print += ' . Only the first occuration(s) will be kept...'
         warnings.warn(to_print, stacklevel=2)
 
         df = df_unique  # update with the unique one
 
     # 2. Sanity check: `df` should be a sub-set of all jobs:
     # read the `job_status.csv`:
-    lock_path = job_status_path_abs + ".lock"
+    lock_path = job_status_path_abs + '.lock'
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
@@ -1118,34 +1109,34 @@ def check_df_job_specific(df, job_status_path_abs, processing_level, which_funct
             # ^^ ref: https://stackoverflow.com/questions/49530918/
             #           check-if-pandas-dataframe-is-subset-of-other-dataframe
             if len(df_intersection) != len(df):
-                to_print = "Some of the subjects (and sessions) requested in "
-                if which_function == "babs submit":
-                    to_print += "`--job`"
-                elif which_function == "babs status":
-                    to_print += "`--resubmit-job`"
+                to_print = 'Some of the subjects (and sessions) requested in '
+                if which_function == 'babs submit':
+                    to_print += '`--job`'
+                elif which_function == 'babs status':
+                    to_print += '`--resubmit-job`'
                 else:
-                    raise Exception("Invalid `which_function`: " + which_function)
+                    raise Exception('Invalid `which_function`: ' + which_function)
                 to_print += (
-                    " are not in the final list of included subjects (and sessions)."
-                    " Path to this final inclusion list is at: " + job_status_path_abs
+                    ' are not in the final list of included subjects (and sessions).'
+                    ' Path to this final inclusion list is at: ' + job_status_path_abs
                 )
                 raise Exception(to_print)
 
     except Timeout:  # after waiting for time defined in `timeout`:
         # if another instance also uses locks, and is currently running,
         #   there will be a timeout error
-        print("Another instance of this application currently holds the lock.")
+        print('Another instance of this application currently holds the lock.')
 
     return df
 
 
 COMMANDS = [
-    ("init", _parse_init, babs_init_main),
-    ("check-setup", _parse_check_setup, babs_check_setup_main),
-    ("submit", _parse_submit, babs_submit_main),
-    ("status", _parse_status, babs_status_main),
-    ("merge", _parse_merge, babs_merge_main),
-    ("unzip", _parse_unzip, babs_unzip_main),
+    ('init', _parse_init, babs_init_main),
+    ('check-setup', _parse_check_setup, babs_check_setup_main),
+    ('submit', _parse_submit, babs_submit_main),
+    ('status', _parse_status, babs_status_main),
+    ('merge', _parse_merge, babs_merge_main),
+    ('unzip', _parse_unzip, babs_unzip_main),
 ]
 
 
@@ -1163,11 +1154,9 @@ def _get_parser():
     """
     from babs import __version__
 
-    parser = argparse.ArgumentParser(prog="babs", allow_abbrev=False)
-    parser.add_argument(
-        "-v", "--version", action="version", version=f"babs v{__version__}"
-    )
-    subparsers = parser.add_subparsers(help="BABS commands")
+    parser = argparse.ArgumentParser(prog='babs', allow_abbrev=False)
+    parser.add_argument('-v', '--version', action='version', version=f'babs v{__version__}')
+    subparsers = parser.add_subparsers(help='BABS commands')
 
     for command, parser_func, run_func in COMMANDS:
         subparser = parser_func()
@@ -1197,5 +1186,5 @@ def _main(argv=None):
     """
     options = _get_parser().parse_args(argv)
     args = vars(options).copy()
-    args.pop("func")
+    args.pop('func')
     options.func(**args)
