@@ -26,12 +26,9 @@ varname_jobid='SLURM_ARRAY_JOB_ID'
 {% endif %}
 
 {% if type_session == 'multi-ses' %}
-{% if type_session == 'multi-ses' %}
 BRANCH="job-${varname_jobid}-${subid}-${sesid}"
 {% else %}
-{% else %}
 BRANCH="job-${varname_jobid}-${subid}"
-{% endif %}
 {% endif %}
 
 mkdir ${BRANCH}
