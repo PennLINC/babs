@@ -228,9 +228,6 @@ def babs_init_main(
     if not os.access(where_project, os.W_OK):
         raise Exception('Path provided in `--where_project` is not writable!')
 
-    # Create project directory
-    os.makedirs(project_root, exist_ok=False)  # exist_ok=False to match the existing check
-
     # print datalad version:
     #   if no datalad is installed, will raise error
     print('DataLad version: ' + get_datalad_version())
