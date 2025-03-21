@@ -2916,6 +2916,24 @@ def ceildiv(a, b):
     return -(a // -b)
 
 
+def _path_does_not_exist(path, parser):
+    """Ensure a given path does not exist."""
+    if path is None:
+        raise parser.error('The path is required.')
+    elif Path(path).exists():
+        raise parser.error(f'The path <{path}> already exists.')
+
+    return Path(path).absolute()
+
+
+def _path_exists(path, parser):
+    """Ensure a given path exists."""
+    if path is None or not Path(path).exists():
+        raise parser.error(f'The path <{path}> does not exist.')
+
+    return Path(path).absolute()
+
+
 class ToDict(Action):
     """A custom argparse "store" action to handle a list of key=value pairs."""
 

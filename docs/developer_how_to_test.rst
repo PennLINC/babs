@@ -110,7 +110,7 @@ The explanations of this CSV file can be found :ref:`here <detailed_description_
 Step 2.1.1: Testing ``babs check-setup``
 -----------------------------------------
 
-Comprehensive test checklist (please add ``--project-root``):
+Comprehensive test checklist (please add ``project_root``):
 
 - [ ] ``babs merge --job-test`` --> see if the information summarized by BABS is correct
   (e.g., information of designated environment and temporary workspace)
@@ -119,7 +119,7 @@ Comprehensive test checklist (please add ``--project-root``):
 Step 2.1.2: Testing ``babs submit``
 ------------------------------------
 
-Comprehensive test checklist (please add ``--project-root``):
+Comprehensive test checklist (please add ``project_root``):
 
 - [ ] ``babs submit`` (to submit one job)
 - [ ] ``babs submit --job``
@@ -130,7 +130,7 @@ Comprehensive test checklist (please add ``--project-root``):
 Step 2.1.3: Testing ``babs status``
 ------------------------------------
 
-Comprehensive test checklist (please add ``--project-root``):
+Comprehensive test checklist (please add ``project_root``):
 
 - [ ] ``babs status``
 - [ ] ``babs status --resubmit failed``
@@ -149,7 +149,7 @@ for how to create failed and pending jobs.
 Step 2.1.4: Testing ``babs merge``
 ------------------------------------
 
-Comprehensive test checklist (please add ``--project-root``):
+Comprehensive test checklist (please add ``project_root``):
 
 - [ ] ``babs merge``
 
