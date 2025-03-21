@@ -40,7 +40,6 @@ sed -i "s/ses-//g" ${filterfile}
 mkdir -p ${PWD}/.git/tmp/wkdir
 singularity run --containall --writable-tmpfs \
     -B ${PWD} \
-    {{ cmd_singularity_flags }} \
 {% if templateflow_home %}
     -B {{ templateflow_home }}:{{ templateflow_in_container }} \
 {% endif %}
@@ -54,10 +53,11 @@ singularity run --containall --writable-tmpfs \
         "${PWD}/{{ singuRun_input_dir }}" \
         "${PWD}/{{ path_output_folder }}" \
         participant \
-        --participant-label "${subid}" \
+        {{ cmd_singularity_flags }} \
 {% if flag_filterfile %}
-        --bids-filter-file "${filterfile}"
+        --bids-filter-file "${filterfile}" \
 {% endif %}
+        --participant-label "${subid}"
 
 {{ cmd_zip }}
 
