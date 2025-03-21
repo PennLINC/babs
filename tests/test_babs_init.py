@@ -3,6 +3,7 @@ import argparse
 import os
 import os.path as op
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -131,14 +132,13 @@ def test_babs_init(
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
     # Get the cli of `babs init`:
-    where_project = tmp_path.absolute().as_posix()  # turn into a string
+    project_parent = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
-    project_root = op.join(where_project, project_name)
+    project_root = Path(op.join(project_parent, project_name))
     container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
 
     babs_init_opts = argparse.Namespace(
-        where_project=where_project,
-        project_name=project_name,
+        project_root=project_root,
         datasets=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,

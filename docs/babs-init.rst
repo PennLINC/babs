@@ -136,14 +136,13 @@ an SGE cluster:
 .. code-block:: bash
 
     babs init \
-        --where_project /path/to/a/folder/holding/BABS/project \
-        --project_name my_BABS_project \
         --datasets BIDS=/path/to/BIDS_datalad_dataset \
         --container_ds /path/to/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file /path/to/container_toybidsapp.yaml \
         --type_session multi-ses \
-        --type_system sge
+        --type_system sge \
+        /path/to/a/folder/holding/BABS/project/my_BABS_project
 
 Example command if you have more than one input datasets, e.g., raw BIDS data, and fMRIPrep
 with FreeSurfer results ingressed. The 2nd dataset is also result from another BABS project -

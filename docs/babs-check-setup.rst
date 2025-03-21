@@ -76,11 +76,11 @@ Example commands
 
 We highly recommend running ``babs check-setup`` with a test job::
 
-    babs check-setup --project-root /path/to/my_BABS_project --job-test
+    babs check-setup /path/to/my_BABS_project --job-test
 
 Otherwise, you could run without a test job::
 
-    babs check-setup --project-root /path/to/my_BABS_project
+    babs check-setup /path/to/my_BABS_project
 
 **********************
 See also
