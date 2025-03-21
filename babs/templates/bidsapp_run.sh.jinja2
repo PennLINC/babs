@@ -37,31 +37,27 @@ sed -i "s/ses-//g" ${filterfile}
 {{ cmd_unzip_inputds }}
 {% endif %}
 
-{% if cmd_env_templateflow %}
-{{ cmd_env_templateflow }}
-{% endif %}
-
 mkdir -p ${PWD}/.git/tmp/wkdir
 singularity run --containall --writable-tmpfs \
-	-B ${PWD}
+    -B ${PWD}
 {% if templateflow_home %}
-	-B {{ templateflow_home }}:{{ templateflow_in_container }}
+    -B {{ templateflow_home }}:{{ templateflow_in_container }}
 {% endif %}
 {% if flag_fs_license %}
-	-B {{ path_fs_license }}:{{ PATH_FS_LICENSE_IN_CONTAINER }}
+    -B {{ path_fs_license }}:{{ PATH_FS_LICENSE_IN_CONTAINER }}
 {% endif %}
 {% if templateflow_home %}
-	{{ cmd_env_templateflow }}
+    {{ cmd_env_templateflow }}
 {% endif %}
-	{{ container_path_relToAnalysis }} \
-	$PWD/{{ singuRun_input_dir }} \
-	$PWD/{{ path_output_folder }} \
-	participant
+    {{ container_path_relToAnalysis }} \
+        $PWD/{{ singuRun_input_dir }} \
+        $PWD/{{ path_output_folder }} \
+        participant \
 {% if flag_filterfile %}
-	--bids-filter-file "${filterfile}"
+        --bids-filter-file "${filterfile}" \
 {% endif %}
-	--participant-label "${subid}"
-{{ cmd_singularity_flags }}
+        {{ cmd_singularity_flags }} \
+        --participant-label "${subid}"
 
 {{ cmd_zip }}
 
