@@ -14,7 +14,16 @@ Command-Line Arguments
    :ref: babs.cli._parse_merge
    :prog: babs merge
 
+   My content that will be inserted right before the argument list.
+
+   --project-root : @before
+        This text will go before the "foo" positional argument help.
+
+   --project_root : @replace
+        This text will replace the "install" subcommand help/description.
+
    Developer arguments : @skip
+        skip advanced arguments
 
 **********************
 Example commands
