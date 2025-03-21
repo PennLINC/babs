@@ -3,6 +3,7 @@ import argparse
 import os
 import os.path as op
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -90,7 +91,7 @@ def test_babs_init(
 
     # Get the path to input dataset:
     path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
-    input_ds_cli = [[which_input, path_in]]
+    input_ds_cli = {which_input: path_in}
     if if_two_input:
         # get another input dataset: qsiprep derivatives
         assert INFO_2ND_INPUT_DATA['which_input'] != which_input  # avoid repeated input ds name
@@ -100,7 +101,7 @@ def test_babs_init(
             INFO_2ND_INPUT_DATA['if_input_local'],
             tmp_path_factory,
         )
-        input_ds_cli.append([INFO_2ND_INPUT_DATA['which_input'], path_in_2nd])
+        input_ds_cli[INFO_2ND_INPUT_DATA['which_input']] = path_in_2nd
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
     assert op.exists(container_ds_path)
@@ -131,15 +132,14 @@ def test_babs_init(
     # as env var has been set up, expect that BABS will generate necessary cmd for templateflow
 
     # Get the cli of `babs init`:
-    where_project = tmp_path.absolute().as_posix()  # turn into a string
+    project_parent = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
-    project_root = op.join(where_project, project_name)
+    project_root = Path(op.join(project_parent, project_name))
     container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
 
     babs_init_opts = argparse.Namespace(
-        where_project=where_project,
-        project_name=project_name,
-        input_dataset=input_ds_cli,
+        project_root=project_root,
+        datasets=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
