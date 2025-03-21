@@ -1,6 +1,6 @@
 # This is an example config yaml file for:
 #   BIDS App:         QSIPrep ("qsiprep")
-#   BIDS App version: 0.18.1
+#   BIDS App version: 1.0.1
 #   Task:             regular use
 #   Which system:     SGE or Slurm
 
@@ -10,41 +10,57 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Arguments in `singularity run`:
 singularity_run:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
-    -v: "-v"
-    -w: "$BABS_TMPDIR"   # this is a placeholder. To be changed to `${PWD}/.git/tmp/wkdir`
-    --n_cpus: "2"   # For SGE clusters: you can use "$NSLOTS" here if `number_of_cpus` is set
-    --omp-nthreads: "3"   # without this, only run single-threaded jobs (N=`--n_cpus`) at once
+    -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
-    --fs-license-file: "/path/to/FreeSurfer/license.txt"  # [FIX ME] path to FreeSurfer license file
+    --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
+    -vv: ""
+    --unringing-method: "rpg"
+    --output-resolution: "1.7"
+    --notrack: ""
+    --nthreads: "8"
+    --omp-nthreads: "8"
+    --mem-mb: "40000"
+    --subject-anatomical-reference: "sessionwise"
     --skip-bids-validation: ""
-    --unringing-method: "mrdegibbs"
-    --output-resolution: "2.0"
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsiprep' to wrap all derivatives:
 zip_foldernames:
-    qsiprep: "0-18-1"     # folder 'qsiprep' will be zipped into 'sub-xx_(ses-yy_)qsiprep-0-18-1.zip'
+    $TO_CREATE_FOLDER: "true"
+    qsiprep: "1-0-0"   # folder 'qsiprep' will be zipped into 'sub-xx_(ses-yy_)qsiprep-1-0-0.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
     interpreting_shell: "/bin/bash"
-    hard_memory_limit: 100G
-    temporary_disk_space: 200G
-    number_of_cpus: "2"
+    hard_runtime_limit: "12:00:00"
+    temporary_disk_space: 250G
+    customized_text: |
+        #SBATCH -p all
+        #SBATCH --nodes=1
+        #SBATCH --ntasks=1
+        #SBATCH --cpus-per-task=8
+        #SBATCH --mem=40G
+        #SBATCH --propagate=NONE
 
 # Necessary commands to be run first:
 #   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate babs # you may need to change this to work with you environment manager.
     source xxxx    # [FIX ME or DELETE ME] source any necessary program
-    conda activate my_conda_env_name   # [FIX ME] replace 'my_conda_env_name' with your environment variable name
+    module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "/path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 required_files:
     $INPUT_DATASET_#1:
         - "dwi/*_dwi.nii*"
+        - "anat/*_T1w.nii*"
+
+
 
 # `alert_log_messages`: Here we did not provide examples for section `alert_log_messages`. However feel free to add it!

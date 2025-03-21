@@ -1,0 +1,71 @@
+# This is an example config yaml file for:
+#   BIDS App:         XCP-D ("xcpd")
+#   BIDS App version: 0-10-6
+#   Task:             Running the entire workflow, for NIfTI images (i.e., without `--cifti`)
+#   Which system:     SGE or Slurm
+
+# WARNING!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# Arguments in `singularity run`:
+singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
+    -w: "$BABS_TMPDIR"
+    --stop-on-first-crash: ""
+    --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
+    -vv: ""
+    --mode: "linc"
+    --input-type: "fmriprep"
+    --nthreads: "8"
+    --omp-nthreads: "8"
+    --mem-gb: "50"
+    --atlases:
+        "4S1056Parcels \
+        4S156Parcels \
+        4S256Parcels \
+        4S356Parcels \
+        4S456Parcels \
+        4S556Parcels \
+        4S656Parcels \
+        4S756Parcels \
+        4S856Parcels \
+        4S956Parcels \
+        Glasser \
+        Gordon \
+        HCP \
+        MIDB \
+        Tian"
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+#   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'xcpd' to wrap all derivatives:
+zip_foldernames:
+    $TO_CREATE_FOLDER: "true"
+    xcpd: "0-10-6"   # folder 'xcpd' will be zipped into 'sub-xx_(ses-yy_)xcpd-0-10-5.zip'
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: "/bin/bash"
+    hard_runtime_limit: "7:00:00"
+    temporary_disk_space: 200G
+    customized_text: |
+        #SBATCH -p all
+        #SBATCH --nodes=1
+        #SBATCH --ntasks=1
+        #SBATCH --cpus-per-task=8
+        #SBATCH --mem=50G
+        #SBATCH --propagate=NONE
+
+# Necessary commands to be run first:
+#   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
+script_preamble: |
+    source ${CONDA_PREFIX}/bin/activate babs # you may need to change this to work with you environment manager.
+    source xxxx    # [FIX ME or DELETE ME] source any necessary program
+    module load xxxx # [FIX ME or DELETE ME] source any necessary program
+
+# Where to run the jobs:
+job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+
+# `required_files` and `alert_log_messages` sections are not provided in this example.
