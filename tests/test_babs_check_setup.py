@@ -4,6 +4,7 @@ import argparse
 import os
 import os.path as op
 import sys
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -74,9 +75,9 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     assert os.getenv('TEMPLATEFLOW_HOME') is not None  # assert env var has been set
 
     # Get the cli of `babs init`:
-    where_project = tmp_path.absolute().as_posix()  # turn into a string
+    project_parent = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
-    project_root = op.join(where_project, project_name)
+    project_root = Path(op.join(project_parent, project_name))
     container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
     container_config_yaml_filename = 'example_container_' + which_bidsapp + '.yaml'
     container_config_yaml_filename = get_container_config_yaml_filename(
@@ -89,8 +90,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
 
     # below are all correct options:
     babs_init_opts = argparse.Namespace(
-        where_project=where_project,
-        project_name=project_name,
+        project_root=project_root,
         datasets=input_ds_cli,
         list_sub_file=None,
         container_ds=container_ds_path,
@@ -123,7 +123,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     # Set up expected error message from `babs check-setup`:
     if which_case == 'not_to_keep_failed':
         error_type = Exception  # what's after `raise` in the source code
-        error_msg = '`--project-root` does not exist!'
+        error_msg = '`project_root` does not exist!'
         # ^^ see `get_existing_babs_proj()` in CLI
     elif which_case == 'wrong_container_ds':
         error_type = AssertionError  # error from `assert`
