@@ -31,8 +31,8 @@ BRANCH="job-${varname_jobid}-${subid}-${sesid}"
 BRANCH="job-${varname_jobid}-${subid}"
 {% endif %}
 
-mkdir ${BRANCH}
-cd ${BRANCH}
+mkdir "${BRANCH}"
+cd "${BRANCH}"
 
 # datalad clone the input ria:
 echo '# Clone the data from input RIA:'
@@ -54,10 +54,10 @@ echo "# Pull down the input subject (or dataset) but don't retrieve data content
 {% for i in range(input_ds.num_ds) %}
 {% if not input_ds.df.loc[i, 'is_zipped'] %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf $(find . -type d -name 'sub*' | grep -v $subid))
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type d -name 'sub*' | grep -v $subid | xargs rm -rf)
 {% else %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -f $(ls sub-*.zip | grep -v ${subid}))
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type f -name 'sub*.zip' | grep -v $subid | xargs rm -f)
 {% endif %}
 {% endfor %}
 
@@ -74,11 +74,11 @@ datalad push --to output-storage
 
 # push the output branch:
 echo '# Push the branch with provenance records:'
-flock $DSLOCKFILE git push outputstore
+flock "${DSLOCKFILE}" git push outputstore
 
 # Delete:
 echo "echo 'Delete temporary directory:'"
-echo ${BRANCH}
+echo "${BRANCH}"
 {% for dataset in input_datasets %}
 datalad drop -d {{ dataset.path }} -r --reckless availability --reckless modification
 {% endfor %}
@@ -89,6 +89,6 @@ git annex dead here
 
 # cd out of $BRANCH:
 cd ../..
-rm -rf $BRANCH
+rm -rf "${BRANCH}"
 
 echo SUCCESS

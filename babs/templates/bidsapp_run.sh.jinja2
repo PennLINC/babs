@@ -5,12 +5,13 @@ subid="$1"
 {% if type_session == 'multi-ses' %}
 sesid="$2"
 {% endif %}
+
+
 {% for i in range(input_ds.num_ds) %}
 {% if input_ds.df.loc[i, 'is_zipped'] is true %}
 {{ input_ds.df.loc[i, 'name'].upper() }}_ZIP="${{ loop.index + (2 if type_session == 'multi-ses' else 1) }}"
 {% endif %}
 {% endfor %}
-
 {% if flag_filterfile %}
 # Create a filter file that only allows this session
 filterfile=${PWD}/${sesid}_filter.json
@@ -31,23 +32,27 @@ echo "}" >> ${filterfile}
 # remove ses and get valid json
 sed -i "s/'/\\"/g" ${filterfile}
 sed -i "s/ses-//g" ${filterfile}
-{% endif %}
 
+{% endif %}
 {% if cmd_unzip_inputds %}
 {{ cmd_unzip_inputds }}
 {% endif %}
-
 mkdir -p ${PWD}/.git/tmp/wkdir
+{% if templateflow_home_on_disk %}
+mkdir -p {{ templateflow_home_on_disk }}
+{% endif %}
+
 singularity run --containall --writable-tmpfs \
     -B ${PWD} \
-{% if templateflow_home %}
-    -B {{ templateflow_home }}:{{ templateflow_in_container }} \
+{% if templateflow_home_on_disk %}
+    -B {{ templateflow_home_on_disk }}:{{ templateflow_in_container }} \
+    --env "TEMPLATEFLOW_HOME={{ templateflow_in_container }}" \
 {% endif %}
 {% if flag_fs_license %}
     -B {{ path_fs_license }}:{{ PATH_FS_LICENSE_IN_CONTAINER }} \
 {% endif %}
 {% if templateflow_home %}
-    {{ cmd_env_templateflow }} \
+    {{ flag_env_templateflow }} \
 {% endif %}
     {{ container_path_relToAnalysis }} \
         $PWD/{{ singuRun_input_dir }} \

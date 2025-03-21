@@ -470,10 +470,7 @@ def generate_cmd_set_envvar(env_var_name):
 
     Returns:
     ------------
-    cmd: str
-        argument `--env` of `singularity run`
-        e.g., `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`
-    value: str
+    env_var_value: str
         The value of the env variable `env_var_name`
     env_var_value_in_container: str
         The env var value used in container;
@@ -482,10 +479,6 @@ def generate_cmd_set_envvar(env_var_name):
 
     # Generate argument `--env` in `singularity run`:
     env_var_value_in_container = '/SGLR/' + env_var_name
-
-    # cmd should be: `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`
-    cmd = '--env '
-    cmd += env_var_name + '=' + env_var_value_in_container
 
     # Get env var's value, to be used for binding `-B` in `singularity run`:
     env_var_value = os.getenv(env_var_name)
@@ -502,7 +495,7 @@ def generate_cmd_set_envvar(env_var_name):
                 stacklevel=2,
             )
 
-    return cmd, env_var_value, env_var_value_in_container
+    return env_var_value, env_var_value_in_container
 
 
 def get_info_zip_foldernames(config):
