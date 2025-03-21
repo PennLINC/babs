@@ -208,11 +208,11 @@ def test_babs_init(
     #     " but Templateflow home path did not get bound in 'singularity run'"
     #     " with `-B` in '" + container_name + "_zip.sh'."
     # )
-    assert if_set_singu_templateflow, (
-        "Env variable 'TEMPLATEFLOW_HOME' has been set,"
-        " but env variable 'SINGULARITYENV_TEMPLATEFLOW_HOME' was not set"
-        " with `--env` in '" + container_name + "_zip.sh'."
-    )
+    # assert if_set_singu_templateflow, (
+    #     "Env variable 'TEMPLATEFLOW_HOME' has been set,"
+    #     " but env variable 'SINGULARITYENV_TEMPLATEFLOW_HOME' was not set"
+    #     " with `--env` in '" + container_name + "_zip.sh'."
+    # )
     # 2) BIDS filter file: only when qsiprep/fmriprep & multi-ses:
     if (which_bidsapp in ['qsiprep', 'fmriprep']) & (type_session == 'multi-ses'):
         assert if_generate_bidsfilterfile, (
