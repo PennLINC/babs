@@ -14,9 +14,9 @@
 #   In this example, we assume:
 #   1. You used BABS to run `fMRIPrep --anat-only` w/ fMRIPrep version 20.2.3, which used legacy output layout
 #   2. From 1, you have got output folder called `freesurfer` (i.e., `zip_foldernames`: `freesurfer`)
-#   3. When running `babs init` for current use case, argument `--input` for `babs init` is as below:
-#     --input BIDS <path/to/raw_BIDS_dataset>    # 1st input dataset \
-#     --input freesurfer <path/to/cloned_freesurfer_output_ria>    # 2nd input dataset \
+#   3. When running `babs init` for current use case, argument `--datasets` for `babs init` is as below:
+#     --datasets BIDS=<path/to/raw_BIDS_dataset>    # 1st input dataset \
+#     freesurfer=<path/to/cloned_freesurfer_output_ria>    # 2nd input dataset \
 singularity_run:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     $INPUT_PATH: inputs/data/BIDS # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets

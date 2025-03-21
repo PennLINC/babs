@@ -435,7 +435,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
     $ cd ~/babs_demo
     $ babs init \
-        --input BIDS https://osf.io/w2nu3/ \
+        --datasets BIDS=https://osf.io/w2nu3/ \
         --container_ds ${PWD}/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file ${PWD}/config_toybidsapp_demo.yaml \
@@ -445,7 +445,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 .. dropdown:: If there is no Internet connection on compute nodes
 
-    Please replace line #5 with ``--input BIDS /path/to/cloned_input_BIDS_dataset``,
+    Please replace line #5 with ``--datasets BIDS=/path/to/cloned_input_BIDS_dataset``,
     and please replace ``/path/to/cloned_input_BIDS_dataset`` with the correct path
     to the local copy of the input BIDS dataset,
     e.g., ``${PWD}/raw_BIDS_multi-ses``.
