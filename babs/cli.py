@@ -1152,7 +1152,7 @@ def _parse_sync_code():
     parser.add_argument(
         'project_root',
         nargs='?',
-        default=os.getcwd(),
+        default=Path.cwd(),
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
