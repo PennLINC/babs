@@ -17,7 +17,7 @@ In addition, please check if the function of the YAML files (especially the `sin
     * `<bidsapp-0-0-0>`: BIDS App name and version
     * `<task>`:  How this BIDS App is applied? Regular application? Or some specific use case?
 
-| example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | Notes | 
+| example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | Notes |
 | :-- | :--|:-- | :-- |:-- | :-- |
 | [link](eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml) | toy BIDS App | 0.0.7 | for testing BABS on a *raw* BIDS dataset | one raw BIDS dataset | This is used in the [example walkthrough](https://pennlinc-babs.readthedocs.io/en/stable/walkthrough.html); please refer to that doc for how to customize this YAML file.  ||
 | [link](eg_toybidsapp-0-0-7_zipped.yaml) | toy BIDS App | 0.0.7 | for testing BABS on a *zipped* BIDS derivatives dataset | one zipped BIDS derivatives dataset |  |
@@ -35,5 +35,5 @@ Note that because fMRIPrep changed its default output layout in version `21.0`, 
 
 ## Other files
 - Example initial subject list for toy BIDS datasets:
-  - [initial_sub_list_multi-ses.csv](initial_sub_list_multi-ses.csv)
-  - [initial_sub_list_single-ses.csv](initial_sub_list_single-ses.csv)
+  - [initial_sub_list_multi-ses.tsv](initial_sub_list_multi-ses.tsv)
+  - [initial_sub_list_single-ses.tsv](initial_sub_list_single-ses.tsv)

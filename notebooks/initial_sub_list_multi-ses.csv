@@ -1,4 +1,4 @@
-sub_id,ses_id
+participant_id,session_id
 sub-01,ses-A
 sub-01,ses-B
 sub-01,ses-C

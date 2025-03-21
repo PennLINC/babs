@@ -15,9 +15,9 @@ from babs.babs import BABS, InputDatasets, System
 # from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import (
     ToDict,
-    create_job_status_csv,
+    create_job_status_tsv,
     get_datalad_version,
-    read_job_status_csv,
+    read_job_status_tsv,
     read_yaml,
     validate_type_session,
 )
@@ -64,13 +64,17 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--list_sub_file',
-        '--list-sub-file',  # optional flag
+        '--participants_file',
+        '--participants-file',
         type=str,
-        help='Path to the CSV file that lists the subject (and sessions) to analyze; '
-        ' If there is no such file, please not to specify this flag.'
-        " Single-session data: column of 'sub_id';"
-        " Multi-session data: columns of 'sub_id' and 'ses_id'.",
+        help=(
+            'Path to a TSV file that lists the subjects (and sessions) to analyze; '
+            'If there is no such file, please do not specify this flag.'
+            'If processing is done at the "subject" level, the TSV file should have a '
+            '"participant_id" column. '
+            'If processing is done at the "session" level, the TSV file should have '
+            'columns of "participant_id" and "session_id".'
+        ),
     )
     parser.add_argument(
         '--container_ds',
@@ -161,8 +165,8 @@ def _enter_init(argv=None):
 def babs_init_main(
     where_project: str,
     project_name: str,
-    datasets: dict,
-    list_sub_file: str,
+    datasets: list,
+    participants_file: str,
     container_ds: str,
     container_name: str,
     container_config_yaml_file: str,
@@ -181,11 +185,11 @@ def babs_init_main(
     datasets : dictionary
         Keys are the names of the input BIDS datasets, and values are the paths to the input BIDS
         datasets.
-    list_sub_file: str or None
-        Path to the CSV file that lists the subject (and sessions) to analyze;
+    participants_file: str or None
+        Path to the TSV file that lists the subjects (and sessions) to analyze;
         or `None` if CLI's flag isn't specified
-        single-ses data: column of 'sub_id';
-        multi-ses data: columns of 'sub_id' and 'ses_id'
+        subject-level processing: column of 'participant_id';
+        session-level processing: columns of 'participant_id' and 'session_id'
     container_ds: str
         path to the container datalad dataset
     container_name: str
@@ -235,7 +239,7 @@ def babs_init_main(
 
     # input dataset:
     input_ds = InputDatasets(datasets)
-    input_ds.get_initial_inclu_df(list_sub_file, type_session)
+    input_ds.get_initial_inclu_df(participants_file, type_session)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;
@@ -455,8 +459,8 @@ def babs_submit_main(
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
-    # Check if this csv file has been created, if not, create it:
-    create_job_status_csv(babs_proj)
+    # Check if this tsv file has been created, if not, create it:
+    create_job_status_tsv(babs_proj)
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
@@ -505,16 +509,16 @@ def babs_submit_main(
         # turn into a pandas DataFrame:
         if babs_proj.type_session == 'single-ses':
             df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=['sub_id']
+                None, index=list(range(0, len(job))), columns=['participant_id']
             )
         elif babs_proj.type_session == 'multi-ses':
             df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=['sub_id', 'ses_id']
+                None, index=list(range(0, len(job))), columns=['participant_id', 'session_id']
             )
         for i_job in range(0, len(job)):
-            df_job_specified.at[i_job, 'sub_id'] = job[i_job][0]
+            df_job_specified.at[i_job, 'participant_id'] = job[i_job][0]
             if babs_proj.type_session == 'multi-ses':
-                df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
+                df_job_specified.at[i_job, 'session_id'] = job[i_job][1]
 
         # sanity check:
         df_job_specified = check_df_job_specific(
@@ -563,7 +567,7 @@ def _parse_status():
         ' ``failed``: Jobs that failed, i.e.,'
         ' jobs that are out of queue but do not have results pushed to output RIA.'
         ' The list of failed jobs can also be found by filtering jobs with'
-        " ``'is_failed' = True`` in ``job_status.csv``;"
+        " ``'is_failed' = True`` in ``job_status.tsv``;"
         ' ``pending``: Jobs that are pending (without error) in the queue.'
         " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm.",
     )
@@ -671,8 +675,8 @@ def babs_status_main(
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
-    # Check if this csv file has been created, if not, create it:
-    create_job_status_csv(babs_proj)
+    # Check if this tsv file has been created, if not, create it:
+    create_job_status_tsv(babs_proj)
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Get the list of resubmit conditions:
@@ -739,17 +743,19 @@ def babs_status_main(
         # turn into a pandas DataFrame:
         if babs_proj.type_session == 'single-ses':
             df_resubmit_job_specific = pd.DataFrame(
-                None, index=list(range(0, len(resubmit_job))), columns=['sub_id']
+                None, index=list(range(0, len(resubmit_job))), columns=['participant_id']
             )
         elif babs_proj.type_session == 'multi-ses':
             df_resubmit_job_specific = pd.DataFrame(
-                None, index=list(range(0, len(resubmit_job))), columns=['sub_id', 'ses_id']
+                None,
+                index=list(range(0, len(resubmit_job))),
+                columns=['participant_id', 'session_id'],
             )
 
         for i_job in range(0, len(resubmit_job)):
-            df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
+            df_resubmit_job_specific.at[i_job, 'participant_id'] = resubmit_job[i_job][0]
             if babs_proj.type_session == 'multi-ses':
-                df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
+                df_resubmit_job_specific.at[i_job, 'session_id'] = resubmit_job[i_job][1]
 
         # sanity check:
         df_resubmit_job_specific = check_df_job_specific(
@@ -1059,9 +1065,10 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     ----------
     df: pd.DataFrame
         i.e., `df_job_specific`
-        list of sub_id (and ses_id, if multi-ses) that the user requests to submit or resubmit
+        list of participant_id (and session_id, if multi-ses)
+        that the user requests to submit or resubmit
     job_status_path_abs: str
-        absolute path to the `job_status.csv`
+        absolute path to the `job_status.tsv`
     type_session: str
         'single-ses' or 'multi-ses'
     which_function: str
@@ -1075,13 +1082,13 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
 
     Notes
     -----
-    The `job_status.csv` file must present before running this function!
-    Please use `create_job_status_csv()` from `utils.py` to create
+    The `job_status.tsv` file must present before running this function!
+    Please use `create_job_status_tsv()` from `utils.py` to create
 
     TODO
     ----
-    if `--job-csv` is added in `babs submit`, update the `which_function`
-    so that warnings/error messages are up-to-date (using `--job or --job-csv`)
+    if `--job-tsv` is added in `babs submit`, update the `which_function`
+    so that warnings/error messages are up-to-date (using `--job or --job-tsv`)
     """
 
     # 1. Sanity check: there should not be duplications in `df`:
@@ -1100,12 +1107,12 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
         df = df_unique  # update with the unique one
 
     # 2. Sanity check: `df` should be a sub-set of all jobs:
-    # read the `job_status.csv`:
+    # read the `job_status.tsv`:
     lock_path = job_status_path_abs + '.lock'
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
-            df_job = read_job_status_csv(job_status_path_abs)
+            df_job = read_job_status_tsv(job_status_path_abs)
 
             # check if `df` is sub-set of `df_job`:
             df_intersection = df.merge(df_job).drop_duplicates()

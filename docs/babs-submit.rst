@@ -16,7 +16,7 @@ Command-Line Arguments
 
 .. warning::
     Do NOT kill ``babs submit``
-    while it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
+    while it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.tsv``!
 
 
 **********************
