@@ -53,8 +53,6 @@ git checkout -b "${BRANCH}"
 echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
 {% for i in range(input_ds.num_ds) %}
 {% if not input_ds.df.loc[i, 'is_zipped'] %}
-{% for i in range(input_ds.num_ds) %}
-{% if not input_ds.df.loc[i, 'is_zipped'] %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
 (cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf $(find . -type d -name 'sub*' | grep -v $subid))
 {% else %}
