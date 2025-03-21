@@ -2852,25 +2852,3 @@ class Container:
                     pushgitremote=pushgitremote if not test else '',
                 )
             )
-
-    def babs_init(
-        self, input_ds, container_ds, container_name, container_config_yaml_file, system
-    ):
-        """Initialize a BABS project.
-
-        Parameters
-        ----------
-        input_ds : Input_ds
-            Input dataset object
-        container_ds : str
-            Path to the container dataset
-        container_name : str
-            Name of the container
-        container_config_yaml_file : str
-            Path to the container configuration YAML file
-        system : System
-            System object containing system-specific information
-        """
-        # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
-        template = env.get_template('babs_proj_config.yaml.jinja2')

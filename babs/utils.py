@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
+from jinja2 import Environment, PackageLoader
 from qstat import qstat  # https://github.com/relleums/qstat
 
 
@@ -828,11 +829,9 @@ def generate_one_bashhead_resources(system, key, value):
     # find the key in the `system.dict`:
     if key not in system.dict:
         raise Exception(
-            "Invalid key '"
-            + key
-            + "' in section `cluster_resources`"
-            + ' in `container_config_yaml_file`; This key has not been defined'
-            + " in file 'dict_cluster_systems.yaml'."
+            f"Invalid key '{key}' in section `cluster_resources`"
+            ' in `container_config_yaml_file`; This key has not been defined'
+            " in file 'dict_cluster_systems.yaml'."
         )
 
     # get the format:
@@ -867,9 +866,7 @@ def generate_bashhead_resources(system, config):
 
     # sanity check: `cluster_resources` exists:
     if 'cluster_resources' not in config:
-        raise Exception(
-            'There is no section `cluster_resources`' + ' in `container_config_yaml_file`!'
-        )
+        raise Exception('There is no section `cluster_resources` in `container_config_yaml_file`!')
 
     # generate the command for interpreting shell first:
     if 'interpreting_shell' not in config['cluster_resources']:
@@ -916,7 +913,7 @@ def generate_cmd_script_preamble(config):
         got from `read_container_config_yaml()`
 
     Returns:
-    ------------
+    --------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file.
@@ -934,10 +931,7 @@ def generate_cmd_script_preamble(config):
         # TODO: ^^ this should be changed to an error!
     else:  # there is `script_preamble`:
         # directly grab the commands in the section:
-        cmd += '\n# Script preambles:\n'
         cmd += config['script_preamble']
-
-    cmd += '\necho I' + '\\' + "'" + 'm in $PWD using `which python`\n'
 
     return cmd
 
@@ -992,12 +986,12 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
         "multi-ses" or "single-ses"
 
     Returns:
-    -----------
+    --------
     cmd: str
         the bash command used in `participant_job.sh`
 
     Notes:
-    -----------
+    ------
     ref: `bootstrap-fmriprep-ingressed-fs.sh`
     """
 
@@ -1010,13 +1004,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
         if input_ds.df['is_zipped'][i_ds] is True:  # is zipped:
             variable_name_zip = input_ds.df['name'][i_ds] + '_ZIP'
             variable_name_zip = variable_name_zip.upper()  # change to upper case
-            cmd += (
-                variable_name_zip
-                + '='
-                + '$(ls '
-                + input_ds.df['path_now_rel'][i_ds]
-                + '/${subid}_'
-            )
+            cmd += f'{variable_name_zip}=$(ls ' + input_ds.df['path_now_rel'][i_ds] + '/${subid}_'
 
             if type_session == 'multi-ses':
                 cmd += '${sesid}_'
@@ -1099,66 +1087,27 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         Otherwise, after expansion by DataLad, some values might miss `-i` (or `-o`)!
     """
 
-    cmd = ''
-    cmd += 'datalad run \\' + '\n'
+    # Create Jinja environment
+    env = Environment(
+        loader=PackageLoader('babs', 'templates'),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=True,
+    )
 
-    # input: `<containerName>_zip.sh`:
-    bash_bidsapp_zip_path_rel = op.join('code', container.container_name + '_zip.sh')
-    cmd += '\t' + '-i ' + bash_bidsapp_zip_path_rel + ' \\' + '\n'
+    # Load the template
+    template = env.get_template('datalad_run.sh.jinja2')
 
-    # input: each input dataset (depending on zipped or not)
-    flag_expand_inputs = False
-    for i_ds in range(0, input_ds.num_ds):
-        if input_ds.df['is_zipped'][i_ds] is False:  # not zipped
-            # input: a subject or session folder
-            if type_session == 'multi-ses':
-                cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/${subid}/${sesid} \\\n'
-            elif type_session == 'single-ses':
-                cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/${subid} \\\n'
+    # Determine if we need to expand inputs
+    flag_expand_inputs = any(not input_ds.df['is_zipped'][i_ds] for i_ds in range(input_ds.num_ds))
 
-            # input: also the json file:
-            # as using globs `*`, need to be quoted (`''`)!
-            cmd += '\t-i ' + input_ds.df['path_now_rel'][i_ds] + '/' + '*json' + ' \\\n'
-            flag_expand_inputs = True  # `--expand inputs`
-
-        else:  # zipped:
-            cmd += '\t-i ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}' + ' \\\n'
-
-    # input: container image
-    cmd += '\t-i ' + container.container_path_relToAnalysis + ' \\\n'
-
-    # --expand:
-    # ^^ Expand globs when storing inputs and/or outputs in the commit message.
-    # might be needed when `*` in --inputs or --outputs?
-    # NOTE: why `bootstrap-fmriprep-ingressed-fs.sh` has `--expand outputs`???
-    if flag_expand_inputs is True:
-        cmd += '\t--expand inputs' + ' \\\n'
-
-    # --explicit
-    cmd += '\t--explicit' + ' \\\n'
-
-    # output: each zipped file
-    fixed_cmd = '\t-o ${subid}_'
-    if type_session == 'multi-ses':
-        fixed_cmd += '${sesid}_'
-
-    for key, value in container.config['zip_foldernames'].items():
-        cmd += fixed_cmd + key + '-' + value + '.zip' + ' \\\n'
-
-    # message:
-    cmd += '\t-m "' + container.container_name + ' ${subid}'
-    if type_session == 'multi-ses':
-        cmd += ' ${sesid}'
-    cmd += '"' + ' \\\n'
-
-    # the real command:
-    cmd += '\t"' + 'bash ./code/' + container.container_name + '_zip.sh' + ' ${subid}'
-    if type_session == 'multi-ses':
-        cmd += ' ${sesid}'
-    for i_ds in range(0, input_ds.num_ds):
-        if input_ds.df['is_zipped'][i_ds] is True:  # is zipped:
-            cmd += ' ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}'
-    cmd += '"' + '\n'
+    # Render the template
+    cmd = template.render(
+        container=container,
+        input_ds=input_ds,
+        type_session=type_session,
+        flag_expand_inputs=flag_expand_inputs,
+    )
 
     return cmd
 

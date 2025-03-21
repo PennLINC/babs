@@ -9,10 +9,6 @@ import pandas as pd
 from filelock import FileLock, Timeout
 
 from babs.babs import BABS, Input_ds, System
-
-# import sys
-# from datalad.interface.base import build_doc
-# from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import (
     create_job_status_csv,
     get_datalad_version,
