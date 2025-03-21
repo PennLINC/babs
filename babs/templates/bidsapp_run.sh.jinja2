@@ -40,25 +40,25 @@ sed -i "s/ses-//g" ${filterfile}
 mkdir -p ${PWD}/.git/tmp/wkdir
 singularity run --containall --writable-tmpfs \
 -B ${PWD} \
-{%- if templateflow_home -%}
+{% if templateflow_home %}
 -B {{ templateflow_home }}:{{ templateflow_in_container }} \
-{%- endif -%}
-{%- if flag_fs_license -%}
+{% endif %}
+{% if flag_fs_license %}
 -B {{ path_fs_license }}:{{ PATH_FS_LICENSE_IN_CONTAINER }} \
-{%- endif -%}
-{%- if cmd_env_templateflow -%}
+{% endif %}
+{% if cmd_env_templateflow %}
 {{ cmd_env_templateflow }} \
-{%- endif -%}
-{%- if templateflow_home -%}
+{% endif %}
+{% if templateflow_home %}
 {{ cmd_env_templateflow }} \
-{%- endif -%}
+{% endif %}
 {{ container_path_relToAnalysis }} \
 "$PWD/{{ singuRun_input_dir }}" \
 "$PWD/{{ path_output_folder }}" \
 participant \
-{%- if flag_filterfile -%}
+{% if flag_filterfile %}
 --bids-filter-file "${filterfile}" \
-{%- endif -%}
+{% endif %}
 --participant-label "${subid}" \
 {{ cmd_singularity_flags }} \
 {{ cmd_zip }}

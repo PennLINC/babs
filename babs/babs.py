@@ -2585,7 +2585,12 @@ class Container:
         cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
 
         # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+        )
         template = env.get_template('bidsapp_run.sh.jinja2')
 
         with open(bash_path, 'w') as f:
