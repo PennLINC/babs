@@ -3,7 +3,7 @@ Will submit a test job for testing; will take longer time.
 Below is the configuration information saved during `babs init` in file 'analysis/code/babs_proj_config.yaml':
 
 type_session: multi-ses
-type_system: sge
+queue: sge
 input_ds:
   $INPUT_DATASET_#1:
     name: BIDS
