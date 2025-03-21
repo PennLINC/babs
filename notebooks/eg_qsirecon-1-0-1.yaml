@@ -19,7 +19,7 @@ singularity_run:
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
     -vv: ""
     --input-type: "qsiprep"
-    --recon-spec: "/code/recon_spec.yaml" # [FIX ME] you will need to 1) bind this file in the singularity run yourself and 2) add this file in your analysis/code, then datalad save and datalad push
+    --recon-spec: "/code/recon_spec.yaml" # [FIX ME] you will need to 1) bind this file in the singularity run yourself and 2) add this file in your analysis/code, then babs sync-code
     --nthreads: "8"
     --omp-nthreads: "8"
 
