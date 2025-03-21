@@ -269,7 +269,7 @@ class BABS:
 
         Parameters
         ----------
-        input_ds: class `Input_ds`
+        input_ds: class `InputDatasets`
             Input dataset(s).
         container_name: str
             name of the container, best to include version number.
@@ -616,7 +616,7 @@ class BABS:
 
         Parameters
         ----------
-        input_ds: class `Input_ds`
+        input_ds: class `InputDatasets`
             information of input dataset(s)
 
         Notes
@@ -683,7 +683,7 @@ class BABS:
 
         Parameters
         ----------
-        input_ds: class `Input_ds`
+        input_ds: class `InputDatasets`
             information of input dataset(s)
         flag_job_test: bool
             Whether to submit and run a test job.
@@ -781,7 +781,7 @@ class BABS:
             )
 
             # ROADMAP: check if input dataset ID saved in YAML file
-            #           (not saved yet, also need to add to Input_ds class too)
+            #           (not saved yet, also need to add to InputDatasets class too)
             #           = that in `.gitmodules` in cloned ds
             #   However, It's pretty unlikely that someone changes inputs/data on their own
             #       if they're using BABS
@@ -2043,17 +2043,17 @@ class BABS:
         # ====================================================
 
 
-class Input_ds:
+class InputDatasets:
     """This class is for input dataset(s)"""
 
-    def __init__(self, input_cli):
+    def __init__(self, datasets):
         """
-        This is to initialize `Input_ds` class.
+        This is to initialize `InputDatasets` class.
 
         Parameters
         ----------
-        input_cli: nested list of strings
-            see CLI `babs init --input` for more
+        datasets : dict
+            see CLI `babs init --datasets` for more
 
         Attributes
         ----------
@@ -2081,7 +2081,7 @@ class Input_ds:
         # create an empty pandas DataFrame:
         self.df = pd.DataFrame(
             None,
-            index=list(range(0, len(input_cli))),
+            index=list(range(len(datasets))),
             columns=[
                 'name',
                 'path_in',
@@ -2095,11 +2095,13 @@ class Input_ds:
         # number of dataset(s):
         self.num_ds = self.df.shape[0]  # number of rows in `df`
 
-        # change the `input_cli` from nested list to a pandas dataframe:
-        for i in range(0, self.num_ds):
-            self.df.loc[i, 'name'] = input_cli[i][0]
-            self.df.loc[i, 'path_in'] = input_cli[i][1]
-            self.df.loc[i, 'path_now_rel'] = op.join('inputs/data', self.df.loc[i, 'name'])
+        # change the `datasets` from dictionary to a pandas dataframe:
+        for i_dset, (name, path) in enumerate(datasets.items()):
+            self.df.loc[i_dset, 'name'] = name
+            self.df.loc[i_dset, 'path_in'] = path
+            self.df.loc[i_dset, 'path_now_rel'] = op.join(
+                'inputs/data', self.df.loc[i_dset, 'name']
+            )
 
         # sanity check: input ds names should not be identical:
         if len(set(self.df['name'].tolist())) != self.num_ds:  # length of the set = number of ds
@@ -2515,7 +2517,7 @@ class Container:
         ----------
         bash_path: str
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
-        input_ds: class `Input_ds`
+        input_ds: class `InputDatasets`
             input dataset(s) information
         type_session: str
             multi-ses or single-ses.
@@ -2736,7 +2738,7 @@ class Container:
         ----------
         bash_path: str
             The path to the bash file to be generated. It should be in the `analysis/code` folder.
-        input_ds: class `Input_ds`
+        input_ds: class `InputDatasets`
             input dataset(s) information
         type_session: str
             "multi-ses" or "single-ses".
