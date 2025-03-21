@@ -2072,7 +2072,7 @@ class Input_ds:
         num_ds: int
             number of input dataset(s)
         initial_inclu_df: pandas DataFrame or None
-            got by method `get_initial_inclu_df()`, based on `list_sub_file`
+            got by method `get_initial_inclu_df()`, based on `participants_file`
             Assign `None` for now, before calling that method
             See that method for more.
         """

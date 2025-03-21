@@ -1184,13 +1184,13 @@ def get_list_sub_ses(input_ds, config, babs):
     """
 
     # Get the initial list of subjects (and sessions): -------------------------------
-    #   This depends on flag `list_sub_file`
+    #   This depends on flag `participants_file`
     #       If it is None: get the initial list from input dataset
     #       If it's a tsv file, use it as initial list
     if input_ds.initial_inclu_df is not None:  # there is initial including list
         # no need to sort (as already done when validating)
         print(
-            'Using the subjects (sessions) list provided in `list_sub_file`'
+            'Using the subjects (sessions) list provided in `participants_file`'
             ' as the initial inclusion list.'
         )
         if babs.type_session == 'single-ses':
