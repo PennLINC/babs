@@ -1179,8 +1179,8 @@ class BABS:
                         print(df_job_updated.head(num_rows_to_print))  # only first several rows
 
                     # save updated df:
-                    df_job_updated.to_tsv(self.job_status_path_abs, sep='\t', index=False)
-                    df_job_submit_updated.to_tsv(self.job_submit_path_abs, sep='\t', index=False)
+                    df_job_updated.to_csv(self.job_status_path_abs, sep='\t', index=False)
+                    df_job_submit_updated.to_csv(self.job_submit_path_abs, sep='\t', index=False)
                 # here, the job status was not checked, so message from `report_job_status()`
                 #   based on current df is not trustable:
                 # # Report the job status:
@@ -1590,7 +1590,7 @@ class BABS:
                         df_job_resubmit_updated,
                         submitted=True,
                     )
-                    df_job_resubmit_updated.to_tsv(self.job_submit_path_abs, sep='\t', index=False)
+                    df_job_resubmit_updated.to_csv(self.job_submit_path_abs, sep='\t', index=False)
                 # Done: submitted jobs that not 'is_done'
 
                 # For 'is_done' jobs in previous round:
@@ -1725,7 +1725,7 @@ class BABS:
                 #     print(df_job_updated.head(6))
 
                 # save updated df:
-                df_job_updated.to_tsv(self.job_status_path_abs, sep='\t', index=False)
+                df_job_updated.to_csv(self.job_status_path_abs, sep='\t', index=False)
 
                 # Report the job status:
                 report_job_status(df_job_updated, self.analysis_path, config_msg_alert)

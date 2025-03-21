@@ -1394,7 +1394,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     columns=['sub_id', 'input_dataset_name', 'missing_required_file'],
                 )
                 fn_tsv_missing = op.join(babs.analysis_path, 'code/sub_missing_required_file.tsv')
-                df_missing.to_tsv(fn_tsv_missing, sep='\t', index=False)
+                df_missing.to_csv(fn_tsv_missing, sep='\t', index=False)
                 print(
                     'There are '
                     + str(len(subs_missing))
@@ -1502,7 +1502,7 @@ def get_list_sub_ses(input_ds, config, babs):
                 fn_tsv_missing = op.join(
                     babs.analysis_path, 'code/sub_ses_missing_required_file.tsv'
                 )
-                df_missing.to_tsv(fn_tsv_missing, sep='\t', index=False)
+                df_missing.to_csv(fn_tsv_missing, sep='\t', index=False)
                 print(
                     'There are '
                     + str(len(sess_missing))
@@ -1528,7 +1528,7 @@ def get_list_sub_ses(input_ds, config, babs):
                 fn_tsv_sub_delete = op.join(
                     babs.analysis_path, 'code/sub_missing_any_ses_required_file.tsv'
                 )
-                df_sub_delete.to_tsv(fn_tsv_sub_delete, sep='\t', index=False)
+                df_sub_delete.to_csv(fn_tsv_sub_delete, sep='\t', index=False)
                 print(
                     'Regarding subjects, '
                     + str(len(subs_delete))
@@ -1551,7 +1551,7 @@ def get_list_sub_ses(input_ds, config, babs):
             babs.list_sub_path_rel,
         )  # "code/sub_final_inclu.tsv"
         df_final = pd.DataFrame(list(zip(subs, strict=False)), columns=['participant_id'])
-        df_final.to_tsv(fn_tsv_final, sep='\t', index=False)
+        df_final.to_csv(fn_tsv_final, sep='\t', index=False)
         print(
             'The final list of included subjects has been saved to this TSV file: ' + fn_tsv_final
         )
@@ -1569,7 +1569,7 @@ def get_list_sub_ses(input_ds, config, babs):
             list(zip(subs_final, sess_final, strict=False)),
             columns=['participant_id', 'session_id'],
         )
-        df_final.to_tsv(fn_tsv_final, sep='\t', index=False)
+        df_final.to_csv(fn_tsv_final, sep='\t', index=False)
         print(
             'The final list of included subjects and sessions has been saved to this TSV file: '
             + fn_tsv_final
@@ -2000,7 +2000,7 @@ def create_job_status_tsv(babs):
 
         try:
             with lock.acquire(timeout=5):
-                df_job.to_tsv(babs.job_status_path_abs, sep='\t', index=False)
+                df_job.to_csv(babs.job_status_path_abs, sep='\t', index=False)
         except Timeout:  # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
             #   there will be a timeout error
