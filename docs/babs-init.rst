@@ -12,9 +12,9 @@ Command-Line Arguments
    :ref: babs.cli._parse_init
    :prog: babs init
 
-   --input : @after
-      Examples: ``--input BIDS /path/to/BIDS_datalad_dataset``;
-      ``--input raw_BIDS https://osf.io/t8urc/``.
+   --datasets : @after
+      Examples: ``--datasets BIDS=/path/to/BIDS_datalad_dataset``;
+      ``--datasets raw_BIDS=https://osf.io/t8urc/``.
 
       ``<name>`` is defined by yourself. Please see section
       :ref:`how-to-define-name-of-input-dataset` below for general guidelines
@@ -38,17 +38,17 @@ Please see document :ref:`preparation` for how to prepare these inputs.
 
 .. _how-to-define-name-of-input-dataset:
 
----------------------------------------------------------------------------
-How to define the input dataset's name ``<name>`` in ``babs init --input``?
----------------------------------------------------------------------------
+------------------------------------------------------------------------------
+How to define the input dataset's name ``<name>`` in ``babs init --datasets``?
+------------------------------------------------------------------------------
 
 **General guideline**: a string you think that's informative.
 Examples are ``BIDS``, ``freesurfer``.
 
 **Specific restrictions**:
 
-1. If you have **more than one** input BIDS dataset (i.e., more than one ``--input``),
-   please make sure the ``<name>`` are different for each dataset;
+1. If you have **more than one** input BIDS dataset (i.e., more than one ``--datasets``),
+   please make sure the ``<name>`` is different for each dataset;
 2. If an input BIDS dataset is a **zipped dataset**, i.e., files are zipped files, such as BIDS data
    derivatives from another BABS project:
 
@@ -139,7 +139,7 @@ an SGE cluster:
     babs init \
         --where_project /path/to/a/folder/holding/BABS/project \
         --project_name my_BABS_project \
-        --input BIDS /path/to/BIDS_datalad_dataset \
+        --datasets BIDS=/path/to/BIDS_datalad_dataset \
         --container_ds /path/to/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config_yaml_file /path/to/container_toybidsapp.yaml \
@@ -155,8 +155,9 @@ Therefore, the 2nd input dataset should be named as 'freesurfer', a keyword in f
 
     babs init \
         ... \
-        --input BIDS /path/to/BIDS_datalad_dataset \
-        --input freesurfer /path/to/freesurfer_results_datalad_dataset \
+        --datasets \
+        BIDS=/path/to/BIDS_datalad_dataset \
+        freesurfer=/path/to/freesurfer_results_datalad_dataset \
         ...
 
 ***************
@@ -170,7 +171,7 @@ What happened: After ``babs init`` prints out a message like this:
 ``Cloning input dataset #x: '/path/to/input_dataset'``, there was an error message that includes this information:
 ``err: 'fatal: repository '/path/to/input_dataset' does not exist'``.
 
-Diagnosis: This means that the specified path to this input dataset (i.e., in ``--input``) was not valid;
+Diagnosis: This means that the specified path to this input dataset (i.e., in ``--datasets``) was not valid;
 there is no DataLad dataset there.
 
 How to solve the problem: Fix this path. To confirm the updated path is valid, you can try cloning

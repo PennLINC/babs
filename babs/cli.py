@@ -8,12 +8,13 @@ import warnings
 import pandas as pd
 from filelock import FileLock, Timeout
 
-from babs.babs import BABS, Input_ds, System
+from babs.babs import BABS, InputDatasets, System
 
 # import sys
 # from datalad.interface.base import build_doc
 # from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import (
+    ToDict,
     create_job_status_tsv,
     get_datalad_version,
     read_job_status_tsv,
@@ -50,18 +51,16 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--input',
-        action='append',  # append each `--input` as a list;
-        dest='input_dataset',
-        # will get a nested list: [[<ds_name_1>, <ds_path_1>], [<ds_name_2>, <ds_path_2>]]
-        # ref: https://docs.python.org/3/library/argparse.html
-        nargs=2,  # expect 2 arguments per `--input` from the command line;
-        #            they will be gathered as one list
-        metavar=('input_dataset_name', 'input_dataset_path'),
-        help='Input BIDS DataLad dataset. '
-        'Format: ``--input <name> <path/to/input_datalad_dataset>``. '
-        'Here ``<name>`` is a name of this input dataset. '
-        '``<path/to/input_datalad_dataset>`` is the path to this input dataset.',
+        '--datasets',
+        action=ToDict,
+        metavar='NAME=PATH',
+        type=str,
+        nargs='+',
+        help=(
+            'Input BIDS datasets. '
+            'These must be provided as named folders '
+            '(e.g., `--datasets smriprep=/path/to/smriprep`).'
+        ),
         required=True,
     )
     parser.add_argument(
@@ -166,7 +165,7 @@ def _enter_init(argv=None):
 def babs_init_main(
     where_project: str,
     project_name: str,
-    input_dataset: list,
+    datasets: list,
     participants_file: str,
     container_ds: str,
     container_name: str,
@@ -183,10 +182,9 @@ def babs_init_main(
         absolute path to the directory where the project will be created
     project_name: str
         the babs project name
-    input_dataset: nested list
-        for each sub-list:
-            element 1: name of input datalad dataset (str)
-            element 2: path to the input datalad dataset (str)
+    datasets : dictionary
+        Keys are the names of the input BIDS datasets, and values are the paths to the input BIDS
+        datasets.
     participants_file: str or None
         Path to the TSV file that lists the subjects (and sessions) to analyze;
         or `None` if CLI's flag isn't specified
@@ -240,7 +238,7 @@ def babs_init_main(
     type_session = validate_type_session(type_session)
 
     # input dataset:
-    input_ds = Input_ds(input_dataset)
+    input_ds = InputDatasets(datasets)
     input_ds.get_initial_inclu_df(participants_file, type_session)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
@@ -966,7 +964,7 @@ def babs_unzip_main(
 
 def get_existing_babs_proj(project_root):
     """
-    This is to get `babs_proj` (class `BABS`) and `input_ds` (class `Input_ds`)
+    This is to get `babs_proj` (class `BABS`) and `input_ds` (class `InputDatasets`)
     based on existing yaml file `babs_proj_config.yaml`.
     This should be used by `babs_submit()` and `babs_status`.
 
@@ -980,7 +978,7 @@ def get_existing_babs_proj(project_root):
     -------
     babs_proj: class `BABS`
         information about a BABS project
-    input_ds: class `Input_ds`
+    input_ds: class `InputDatasets`
         information about input dataset(s)
     """
 
@@ -1030,15 +1028,13 @@ def get_existing_babs_proj(project_root):
             ' Something was wrong during `babs init`...'
         )
 
-    input_cli = []  # to be a nested list
+    datasets = {}  # to be a nested list
     for i_ds in range(0, len(input_ds_yaml)):
         ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-        input_cli.append(
-            [input_ds_yaml[ds_index_str]['name'], input_ds_yaml[ds_index_str]['path_in']]
-        )
+        datasets[input_ds_yaml[ds_index_str]['name']] = input_ds_yaml[ds_index_str]['path_in']
 
-    # Get the class `Input_ds`:
-    input_ds = Input_ds(input_cli)
+    # Get the class `InputDatasets`:
+    input_ds = InputDatasets(datasets)
     # update information based on current babs project:
     # 1. `path_now_abs`:
     input_ds.assign_path_now_abs(babs_proj.analysis_path)

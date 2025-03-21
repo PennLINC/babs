@@ -61,8 +61,8 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
 
     # Get the path to input dataset:
     path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
-    input_ds_cli = [[which_input, path_in]]
-    input_ds_cli_wrong = [[which_input, '/random/path/to/input_ds']]
+    input_ds_cli = {which_input: path_in}
+    input_ds_cli_wrong = {which_input: '/random/path/to/input_ds'}
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
     assert op.exists(container_ds_path)
@@ -91,7 +91,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     babs_init_opts = argparse.Namespace(
         where_project=where_project,
         project_name=project_name,
-        input_dataset=input_ds_cli,
+        datasets=input_ds_cli,
         participants_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
@@ -112,7 +112,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     elif which_case == 'wrong_container_ds':
         babs_init_opts.container_ds = container_ds_path_wrong
     elif which_case == 'wrong_input_ds':
-        babs_init_opts.input_dataset = input_ds_cli_wrong
+        babs_init_opts.datasets = input_ds_cli_wrong
 
     # run `babs init`:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
