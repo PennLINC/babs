@@ -11,7 +11,7 @@ Command-Line Arguments
 **********************
 
 .. argparse::
-   :ref: babs.cli._parse_merge
+   :ref: babs.cli._parse_merge_doc
    :prog: babs merge
 
 **********************
@@ -23,8 +23,8 @@ Example commands
     babs merge \
         --project-root /path/to/my_BABS_project
 
-It's usually not necessary to add the other two arguments (``--chunk-size``, ``--trial-run``),
-as those two arguments are mainly for developers to use.
+It's usually not necessary to add the ``--chunk-size`` argument,
+as it's mainly for developers to use.
 
 **********************
 Detailed description
