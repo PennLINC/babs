@@ -158,7 +158,7 @@ class BABS:
         self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
         self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
 
-    def datalad_save(self, path, message=None):
+    def datalad_save(self, path, message=None, filter_files=None):
         """
         Save the current status of datalad dataset `analysis`
         Also checks that all the statuses returned are "ok" (or "notneeded")
@@ -169,14 +169,31 @@ class BABS:
             the path to the file(s) or folder(s) to save
         message: str or None
             commit message in `datalad save`
+        filter_files: list of str or None
+            list of filenames to exclude from saving
+            if None, no files will be filtered
 
         Notes
         -----
         If the path does not exist, the status will be "notneeded", and won't be error message
             And there won't be a commit with that message
         """
+        if filter_files is not None:
+            # Create a temporary .gitignore file to exclude specified files
+            gitignore_path = os.path.join(self.analysis_path, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                for file in filter_files:
+                    f.write(f'{file}\n')
 
-        statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            try:
+                statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            finally:
+                # Clean up the temporary .gitignore file
+                if os.path.exists(gitignore_path):
+                    os.remove(gitignore_path)
+        else:
+            statuses = self.analysis_datalad_handle.save(path=path, message=message)
+
         # ^^ number of dicts in list `statuses` = len(path)
         # check that all statuses returned are "okay":
         # below is from cubids
