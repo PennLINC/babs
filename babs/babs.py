@@ -2131,7 +2131,7 @@ class Input_ds:
             self.initial_inclu_df = None
         else:
             if op.exists(participants_file) is False:  # does not exist:
-                raise FileNotFoundError(f'File DNE. Please check: {participants_file}')
+                raise FileNotFoundError(f'File does not exist: <{participants_file}>')
             else:
                 self.initial_inclu_df = pd.read_table(participants_file)
                 self.validate_initial_inclu_df(type_session)
@@ -2783,7 +2783,7 @@ class Container:
         bash_file.write('\n')
         bash_file.write('dssource="$1"\t# i.e., `input_ria`\n')
         bash_file.write('pushgitremote="$2"\t# i.e., `output_ria`\n')
-        bash_file.write('SUBJECT_CSV="$3"\n')
+        bash_file.write('SUBJECT_TSV="$3"\n')
         bash_file.write('\n')
         python_filter = (
             'python -c "import sys, re; pattern = '
@@ -2793,7 +2793,7 @@ class Container:
             '"'
         ).format
         bash_file.write(
-            'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)\n'
+            'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_TSV} | tail -n 1)\n'
         )
         bash_file.write(f'subid=$(echo "$subject_row" | {python_filter("sub")})\n')
         bash_file.write(f'sesid=$(echo "$subject_row" | {python_filter("ses")})\n')
