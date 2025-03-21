@@ -65,13 +65,17 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--list_sub_file',
-        '--list-sub-file',  # optional flag
+        '--participants_file',
+        '--participants-file',
         type=str,
-        help='Path to the CSV file that lists the subject (and sessions) to analyze; '
-        ' If there is no such file, please not to specify this flag.'
-        " Single-session data: column of 'sub_id';"
-        " Multi-session data: columns of 'sub_id' and 'ses_id'.",
+        help=(
+            'Path to a TSV file that lists the subjects (and sessions) to analyze; '
+            'If there is no such file, please do not specify this flag.'
+            'If processing is done at the "subject" level, the TSV file should have a '
+            '"participant_id" column. '
+            'If processing is done at the "session" level, the TSV file should have '
+            'columns of "participant_id" and "session_id".'
+        ),
     )
     parser.add_argument(
         '--container_ds',
@@ -163,7 +167,7 @@ def babs_init_main(
     where_project: str,
     project_name: str,
     input_dataset: list,
-    list_sub_file: str,
+    participants_file: str,
     container_ds: str,
     container_name: str,
     container_config_yaml_file: str,
@@ -183,11 +187,11 @@ def babs_init_main(
         for each sub-list:
             element 1: name of input datalad dataset (str)
             element 2: path to the input datalad dataset (str)
-    list_sub_file: str or None
-        Path to the CSV file that lists the subject (and sessions) to analyze;
+    participants_file: str or None
+        Path to the TSV file that lists the subjects (and sessions) to analyze;
         or `None` if CLI's flag isn't specified
-        single-ses data: column of 'sub_id';
-        multi-ses data: columns of 'sub_id' and 'ses_id'
+        subject-level processing: column of 'participant_id';
+        session-level processing: columns of 'participant_id' and 'session_id'
     container_ds: str
         path to the container datalad dataset
     container_name: str
@@ -237,7 +241,7 @@ def babs_init_main(
 
     # input dataset:
     input_ds = Input_ds(input_dataset)
-    input_ds.get_initial_inclu_df(list_sub_file, type_session)
+    input_ds.get_initial_inclu_df(participants_file, type_session)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;

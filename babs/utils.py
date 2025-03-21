@@ -1194,23 +1194,23 @@ def get_list_sub_ses(input_ds, config, babs):
             ' as the initial inclusion list.'
         )
         if babs.type_session == 'single-ses':
-            subs = list(input_ds.initial_inclu_df['sub_id'])
-            # ^^ turn into a list
+            # turn into a list
+            subs = list(input_ds.initial_inclu_df['participant_id'])
         elif babs.type_session == 'multi-ses':
+            # group based on 'participant_id', apply list to every group, then turn into a dict.
+            # This won't change `input_ds.initial_inclu_df`
             dict_sub_ses = (
-                input_ds.initial_inclu_df.groupby('sub_id')['ses_id'].apply(list).to_dict()
+                input_ds.initial_inclu_df.groupby('participant_id')['session_id']
+                .apply(list)
+                .to_dict()
             )
-            # ^^ group based on 'sub_id', apply list to every group,
-            #   then turn into a dict.
-            #   above won't change `input_ds.initial_inclu_df`
 
     else:  # no initial list:
         # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
         # for now, only check the first dataset
         print(
-            'Did not provide `list_sub_file`.'
-            ' Will look into the first input dataset'
-            ' to get the initial inclusion list.'
+            'Did not provide `participants_file`. '
+            'Will look into the first input dataset to get the initial inclusion list.'
         )
         i_ds = 0
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:

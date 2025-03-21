@@ -2108,71 +2108,77 @@ class Input_ds:
         # Initialize other attributes: ------------------------------
         self.initial_inclu_df = None
 
-    def get_initial_inclu_df(self, list_sub_file, type_session):
-        """
+    def get_initial_inclu_df(self, participants_file, type_session):
+        """Load the participants file and create a pandas DataFrame.
+
         Define attribute `initial_inclu_df`, a pandas DataFrame or None
-            based on `list_sub_file`
-            single-session data: column of 'sub_id';
-            multi-session data: columns of 'sub_id' and 'ses_id'
+        based on `participants_file`
+        subject-level processing: column of 'participant_id';
+        session-level processing: columns of 'participant_id' and 'session_id'
 
         Parameters
         ----------
-        list_sub_file: str or None
-            Path to the CSV file that lists the subject (and sessions) to analyze;
+        participants_file: str or None
+            Path to the TSV file that lists the subjects (and sessions) to analyze;
             or `None` if that CLI flag was not specified.
-            single-ses data: column of 'sub_id';
-            multi-ses data: columns of 'sub_id' and 'ses_id'
+            subject-level processing: column of 'participant_id';
+            session-level processing: columns of 'participant_id' and 'session_id'
         type_session: str
             "multi-ses" or "single-ses"
         """
-        # Get the initial included sub/ses list from `list_sub_file` CSV:
-        if list_sub_file is None:  # if not to specify that flag in CLI, it'll be `None`
+        # Get the initial included sub/ses list from `participants_file` TSV:
+        if participants_file is None:  # if not to specify that flag in CLI, it'll be `None`
             self.initial_inclu_df = None
         else:
-            if op.exists(list_sub_file) is False:  # does not exist:
-                raise Exception('`list_sub_file` does not exists! Please check: ' + list_sub_file)
-            else:  # exists:
-                self.initial_inclu_df = pd.read_csv(list_sub_file)
+            if op.exists(participants_file) is False:  # does not exist:
+                raise FileNotFoundError(f'File DNE. Please check: {participants_file}')
+            else:
+                self.initial_inclu_df = pd.read_table(participants_file)
                 self.validate_initial_inclu_df(type_session)
 
     def validate_initial_inclu_df(self, type_session):
+        df = self.initial_inclu_df
         # Sanity check: there are expected column(s):
-        if 'sub_id' not in list(self.initial_inclu_df.columns):
-            raise Exception("There is no 'sub_id' column in `list_sub_file`!")
-        if type_session == 'multi-ses':
-            if 'ses_id' not in list(self.initial_inclu_df.columns):
-                raise Exception(
-                    "There is no 'ses_id' column in `list_sub_file`!"
-                    ' It is expected as this is a multi-session dataset.'
-                )
+        if 'participant_id' not in list(df.columns):
+            raise ValueError('There is no "participant_id" column in `participants_file`!')
+
+        if type_session == 'multi-ses' and 'session_id' not in df.columns:
+            raise ValueError(
+                'There is no "session_id" column in `participants_file`! '
+                'It is expected as this is a multi-session dataset.'
+            )
 
         # Sanity check: no repeated sub (or sessions):
-        if type_session == 'single-ses':
-            # there should only be one occurrence per sub:
-            if len(set(self.initial_inclu_df['sub_id'])) != len(self.initial_inclu_df['sub_id']):
-                raise Exception("There are repeated 'sub_id' in" + '`list_sub_file`!')
+        if type_session == 'single-ses' and len(set(df['participant_id'])) != len(
+            df['participant_id']
+        ):
+            raise ValueError("There are repeated 'participant_id' in `participants_file`!")
+
         elif type_session == 'multi-ses':
-            # there should not be repeated combinations of `sub_id` and `ses_id`:
-            after_dropping = self.initial_inclu_df.drop_duplicates(
-                subset=['sub_id', 'ses_id'], keep='first'
+            # there should not be repeated combinations of `participant_id` and `session_id`:
+            after_dropping = df.drop_duplicates(
+                subset=['participant_id', 'session_id'],
+                keep='first',
             )
             # ^^ remove duplications in specific cols, and keep the first occurrence
-            if after_dropping.shape[0] < self.initial_inclu_df.shape[0]:
+            if after_dropping.shape[0] < df.shape[0]:
                 print(
-                    "Combinations of 'sub_id' and 'ses_id' in some rows are duplicated."
-                    ' Will only keep the first occurrence...'
+                    "Combinations of 'participant_id' and 'session_id' in some rows are "
+                    'duplicated. Will only keep the first occurrence...'
                 )
-                self.initial_inclu_df = after_dropping
 
-        # Sort:
+            df = after_dropping
+
+        # Sort by relevant columns and reset index
         if type_session == 'single-ses':
-            # sort:
-            self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id'])
-            # reset the index, and remove the additional colume:
-            self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(columns=['index'])
+            df = df.sort_values(by=['participant_id'])
+            df = df.reset_index(drop=True)
         elif type_session == 'multi-ses':
-            self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id', 'ses_id'])
-            self.initial_inclu_df = self.initial_inclu_df.reset_index().drop(columns=['index'])
+            df = df.sort_values(by=['participant_id', 'session_id'])
+            df = df.reset_index(drop=True)
+
+        # Assign `initial_inclu_df` to attribute
+        self.initial_inclu_df = df
 
     def assign_path_now_abs(self, analysis_path):
         """
