@@ -27,8 +27,8 @@ singularity_run:
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   This fMRIPrep version (24.1.1) generates two folders, 'fmriprep' and 'freesurfer'.
 zip_foldernames:
-    $TO_CREATE_FOLDER: "true"
     fmriprep_func: "24-1-1"   # folder 'fmriprep_func' will be zipped into 'sub-xx_(ses-yy_)fmriprep_func-24-1-1.zip'
+    freesurfer: "24-1-1"   # folder 'freesurfer' will be zipped into 'sub-xx_(ses-yy_)freesurfer-24-1-1.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
