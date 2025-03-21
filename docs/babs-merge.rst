@@ -23,6 +23,8 @@ Example commands
     babs merge \
         --project-root /path/to/my_BABS_project
 
+It's usually not necessary to add the other two arguments (``--chunk-size``, ``--trial-run``),
+as those two arguments are mainly for developers to use.
 
 **********************
 Detailed description
