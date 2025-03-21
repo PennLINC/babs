@@ -2662,13 +2662,13 @@ class Container:
             information on cluster management system
         """
 
-        # Sanity check:
-        if type_session not in ['multi-ses', 'single-ses']:
-            raise Exception('Invalid `type_session`: ' + type_session)
-
-        # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+        )
+        template = env.get_template('participant_job.sh.jinja2')
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
