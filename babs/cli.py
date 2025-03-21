@@ -4,6 +4,7 @@ import argparse
 import os
 import traceback
 import warnings
+from pathlib import Path
 
 import pandas as pd
 from filelock import FileLock, Timeout
@@ -1182,14 +1183,27 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
-    # Change to analysis directory
-    analysis_dir = os.path.join(project_root, 'analysis')
-    if not os.path.exists(analysis_dir):
-        raise FileNotFoundError(f'Analysis directory does not exist at: {analysis_dir}')
+    # Change to `analysis/code` directory
+    analysis_code_dir = os.path.join(project_root, 'analysis/code')
+    if not os.path.exists(analysis_code_dir):
+        raise FileNotFoundError(
+            f'`analysis/code` directory does not exist at: {analysis_code_dir}'
+        )
 
-    # Run datalad commands
-    babs_proj.datalad_save(analysis_dir, commit_message)
-    babs_proj.datalad_push(analysis_dir, '--to input')
+    # Run datalad commands with filter to exclude specific files
+    # job_status and job_submit are modified every time `babs status` or `babs submit` is run
+    # no need to save and push these files
+    babs_proj.datalad_save(
+        analysis_code_dir,
+        commit_message,
+        filter_files=[
+            'job_status.csv',
+            'job_status.csv.lock',
+            'job_submit.csv',
+            'job_submit.csv.lock',
+        ],
+    )
+    babs_proj.datalad_push(analysis_code_dir, '--to input')
 
 
 COMMANDS = [
