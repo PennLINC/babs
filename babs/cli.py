@@ -290,6 +290,7 @@ def babs_init_main(
                 ' Then fix the problem, delete this failed BABS project,'
                 ' and rerun `babs init`.'
             )
+        raise Exception('`babs init` failed!')
 
 
 def _parse_check_setup():
