@@ -253,7 +253,7 @@ Advanced - Manual of writing section ``singularity_run``
 
     * Not sure how many CPUs or other resources you need?
       You can run ``babs submit --count N`` with the first N (10-20) subjects and then use
-      ``reportseff`` [library here](https://github.com/troycomi/reportseff) or ``seff_array`` to check the resource
+      ``reportseff`` (`library here <https://github.com/troycomi/reportseff>`_) or ``seff_array`` to check the resource
       usage. You can then edit the resources in the ``<bids_app>_zip.sh`` and ``participant_job.sh`` in
       the ``analysis/code`` folder. Make sure to run ``babs sync-code`` after editing the files before
       re-submitting with ``babs submit --all``.
