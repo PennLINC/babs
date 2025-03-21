@@ -13,7 +13,6 @@ Command-Line Arguments
 .. argparse::
    :ref: babs.cli._parse_merge
    :prog: babs merge
-   :exclude-arguments: trial_run trial-run
 
 **********************
 Example commands
