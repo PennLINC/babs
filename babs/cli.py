@@ -1150,18 +1150,18 @@ def _parse_sync_code():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
-        '--project_root',
-        '--project-root',
+        'project_root',
+        nargs='?',
+        default=os.getcwd(),
         help=(
             'Absolute path to the root of BABS project. '
             "For example, '/path/to/my_BABS_project/' "
             '(default is current working directory).'
         ),
-        default=os.getcwd(),
     )
     parser.add_argument(
-        '--commit_message',
-        '--commit-message',
+        '-m',
+        '--message',
         help='Commit message for datalad save',
         default='[babs] sync code changes',
     )
@@ -1186,8 +1186,6 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     analysis_dir = os.path.join(project_root, 'analysis')
     if not os.path.exists(analysis_dir):
         raise Exception(f'Analysis directory does not exist at: {analysis_dir}')
-
-    os.chdir(analysis_dir)
 
     # Run datalad commands
     babs_proj.datalad_save(analysis_dir, commit_message)
