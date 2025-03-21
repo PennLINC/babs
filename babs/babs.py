@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
-from jinja2 import Environment, FileSystemLoader, PackageLoader
+from jinja2 import Environment, PackageLoader
 
 # from datalad.interface.base import build_doc
 from babs.utils import (
@@ -2649,7 +2649,6 @@ class Container:
 
     def generate_bash_participant_job(self, bash_path, input_ds, type_session, system):
         """Generate bash script for participant job.
-        """Generate bash script for participant job.
 
         Parameters
         ----------
@@ -2709,7 +2708,6 @@ class Container:
 
     def generate_bash_test_job(self, folder_check_setup, system):
         """Generate bash script for test job.
-        """Generate bash script for test job.
 
         Parameters
         ----------
@@ -2717,7 +2715,6 @@ class Container:
             Path to the check_setup folder
         system : System
             System object containing system-specific information
-        """
         # Render the template
         env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         template = env.get_template('test_job.sh.jinja2')
@@ -2809,7 +2806,6 @@ class Container:
             flag to set to True if generating the test job submit template
             for `babs check-setup`.
         """
-        from jinja2 import Environment
         from jinja2 import Environment
 
         # Section 1: Command for submitting the job: ---------------------------
