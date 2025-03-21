@@ -1,0 +1,6 @@
+{% if not test %}
+# '${max_array}' is a placeholder.
+{% endif %}
+
+cmd_template: '{{ submit_head }} {{ env_flags }} {{ name_flag_str }}{{ job_name }} {{ eo_args }} {{ array_args }} {% if test %}{{ babs.analysis_path }}/code/check_setup/call_test_job.sh{% else %}{{ babs.analysis_path }}/code/participant_job.sh {{ dssource }} {{ pushgitremote }} {{ babs.job_submit_path_abs }}{% endif %}'
+job_name_template: '{{ job_name }}'

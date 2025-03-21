@@ -1,0 +1,24 @@
+{{ cmd_bashhead_resources }}
+
+{{ cmd_script_preamble }}
+
+# Where the analysis folder is:
+path_check_setup={{ folder_check_setup }}
+
+# Fail whenever something is fishy, use -x to get verbose logfiles:
+set -e -u -x
+
+# NOTE: There is no input argument for this bash file.
+
+{{ cmd_job_compute_space }}
+
+# Call `test_job.py`:
+# get which python:
+echo '# Call `test_job.py`:'
+which_python=`which python`
+current_pwd=${PWD}
+# call `test_job.py`:
+echo 'Calling `test_job.py`...'
+${which_python} {{ fn_test_job }} --path-workspace ${current_pwd} --path-check-setup {{ folder_check_setup }}
+
+echo SUCCESS
