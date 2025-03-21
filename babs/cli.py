@@ -812,7 +812,9 @@ def _parse_merge():
         ),
         default=os.getcwd(),
     )
-    dev_args = parser.add_argument_group('Developer arguments')
+    dev_args = parser.add_argument_group(
+        'Developer arguments', 'Parameters for developers. Users should not use these.'
+    )
     dev_args.add_argument(
         '--chunk-size',
         '--chunk_size',
