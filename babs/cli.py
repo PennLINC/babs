@@ -228,6 +228,9 @@ def babs_init_main(
     if not os.access(where_project, os.W_OK):
         raise Exception('Path provided in `--where_project` is not writable!')
 
+    # Create project directory
+    os.makedirs(project_root, exist_ok=False)  # exist_ok=False to match the existing check
+
     # print datalad version:
     #   if no datalad is installed, will raise error
     print('DataLad version: ' + get_datalad_version())
@@ -1167,22 +1170,6 @@ def _parse_sync_code():
     )
 
     return parser
-
-
-def _enter_sync_code(argv=None):
-    """Entry point for `babs-sync-code` command.
-
-    This function is deprecated and will be removed in a future release.
-    Please use `babs sync-code` instead.
-    """
-    warnings.warn(
-        'babs-sync-code is deprecated and will be removed in the future. '
-        'Please use babs sync-code.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    options = _parse_sync_code().parse_args(argv)
-    babs_sync_code_main(**vars(options))
 
 
 def babs_sync_code_main(project_root: str, commit_message: str):
