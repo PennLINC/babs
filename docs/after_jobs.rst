@@ -13,8 +13,7 @@ from all the successfully finished jobs:
 
 .. code-block:: bash
 
-    babs merge \
-        --project-root /path/to/my_BABS_project
+    babs merge /path/to/my_BABS_project
 
 See :ref:`babs_merge_cli` for details.
 
