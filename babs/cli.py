@@ -313,7 +313,7 @@ def _parse_check_setup():
             '(default is current working directory).'
         ),
         nargs='?',
-        default=os.getcwd(),
+        default=Path.cwd(),
         type=PathExists,
     )
     parser.add_argument(
@@ -394,7 +394,7 @@ def _parse_submit():
             '(default is current working directory).'
         ),
         nargs='?',
-        default=os.getcwd(),
+        default=Path.cwd(),
         type=PathExists,
     )
 
@@ -559,7 +559,7 @@ def _parse_status():
             '(default is current working directory).'
         ),
         nargs='?',
-        default=os.getcwd(),
+        default=Path.cwd(),
         type=PathExists,
     )
     parser.add_argument(
@@ -820,7 +820,7 @@ def _parse_merge():
             '(default is current working directory).'
         ),
         nargs='?',
-        default=os.getcwd(),
+        default=Path.cwd(),
         type=PathExists,
     )
     parser.add_argument(
@@ -909,7 +909,7 @@ def _parse_unzip():
             '(default is current working directory).'
         ),
         nargs='?',
-        default=os.getcwd(),
+        default=Path.cwd(),
         type=PathExists,
     )
     parser.add_argument(
