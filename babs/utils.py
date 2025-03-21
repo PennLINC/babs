@@ -657,52 +657,33 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
 
 def generate_cmd_filterfile(container_name):
     """
-    This is to generate the command for generating the filter file (.json)
-    which is used by BIDS App e.g., fMRIPrep and QSIPrep's argument
-    `--bids-filter-file $filterfile`.
-    This command will be part of `<containerName_zip.sh>`.
+    Generate the command to create a filter file for BIDS App.
+
+    Parameters:
+    ------------
+    container_name: str
+        Name of the container (e.g., 'fmriprep', 'qsiprep')
+
+    Returns:
+    ------------
+    str
+        Command to create the filter file
     """
+    from jinja2 import Environment, PackageLoader
 
-    cmd = ''
+    # Create Jinja environment
+    env = Environment(
+        loader=PackageLoader('babs', 'templates'),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+    )
 
-    cmd += """# Create a filter file that only allows this session
-filterfile=${PWD}/${sesid}_filter.json
-echo "{" > ${filterfile}"""
+    # Load the template
+    template = env.get_template('filter_file.sh.jinja2')
 
-    cmd += """\necho "'fmap': {'datatype': 'fmap'}," >> ${filterfile}"""
-
-    if 'fmriprep' in container_name.lower():
-        cmd += (
-            """\necho "'bold': {'datatype': 'func', 'session': '$sesid', """
-            """'suffix': 'bold'}," >> ${filterfile}"""
-        )
-
-    elif 'qsiprep' in container_name.lower():
-        cmd += (
-            """\necho "'dwi': {'datatype': 'dwi', 'session': '$sesid', """
-            """'suffix': 'dwi'}," >> ${filterfile}"""
-        )
-
-    cmd += """
-echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'}," >> ${filterfile}
-echo "'flair': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'FLAIR'}," >> ${filterfile}
-echo "'t2w': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'T2w'}," >> ${filterfile}
-echo "'t1w': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'T1w'}," >> ${filterfile}
-echo "'roi': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'roi'}" >> ${filterfile}
-echo "}" >> ${filterfile}
-
-# remove ses and get valid json"""
-
-    # below is one command but has to be cut into several pieces to print:
-    cmd += """\nsed -i "s/'/"""
-    cmd += """\\"""  # this is to print out "\";
-    cmd += '"/g" ${filterfile}'
-
-    cmd += """\nsed -i "s/ses-//g" ${filterfile}"""
-
-    cmd += '\n'
-
-    return cmd
+    # Render the template
+    return template.render(container_name=container_name)
 
 
 def generate_cmd_unzip_inputds(input_ds, type_session):
@@ -1092,7 +1073,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         loader=PackageLoader('babs', 'templates'),
         trim_blocks=True,
         lstrip_blocks=True,
-        autoescape=True,
+        autoescape=False,
     )
 
     # Load the template

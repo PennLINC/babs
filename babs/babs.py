@@ -2652,7 +2652,12 @@ class Container:
             System object containing system-specific information
         """
         # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+        )
         template = env.get_template('participant_job.sh.jinja2')
 
         # Cluster resources requesting:

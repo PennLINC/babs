@@ -83,9 +83,17 @@ jobs:
 
       - run:
           name: clean up test artifacts
+          when: always
           command: |
             TEST_ARTIFACTS_DIR=/home/circleci/testing/test_project/analysis
+            # Find and remove all .git directories recursively
             find $TEST_ARTIFACTS_DIR -type d -name ".git" -exec rm -rf {} +
+            # Also remove any .git files
+            find $TEST_ARTIFACTS_DIR -type f -name ".git" -exec rm -f {} +
+            # Remove any .gitignore files
+            find $TEST_ARTIFACTS_DIR -type f -name ".gitignore" -exec rm -f {} +
+            # Remove any .gitattributes files
+            find $TEST_ARTIFACTS_DIR -type f -name ".gitattributes" -exec rm -f {} +
 
       - store_artifacts:
           path: /home/circleci/testing/test_project/analysis
