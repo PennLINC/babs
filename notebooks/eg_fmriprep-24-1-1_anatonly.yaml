@@ -33,7 +33,7 @@ zip_foldernames:
     fmriprep_anat: "24-1-1"   # folder 'fmriprep_anat' will be zipped into 'sub-xx_(ses-yy_)fmriprep_anat-24-1-1.zip'
 # Note: The generated data can also be used to provide FreeSurfer derivatives as input dataset when running fMRIPrep on fMRI data,
 #   i.e., for use case: fMRIPrep with FreeSurfer results ingressed.
-#   For that case, when using `babs-init`, for `--input`, please call this FreeSurfer derivatives dataset 'fmriprep_anat'.
+#   For that case, when using `babs init`, for `--datasets`, please call this FreeSurfer derivatives dataset 'fmriprep_anat'.
 
 # How much cluster resources it needs:
 cluster_resources:

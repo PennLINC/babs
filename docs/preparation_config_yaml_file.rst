@@ -279,13 +279,13 @@ Advanced - Manual of writing section ``singularity_run``
         * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS``
           which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
         * Note that you need to add ``inputs/data/`` before the dataset's name, and what you'll use for
-          ``<name>`` when calling ``babs init --input <name> /path/to/BIDS`` should also be ``BIDS``.
+          ``<name>`` when calling ``babs init --datasets <name>=/path/to/BIDS`` should also be ``BIDS``.
 
     * For the named argument ``--fs-subjects-dir``, say we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
 
         * For fMRIPrep version < 21.0, then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
         * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
-          in ``babs init --input <name> /path/to/freesurfer_dataset``
+          in ``babs init --datasets <name>=/path/to/freesurfer_dataset``
         * Note that, as this is a zipped dataset, you need to repeat ``freesurfer`` twice.
 
             * .. dropdown:: Why we need to repeat it twice?
@@ -770,7 +770,8 @@ In this example case, we specify that for the input raw BIDS dataset, which is a
 Notes:
 
 * If needed, you can change ``$INPUT_DATASET_#1`` to other index of input dataset (e.g., ``$INPUT_DATASET_#2``);
-* To determine the index of the input dataset to specify, please check the order of the datasets when you call ``babs init --input``. This index starts from 1, and is a positive integer.
+* To determine the index of the input dataset to specify, please check the order of the datasets when you call ``babs init --datasets``.
+  This index starts from 1, and is a positive integer.
 
     * For example, to use ``fMRIPrep`` with FreeSurfer results ingressed, you want to call command below,
       and you hope to filter subjects based on files in raw BIDS data (here named ``BIDS``),
@@ -780,8 +781,9 @@ Notes:
 
             babs init \
                 ...
-                --input BIDS /path/to/BIDS \
-                --input freesurfer /path/to/freesurfer_outputs \
+                --datasets \
+                BIDS=/path/to/BIDS \
+                freesurfer=/path/to/freesurfer_outputs \
                 ...
 
 * We recommend adding ``*`` after ``.nii`` as there might only be unzipped NIfTI file (e.g., ``.nii`` instead of ``.nii.gz``) in the input dataset;
