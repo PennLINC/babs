@@ -1080,7 +1080,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         loader=PackageLoader('babs', 'templates'),
         trim_blocks=True,
         lstrip_blocks=True,
-        autoescape=True,
+        autoescape=False,
     )
 
     # Load the template

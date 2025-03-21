@@ -26,9 +26,12 @@ varname_jobid='SLURM_ARRAY_JOB_ID'
 {% endif %}
 
 {% if type_session == 'multi-ses' %}
+{% if type_session == 'multi-ses' %}
 BRANCH="job-${varname_jobid}-${subid}-${sesid}"
 {% else %}
+{% else %}
 BRANCH="job-${varname_jobid}-${subid}"
+{% endif %}
 {% endif %}
 
 mkdir ${BRANCH}
@@ -53,11 +56,13 @@ git checkout -b "${BRANCH}"
 echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
 {% for i in range(input_ds.num_ds) %}
 {% if not input_ds.df.loc[i, 'is_zipped'] %}
+{% for i in range(input_ds.num_ds) %}
+{% if not input_ds.df.loc[i, 'is_zipped'] %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -rf $(find . -type d -name 'sub*' | grep -v $subid))
 {% else %}
 datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -f `ls sub-*.zip | grep -v ${subid}`)
+(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && rm -f $(ls sub-*.zip | grep -v ${subid}))
 {% endif %}
 {% endfor %}
 
@@ -79,8 +84,8 @@ flock $DSLOCKFILE git push outputstore
 # Delete:
 echo "echo 'Delete temporary directory:'"
 echo ${BRANCH}
-{% for i in range(input_ds.num_ds) %}
-datalad drop -d {{ input_ds.df.loc[i, 'path_now_rel'] }} -r --reckless availability --reckless modification
+{% for dataset in input_datasets %}
+datalad drop -d {{ dataset.path }} -r --reckless availability --reckless modification
 {% endfor %}
 
 datalad drop -r . --reckless availability --reckless modification
