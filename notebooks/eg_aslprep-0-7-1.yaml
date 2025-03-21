@@ -12,11 +12,12 @@
 
 # Arguments in `singularity run`:
 singularity_run:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
     --n_cpus: '1'
     --omp-nthreads: '1'
     --stop-on-first-crash: ""
-    --fs-license-file: "/cbica/home/salot/datasets/mobile-phenomics/freesurfer_license.txt"
+    --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
     --skip-bids-validation: ""
     --output-spaces: "MNI152NLin6Asym:res-2"
     -v: '-v'
@@ -39,13 +40,14 @@ cluster_resources:
     hard_runtime_limit: "200:00:00"
 
 # Necessary commands to be run first:
+#   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
-    module load apptainer
-    module load slurm
-    conda activate babsenv
+    source ${CONDA_PREFIX}/bin/activate babs # you may need to change this to work with your environment manager.
+    source xxxx    # [FIX ME or DELETE ME] source any necessary program
+    module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "/cbica/comp_space/aslprep/nki-babs"
+job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 required_files:
