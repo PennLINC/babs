@@ -2639,9 +2639,14 @@ class Container:
         cmd_env_templateflow, templateflow_home, templateflow_in_container = (
             generate_cmd_set_envvar('TEMPLATEFLOW_HOME')
         )
+        # With `--containall`, templateflow_home=None
+        # from running generate_cmd_set_envvar('TEMPLATEFLOW_HOME'), had to be defined here:
+        templateflow_home = '${TEMPLATEFLOW_HOME}'
 
         # Write the head of the command `singularity run`:
         bash_file.write('mkdir -p ${PWD}/.git/tmp/wkdir\n')
+        bash_file.write('export TEMPLATEFLOW_HOME=${HOME}/TEMPLATEFLOW_HOME_TEMP \n')
+        bash_file.write('mkdir -p ${TEMPLATEFLOW_HOME}\n')
         cmd_head_singularityRun = 'singularity run --containall --writable-tmpfs'
         # binding:
         cmd_head_singularityRun += ' \\' + '\n\t' + '-B ${PWD}'
@@ -2664,7 +2669,7 @@ class Container:
 
         # inject env variable into container:
         if templateflow_home is not None:
-            # add `--env TEMPLATEFLOW_HOME=/TEMPLATEFLOW_HOME`:
+            # add `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`:
             cmd_head_singularityRun += ' \\' + '\n\t'
             cmd_head_singularityRun += cmd_env_templateflow
 

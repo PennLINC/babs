@@ -189,8 +189,9 @@ def test_babs_init(
     for line in lines_bash_container_zip:
         if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
             if_set_singu_templateflow = True
-        if all(ele in line for ele in ['-B', TEMPLATEFLOW_HOME + ':/SGLR/TEMPLATEFLOW_HOME']):
-            # e.g., `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
+        if all(ele in line for ele in ['-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME']):
+            # previously, `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
+            # but now change to new bind, `-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME \`
             if_bind_templateflow = True
         if str_bind_freesurfer in line:
             if_bind_freesurfer = True
