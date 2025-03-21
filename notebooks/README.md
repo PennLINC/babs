@@ -17,21 +17,18 @@ In addition, please check if the function of the YAML files (especially the `sin
     * `<bidsapp-0-0-0>`: BIDS App name and version
     * `<task>`:  How this BIDS App is applied? Regular application? Or some specific use case?
 
-| example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | Notes | 
+| example YAML file | BIDS App | BIDS App version | for what | input BIDS dataset(s) | Notes |
 | :-- | :--|:-- | :-- |:-- | :-- |
 | [link](eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml) | toy BIDS App | 0.0.7 | for testing BABS on a *raw* BIDS dataset | one raw BIDS dataset | This is used in the [example walkthrough](https://pennlinc-babs.readthedocs.io/en/stable/walkthrough.html); please refer to that doc for how to customize this YAML file.  ||
 | [link](eg_toybidsapp-0-0-7_zipped.yaml) | toy BIDS App | 0.0.7 | for testing BABS on a *zipped* BIDS derivatives dataset | one zipped BIDS derivatives dataset |  |
-| [link](eg_qsiprep-0-18-1_regular.yaml) | QSIPrep | 0.18.1 | regular use of QSIPrep | one raw BIDS dataset | This does not include `qsirecon` workflow |
-| [link](eg_fmriprep-23-1-3_regular.yaml) | fMRIPrep | 23.1.3 | regular use of fMRIPrep | one raw BIDS dataset |  |
-| [link](eg_fmriprep-23-1-3_anatonly.yaml) | fMRIPrep | 23.1.3 | fMRIPrep `--anat-only` | one raw BIDS dataset |  |
-| [link](eg_fmriprep-23-1-3_ingressed-fs.yaml) | fMRIPrep | 23.1.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` (see example YAML [here](eg_fmriprep-23-1-3_anatonly.yaml)) |
-| [link](eg_fmriprep-20-2-3_regular.yaml) | fMRIPrep | 20.2.3 | regular use of fMRIPrep | one raw BIDS dataset |  |
-| [link](eg_fmriprep-20-2-3_anatonly.yaml) | fMRIPrep | 20.2.3 | fMRIPrep `--anat-only` | one raw BIDS dataset | Only `freesurfer` folder is saved. |
-| [link](eg_fmriprep-20-2-3_ingressed-fs.yaml) | fMRIPrep | 20.2.3 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` (see example YAML [here](eg_fmriprep-20-2-3_anatonly.yaml)) |
-| [link](eg_xcpd-0-4-0_nifti.yaml) | XCP-D | 0.4.0 | for NIfTI images (i.e., without `--cifti`) | one zipped BIDS derivatives dataset of fMRIPrep results | The 0.4.0 version of XCP-D is labeled as `04.0` on Docker Hub.  |
-
-
-Note that because fMRIPrep changed its default output layout in version `21.0`, here we provide example YAML files for both a recent version (`23.1.3`) and an older version (`20.2.3`). The recent version uses BIDS output layout, whereas the older one uses legacy output layout. This difference reflects in the `zip_folernames` section.
+| [link](eg_qsiprep-1-0-0_regular.yaml) | QSIPrep | 1.0.0 | regular use of QSIPrep | one raw BIDS dataset | This does not include `qsirecon` workflow |
+| [link](eg_qsirecon-1-0-1.yaml) | QSIRecon | 1.0.1 | regular use of QSIRecon | one QSIPrep derivatives dataset | For processing QSIPrep outputs |
+| [link](eg_fmriprep-24-1-1_regular.yaml) | fMRIPrep | 24.1.1 | regular use of fMRIPrep | one raw BIDS dataset |  |
+| [link](eg_fmriprep-24-1-1_anatonly.yaml) | fMRIPrep | 24.1.1 | fMRIPrep `--anat-only` | one raw BIDS dataset |  |
+| [link](eg_fmriprep-24-1-1_ingressed-fs.yaml) | fMRIPrep | 24.1.1 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` |
+| [link](eg_xcpd-0-10-6_linc.yaml) | XCP-D | 0.10.6 | XCP-D with LINC mode | one zipped BIDS derivatives dataset of fMRIPrep results | Includes multiple atlases for connectivity analysis |
+| [link](eg_mriqc-24-0-2.yaml) | MRIQC | 24.0.2 | regular use of MRIQC | one raw BIDS dataset | For quality control metrics |
+| [link](eg_aslprep-0-7-5.yaml) | ASLPrep | 0.7.5 | regular use of ASLPrep | one raw BIDS dataset | For processing arterial spin labeling (ASL) data |
 
 ## Other files
 - Example initial subject list for toy BIDS datasets:
