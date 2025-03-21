@@ -1185,7 +1185,7 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     # Change to analysis directory
     analysis_dir = os.path.join(project_root, 'analysis')
     if not os.path.exists(analysis_dir):
-        raise Exception(f'Analysis directory does not exist at: {analysis_dir}')
+        raise FileNotFoundError(f'Analysis directory does not exist at: {analysis_dir}')
 
     # Run datalad commands
     babs_proj.datalad_save(analysis_dir, commit_message)
