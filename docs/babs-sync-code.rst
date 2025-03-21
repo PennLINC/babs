@@ -13,7 +13,7 @@ Synopsis
     babs sync-code [PROJECT_ROOT] [-m MESSAGE]
 
 Description
-----------
+-----------
 
 The ``babs sync-code`` command saves and pushes code changes from the BABS project's `analysis/code` directory back to the `input` dataset. This is useful when you have made modifications to the code in your BABS project and want to propagate these changes back to the original input dataset.
 
