@@ -176,19 +176,19 @@ def test_babs_init(
     lines_bash_container_zip = file_bash_container_zip.readlines()
     file_bash_container_zip.close()
     # check:
-    if_bind_templateflow = False  # `singularity run -B` to bind a path to container
+    # if_bind_templateflow = False  # `singularity run -B` to bind a path to container
     if_bind_freesurfer = False
     str_bind_freesurfer = '-B ' + str_fs_license_file + ':/SGLR/FREESURFER_HOME/license.txt'
     print(str_bind_freesurfer)  # FOR DEBUGGING
 
-    if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
+    # if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
     if_generate_bidsfilterfile = False
     if_flag_bidsfilterfile = False
     if_flag_fs_license = False
     flag_fs_license = '--fs-license-file /SGLR/FREESURFER_HOME/license.txt'
     for line in lines_bash_container_zip:
-        if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
-            if_set_singu_templateflow = True
+        # if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
+        #     if_set_singu_templateflow = True
         # if all(ele in line for ele in ['-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME']):
         #     # previously, `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
         #     # but now change to new bind, `-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME \`

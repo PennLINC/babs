@@ -2875,7 +2875,7 @@ def _path_exists(path, parser):
 class ToDict(Action):
     """A custom argparse "store" action to handle a list of key=value pairs."""
 
-    def __call__(self, parser, namespace, values, option_string=None):  # noqa: U100
+    def __call__(self, parser, namespace, values, option_string=None):
         """Call the argument."""
         d = {}
         for spec in values:
