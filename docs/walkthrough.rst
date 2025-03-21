@@ -572,7 +572,7 @@ the generated directives would be:
         │   │   ├── participant_job.sh
         │   │   ├── README.md
         │   │   ├── submit_job_template.yaml
-        │   │   ├── sub_ses_final_inclu.csv
+        │   │   ├── sub_ses_final_inclu.tsv
         │   │   └── toybidsapp-0-0-7_zip.sh
         │   ├── containers
         │   ├── inputs

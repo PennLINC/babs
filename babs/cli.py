@@ -14,9 +14,9 @@ from babs.babs import BABS, Input_ds, System
 # from datalad.interface.base import build_doc
 # from babs.core_functions import babs_init, babs_submit, babs_status
 from babs.utils import (
-    create_job_status_csv,
+    create_job_status_tsv,
     get_datalad_version,
-    read_job_status_csv,
+    read_job_status_tsv,
     read_yaml,
     validate_type_session,
 )
@@ -461,8 +461,8 @@ def babs_submit_main(
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
-    # Check if this csv file has been created, if not, create it:
-    create_job_status_csv(babs_proj)
+    # Check if this tsv file has been created, if not, create it:
+    create_job_status_tsv(babs_proj)
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
@@ -569,7 +569,7 @@ def _parse_status():
         ' ``failed``: Jobs that failed, i.e.,'
         ' jobs that are out of queue but do not have results pushed to output RIA.'
         ' The list of failed jobs can also be found by filtering jobs with'
-        " ``'is_failed' = True`` in ``job_status.csv``;"
+        " ``'is_failed' = True`` in ``job_status.tsv``;"
         ' ``pending``: Jobs that are pending (without error) in the queue.'
         " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm.",
     )
@@ -677,8 +677,8 @@ def babs_status_main(
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
-    # Check if this csv file has been created, if not, create it:
-    create_job_status_csv(babs_proj)
+    # Check if this tsv file has been created, if not, create it:
+    create_job_status_tsv(babs_proj)
     # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Get the list of resubmit conditions:
@@ -1069,7 +1069,7 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
         i.e., `df_job_specific`
         list of sub_id (and ses_id, if multi-ses) that the user requests to submit or resubmit
     job_status_path_abs: str
-        absolute path to the `job_status.csv`
+        absolute path to the `job_status.tsv`
     type_session: str
         'single-ses' or 'multi-ses'
     which_function: str
@@ -1083,13 +1083,13 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
 
     Notes
     -----
-    The `job_status.csv` file must present before running this function!
-    Please use `create_job_status_csv()` from `utils.py` to create
+    The `job_status.tsv` file must present before running this function!
+    Please use `create_job_status_tsv()` from `utils.py` to create
 
     TODO
     ----
-    if `--job-csv` is added in `babs submit`, update the `which_function`
-    so that warnings/error messages are up-to-date (using `--job or --job-csv`)
+    if `--job-tsv` is added in `babs submit`, update the `which_function`
+    so that warnings/error messages are up-to-date (using `--job or --job-tsv`)
     """
 
     # 1. Sanity check: there should not be duplications in `df`:
@@ -1108,12 +1108,12 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
         df = df_unique  # update with the unique one
 
     # 2. Sanity check: `df` should be a sub-set of all jobs:
-    # read the `job_status.csv`:
+    # read the `job_status.tsv`:
     lock_path = job_status_path_abs + '.lock'
     lock = FileLock(lock_path)
     try:
         with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
-            df_job = read_job_status_csv(job_status_path_abs)
+            df_job = read_job_status_tsv(job_status_path_abs)
 
             # check if `df` is sub-set of `df_job`:
             df_intersection = df.merge(df_job).drop_duplicates()

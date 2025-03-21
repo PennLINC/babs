@@ -102,9 +102,9 @@ Toy datasets can be found :ref:`here <example_input_BIDS_datasets_for_BABS>`.
 You may use the toy BIDS App to test out. See :doc:`here <preparation_container>` for more.
 
 After running each ``babs submit`` or ``babs status`` below,
-please check the printed messages and the updated ``job_status.csv``.
-This CSV file can be found at: ``analysis/code/job_status.csv`` in a BABS project.
-The explanations of this CSV file can be found :ref:`here <detailed_description_of_job_status_csv>`.
+please check the printed messages and the updated ``job_status.tsv``.
+This TSV file can be found at: ``analysis/code/job_status.tsv`` in a BABS project.
+The explanations of this TSV file can be found :ref:`here <detailed_description_of_job_status_tsv>`.
 
 -----------------------------------------
 Step 2.1.1: Testing ``babs check-setup``
@@ -159,7 +159,7 @@ Step 2.2: Testing using a large-scale dataset + a real BIDS App
 This is to make sure that the updated code also works on a large-scale dataset
 and when using a real BIDS App (e.g., fMRIPrep, QSIPrep).
 This is especially important to test out when you have updated the workflow of status updates,
-i.e., how ``job_status.csv`` is updated, or you revised the source code for generating BABS scripts
+i.e., how ``job_status.tsv`` is updated, or you revised the source code for generating BABS scripts
 and the changes are related to a real BIDS App.
 
 For example, you may use a dataset with hundreds of (or more) subjects or subject/session pairs.

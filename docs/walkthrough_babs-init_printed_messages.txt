@@ -120,8 +120,8 @@ action summary:
 Determining the list of subjects (and sessions) to analyze...
 Did not provide `list_sub_file`. Will look into the first input dataset to get the initial inclusion list.
 Did not provide `required files` in `container_config_yaml_file`. Not to filter subjects (or sessions)...
-The final list of included subjects and sessions has been saved to this CSV file: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/code/sub_ses_final_inclu.csv
-add(ok): code/sub_ses_final_inclu.csv (file)
+The final list of included subjects and sessions has been saved to this TSV file: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/code/sub_ses_final_inclu.tsv
+add(ok): code/sub_ses_final_inclu.tsv (file)
 save(ok): . (dataset)
 action summary:
   add (ok: 1)

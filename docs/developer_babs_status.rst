@@ -8,11 +8,11 @@ Logic flow of the ``babs_status()`` method of ``BABS`` class
 
 Source code: ``babs/babs.py`` -> ``class BABS()`` --> ``def babs_status()``
 
-* create ``job_status.csv`` if it does not exist yet
+* create ``job_status.tsv`` if it does not exist yet
 * get 'alert_log_messages' configs
 * get username (to be used by ``qacct`` job accounting)
 * get list of branches in output RIA with ``git branch -a`` (NOTE: this is quick, even for tons of branches)
-* with ``job_status.csv`` file opened:
+* with ``job_status.tsv`` file opened:
 
     * get original ``df_job``
     * make new one ``df_job_updated`` (copy of original one)
@@ -114,10 +114,10 @@ Note: currently, ``babs status`` CLI does not support ``--reckless``.
 ..  handling issue #85, but the terminals were closed so she did not have a log for this
 
 ===================================
-Example ``job_status.csv``
+Example ``job_status.tsv``
 ===================================
 
-When this CSV was just initialized::
+When this TSV was just initialized::
 
     sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message,job_account
     sub-01,ses-A,False,-1,,,,False,,,,,

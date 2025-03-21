@@ -13,7 +13,7 @@ List of included subjects (and sessions) to process
 
 #. Determine an initial list:
 
-    * If ``--list-sub-file`` in ``babs init`` is provided by the user, use it as initial list
+    * If ``--participants-file`` in ``babs init`` is provided by the user, use it as initial list
     * If not, BABS will list the subjects and sessions from the first input dataset, and use it as initial list
 
 #. Filter the initial list: Remove subjects (and sessions) which do not have the required files
@@ -21,11 +21,11 @@ List of included subjects (and sessions) to process
    provided when running ``babs init``.
 
 Now, BABS gets the final included subjects (and sessions) to process.
-It saves this list into a CSV file, named ``sub_final_inclu.csv`` (for single-session dataset)
-or ``sub_ses_final_inclu.csv`` (for multiple-session dataset),
+It saves this list into a TSV file, named ``sub_final_inclu.tsv`` (for single-session dataset)
+or ``sub_ses_final_inclu.tsv`` (for multiple-session dataset),
 is located at ``/path/to/my_BABS_project/analysis/code``.
 
-.. TODO: describe other saved csv files for e.g., exclusions
+.. TODO: describe other saved tsv files for e.g., exclusions
 
 ***************************************************************
 Recommended workflow of job submission and status checking
@@ -136,7 +136,7 @@ See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 
 .. warning::
     Do NOT kill ``babs submit`` or ``babs status`` (especially with ``--resubmit*``)
-    when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
+    when it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.tsv``!
 
 .. _example_job_status_summary:
 
@@ -199,32 +199,32 @@ in the last line of the printed message (line #27).
 
 
 *******************************************************
-Explanation on ``job_status.csv``
+Explanation on ``job_status.tsv``
 *******************************************************
 As described above, BABS ``babs status`` has provided a summary of all the jobs.
-This summary is based on ``job_status.csv`` (located at: ``/path/to/my_BABS_project/analysis/code``).
-If you hope to dig out more information, you may take a look at this CSV file.
+This summary is based on ``job_status.tsv`` (located at: ``/path/to/my_BABS_project/analysis/code``).
+If you hope to dig out more information, you may take a look at this TSV file.
 
 .. note::
-    This ``job_status.csv`` file won't exist until the first time running ``babs submit`` or ``babs status``.
+    This ``job_status.tsv`` file won't exist until the first time running ``babs submit`` or ``babs status``.
 
 .. warning::
-    Do NOT make changes to ``job_status.csv`` by yourself!
+    Do NOT make changes to ``job_status.tsv`` by yourself!
     Changes that are not made by ``babs submit`` or ``babs status`` may cause conflicts
     or confusions to BABS on the job status.
 
 ==============================
-Loading ``job_status.csv``
+Loading ``job_status.tsv``
 ==============================
 
-To take a look at ``job_status.csv``, you may load it into Python.
-Below is an example python script of reading ``job_status.csv``::
+To take a look at ``job_status.tsv``, you may load it into Python.
+Below is an example python script of reading ``job_status.tsv``::
 
     import numpy as np
     import pandas as pd
 
-    fn_csv = "/path/to/my_BABS_project/analysis/code/job_status.csv"  # change this path
-    df = pd.read_csv(csv_path,
+    fn_tsv = "/path/to/my_BABS_project/analysis/code/job_status.tsv"  # change this path
+    df = pd.read_table(tsv_path,
                      dtype={"job_id": 'int',
                             'has_submitted': 'bool',
                             'is_done': 'bool'
@@ -239,17 +239,17 @@ Below is an example python script of reading ``job_status.csv``::
 You can also slice ``df`` and extract only failed jobs, only jobs whose ``alert_message``
 matches with a specific string, etc.
 
-.. _detailed_description_of_job_status_csv:
+.. _detailed_description_of_job_status_tsv:
 
 ==================================================
-Detailed description of ``job_status.csv``
+Detailed description of ``job_status.tsv``
 ==================================================
 
-Each row in the ``job_status.csv`` is for a job, i.e., of a subject (single-session dataset),
+Each row in the ``job_status.tsv`` is for a job, i.e., of a subject (single-session dataset),
 or of a session of a subject (multiple-session dataset).
 
 Below is description of each column.
-Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
+Note: ``np.nan`` means numpy's NaN if loading the TSV file into Python.
 
 * ``sub_id`` (and ``ses_id`` in multiple-session dataset): string, the subject ID (and session ID)
   for a job.
@@ -318,7 +318,7 @@ that BABS does not recognize. Please wait for a bit moment, and rerun ``babs sta
 ..  you may see this. This is because jobs are in atypical states `CF` (configuring).
 ..  Just wait several sec and rerun `babs status`.
 
-Q: In ``job_status.csv``, why column ``alert_message`` is updated every time ``babs status`` is called,
+Q: In ``job_status.tsv``, why column ``alert_message`` is updated every time ``babs status`` is called,
 whereas column ``job_account`` is only updated when ``--job-account`` is called?
 
 A:
@@ -330,7 +330,7 @@ A:
     #. Updating ``alert_message`` is quick, whereas running job account
        (e.g., calling ``qacct`` on SGE clusters) is slow
 
-Q: A job is done (i.e., ``is_done = True`` in ``job_status.csv``),
+Q: A job is done (i.e., ``is_done = True`` in ``job_status.tsv``),
 but column ``last_line_stdout_file`` is not ``SUCCESS``?
 
 A: This should be an edge case. Simply run ``babs status`` again,

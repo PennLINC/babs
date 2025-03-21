@@ -1186,7 +1186,7 @@ def get_list_sub_ses(input_ds, config, babs):
     # Get the initial list of subjects (and sessions): -------------------------------
     #   This depends on flag `list_sub_file`
     #       If it is None: get the initial list from input dataset
-    #       If it's a csv file, use it as initial list
+    #       If it's a tsv file, use it as initial list
     if input_ds.initial_inclu_df is not None:  # there is initial including list
         # no need to sort (as already done when validating)
         print(
@@ -1283,17 +1283,17 @@ def get_list_sub_ses(input_ds, config, babs):
 
     # Remove the subjects (or sessions) which does not have the required files:
     #   ------------------------------------------------------------------------
-    # remove existing csv files first:
-    temp_files = glob.glob(op.join(babs.analysis_path, 'code/sub_*missing_required_file.csv'))
+    # remove existing tsv files first:
+    temp_files = glob.glob(op.join(babs.analysis_path, 'code/sub_*missing_required_file.tsv'))
     # ^^ single-ses: `sub_missing*`; multi-ses: `sub_ses_missing*`
     if len(temp_files) > 0:
         for temp_file in temp_files:
             os.remove(temp_file)
     temp_files = []  # clear
     # for multi-ses:
-    fn_csv_sub_delete = op.join(babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv')
-    if op.exists(fn_csv_sub_delete):
-        os.remove(fn_csv_sub_delete)
+    fn_tsv_sub_delete = op.join(babs.analysis_path, 'code/sub_missing_any_ses_required_file.tsv')
+    if op.exists(fn_tsv_sub_delete):
+        os.remove(fn_tsv_sub_delete)
 
     # read `required_files` section from yaml file, if there is:
     if 'required_files' in config:
@@ -1324,7 +1324,7 @@ def get_list_sub_ses(input_ds, config, babs):
                 )
 
         # for the designated ds, iterate all subjects (or sessions),
-        #   remove if does not have the required files, and save to a list -> a csv
+        #   remove if does not have the required files, and save to a list -> a tsv
         if babs.type_session == 'single-ses':
             subs_missing = []
             which_dataset_missing = []
@@ -1385,7 +1385,7 @@ def get_list_sub_ses(input_ds, config, babs):
             #   esp: removing missing subs (esp missing lists in two input ds are different)
             #   for both 1) single-ses; 2) multi-ses data!
 
-            # save `subs_missing` into a csv file:
+            # save `subs_missing` into a tsv file:
             if len(subs_missing) > 0:  # there is missing one
                 df_missing = pd.DataFrame(
                     list(
@@ -1393,15 +1393,15 @@ def get_list_sub_ses(input_ds, config, babs):
                     ),
                     columns=['sub_id', 'input_dataset_name', 'missing_required_file'],
                 )
-                fn_csv_missing = op.join(babs.analysis_path, 'code/sub_missing_required_file.csv')
-                df_missing.to_csv(fn_csv_missing, index=False)
+                fn_tsv_missing = op.join(babs.analysis_path, 'code/sub_missing_required_file.tsv')
+                df_missing.to_tsv(fn_tsv_missing, sep='\t', index=False)
                 print(
                     'There are '
                     + str(len(subs_missing))
                     + ' subject(s)'
                     + " who don't have required files."
-                    + ' Please refer to this CSV file for full list and information: '
-                    + fn_csv_missing
+                    + ' Please refer to this TSV file for full list and information: '
+                    + fn_tsv_missing
                 )
                 print("BABS will not run the BIDS App on these subjects' data.")
                 print(
@@ -1480,7 +1480,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     # add to missing sub list:
                     subs_delete.append(sub)
 
-            # save missing ones into a csv file:
+            # save missing ones into a tsv file:
             if len(subs_missing) > 0:  # there is missing one:
                 df_missing = pd.DataFrame(
                     list(
@@ -1499,17 +1499,17 @@ def get_list_sub_ses(input_ds, config, babs):
                         'missing_required_file',
                     ],
                 )
-                fn_csv_missing = op.join(
-                    babs.analysis_path, 'code/sub_ses_missing_required_file.csv'
+                fn_tsv_missing = op.join(
+                    babs.analysis_path, 'code/sub_ses_missing_required_file.tsv'
                 )
-                df_missing.to_csv(fn_csv_missing, index=False)
+                df_missing.to_tsv(fn_tsv_missing, sep='\t', index=False)
                 print(
                     'There are '
                     + str(len(sess_missing))
                     + ' session(s)'
                     + " which don't have required files."
-                    + ' Please refer to this CSV file for full list and information: '
-                    + fn_csv_missing
+                    + ' Please refer to this TSV file for full list and information: '
+                    + fn_tsv_missing
                 )
                 print("BABS will not run the BIDS App on these sessions' data.")
                 print(
@@ -1525,17 +1525,17 @@ def get_list_sub_ses(input_ds, config, babs):
                 df_sub_delete = pd.DataFrame(
                     list(zip(subs_delete, strict=False)), columns=['sub_id']
                 )
-                fn_csv_sub_delete = op.join(
-                    babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv'
+                fn_tsv_sub_delete = op.join(
+                    babs.analysis_path, 'code/sub_missing_any_ses_required_file.tsv'
                 )
-                df_sub_delete.to_csv(fn_csv_sub_delete, index=False)
+                df_sub_delete.to_tsv(fn_tsv_sub_delete, sep='\t', index=False)
                 print(
                     'Regarding subjects, '
                     + str(len(subs_delete))
                     + ' subject(s)'
                     + " don't have any session that includes required files."
-                    + ' Please refer to this CSV file for the full list: '
-                    + fn_csv_sub_delete
+                    + ' Please refer to this TSV file for the full list: '
+                    + fn_tsv_sub_delete
                 )
 
     else:
@@ -1544,20 +1544,21 @@ def get_list_sub_ses(input_ds, config, babs):
             ' Not to filter subjects (or sessions)...'
         )
 
-    # Save the final list of sub/ses in a CSV file:
+    # Save the final list of sub/ses in a TSV file:
     if babs.type_session == 'single-ses':
-        fn_csv_final = op.join(
-            babs.analysis_path, babs.list_sub_path_rel
-        )  # "code/sub_final_inclu.csv"
-        df_final = pd.DataFrame(list(zip(subs, strict=False)), columns=['sub_id'])
-        df_final.to_csv(fn_csv_final, index=False)
+        fn_tsv_final = op.join(
+            babs.analysis_path,
+            babs.list_sub_path_rel,
+        )  # "code/sub_final_inclu.tsv"
+        df_final = pd.DataFrame(list(zip(subs, strict=False)), columns=['participant_id'])
+        df_final.to_tsv(fn_tsv_final, sep='\t', index=False)
         print(
-            'The final list of included subjects has been saved to this CSV file: ' + fn_csv_final
+            'The final list of included subjects has been saved to this TSV file: ' + fn_tsv_final
         )
     elif babs.type_session == 'multi-ses':
-        fn_csv_final = op.join(
+        fn_tsv_final = op.join(
             babs.analysis_path, babs.list_sub_path_rel
-        )  # "code/sub_ses_final_inclu.csv"
+        )  # "code/sub_ses_final_inclu.tsv"
         subs_final = []
         sess_final = []
         for sub in list(dict_sub_ses.keys()):
@@ -1565,12 +1566,13 @@ def get_list_sub_ses(input_ds, config, babs):
                 subs_final.append(sub)
                 sess_final.append(ses)
         df_final = pd.DataFrame(
-            list(zip(subs_final, sess_final, strict=False)), columns=['sub_id', 'ses_id']
+            list(zip(subs_final, sess_final, strict=False)),
+            columns=['participant_id', 'session_id'],
         )
-        df_final.to_csv(fn_csv_final, index=False)
+        df_final.to_tsv(fn_tsv_final, sep='\t', index=False)
         print(
-            'The final list of included subjects and sessions has been saved to this CSV file: '
-            + fn_csv_final
+            'The final list of included subjects and sessions has been saved to this TSV file: '
+            + fn_tsv_final
         )
 
     # Return: -------------------------------------------------------
@@ -1632,9 +1634,9 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
 
     # COMMENT OUT BECAUSE sub and ses AREN'T NEEDED FOR JOB SUBMISSION
     # if type_session == "single-ses":
-    #     sub_list_path = op.join(analysis_path, "code", "sub_final_inclu.csv")
+    #     sub_list_path = op.join(analysis_path, "code", "sub_final_inclu.tsv")
     # elif type_session == "multi-ses":
-    #     sub_list_path = op.join(analysis_path, "code", "sub_ses_final_inclu.csv")
+    #     sub_list_path = op.join(analysis_path, "code", "sub_ses_final_inclu.tsv")
     # print(cmd)
 
     # run the command, get the job id:
@@ -1677,7 +1679,7 @@ def df_submit_update(
 ):
     """
     This is to update the status of one array task in the dataframe df_job_submit
-    (file: code/job_status.csv). This
+    (file: code/job_status.tsv). This
     function is mostly used after job submission or resubmission. Therefore,
     a lot of fields will be reset. For other cases (e.g., to update job status
     to running state / successfully finished state, etc.), you may directly
@@ -1734,8 +1736,8 @@ def df_submit_update(
 def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
     """
     This is to update the status of one array task in the dataframe df_jobs
-    (file: code/job_status.csv). This is done by inserting information from
-    the updated dataframe df_job_submit (file: code/job_submit.csv). This
+    (file: code/job_status.tsv). This is done by inserting information from
+    the updated dataframe df_job_submit (file: code/job_submit.tsv). This
     function is mostly used after job submission or resubmission. Therefore,
     a lot of fields will be reset. For other cases (e.g., to update job status
     to running state / successfully finished state, etc.), you may directly
@@ -1842,7 +1844,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
             i_job = df_job.index[temp].to_list()
             # # sanity check: there should only be one `i_job`:
             # #   ^^ can be removed as done in `core_functions.py`
-            # assert_msg = "There are duplications in `job_status.csv`" \
+            # assert_msg = "There are duplications in `job_status.tsv`" \
             #     + " for " + sub
             # if self.type_session == "multi-ses":
             #     assert_msg += ", " + ses
@@ -1954,9 +1956,9 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     return job_id, job_id_str, log_filename
 
 
-def create_job_status_csv(babs):
+def create_job_status_tsv(babs):
     """
-    This is to create a CSV file of `job_status`.
+    This is to create a TSV file of `job_status`.
     This should be used by `babs submit` and `babs status`.
 
     Parameters
@@ -1968,7 +1970,7 @@ def create_job_status_csv(babs):
     if op.exists(babs.job_status_path_abs) is False:
         # Generate the table:
         # read the subject list as a panda df:
-        df_sub = pd.read_csv(babs.list_sub_path_abs)
+        df_sub = pd.read_table(babs.list_sub_path_abs)
         df_job = df_sub.copy()  # deep copy of pandas df
 
         # add columns:
@@ -1990,37 +1992,37 @@ def create_job_status_csv(babs):
         # TODO: add different kinds of error
 
         # These `NaN` will be saved as empty strings (i.e., nothing between two ",")
-        #   but when pandas read this csv, the NaN will show up in the df
+        #   but when pandas read this tsv, the NaN will show up in the df
 
-        # Save the df as csv file, using lock:
+        # Save the df as tsv file, using lock:
         lock_path = babs.job_status_path_abs + '.lock'
         lock = FileLock(lock_path)
 
         try:
             with lock.acquire(timeout=5):
-                df_job.to_csv(babs.job_status_path_abs, index=False)
+                df_job.to_tsv(babs.job_status_path_abs, sep='\t', index=False)
         except Timeout:  # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
             #   there will be a timeout error
             print('Another instance of this application currently holds the lock.')
 
 
-def read_job_status_csv(csv_path):
+def read_job_status_tsv(tsv_path):
     """
-    This is to read the CSV file of `job_status`.
+    This is to read the TSV file of `job_status`.
 
     Parameters
     ----------
-    csv_path: str
-        path to the `job_status.csv`
+    tsv_path: str
+        path to the `job_status.tsv`
 
     Returns
     -------
     df: pandas dataframe
         loaded dataframe
     """
-    df = pd.read_csv(
-        csv_path,
+    df = pd.read_table(
+        tsv_path,
         dtype={
             'job_id': 'Int64',
             'task_id': 'Int64',
@@ -2042,12 +2044,12 @@ def read_job_status_csv(csv_path):
 def report_job_status(df, analysis_path, config_msg_alert):
     """
     This is to report the job status
-    based on the dataframe loaded from `job_status.csv`.
+    based on the dataframe loaded from `job_status.tsv`.
 
     Parameters
     ----------
     df: pandas dataframe
-        loaded dataframe from `job_status.csv`
+        loaded dataframe from `job_status.tsv`
     analysis_path: str
         Path to the analysis folder.
         This is used to generate the folder of log files

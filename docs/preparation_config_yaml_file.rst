@@ -147,7 +147,7 @@ Basics - Manual of writing section ``singularity_run``
 
             * See below :ref:`advanced_manual_singularity_run` --> bullet point regarding
               ``--bids-filter-file`` for explanations.
-            * See :doc:`babs-init` for examples of ``--list_sub_file``/``--list-sub-file`` to filter subjects and sessions.
+            * See :doc:`babs-init` for examples of ``--participants-file`` to filter subjects and sessions.
 
     * :octicon:`alert-fill` :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
       you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument input BIDS dataset.
@@ -817,7 +817,7 @@ If ``stdout`` is former (e.g., in example above), then detection of it will be p
 if a message is former, then that will be checked earlier.
 BABS also follows "detect and break" rule, i.e., for each job:
 
-* If any message is detected, the detected message will be thrown into the ``job_status.csv``,
+* If any message is detected, the detected message will be thrown into the ``job_status.tsv``,
   and BABS won't detect any further message down in the list in **alert_log_messages**.
 * If a message has been detected in the first file (``stdout`` for above example),
   then won't detect any message in the other log file (``stderr`` for above example).

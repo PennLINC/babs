@@ -263,11 +263,11 @@ def test_babs_init(
             " Path to YAML file: '" + container_config_yaml_file + "'."
         )
 
-    # Check `sub_ses_final_inclu.csv`:
+    # Check `sub_ses_final_inclu.tsv`:
     #   if qsiprep + multi-ses:  one session without dMRI should not be included
     if (which_bidsapp == 'qsiprep') & (type_session == 'multi-ses'):
-        # load `sub_ses_final_inclu.csv`:
-        fn_list_final_inclu = op.join(project_root, 'analysis/code', 'sub_ses_final_inclu.csv')
+        # load `sub_ses_final_inclu.tsv`:
+        fn_list_final_inclu = op.join(project_root, 'analysis/code', 'sub_ses_final_inclu.tsv')
         file_list_final_inclu = open(fn_list_final_inclu)
         lines_list_final_inclu = file_list_final_inclu.readlines()
         file_list_final_inclu.close()
