@@ -815,6 +815,9 @@ def generate_one_bashhead_resources(system, key, value):
             f"Invalid key '{key}' in section `cluster_resources`"
             ' in `container_config_yaml_file`; This key has not been defined'
             " in file 'dict_cluster_systems.yaml'."
+            f"Invalid key '{key}' in section `cluster_resources`"
+            ' in `container_config_yaml_file`; This key has not been defined'
+            " in file 'dict_cluster_systems.yaml'."
         )
 
     # get the format:
@@ -849,6 +852,7 @@ def generate_bashhead_resources(system, config):
 
     # sanity check: `cluster_resources` exists:
     if 'cluster_resources' not in config:
+        raise Exception('There is no section `cluster_resources` in `container_config_yaml_file`!')
         raise Exception('There is no section `cluster_resources` in `container_config_yaml_file`!')
 
     # generate the command for interpreting shell first:
@@ -895,8 +899,8 @@ def generate_cmd_script_preamble(config):
         attribute `config` in class Container;
         got from `read_container_config_yaml()`
 
-    Returns
-    -------
+    Returns:
+    --------
     cmd: str
         It's part of the `participant_job.sh`; it is generated
         based on config yaml file.
@@ -968,13 +972,13 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
     type_session: str
         "multi-ses" or "single-ses"
 
-    Returns
-    -------
+    Returns:
+    --------
     cmd: str
         the bash command used in `participant_job.sh`
 
-    Notes
-    -----
+    Notes:
+    ------
     ref: `bootstrap-fmriprep-ingressed-fs.sh`
     """
 
@@ -987,6 +991,7 @@ def generate_cmd_determine_zipfilename(input_ds, type_session):
         if input_ds.df['is_zipped'][i_ds] is True:  # is zipped:
             variable_name_zip = input_ds.df['name'][i_ds] + '_ZIP'
             variable_name_zip = variable_name_zip.upper()  # change to upper case
+            cmd += f'{variable_name_zip}=$(ls ' + input_ds.df['path_now_rel'][i_ds] + '/${subid}_'
             cmd += f'{variable_name_zip}=$(ls ' + input_ds.df['path_now_rel'][i_ds] + '/${subid}_'
 
             if type_session == 'multi-ses':
@@ -1075,7 +1080,7 @@ def generate_cmd_datalad_run(container, input_ds, type_session):
         loader=PackageLoader('babs', 'templates'),
         trim_blocks=True,
         lstrip_blocks=True,
-        autoescape=False,
+        autoescape=True,
     )
 
     # Load the template
