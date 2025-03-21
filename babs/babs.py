@@ -346,7 +346,10 @@ class BABS:
                     container_ds=container_ds,
                 )
             )
-
+        self.datalad_save(
+            path=self.config_path,
+            message='Initial save of babs_proj_config.yaml',
+        )
         # Create output RIA sibling: -----------------------------
         print('\nCreating output and input RIA...')
         self.analysis_datalad_handle.create_sibling_ria(
