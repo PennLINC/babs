@@ -2865,11 +2865,26 @@ def _path_does_not_exist(path, parser):
 
 
 def _path_exists(path, parser):
-    """Ensure a given path exists."""
-    if path is None or not Path(path).exists():
-        raise parser.error(f'The path <{path}> does not exist.')
+    """Check if path exists."""
+    if not os.path.exists(path):
+        parser.error(f'Path does not exist: {path}')
+    return path
 
-    return Path(path).absolute()
+
+def check_if_zipped(path):
+    """Check if a path points to a zipped file.
+
+    Parameters
+    ----------
+    path : str
+        Path to check
+
+    Returns
+    -------
+    bool
+        True if path ends with .zip, False otherwise
+    """
+    return path.endswith('.zip')
 
 
 class ToDict(Action):
