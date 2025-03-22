@@ -11,20 +11,25 @@
 #   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
-    -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
-    --n_cpus: '4'
-    --mem_gb: '20'
-    --ants-nthreads: '4'
-    -vv: ''
-    --no-sub: ''
+    -w: "$BABS_TMPDIR" # this is a placeholder recognized by BABS.
+    --n_cpus: "4"
+    --mem_gb: "20"
+    --ants-nthreads: "4"
+    -vv: ""
+    --no-sub: ""
+
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As MRIQC will use BIDS output layout, we need to ask BABS to create a folder 'mriqc' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    mriqc: "24-0-2"   # folder 'mriqc' will be zipped into 'sub-xx_(ses-yy_)mriqc-24-0-2.zip'
+    mriqc: "24-0-2" # folder 'mriqc' will be zipped into 'sub-xx_(ses-yy_)mriqc-24-0-2.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -47,6 +52,6 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # `alert_log_messages`: Here we did not provide examples for section `alert_log_messages`. However feel free to add it!

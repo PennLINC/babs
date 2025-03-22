@@ -118,10 +118,10 @@ def test_babs_init(
     assert op.exists(container_config_yaml_file)
     container_config_yaml = read_yaml(container_config_yaml_file)
 
-    if '--fs-license-file' in container_config_yaml['singularity_run']:
+    if '--fs-license-file' in container_config_yaml['bids_app_args']:
         # ^^ this way is consistent with BABS re: how to determine if fs license is needed;
         flag_requested_fs_license = True
-        str_fs_license_file = container_config_yaml['singularity_run']['--fs-license-file']
+        str_fs_license_file = container_config_yaml['bids_app_args']['--fs-license-file']
     else:
         flag_requested_fs_license = False
         str_fs_license_file = ''

@@ -11,16 +11,16 @@
 #   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
-    -w: "$BABS_TMPDIR"   # this is a placeholder recognized by BABS.
-    --n_cpus: '1'
-    --omp-nthreads: '1'
+    -w: "$BABS_TMPDIR" # this is a placeholder recognized by BABS.
+    --n_cpus: "1"
+    --omp-nthreads: "1"
     --stop-on-first-crash: ""
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
     --skip-bids-validation: ""
     --output-spaces: "MNI152NLin6Asym:res-2"
-    -v: '-v'
+    -v: "-v"
     --level: "full"
     --scorescrub: ""
     --basil: ""
@@ -30,7 +30,7 @@ singularity_run:
 #   As ASLPrep will use BIDS output layout, we need to ask BABS to create a folder 'aslprep' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    aslprep: "0-7-5"   # folder 'aslprep' will be zipped into 'sub-xx_(ses-yy_)aslprep-0-7-5.zip'
+    aslprep: "0-7-5" # folder 'aslprep' will be zipped into 'sub-xx_(ses-yy_)aslprep-0-7-5.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -46,6 +46,11 @@ cluster_resources:
         #SBATCH --mem=12G
         #SBATCH --propagate=NONE
 
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
 # Necessary commands to be run first:
 #   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
@@ -54,7 +59,7 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 required_files:

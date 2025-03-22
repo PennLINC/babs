@@ -10,9 +10,8 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
-
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
@@ -23,12 +22,17 @@ singularity_run:
     --nthreads: "8"
     --omp-nthreads: "8"
 
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+    - -B /path/to/recon_spec.yaml:/code/recon_spec.yaml
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsirecon' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    qsirecon: "1-0-1"   # folder 'qsirecon' will be zipped into 'sub-xx_(ses-yy_)qsirecon-1-0-1.zip'
+    qsirecon: "1-0-1" # folder 'qsirecon' will be zipped into 'sub-xx_(ses-yy_)qsirecon-1-0-1.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -51,4 +55,4 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
