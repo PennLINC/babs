@@ -11,7 +11,7 @@
 #   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
@@ -25,15 +25,19 @@ singularity_run:
     --n_cpus: "2"
     --mem-mb: "12000"
 
-
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'fmriprep_anat' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    fmriprep_anat: "24-1-1"   # folder 'fmriprep_anat' will be zipped into 'sub-xx_(ses-yy_)fmriprep_anat-24-1-1.zip'
+    fmriprep_anat: "24-1-1" # folder 'fmriprep_anat' will be zipped into 'sub-xx_(ses-yy_)fmriprep_anat-24-1-1.zip'
 # Note: The generated data can also be used to provide FreeSurfer derivatives as input dataset when running fMRIPrep on fMRI data,
 #   i.e., for use case: fMRIPrep with FreeSurfer results ingressed.
 #   For that case, when using `babs init`, for `--datasets`, please call this FreeSurfer derivatives dataset 'fmriprep_anat'.
+
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -48,7 +52,6 @@ cluster_resources:
         #SBATCH --mem=12G
         #SBATCH --propagate=NONE
 
-
 # Necessary commands to be run first:
 #   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
@@ -57,7 +60,7 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 required_files:

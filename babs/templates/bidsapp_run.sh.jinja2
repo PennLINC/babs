@@ -54,6 +54,9 @@ singularity run --containall --writable-tmpfs \
 {% if templateflow_home %}
     {{ flag_env_templateflow }} \
 {% endif %}
+{% for singularity_flag in singularity_flags %}
+    {{ singularity_flag }} \
+{% endfor %}
     {{ container_path_relToAnalysis }} \
         $PWD/{{ singuRun_input_dir }} \
         $PWD/{{ path_output_folder }} \

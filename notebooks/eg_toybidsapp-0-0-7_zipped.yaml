@@ -11,21 +11,27 @@
 #   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
-    --zipped: ""    # for zipped input dataset
-    --dummy: "2"   # this is a dummy variable, accepting values
-    -v: ""    # this is also a dummy variable, not accepting values
+    --zipped: "" # for zipped input dataset
+    --dummy: "2" # this is a dummy variable, accepting values
+    -v: "" # this is also a dummy variable, not accepting values
+
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+    - -B /path/to/recon_spec.yaml:/code/recon_spec.yaml
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 zip_foldernames:
-    toybidsapp: "0-0-7"   # folder 'toybidsapp' will be zipped into 'sub-xx_(ses-yy_)toybidsapp-0-0-7.zip'
+    toybidsapp: "0-0-7" # folder 'toybidsapp' will be zipped into 'sub-xx_(ses-yy_)toybidsapp-0-0-7.zip'
 
 cluster_resources:
     interpreting_shell: "/bin/bash"
     hard_memory_limit: 25G
     temporary_disk_space: 50G
-    hard_runtime_limit: "00:20:00"   # 20min
+    hard_runtime_limit: "00:20:00" # 20min
 
 # Necessary commands to be run first:
 #   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
@@ -34,7 +40,7 @@ script_preamble: |
     conda activate my_conda_env_name   # [FIX ME] replace 'my_conda_env_name' with your environment variable name
 
 # Where to run the jobs:
-job_compute_space: "/path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "/path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # 'required_files' section is not needed for toy BIDS App.
 

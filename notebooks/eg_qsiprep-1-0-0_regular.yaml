@@ -10,8 +10,13 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
@@ -30,7 +35,7 @@ singularity_run:
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsiprep' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    qsiprep: "1-0-0"   # folder 'qsiprep' will be zipped into 'sub-xx_(ses-yy_)qsiprep-1-0-0.zip'
+    qsiprep: "1-0-0" # folder 'qsiprep' will be zipped into 'sub-xx_(ses-yy_)qsiprep-1-0-0.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -53,14 +58,11 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 required_files:
     $INPUT_DATASET_#1:
         - "dwi/*_dwi.nii*"
         - "anat/*_T1w.nii*"
-
-
-
 # `alert_log_messages`: Here we did not provide examples for section `alert_log_messages`. However feel free to add it!

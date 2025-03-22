@@ -398,13 +398,7 @@ class BABS:
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
             i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel'])
-            print(
-                'Cloning input dataset #'
-                + str(i_ds + 1)
-                + ": '"
-                + input_ds.df.loc[i_ds, 'name']
-                + "'"
-            )
+            print(f'Cloning input dataset #{i_ds + 1}: ' + input_ds.df.loc[i_ds, 'name'])
             # clone input dataset(s) as sub-dataset into `analysis` dataset:
             dlapi.clone(
                 dataset=self.analysis_path,
@@ -2545,24 +2539,22 @@ class Container:
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
-        # 1. check `singularity_run` section:
-        if 'singularity_run' not in self.config:
+        # 1. check `bids_app_args` section:
+        if 'bids_app_args' not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, (
-                "Section 'singularity_run' is missing in the provided"
+                "Section 'bids_app_args' is missing in the provided"
                 ' `container_config_yaml_file`. As there are more than one'
                 ' input dataset, you must include this section to specify'
                 ' to which argument that each input dataset will go.'
             )
             # if there is only one input ds, fine:
-            print(
-                "Section 'singularity_run' was not included in the `container_config_yaml_file`. "
-            )
+            print("Section 'bids_app_args' was not included in the `container_config_yaml_file`. ")
             cmd_singularity_flags = ''  # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
-            # as "--fs-license-file" was not one of the value in `singularity_run` section:
+            # as "--fs-license-file" was not one of the value in `bids_app_args` section:
             flag_fs_license = False
             path_fs_license = None
             # copied from `generate_cmd_singularityRun_from_config`:
@@ -2581,6 +2573,9 @@ class Container:
         dict_zip_foldernames, if_mk_output_folder, path_output_folder = get_info_zip_foldernames(
             self.config
         )
+
+        # 3. check `singularity_args` section:
+        singularity_args = self.config.get('singularity_args', [])
 
         # Check if the bash file already exist:
         if op.exists(bash_path):
@@ -2630,6 +2625,7 @@ class Container:
             cmd_singularity_flags=cmd_singularity_flags,
             cmd_zip=cmd_zip,
             OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
+            singularity_args=singularity_args,
         )
         with open(bash_path, 'w') as f:
             f.write(rendered_script)

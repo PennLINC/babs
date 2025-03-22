@@ -17,9 +17,9 @@
 #   3. When running `babs init` for current use case, argument `--datasets` for `babs init` is as below:
 #     --datasets BIDS=<path/to/raw_BIDS_dataset>    # 1st input dataset \
 #     fmriprep_anat=<path/to/cloned_fmriprep_anat_output_ria>    # 2nd input dataset \
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
-    $INPUT_PATH: inputs/data/BIDS   # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
+    $INPUT_PATH: inputs/data/BIDS # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
@@ -32,11 +32,16 @@ singularity_run:
     --mem-mb: "30000"
     --fs-subjects-dir: inputs/data/fmriprep_anat/fmriprep_anat/sourcedata/freesurfer #replace with path to your freesurfer results from fmriprep_anat
 
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'fmriprep_anat' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    fmriprep_func: "24-1-1"   # folder 'fmriprep_func' will be zipped into 'sub-xx_(ses-yy_)fmriprep_func-24-1-1.zip'
+    fmriprep_func: "24-1-1" # folder 'fmriprep_func' will be zipped into 'sub-xx_(ses-yy_)fmriprep_func-24-1-1.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -59,7 +64,7 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # Below is to filter out subjects (or sessions). Only those with required files will be kept.
 required_files:

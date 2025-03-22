@@ -300,7 +300,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     ---------
     cmd: str
         It's part of the singularity run command; it is generated
-        based on section `singularity_run` in the yaml file.
+        based on section `bids_app_args` in the yaml file.
     subject_selection_flag: str
         It's part of the singularity run command; it's the command-line flag
         used to specify the subject(s) to be processed by the BIDS app.
@@ -314,7 +314,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         The positional argument of input dataset path in `singularity run`
     """
     # human readable: (just like appearance in a yaml file;
-    # print(yaml.dump(config["singularity_run"], sort_keys=False))
+    # print(yaml.dump(config["bids_app_args"], sort_keys=False))
 
     # not very human readable way, if nested structure:
     # for key, value in config.items():
@@ -331,20 +331,20 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # re: positional argu `$INPUT_PATH`:
     if input_ds.num_ds > 1:  # more than 1 input dataset:
         # check if `$INPUT_PATH` is one of the keys (must):
-        if '$INPUT_PATH' not in config['singularity_run']:
+        if '$INPUT_PATH' not in config['bids_app_args']:
             raise Exception(
-                "The key '$INPUT_PATH' is expected in section `singularity_run`"
+                "The key '$INPUT_PATH' is expected in section `bids_app_args`"
                 ' in `container_config_yaml_file`, because there are more than'
                 ' one input dataset!'
             )
     else:  # only 1 input dataset:
         # check if the path is consistent with the name of the only input ds's name:
-        if '$INPUT_PATH' in config['singularity_run']:
+        if '$INPUT_PATH' in config['bids_app_args']:
             expected_temp = 'inputs/data/' + input_ds.df['name'][0]
-            if config['singularity_run']['$INPUT_PATH'] != expected_temp:
+            if config['bids_app_args']['$INPUT_PATH'] != expected_temp:
                 raise Exception(
                     "As there is only one input dataset, the value of '$INPUT_PATH'"
-                    ' in section `singularity_run`'
+                    ' in section `bids_app_args`'
                     ' in `container_config_yaml_file` should be'
                     " '" + expected_temp + "'; You can also choose"
                     " not to specify '$INPUT_PATH'."
@@ -353,7 +353,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     # example key: "-w", "--n_cpus"
     # example value: "", "xxx", Null (placeholder)
     subject_selection_flag = None
-    for key, value in config['singularity_run'].items():
+    for key, value in config['bids_app_args'].items():
         # print(key + ": " + str(value))
 
         if key == '$INPUT_PATH':  # placeholder
@@ -365,7 +365,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
             if value not in list(input_ds.df['path_data_rel']):  # after unzip, if needed
                 warnings.warn(
                     "'" + value + "' specified after $INPUT_PATH"
-                    ' (in section `singularity_run`'
+                    ' (in section `bids_app_args`'
                     ' in `container_config_yaml_file`), does not'
                     " match with any dataset's current path."
                     ' This may cause error when running the BIDS App.',
@@ -425,7 +425,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     if subject_selection_flag is None:
         subject_selection_flag = '--participant-label'
         print(
-            "'$SUBJECT_SELECTION_FLAG' not found in `singularity_run` section of the YAML file. "
+            "'$SUBJECT_SELECTION_FLAG' not found in `bids_app_args` section of the YAML file. "
             'Using `--participant-label` as the default subject selection flag.'
         )
 
@@ -437,7 +437,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         # ^^ path to data (if zipped ds: after unzipping)
 
     # example of access one slot:
-    # config["singularity_run"]["n_cpus"]
+    # config["bids_app_args"]["n_cpus"]
 
     # print(cmd)
     return (
