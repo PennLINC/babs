@@ -241,7 +241,7 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
     """
     # dict_cluster_name = {'sge': 'cubic',
     #                      'slurm': 'msi'}
-    dict_bidsapp_version = {'qsiprep': '0-18-1', 'fmriprep': '23-1-3', 'toybidsapp': '0-0-7'}
+    dict_bidsapp_version = {'qsiprep': '1-0-0', 'fmriprep': '24-1-1', 'toybidsapp': '0-0-7'}
     dict_task_name = {
         'qsiprep': 'regular',
         'fmriprep': 'regular',

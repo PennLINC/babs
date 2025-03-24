@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
+from jinja2 import Environment, PackageLoader
 
 # from datalad.interface.base import build_doc
 from babs.utils import (
@@ -29,7 +30,6 @@ from babs.utils import (
     generate_bashhead_resources,
     generate_cmd_datalad_run,
     generate_cmd_determine_zipfilename,
-    generate_cmd_filterfile,
     generate_cmd_job_compute_space,
     generate_cmd_script_preamble,
     generate_cmd_set_envvar,
@@ -158,7 +158,7 @@ class BABS:
         self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
         self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
 
-    def datalad_save(self, path, message=None):
+    def datalad_save(self, path, message=None, filter_files=None):
         """
         Save the current status of datalad dataset `analysis`
         Also checks that all the statuses returned are "ok" (or "notneeded")
@@ -169,14 +169,31 @@ class BABS:
             the path to the file(s) or folder(s) to save
         message: str or None
             commit message in `datalad save`
+        filter_files: list of str or None
+            list of filenames to exclude from saving
+            if None, no files will be filtered
 
         Notes
         -----
         If the path does not exist, the status will be "notneeded", and won't be error message
             And there won't be a commit with that message
         """
+        if filter_files is not None:
+            # Create a temporary .gitignore file to exclude specified files
+            gitignore_path = os.path.join(self.analysis_path, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                for file in filter_files:
+                    f.write(f'{file}\n')
 
-        statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            try:
+                statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            finally:
+                # Clean up the temporary .gitignore file
+                if os.path.exists(gitignore_path):
+                    os.remove(gitignore_path)
+        else:
+            statuses = self.analysis_datalad_handle.save(path=path, message=message)
+
         # ^^ number of dicts in list `statuses` = len(path)
         # check that all statuses returned are "okay":
         # below is from cubids
@@ -261,9 +278,7 @@ class BABS:
                 # if first and the last characters are quotes: remove them
                 self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
-    def babs_bootstrap(
-        self, input_ds, container_ds, container_name, container_config_yaml_file, system
-    ):
+    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config, system):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
@@ -276,7 +291,7 @@ class BABS:
             e.g., 'fmriprep-0-0-0'
         container_ds: str
             path to the container datalad dataset which the user provides
-        container_config_yaml_file: str
+        container_config: str
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container
         system: class `System`
@@ -332,30 +347,24 @@ class BABS:
         # Create `babs_proj_config.yaml` file: ----------------------
         print('Save BABS project configurations in a YAML file ...')
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
-        babs_proj_config_file = open(self.config_path, 'w')
-        babs_proj_config_file.write("processing_level: '" + self.processing_level + "'\n")
-        babs_proj_config_file.write("type_system: '" + self.type_system + "'\n")
-        # input_ds:
-        babs_proj_config_file.write('input_ds:\n')  # input dataset's name(s)
-        for i_ds in range(0, input_ds.num_ds):
-            babs_proj_config_file.write('  $INPUT_DATASET_#' + str(i_ds + 1) + ':\n')
-            babs_proj_config_file.write("    name: '" + input_ds.df.loc[i_ds, 'name'] + "'\n")
-            babs_proj_config_file.write(
-                "    path_in: '" + input_ds.df.loc[i_ds, 'path_in'] + "'\n"
+
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        template = env.get_template('babs_proj_config.yaml.jinja2')
+
+        with open(self.config_path, 'w') as f:
+            f.write(
+                template.render(
+                    type_session=self.type_session,
+                    type_system=self.type_system,
+                    input_ds=input_ds,
+                    container_name=container_name,
+                    container_ds=container_ds,
+                )
             )
-            babs_proj_config_file.write("    path_data_rel: 'TO_BE_FILLED'\n")
-            babs_proj_config_file.write("    is_zipped: 'TO_BE_FILLED'\n")
-        # container ds:
-        babs_proj_config_file.write('container:\n')
-        babs_proj_config_file.write("  name: '" + container_name + "'\n")
-        babs_proj_config_file.write("  path_in: '" + container_ds + "'\n")
-
-        babs_proj_config_file.close()
         self.datalad_save(
-            path='code/babs_proj_config.yaml',
-            message='Save configurations of this BABS project',
+            path=self.config_path,
+            message='Initial save of babs_proj_config.yaml',
         )
-
         # Create output RIA sibling: -----------------------------
         print('\nCreating output and input RIA...')
         self.analysis_datalad_handle.create_sibling_ria(
@@ -387,13 +396,7 @@ class BABS:
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
             i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel'])
-            print(
-                'Cloning input dataset #'
-                + str(i_ds + 1)
-                + ": '"
-                + input_ds.df.loc[i_ds, 'name']
-                + "'"
-            )
+            print(f'Cloning input dataset #{i_ds + 1}: ' + input_ds.df.loc[i_ds, 'name'])
             # clone input dataset(s) as sub-dataset into `analysis` dataset:
             dlapi.clone(
                 dataset=self.analysis_path,
@@ -472,7 +475,7 @@ class BABS:
         # cd ${PROJECTROOT}/analysis
         # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
-        container = Container(container_ds, container_name, container_config_yaml_file)
+        container = Container(container_ds, container_name, container_config)
 
         # sanity check of container ds:
         container.sanity_check(self.analysis_path)
@@ -1053,7 +1056,7 @@ class BABS:
                 raise Exception(
                     '\nThere is something wrong probably in the setups.'
                     ' Please check the log files'
-                    ' and the `--container_config_yaml_file`'
+                    ' and the `--container_config`'
                     ' provided in `babs init`!'
                 )
             else:  # flag_success_test_job == True:
@@ -1066,7 +1069,7 @@ class BABS:
                     raise Exception(
                         'The designated workspace is not writable!'
                         ' Please change it in the YAML file'
-                        ' used in `babs init --container-config-yaml-file`,'
+                        ' used in `babs init --container-config`,'
                         ' then rerun `babs init` with updated YAML file.'
                     )
                     # NOTE: ^^ currently this is not aligned with YAML file sections;
@@ -1077,14 +1080,14 @@ class BABS:
                         ' in the designated environment!'
                         ' Please install them in the designated environment,'
                         ' or change the designated environment you hope to use'
-                        ' in `--container-config-yaml-file` and rerun `babs init`!'
+                        ' in `--container-config` and rerun `babs init`!'
                     )
 
                 print(
                     'Please check if above versions are the ones you hope to use!'
                     ' If not, please change the version in the designated environment,'
                     ' or change the designated environment you hope to use'
-                    ' in `--container-config-yaml-file` and rerun `babs init`.'
+                    ' in `--container-config` and rerun `babs init`.'
                 )
                 print(CHECK_MARK + ' All good in test job!')
                 print('\n`babs check-setup` was successful! ')
@@ -1196,7 +1199,7 @@ class BABS:
         flags_resubmit,
         df_resubmit_task_specific=None,
         reckless=False,
-        container_config_yaml_file=None,
+        container_config=None,
         job_account=False,
     ):
         """
@@ -1218,7 +1221,7 @@ class BABS:
             This is used when `--resubmit-job`.
             NOTE: currently this argument has not been tested;
             NOTE: `--reckless` has been removed from `babs status` CLI. Always: `reckless=False`
-        container_config_yaml_file: str or None
+        container_config: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
             It may include 'alert_log_messages' section
@@ -1240,7 +1243,7 @@ class BABS:
 
         # Prepare for checking alert messages in log files:
         #   get the pre-defined alert messages:
-        config_msg_alert = get_config_msg_alert(container_config_yaml_file)
+        config_msg_alert = get_config_msg_alert(container_config)
 
         # Get username, if `--job-account` is requested:
         username_lowercase = get_username()
@@ -2010,7 +2013,7 @@ class BABS:
             )
             print('\n`babs merge` did not fully finish yet!')
 
-    def babs_unzip(self, container_config_yaml_file):
+    def babs_unzip(self, container_config):
         """
         This function unzips results and extract desired files.
         This is done in 3 steps:
@@ -2521,12 +2524,9 @@ class Container:
             input dataset(s) information
         processing_level : {'subject', 'session'}
             whether processing is done on a subject-wise or session-wise basis
-
-        Notes
-        -----
-        When writing `singularity run` part, each chunk to write should start with " \\" + "\n\t",
-        meaning, starting with space, a backward slash, a return, and a tab.
         """
+        from jinja2 import Environment
+
         from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
 
         processing_level = validate_processing_level(processing_level)
@@ -2537,32 +2537,27 @@ class Container:
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
-        # 1. check `singularity_run` section:
-        if 'singularity_run' not in self.config:
+        # 1. check `bids_app_args` section:
+        if 'bids_app_args' not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, (
-                "Section 'singularity_run' is missing in the provided"
-                ' `container_config_yaml_file`. As there are more than one'
+                "Section 'bids_app_args' is missing in the provided"
+                ' `container_config`. As there are more than one'
                 ' input dataset, you must include this section to specify'
                 ' to which argument that each input dataset will go.'
             )
             # if there is only one input ds, fine:
-            print(
-                "Section 'singularity_run' was not included in the `container_config_yaml_file`. "
-            )
+            print("Section 'bids_app_args' was not included in the `container_config`. ")
             cmd_singularity_flags = ''  # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
-            # as "--fs-license-file" was not one of the value in `singularity_run` section:
+            # as "--fs-license-file" was not one of the value in `bids_app_args` section:
             flag_fs_license = False
             path_fs_license = None
             # copied from `generate_cmd_singularityRun_from_config`:
             singuRun_input_dir = input_ds.df.loc[0, 'path_data_rel']
         else:
-            # print("Generate singularity run command from `container_config_yaml_file`")
-            # # contain \ for each key-value
-
             # read config from the yaml file:
             (
                 cmd_singularity_flags,
@@ -2572,155 +2567,66 @@ class Container:
                 singuRun_input_dir,
             ) = generate_cmd_singularityRun_from_config(self.config, input_ds)
 
-        # TODO: also corporate the `call-fmt` in `datalad containers-add`
-
         # 2. check `zip_foldernames` section:
         dict_zip_foldernames, if_mk_output_folder, path_output_folder = get_info_zip_foldernames(
             self.config
         )
 
-        print()
+        # 3. check `singularity_args` section:
+        singularity_args = self.config.get('singularity_args', [])
 
         # Check if the bash file already exist:
         if op.exists(bash_path):
             os.remove(bash_path)  # remove it
 
-        # Write into the bash file:
-        bash_file = open(bash_path, 'a')  # open in append mode
-
-        bash_file.write('#!/bin/bash\n')
-        bash_file.write('set -e -u -x\n')
-
-        count_inputs_bash = 0
-        bash_file.write('\nsubid="$1"\n')
-        count_inputs_bash += 1
-
-        if processing_level == 'session':
-            # also have the input of `sesid`:
-            bash_file.write('sesid="$2"\n')
-            count_inputs_bash += 1
-
-        # zip filename as input of bash file:
-        for i_ds in range(0, input_ds.num_ds):
-            if input_ds.df.loc[i_ds, 'is_zipped'] is True:  # is zipped:
-                count_inputs_bash += 1
-                bash_file.write(
-                    input_ds.df.loc[i_ds, 'name'].upper()
-                    + '_ZIP="$'
-                    + str(count_inputs_bash)
-                    + '"\n'
-                )
-
-        bash_file.write('\n')
-
         # Check if `--bids-filter-file "${filterfile}"` is needed:
         flag_filterfile = False
         if processing_level == 'session':
             if any(ele in self.container_name.lower() for ele in ['fmriprep', 'qsiprep']):
-                # ^^ if the container_name contains `fmriprep` or `qsiprep`:
-                # ^^ case insensitive (as have changed to lower case), accept "fMRIPrep-0-0-0"
                 flag_filterfile = True
 
-                # generate the command of generating the `$filterfile`,
-                # i.e., `${sesid}_filter.json`:
-                cmd_filterfile = generate_cmd_filterfile(self.container_name)
-                bash_file.write(cmd_filterfile)
-
         # Check if any dataset is zipped; if so, add commands of unzipping:
-        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, processing_level)
-        if len(cmd_unzip_inputds) > 0:  # not "":
-            bash_file.write(cmd_unzip_inputds)
-
-        # Other necessary commands for preparation:
-        bash_file.write('\n')
+        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, type_session)
 
         # Environment variables in container:
         # get environment variables to be injected into container and whose value to be bound:
-        cmd_env_templateflow, templateflow_home, templateflow_in_container = (
-            generate_cmd_set_envvar('TEMPLATEFLOW_HOME')
+        templateflow_home_on_disk, templateflow_in_container = generate_cmd_set_envvar(
+            'TEMPLATEFLOW_HOME'
         )
-        # With `--containall`, templateflow_home=None
-        # from running generate_cmd_set_envvar('TEMPLATEFLOW_HOME'), had to be defined here:
-        templateflow_home = '${TEMPLATEFLOW_HOME}'
 
-        # Write the head of the command `singularity run`:
-        bash_file.write('mkdir -p ${PWD}/.git/tmp/wkdir\n')
-        bash_file.write('export TEMPLATEFLOW_HOME=${HOME}/TEMPLATEFLOW_HOME_TEMP \n')
-        bash_file.write('mkdir -p ${TEMPLATEFLOW_HOME}\n')
-        cmd_head_singularityRun = 'singularity run --containall --writable-tmpfs'
-        # binding:
-        cmd_head_singularityRun += ' \\' + '\n\t' + '-B ${PWD}'
+        # Generate zip command
+        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
 
-        # check if `templateflow_home` needs to be bound:
-        if templateflow_home is not None:
-            # add `-B /path/to/templateflow_home:/TEMPLATEFLOW_HOME`:
-            # for multiple bindings: multiple `-B` or separate path with comma (too long)
-            cmd_head_singularityRun += ' \\' + '\n\t' + '-B '
-            cmd_head_singularityRun += templateflow_home + ':'
-            cmd_head_singularityRun += templateflow_in_container
-            # ^^ bind to dir in container
+        # Render the template
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+        )
+        template = env.get_template('bidsapp_run.sh.jinja2')
 
-        # check if `freesurfer_home` needs to be bound:
-        if flag_fs_license is True:
-            # add `-B /path/to/license.txt:/SGLR/FREESURFER_HOME/license.txt`:
-            cmd_head_singularityRun += ' \\' + '\n\t' + '-B '
-            cmd_head_singularityRun += path_fs_license + ':'
-            cmd_head_singularityRun += PATH_FS_LICENSE_IN_CONTAINER
-
-        # inject env variable into container:
-        if templateflow_home is not None:
-            # add `--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME`:
-            cmd_head_singularityRun += ' \\' + '\n\t'
-            cmd_head_singularityRun += cmd_env_templateflow
-
-        cmd_head_singularityRun += ' \\' + '\n\t'
-        cmd_head_singularityRun += self.container_path_relToAnalysis
-        cmd_head_singularityRun += ' \\' + '\n\t'
-        cmd_head_singularityRun += '$PWD/' + singuRun_input_dir  # inputs/data/<name>
-        cmd_head_singularityRun += ' \\' + '\n\t'
-        cmd_head_singularityRun += '$PWD/' + path_output_folder  # defined above
-
-        # currently all BIDS App support `participant` positional argu:
-        cmd_head_singularityRun += ' \\' + '\n\t'
-        cmd_head_singularityRun += 'participant'  # at participant-level
-
-        bash_file.write(cmd_head_singularityRun)
-
-        # Write the named arguments + values:
-        # add more arguments that are covered by BABS (instead of users):
-        if flag_filterfile is True:
-            # also needs a $filterfile flag:
-            cmd_singularity_flags += ' \\' + '\n\t'
-            cmd_singularity_flags += '--bids-filter-file "${filterfile}"'  # <- TODO: test out!!
-
-        cmd_singularity_flags += ' \\' + '\n\t'
-        cmd_singularity_flags += '--participant-label "${subid}"'  # standard argument in BIDS App
-
-        bash_file.write(cmd_singularity_flags)
-        bash_file.write('\n\n')
-
-        print('Below is the generated `singularity run` command:')
-        print(cmd_head_singularityRun + cmd_singularity_flags)
-
-        # Zip:
-        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level)
-        bash_file.write(cmd_zip)
-
-        # Delete folders and files:
-        """
-        rm -rf prep .git/tmp/wkdir
-        rm ${filterfile}
-        """
-        cmd_clean = 'rm -rf ' + OUTPUT_MAIN_FOLDERNAME + ' ' + '.git/tmp/wkdir' + '\n'
-        # ^^ rm the entire output folder `outputs`
-        if flag_filterfile is True:
-            cmd_clean += 'rm ${filterfile}' + ' \n'
-
-        bash_file.write(cmd_clean)
-
-        # Done generating `<containerName>_zip.sh`:
-        bash_file.write('\n')
-        bash_file.close()
+        rendered_script = template.render(
+            type_session=type_session,
+            input_ds=input_ds,
+            container_name=self.container_name,
+            flag_filterfile=flag_filterfile,
+            cmd_unzip_inputds=cmd_unzip_inputds,
+            templateflow_home_on_disk=templateflow_home_on_disk,
+            templateflow_in_container=templateflow_in_container,
+            flag_fs_license=flag_fs_license,
+            path_fs_license=path_fs_license,
+            PATH_FS_LICENSE_IN_CONTAINER=PATH_FS_LICENSE_IN_CONTAINER,
+            container_path_relToAnalysis=self.container_path_relToAnalysis,
+            singuRun_input_dir=singuRun_input_dir,
+            path_output_folder=path_output_folder,
+            cmd_singularity_flags=cmd_singularity_flags,
+            cmd_zip=cmd_zip,
+            OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
+            singularity_args=singularity_args,
+        )
+        with open(bash_path, 'w') as f:
+            f.write(rendered_script)
 
         # Execute necessary commands:
         # change the permission of this bash file:
@@ -2730,9 +2636,11 @@ class Container:
         )
         proc_chmod_bashfile.check_returncode()
 
-    def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
-        """
-        This is to generate a bash script that runs jobs for each participant (or session).
+        print('Below is the generated BIDS App run script:')
+        print(rendered_script)
+
+    def generate_bash_participant_job(self, bash_path, input_ds, type_session, system):
+        """Generate bash script for participant job.
 
         Parameters
         ----------
@@ -2746,216 +2654,42 @@ class Container:
             information on cluster management system
         """
 
-        # Sanity check:
-        if processing_level not in ['session', 'subject']:
-            raise Exception('Invalid `processing_level`: ' + processing_level)
-
-        # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
-
-        # Write into the bash file:
-        bash_file = open(bash_path, 'a')  # open in append mode
-
-        # NOTE: not to automatically generate the interpreting shell;
-        #   instead, let users specify it in the container config yaml file
-        #   using `interpreting_shell`
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+        )
+        template = env.get_template('participant_job.sh.jinja2')
 
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
-        bash_file.write(cmd_bashhead_resources)
 
         # Script preambles:
         cmd_script_preamble = generate_cmd_script_preamble(self.config)
-        bash_file.write(cmd_script_preamble)
-
-        # Change how this bash file is run:
-        bash_file.write(
-            '\n# Fail whenever something is fishy,' + ' use -x to get verbose logfiles:\n'
-        )
-        bash_file.write('set -e -u -x\n')
-
-        # Inputs of the bash script:
-        bash_file.write('\n')
-        bash_file.write('dssource="$1"\t# i.e., `input_ria`\n')
-        bash_file.write('pushgitremote="$2"\t# i.e., `output_ria`\n')
-        bash_file.write('SUBJECT_CSV="$3"\n')
-        bash_file.write('\n')
-        python_filter = (
-            'python -c "import sys, re; pattern = '
-            "r'{0}-[a-zA-Z0-9]+(?=,|$)'; "
-            'matches = re.findall(pattern, sys.stdin.read()); '
-            "print(matches[0] if len(matches) == 1 else 'ERROR')"
-            '"'
-        ).format
-        bash_file.write(
-            'subject_row=$(head -n $((${SLURM_ARRAY_TASK_ID} + 1)) ${SUBJECT_CSV} | tail -n 1)\n'
-        )
-        bash_file.write(f'subid=$(echo "$subject_row" | {python_filter("sub")})\n')
-        bash_file.write(f'sesid=$(echo "$subject_row" | {python_filter("ses")})\n')
 
         # Change path to a temporary job compute workspace:
-        #   the path is based on what users provide in section 'job_compute_space' in YAML file:
         cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
-        bash_file.write(cmd_job_compute_space)
 
-        # Setups: ---------------------------------------------------------------
-        # set up the branch:
-        bash_file.write('\n# Branch name (also used as temporary directory):\n')
-        if system.type == 'sge':
-            varname_jobid = 'JOB_ID'
-        elif system.type == 'slurm':
-            varname_jobid = 'SLURM_ARRAY_JOB_ID'
+        # Determine zip filename:
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
 
-        if processing_level == 'session':
-            bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}-${sesid}"' + '\n')
-        elif processing_level == 'subject':
-            bash_file.write('BRANCH="job-${' + varname_jobid + '}-${subid}"' + '\n')
+        # Generate datalad run command:
+        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, type_session)
 
-        bash_file.write('mkdir ${BRANCH}' + '\n')
-        bash_file.write('cd ${BRANCH}' + '\n')
-
-        # datalad clone the input ria:
-        bash_file.write('\n# Clone the data from input RIA:\n')
-        bash_file.write('datalad clone "${dssource}" ds' + '\n')
-        bash_file.write('cd ds')
-
-        # set up the result deposition:
-        bash_file.write('\n# Register output RIA as remote for result deposition:\n')
-        bash_file.write('git remote add outputstore "${pushgitremote}"' + '\n')
-        # ^^ `git remote add <give a name> <folder where the remote is>`
-        #   is to add a new remote to your git repo
-
-        # set up a new branch:
-        bash_file.write("\n# Create a new branch for this job's results:" + '\n')
-        bash_file.write('git checkout -b "${BRANCH}"' + '\n')
-
-        # Start of the application-specific code: ------------------------------
-
-        # pull down input data (but don't retrieve the data content) and remove other sub's data:
-        #   purpose of removing other sub's data: otherwise pybids would take
-        #   extremely long time in large dataset due to lots of subjects
-        bash_file.write(
-            "\n# Pull down the input subject (or dataset) but don't retrieve data contents:\n"
-        )
-        for i_ds in range(0, input_ds.num_ds):
-            if input_ds.df.loc[i_ds, 'is_zipped'] is False:  # unzipped ds:
-                # seems regardless of session or not
-                #   as for session, it might uses other ses's data e.g., anat?
-                bash_file.write(
-                    'datalad get -n "'
-                    + input_ds.df.loc[i_ds, 'path_now_rel']
-                    + '/${subid}'
-                    + '"'
-                    + '\n'
+        with open(bash_path, 'w') as f:
+            f.write(
+                template.render(
+                    cmd_bashhead_resources=cmd_bashhead_resources,
+                    cmd_script_preamble=cmd_script_preamble,
+                    cmd_job_compute_space=cmd_job_compute_space,
+                    cmd_determine_zipfilename=cmd_determine_zipfilename,
+                    cmd_datalad_run=cmd_datalad_run,
+                    system=system,
+                    type_session=type_session,
+                    input_ds=input_ds,
                 )
-                # ^^ `-n` means "Get (clone) a registered subdataset, but don't retrieve data"
-                #   here input ds is a sub-dataset of dataset `analysis`.
-                # NOTE: not sure why `bootstrap-fmriprep-ingressed-fs.sh` uses:
-                # `datalad get -n -r "inputs/data/BIDS/${subid}"`
-                # that has `-r`? `-r` means "recursively" - is it for cases that each sub
-                #   is a sub-dataset of `inputs/data/<name>`?
-                # TODO: try out if adding `-r` still works?
-
-                # remove other sub's data:
-                bash_file.write(
-                    '(cd '
-                    + input_ds.df.loc[i_ds, 'path_now_rel']
-                    + " && rm -rf `find . -type d -name 'sub*'"
-                    + ' | grep -v $subid`'
-                    + ')'
-                    + '\n'
-                )
-                """
-                e.g.,:
-                datalad get -n "inputs/data/<name>/${subid}"
-                (cd inputs/data/<name> && rm -rf `find . -type d -name 'sub*' | grep -v $subid`)
-                """
-            else:  # zipped ds:
-                bash_file.write(
-                    'datalad get -n "' + input_ds.df.loc[i_ds, 'path_now_rel'] + '"' + '\n'
-                )
-                # e.g., `datalad get -n "inputs/data/freesurfer"`
-                # ^^ should NOT only get specific zip file, as right now we need to
-                #   get the list of all files, so that we can determine zipfilename later.
-
-                # below is another version: using `*` instead of a specific file:
-                # bash_file.write('datalad get -n "' + input_ds.df["path_now_rel"][i_ds]
-                #                 + "/${subid}_*" + input_ds.df["name"][i_ds] + "*.zip"
-                #                 + '"' + "\n")
-                bash_file.write(
-                    '(cd '
-                    + input_ds.df.loc[i_ds, 'path_now_rel']
-                    + ' && rm -f `ls sub-*.zip | grep -v ${subid}`'
-                    + ')'
-                    + '\n'
-                )
-                """
-                e.g.,:
-                datalad get -n "inputs/data/freesurfer/${subid}_*<name>*.zip"
-                (cd inputs/data/<name> && rm -f `ls sub-*.zip | grep -v ${subid}`)
-                """
-
-        # determine the zip filename:
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, processing_level)
-        bash_file.write(cmd_determine_zipfilename)
-
-        # `datalad run`:
-        bash_file.write('\n# datalad run:\n')
-        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, processing_level)
-        bash_file.write(cmd_datalad_run)
-
-        # Finish up:
-        # push result file content to output RIA storage:
-        bash_file.write('\n' + '# Push result file content to output RIA storage:\n')
-        bash_file.write('datalad push --to output-storage' + '\n')
-        # ^^: # `output-storage`: defined when start of bootstrap: `datalad create-sibling-ria`
-
-        # push the output branch:
-        bash_file.write('# Push the branch with provenance records:\n')
-        bash_file.write('flock $DSLOCKFILE git push outputstore' + '\n')
-        # ^^: `outputstore` was defined at the beginning of `participant_job.sh`
-        # this push needs a global lock to prevent write conflicts - FAIRly big paper
-
-        # Delete:
-        bash_file.write("\necho 'Delete temporary directory:'" + '\n')
-        bash_file.write('echo ${BRANCH}' + '\n')
-        # each input dataset:
-        for i_ds in range(0, input_ds.num_ds):
-            bash_file.write(
-                'datalad drop -d '
-                + input_ds.df.loc[i_ds, 'path_now_rel']
-                + ' -r'
-                + ' --reckless availability'  # previous `--nocheck` (deprecated)
-                + ' --reckless modification'
-                # ^^ previous `--if-dirty ignore` (deprecated)
-                + '\n'
             )
-            # e.g., datalad drop -d inputs/data/<name> -r
-            # NOTE: our scripts sometimes also adds `--nocheck --if-dirty ignore`
-            #   without it, `toybidsapp` with zipped ds as input was not okay (drop impossible)
-            #   without it, `toybidsapp` with BIDS as input was fine
-
-        # also `datalad drop` the current `ds` (clone of input RIA)?
-        #   this includes dropping of images in `containers` dataset, and zipped output
-        bash_file.write(
-            'datalad drop -r .'
-            ' --reckless availability'
-            ' --reckless modification'  # this is needed for zipped input ds
-            '\n'
-        )
-        # ^^ old scripts: datalad drop -r . --nocheck   # `--nocheck` is deprecated...
-
-        bash_file.write('git annex dead here' + '\n')
-        # ^^: as the data has been dropped, we don't want to be reminded of this
-
-        # cd out of $BRANCH:
-        bash_file.write('cd ../..' + '\n')
-        bash_file.write('rm -rf $BRANCH' + '\n')
-
-        # Done generating `participant_job.sh`:
-        bash_file.write('\necho SUCCESS' + '\n')
-        bash_file.close()
 
         # change the permission of this bash file:
         proc_chmod_bashfile = subprocess.run(
@@ -2965,23 +2699,29 @@ class Container:
         proc_chmod_bashfile.check_returncode()
 
     def generate_bash_test_job(self, folder_check_setup, system):
-        """
-        This is to generate two scripts that run a *test* job,
-        which will be used by `babs check-setup`.
-        Scripts to generate:
-        * `call_test_job.sh`    # just like `participant_job.sh`
-        * `test_job.py`    # just like `container_zip.sh`
+        """Generate bash script for test job.
 
         Parameters
         ----------
-        folder_check_setup: str
-            The path to folder `check_setup`; generated scripts will locate in this folder
-        system: class `System`
-            information on cluster management system
+        folder_check_setup : str
+            Path to the check_setup folder
+        system : System
+            System object containing system-specific information
+        # Render the template
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        template = env.get_template('test_job.sh.jinja2')
+        folder_check_setup : str
+            Path to the check_setup folder
+        system : System
+            System object containing system-specific information
         """
+        # Render the template
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        template = env.get_template('test_job.sh.jinja2')
 
         fn_call_test_job = op.join(folder_check_setup, 'call_test_job.sh')
         fn_test_job = op.join(folder_check_setup, 'test_job.py')
+
         # ==============================================================
         # Generate `call_test_job.sh`, similar to `participant_job.sh`
         # ==============================================================
@@ -2989,56 +2729,27 @@ class Container:
         if op.exists(fn_call_test_job):
             os.remove(fn_call_test_job)  # remove it
 
-        # Write into the bash file:
-        bash_file = open(fn_call_test_job, 'a')  # open in append mode
-
-        # NOTE: not to automatically generate the interpreting shell;
-        #   instead, let users specify it in the container config yaml file
-        #   using `interpreting_shell`
-
         # Cluster resources requesting:
         cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
-        bash_file.write(cmd_bashhead_resources)
 
         # Script preambles:
         cmd_script_preamble = generate_cmd_script_preamble(self.config)
-        bash_file.write(cmd_script_preamble)
-
-        # Where the analysis folder is:
-        bash_file.write('path_check_setup=' + folder_check_setup + '\n')
-
-        # Change how this bash file is run:
-        bash_file.write(
-            '\n# Fail whenever something is fishy,' + ' use -x to get verbose logfiles:\n'
-        )
-        bash_file.write('set -e -u -x\n')
-
-        # NOTE: There is no input argument for this bash file.
 
         # Change path to a temporary job compute workspace:
-        #   the path is based on what users provide in section 'job_compute_space' in YAML file:
         cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
-        bash_file.write(cmd_job_compute_space)
 
-        # Call `test_job.py`:
-        # get which python:
-        bash_file.write('\n# Call `test_job.py`:\n')
-        bash_file.write('which_python=`which python`\n')
-        bash_file.write('current_pwd=${PWD}' + '\n')
-        # call `test_job.py`:
-        bash_file.write("echo 'Calling `test_job.py`...'\n")
-        bash_file.write(
-            '${which_python} '
-            + fn_test_job
-            + ' --path-workspace ${current_pwd}'
-            + ' --path-check-setup '
-            + folder_check_setup
-            + '\n'
-        )
+        with open(fn_call_test_job, 'w') as f:
+            f.write(
+                template.render(
+                    cmd_bashhead_resources=cmd_bashhead_resources,
+                    cmd_script_preamble=cmd_script_preamble,
+                    cmd_job_compute_space=cmd_job_compute_space,
+                    folder_check_setup=folder_check_setup,
+                    fn_test_job=fn_test_job,
+                )
+            )
 
-        # Echo success:
-        bash_file.write('\necho SUCCESS\n')
-
+        # change the permission of this bash file:
         proc_chmod_bashfile = subprocess.run(
             ['chmod', '+x', fn_call_test_job],  # e.g., chmod +x code/participant_job.sh
             stdout=subprocess.PIPE,
@@ -3087,36 +2798,28 @@ class Container:
             flag to set to True if generating the test job submit template
             for `babs check-setup`.
         """
+        from jinja2 import Environment
 
         # Section 1: Command for submitting the job: ---------------------------
         # Flags when submitting the job:
-        if system.type == 'sge':
-            submit_head = 'qsub -cwd'
-            env_flags = '-v DSLOCKFILE=' + babs.analysis_path + '/.SGE_datalad_lock'
-        elif system.type == 'slurm':
+        if system.type == 'slurm':
             submit_head = 'sbatch'
             env_flags = '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
         else:
-            warnings.warn('not supporting systems other than sge...', stacklevel=2)
+            warnings.warn('not supporting systems other than slurm...', stacklevel=2)
 
         # Check if the bash file already exist:
         if op.exists(yaml_path):
             os.remove(yaml_path)  # remove it
 
-        # Write into the bash file:
-        yaml_file = open(yaml_path, 'a')  # open in append mode
+        # Variables to use:
         if not test:
-            yaml_file.write("# '${max_array}' is a placeholder." + '\n')
-            # Variables to use:
             # `dssource`: Input RIA:
             dssource = babs.input_ria_url + '#' + babs.analysis_dataset_id
             # `pushgitremote`: Output RIA:
             pushgitremote = babs.output_ria_data_dir
 
         # Generate the command:
-        # TODO: TBD: adding below to `dict_cluster_systems.yaml` or another YAML file?
-        if system.type == 'sge':
-            name_flag_str = ' -N '
         if system.type == 'slurm':
             name_flag_str = ' --job-name '
 
@@ -3128,10 +2831,7 @@ class Container:
             job_name = self.container_name[0:3]
 
         # Now, we can define stdout and stderr file names/paths:
-        if system.type == 'sge':
-            # sge clusters only need logs folder path; filename is not needed:
-            eo_args = '-e ' + babs.analysis_path + '/logs ' + '-o ' + babs.analysis_path + '/logs'
-        elif system.type == 'slurm':
+        if system.type == 'slurm':
             # slurm clusters also need exact filenames:
             eo_args = (
                 '-e '
@@ -3147,34 +2847,23 @@ class Container:
             else:  # need max_array for for `submit_job_template.yaml`
                 array_args = '--array=1-${max_array}'
 
-        # Generate the job submission command, with sub ID and ses ID as placeholders:
-        cmd = (
-            submit_head
-            + ' '
-            + env_flags
-            + name_flag_str
-            + job_name
-            + ' '
-            + eo_args
-            + ' '
-            + array_args
-            + ' '
-        )
-        if test:
-            cmd += babs.analysis_path + '/code/check_setup/call_test_job.sh'
-        else:
-            # if test is False, the type of session will be checked
-            cmd += (
-                babs.analysis_path
-                + '/code/participant_job.sh'
-                + ' '
-                + dssource
-                + ' '
-                + pushgitremote
-                + ' '
-                + babs.job_submit_path_abs
-            )
+        # Render the template
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        template = env.get_template('job_submit.yaml.jinja2')
 
-        yaml_file.write("cmd_template: '" + cmd + "'" + '\n')
-        yaml_file.write("job_name_template: '" + job_name + "'\n")
-        yaml_file.close()
+        with open(yaml_path, 'w') as f:
+            f.write(
+                template.render(
+                    test=test,
+                    submit_head=submit_head,
+                    env_flags=env_flags,
+                    name_flag_str=name_flag_str,
+                    job_name=job_name,
+                    eo_args=eo_args,
+                    array_args=array_args,
+                    babs=babs,
+                    dssource=dssource if not test else '',
+                    pushgitremote=pushgitremote if not test else '',
+                )
+            )

@@ -83,10 +83,10 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
     container_config_yaml_filename = get_container_config_yaml_filename(
         which_bidsapp, which_input, if_two_input=False, type_system='slurm'
     )  # TODO: also test slurm!
-    container_config_yaml_file = op.join(
+    container_config = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
     )
-    assert op.exists(container_config_yaml_file)
+    assert op.exists(container_config)
 
     # below are all correct options:
     babs_init_opts = argparse.Namespace(
@@ -95,7 +95,7 @@ def test_babs_check_setup(which_case, tmp_path, tmp_path_factory, container_ds_p
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
-        container_config_yaml_file=container_config_yaml_file,
+        container_config=container_config,
         processing_level=processing_level,
         type_system='slurm',
         keep_if_failed=True,

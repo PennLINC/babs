@@ -17,7 +17,7 @@ if [ ! -d "${DATA_DIR}/BIDS_multi-ses" ]; then
     datalad clone osf://w2nu3/ BIDS_multi-ses
 fi
 
-mkdir /test-temp
+# This will be mounted in the container to hold the test artifacts
 pushd /test-temp
 
 # Singularity image created by root, then chowned to this user, and datalad must be run as this user
@@ -32,7 +32,7 @@ babs init \
     --datasets BIDS="${DATA_DIR}/BIDS_multi-ses" \
     --container_ds "${PWD}"/toybidsapp-container \
     --container_name toybidsapp-0-0-7 \
-    --container_config_yaml_file "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
+    --container_config "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
     --processing_level session \
     --type_system slurm \
     "${PWD}/${SUBPROJECT_NAME}"

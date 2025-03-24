@@ -1,0 +1,22 @@
+filterfile=${PWD}/${sesid}_filter.json
+echo "{" > ${filterfile}
+
+echo "'fmap': {'datatype': 'fmap'}," >> ${filterfile}
+
+{% if 'fmriprep' in container_name.lower() %}
+echo "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'}," >> ${filterfile}
+{% elif 'qsiprep' in container_name.lower() %}
+echo "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'}," >> ${filterfile}
+{% elif 'aslprep' in container_name.lower() %}
+echo "'perf': {'datatype': 'perf', 'session': '$sesid', 'suffix': 'asl'}," >> ${filterfile}
+{% endif %}
+echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'}," >> ${filterfile}
+echo "'flair': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'FLAIR'}," >> ${filterfile}
+echo "'t2w': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'T2w'}," >> ${filterfile}
+echo "'t1w': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'T1w'}," >> ${filterfile}
+echo "'roi': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'roi'}" >> ${filterfile}
+echo "}" >> ${filterfile}
+
+# remove ses and get valid json
+sed -i "s/'/\\\"/g" ${filterfile}
+sed -i "s/ses-//g" ${filterfile}

@@ -286,7 +286,7 @@ Below is an example YAML file for toy BIDS App:
 
 As you can see, there are several sections in this YAML file.
 
-Here, in section ``singularity_run``, ``$SUBJECT_SELECTION_FLAG`` designates the flag used for selecting participants in the BIDS app.
+Here, in section ``bids_app_args``, ``$SUBJECT_SELECTION_FLAG`` designates the flag used for selecting participants in the BIDS app.
 . Additionally, both ``--dummy`` and ``-v`` are dummy arguments to this toy BIDS Apps:
 argument ``--dummy`` can take any value afterwards, whereas argument ``-v`` does not take values.
 Here we use these arguments to show examples of:
@@ -438,7 +438,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
         --datasets BIDS=https://osf.io/w2nu3/ \
         --container_ds ${PWD}/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
-        --container_config_yaml_file ${PWD}/config_toybidsapp_demo.yaml \
+        --container_config ${PWD}/config_toybidsapp_demo.yaml \
         --processing_level session \
         --type_system sge \
         ${PWD}/my_BABS_project

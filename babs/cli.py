@@ -89,8 +89,8 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container',
     )
@@ -150,7 +150,7 @@ def babs_init_main(
     list_sub_file: str,
     container_ds: str,
     container_name: str,
-    container_config_yaml_file: str,
+    container_config: str,
     processing_level: str,
     type_system: str,
     keep_if_failed: bool,
@@ -175,7 +175,7 @@ def babs_init_main(
     container_name: str
         name of the container, best to include version number.
         e.g., 'fmriprep-0-0-0'
-    container_config_yaml_file: str
+    container_config: str
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container
     processing_level : {'subject', 'session'}
@@ -249,7 +249,7 @@ def babs_init_main(
             input_ds,
             container_ds,
             container_name,
-            container_config_yaml_file,
+            container_config,
             system,
         )
     except Exception:
@@ -588,8 +588,8 @@ def _parse_status():
     #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
     #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
         ' ``babs status`` will use this section for failed job auditing,'
@@ -602,7 +602,7 @@ def _parse_status():
         action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
         help='Whether to account failed jobs, which may take some time.'
-        ' When using ``--job-account``, please also add ``--container_config_yaml_file``.'
+        ' When using ``--job-account``, please also add ``--container_config``.'
         ' If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)'
         ' is also requested,'
         ' this ``--job-account`` will be skipped.',
@@ -630,7 +630,7 @@ def babs_status_main(
     project_root: str,
     resubmit: list,
     resubmit_job: list,
-    container_config_yaml_file: str,
+    container_config: str,
     job_account: bool,
     reckless: bool = False,
 ):
@@ -645,7 +645,7 @@ def babs_status_main(
         each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for subject) or 2 (for session)
-    container_config_yaml_file: str or None
+    container_config : str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
         It may include 'alert_log_messages' section
@@ -782,7 +782,7 @@ def babs_status_main(
         flags_resubmit,
         df_resubmit_job_specific,
         reckless,
-        container_config_yaml_file,
+        container_config,
         job_account,
     )
 
@@ -800,8 +800,9 @@ def _parse_merge():
         description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    user_args = parser.add_argument_group('User arguments')
     PathExists = partial(_path_exists, parser=parser)
-    parser.add_argument(
+    user_args.add_argument(
         'project_root',
         metavar='PATH',
         help=(
@@ -813,7 +814,10 @@ def _parse_merge():
         default=Path.cwd(),
         type=PathExists,
     )
-    parser.add_argument(
+    dev_args = parser.add_argument_group(
+        'Developer arguments', 'Parameters for developers. Users should not use these.'
+    )
+    dev_args.add_argument(
         '--chunk-size',
         '--chunk_size',
         type=int,
@@ -823,7 +827,7 @@ def _parse_merge():
     )
     # Matt: 5000 is not good, 2000 is appropriate.
     #   Smaller chunk is, more merging commits which is fine.
-    parser.add_argument(
+    dev_args.add_argument(
         '--trial-run',
         '--trial_run',
         action='store_true',
@@ -903,8 +907,8 @@ def _parse_unzip():
         type=PathExists,
     )
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file of the BIDS App container that contains information of'
         ' what files to unzip etc.',
     )
@@ -929,7 +933,7 @@ def _enter_unzip(argv=None):
 
 def babs_unzip_main(
     project_root: str,
-    container_config_yaml_file: str,
+    container_config: str,
 ):
     """
     This is the core function of babs-unzip, which unzip results zip files
@@ -938,22 +942,22 @@ def babs_unzip_main(
     project_root: str
         Absolute path to the root of BABS project.
         For example, '/path/to/my_BABS_project/'.
-    container_config_yaml_file: str
+    container_config: str
         path to container's configuration YAML file.
         These two sections will be used:
         1. 'unzip_desired_filenames' - must be included
         2. 'rename_conflict_files' - optional
     """
     # container config:
-    config = read_yaml(container_config_yaml_file)
+    config = read_yaml(container_config)
     # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
 
     # Sanity checks:
     if 'unzip_desired_filenames' not in config:
         raise Exception(
             "Section 'unzip_desired_filenames' is not included"
-            ' in `--container_config_yaml_file`. This section is required.'
-            " Path to this YAML file: '" + container_config_yaml_file + "'."
+            ' in `--container_config`. This section is required.'
+            " Path to this YAML file: '" + container_config + "'."
         )
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
@@ -1141,6 +1145,73 @@ def check_df_job_specific(df, job_status_path_abs, processing_level, which_funct
     return df
 
 
+def _parse_sync_code():
+    """Create and configure the argument parser for the `babs sync-code` command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        description='Save and push code changes to input dataset.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        'project_root',
+        nargs='?',
+        default=Path.cwd(),
+        help=(
+            'Absolute path to the root of BABS project. '
+            "For example, '/path/to/my_BABS_project/' "
+            '(default is current working directory).'
+        ),
+    )
+    parser.add_argument(
+        '-m',
+        '--message',
+        help='Commit message for datalad save',
+        default='[babs] sync code changes',
+    )
+
+    return parser
+
+
+def babs_sync_code_main(project_root: str, commit_message: str):
+    """This is the core function of babs sync-code.
+
+    Parameters
+    ----------
+    project_root: str
+        absolute path to the directory of BABS project
+    commit_message: str
+        commit message for datalad save
+    """
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj, _ = get_existing_babs_proj(project_root)
+
+    # Change to `analysis/code` directory
+    analysis_code_dir = os.path.join(project_root, 'analysis/code')
+    if not os.path.exists(analysis_code_dir):
+        raise FileNotFoundError(
+            f'`analysis/code` directory does not exist at: {analysis_code_dir}'
+        )
+
+    # Run datalad commands with filter to exclude specific files
+    # job_status and job_submit are modified every time `babs status` or `babs submit` is run
+    # no need to save and push these files
+    babs_proj.datalad_save(
+        analysis_code_dir,
+        commit_message,
+        filter_files=[
+            'job_status.csv',
+            'job_status.csv.lock',
+            'job_submit.csv',
+            'job_submit.csv.lock',
+        ],
+    )
+    babs_proj.datalad_push(analysis_code_dir, '--to input')
+
+
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
@@ -1148,6 +1219,7 @@ COMMANDS = [
     ('status', _parse_status, babs_status_main),
     ('merge', _parse_merge, babs_merge_main),
     ('unzip', _parse_unzip, babs_unzip_main),
+    ('sync-code', _parse_sync_code, babs_sync_code_main),
 ]
 
 

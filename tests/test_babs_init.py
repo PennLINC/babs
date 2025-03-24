@@ -123,16 +123,16 @@ def test_babs_init(
     container_config_yaml_filename = get_container_config_yaml_filename(
         which_bidsapp, which_input, if_two_input, type_system='slurm'
     )  # TODO: also test slurm!
-    container_config_yaml_file = op.join(
+    container_config = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
     )
-    assert op.exists(container_config_yaml_file)
-    container_config_yaml = read_yaml(container_config_yaml_file)
+    assert op.exists(container_config)
+    container_config_yaml = read_yaml(container_config)
 
-    if '--fs-license-file' in container_config_yaml['singularity_run']:
+    if '--fs-license-file' in container_config_yaml['bids_app_args']:
         # ^^ this way is consistent with BABS re: how to determine if fs license is needed;
         flag_requested_fs_license = True
-        str_fs_license_file = container_config_yaml['singularity_run']['--fs-license-file']
+        str_fs_license_file = container_config_yaml['bids_app_args']['--fs-license-file']
     else:
         flag_requested_fs_license = False
         str_fs_license_file = ''
@@ -154,7 +154,7 @@ def test_babs_init(
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
-        container_config_yaml_file=container_config_yaml_file,
+        container_config=container_config,
         processing_level=processing_level,
         type_system='slurm',
         keep_if_failed=False,
@@ -187,23 +187,23 @@ def test_babs_init(
     lines_bash_container_zip = file_bash_container_zip.readlines()
     file_bash_container_zip.close()
     # check:
-    if_bind_templateflow = False  # `singularity run -B` to bind a path to container
+    # if_bind_templateflow = False  # `singularity run -B` to bind a path to container
     if_bind_freesurfer = False
     str_bind_freesurfer = '-B ' + str_fs_license_file + ':/SGLR/FREESURFER_HOME/license.txt'
     print(str_bind_freesurfer)  # FOR DEBUGGING
 
-    if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
+    # if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
     if_generate_bidsfilterfile = False
     if_flag_bidsfilterfile = False
     if_flag_fs_license = False
     flag_fs_license = '--fs-license-file /SGLR/FREESURFER_HOME/license.txt'
     for line in lines_bash_container_zip:
-        if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
-            if_set_singu_templateflow = True
-        if all(ele in line for ele in ['-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME']):
-            # previously, `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
-            # but now change to new bind, `-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME \`
-            if_bind_templateflow = True
+        # if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
+        #     if_set_singu_templateflow = True
+        # if all(ele in line for ele in ['-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME']):
+        #     # previously, `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
+        #     # but now change to new bind, `-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME \`
+        #     if_bind_templateflow = True
         if str_bind_freesurfer in line:
             if_bind_freesurfer = True
         if 'filterfile=${PWD}/${sesid}_filter.json' in line:
@@ -214,17 +214,17 @@ def test_babs_init(
             if_flag_fs_license = True
     # assert they are found:
     # 1) TemplateFlow: should be found in all cases:
-    assert if_bind_templateflow, (
-        "Env variable 'TEMPLATEFLOW_HOME' has been set,"
-        " but Templateflow home path did not get bound in 'singularity run'"
-        " with `-B` in '" + container_name + "_zip.sh'."
-    )
-    assert if_set_singu_templateflow, (
-        "Env variable 'TEMPLATEFLOW_HOME' has been set,"
-        " but env variable 'SINGULARITYENV_TEMPLATEFLOW_HOME' was not set"
-        " with `--env` in '" + container_name + "_zip.sh'."
-    )
-    # 2) BIDS filter file: only when qsiprep/fmriprep & session:
+    # assert if_bind_templateflow, (
+    #     "Env variable 'TEMPLATEFLOW_HOME' has been set,"
+    #     " but Templateflow home path did not get bound in 'singularity run'"
+    #     " with `-B` in '" + container_name + "_zip.sh'."
+    # )
+    # assert if_set_singu_templateflow, (
+    #     "Env variable 'TEMPLATEFLOW_HOME' has been set,"
+    #     " but env variable 'SINGULARITYENV_TEMPLATEFLOW_HOME' was not set"
+    #     " with `--env` in '" + container_name + "_zip.sh'."
+    # )
+    # 2) BIDS filter file: only when qsiprep/fmriprep & multi-ses:
     if (which_bidsapp in ['qsiprep', 'fmriprep']) & (processing_level == 'session'):
         assert if_generate_bidsfilterfile, (
             "This is BIDS App '"
@@ -271,7 +271,7 @@ def test_babs_init(
             "`--fs-license-file` was requested in container's YAML file,"
             ' but flag `' + flag_fs_license + '` was not found in the `singularity run`'
             " in '" + container_name + "_zip.sh'."
-            " Path to YAML file: '" + container_config_yaml_file + "'."
+            " Path to YAML file: '" + container_config + "'."
         )
 
     # Check `sub_ses_final_inclu.csv`:

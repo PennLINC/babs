@@ -19,7 +19,7 @@ Overview of the configuration YAML file structure
 Sections in the configuration YAML file
 -----------------------------------------
 
-* **singularity_run**: the arguments for ``singularity run`` of the BIDS App;
+* **bids_app_args**: the arguments for ``singularity run`` of the BIDS App;
 * **zip_foldernames**: the results foldername(s) to be zipped;
 * **cluster_resources**: how much cluster resources are needed to run this BIDS App?
 * **script_preamble**: the preamble in the script to run a participant's job;
@@ -29,7 +29,7 @@ Sections in the configuration YAML file
 
 Among these sections, these sections are optional:
 
-* **singularity_run**
+* **bids_app_args**
 
   * Only if you are sure that besides arguments handled by BABS, you don't need any other argument,
     you may exclude this section from the YAML file.
@@ -69,20 +69,20 @@ In a section, the string before ``:`` is called ``key``, the string after ``:`` 
 Below are the details for each section in this configuration YAML file.
 
 
-Section ``singularity_run``
+Section ``bids_app_args``
 ==================================
 Currently, BABS does not support using configurations of running a BIDS App
 that are defined in ``datalad containers-add --call-fmt``.
-Instead, users are expected to define these in this section, **singularity_run**.
+Instead, users are expected to define these in this section, **bids_app_args**.
 
-Example **singularity_run**
+Example **bids_app_args**
 -----------------------------------
 
-Below is example section **singularity_run** for ``fMRIPrep``:
+Below is example section **bids_app_args** for ``fMRIPrep``:
 
 ..  code-block:: yaml
 
-    singularity_run:
+    bids_app_args:
         -w: "$BABS_TMPDIR"   # this is a placeholder for temporary workspace
         --n_cpus: '1'
         --stop-on-first-crash: ""   # argument without value
@@ -131,7 +131,7 @@ This section will be turned into commands (including a Singularity run command) 
       in the YAML file, some are automatically set up by BABS.
 
 
-Basics - Manual of writing section ``singularity_run``
+Basics - Manual of writing section ``bids_app_args``
 ------------------------------------------------------------
 
 * What arguments should I provide in this section? All arguments for running the BIDS App?
@@ -188,7 +188,7 @@ Basics - Manual of writing section ``singularity_run``
 
 .. _advanced_manual_singularity_run:
 
-Advanced - Manual of writing section ``singularity_run``
+Advanced - Manual of writing section ``bids_app_args``
 -----------------------------------------------------------------
 
 * How to specify a number as a value?
@@ -223,7 +223,7 @@ Advanced - Manual of writing section ``singularity_run``
 
         --fs-license-file: "/path/to/freesurfer/license.txt"
 
-    * When there is argument ``--fs-license-file`` in ``singularity_run`` section,
+    * When there is argument ``--fs-license-file`` in ``bids_app_args`` section,
       BABS will bind this provided license file path to container in ``singularity run`` command, so that
       the BIDS App container can directly use that file (which is outside the container, on "host machine").
     * Example generated ``singularity run`` by ``babs init``::
@@ -251,6 +251,13 @@ Advanced - Manual of writing section ``singularity_run``
 
         --n_cpus: "$SLURM_CPUS_PER_TASK"
 
+    * Not sure how many CPUs or other resources you need?
+      You can run ``babs submit --count N`` with the first N (10-20) subjects and then use
+      ``reportseff`` (`library here <https://github.com/troycomi/reportseff>`_) or ``seff_array`` to check the resource
+      usage. You can then edit the resources in the ``<bids_app>_zip.sh`` and ``participant_job.sh`` in
+      the ``analysis/code`` folder. Make sure to run ``babs sync-code`` after editing the files before
+      re-submitting with ``babs submit --all``.
+
 .. developer's note: for Slurm: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
@@ -260,7 +267,7 @@ Advanced - Manual of writing section ``singularity_run``
   * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
 
     * ``$INPUT_PATH`` is a key placeholder recognized by BABS
-    * We recommend using ``$INPUT_PATH`` as the first key in this section **singularity_run**,
+    * We recommend using ``$INPUT_PATH`` as the first key in this section **bids_app_args**,
       i.e., before other arguments.
 
   * How do you write the path to the input dataset? Here we use an example configuration YAML file of
