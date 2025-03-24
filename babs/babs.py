@@ -53,8 +53,8 @@ from babs.utils import (
     request_all_job_status,
     submit_array,
     submit_one_test_job,
+    validate_queue,
     validate_type_session,
-    validate_type_system,
     write_yaml,
 )
 
@@ -63,7 +63,7 @@ from babs.utils import (
 class BABS:
     """The BABS class is for babs projects of BIDS Apps"""
 
-    def __init__(self, project_root, type_session, type_system):
+    def __init__(self, project_root, type_session, queue):
         """The BABS class is for babs projects of BIDS Apps.
 
         Parameters
@@ -72,7 +72,7 @@ class BABS:
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
-        type_system: str
+        queue: str
             the type of job scheduling system, "sge" or "slurm"
 
         Attributes
@@ -81,7 +81,7 @@ class BABS:
             absolute path to the root of this babs project
         type_session: str
             whether the input dataset is "multi-ses" or "single-ses"
-        type_system: str
+        queue: str
             the type of job scheduling system, "sge" or "slurm"
         config_path: str
             path to the config yaml file
@@ -126,12 +126,12 @@ class BABS:
 
         # validation:
         type_session = validate_type_session(type_session)
-        type_system = validate_type_system(type_system)
+        queue = validate_queue(queue)
 
         # attributes:
         self.project_root = str(project_root)
         self.type_session = type_session
-        self.type_system = type_system
+        self.queue = queue
 
         self.analysis_path = op.join(self.project_root, 'analysis')
         self.analysis_datalad_handle = None
@@ -278,9 +278,7 @@ class BABS:
                 # if first and the last characters are quotes: remove them
                 self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
-    def babs_bootstrap(
-        self, input_ds, container_ds, container_name, container_config_yaml_file, system
-    ):
+    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config, system):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
@@ -293,7 +291,7 @@ class BABS:
             e.g., 'fmriprep-0-0-0'
         container_ds: str
             path to the container datalad dataset which the user provides
-        container_config_yaml_file: str
+        container_config: str
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container
         system: class `System`
@@ -357,7 +355,7 @@ class BABS:
             f.write(
                 template.render(
                     type_session=self.type_session,
-                    type_system=self.type_system,
+                    queue=self.queue,
                     input_ds=input_ds,
                     container_name=container_name,
                     container_ds=container_ds,
@@ -477,7 +475,7 @@ class BABS:
         # cd ${PROJECTROOT}/analysis
         # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
-        container = Container(container_ds, container_name, container_config_yaml_file)
+        container = Container(container_ds, container_name, container_config)
 
         # sanity check of container ds:
         container.sanity_check(self.analysis_path)
@@ -993,7 +991,7 @@ class BABS:
                 ' will be able to finish successfully.'
             )
 
-            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.type_system)
+            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.queue)
             log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
             o_fn = log_fn.replace('.*', '.o') + '_1'  # add task_id of test job "_1"
             # write this information in a YAML file:
@@ -1018,7 +1016,7 @@ class BABS:
             while not flag_done:
                 time.sleep(sleeptime)
                 # check the job status
-                df_all_job_status = request_all_job_status(self.type_system)
+                df_all_job_status = request_all_job_status(self.queue)
                 d_now_str = str(datetime.now())
                 to_print = d_now_str + ': '
                 if job_id_str + '_1' in df_all_job_status.index.to_list():  # Add task_id
@@ -1058,7 +1056,7 @@ class BABS:
                 raise Exception(
                     '\nThere is something wrong probably in the setups.'
                     ' Please check the log files'
-                    ' and the `--container_config_yaml_file`'
+                    ' and the `--container_config`'
                     ' provided in `babs init`!'
                 )
             else:  # flag_success_test_job == True:
@@ -1071,7 +1069,7 @@ class BABS:
                     raise Exception(
                         'The designated workspace is not writable!'
                         ' Please change it in the YAML file'
-                        ' used in `babs init --container-config-yaml-file`,'
+                        ' used in `babs init --container-config`,'
                         ' then rerun `babs init` with updated YAML file.'
                     )
                     # NOTE: ^^ currently this is not aligned with YAML file sections;
@@ -1082,14 +1080,14 @@ class BABS:
                         ' in the designated environment!'
                         ' Please install them in the designated environment,'
                         ' or change the designated environment you hope to use'
-                        ' in `--container-config-yaml-file` and rerun `babs init`!'
+                        ' in `--container-config` and rerun `babs init`!'
                     )
 
                 print(
                     'Please check if above versions are the ones you hope to use!'
                     ' If not, please change the version in the designated environment,'
                     ' or change the designated environment you hope to use'
-                    ' in `--container-config-yaml-file` and rerun `babs init`.'
+                    ' in `--container-config` and rerun `babs init`.'
                 )
                 print(CHECK_MARK + ' All good in test job!')
                 print('\n`babs check-setup` was successful! ')
@@ -1143,7 +1141,7 @@ class BABS:
                     job_id, _, task_id_list, log_filename_list = submit_array(
                         self.analysis_path,
                         self.type_session,
-                        self.type_system,
+                        self.queue,
                         maxarray,
                     )
                     # Update `analysis/code/job_submit.csv` with new status
@@ -1201,7 +1199,7 @@ class BABS:
         flags_resubmit,
         df_resubmit_task_specific=None,
         reckless=False,
-        container_config_yaml_file=None,
+        container_config=None,
         job_account=False,
     ):
         """
@@ -1223,7 +1221,7 @@ class BABS:
             This is used when `--resubmit-job`.
             NOTE: currently this argument has not been tested;
             NOTE: `--reckless` has been removed from `babs status` CLI. Always: `reckless=False`
-        container_config_yaml_file: str or None
+        container_config: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
             It may include 'alert_log_messages' section
@@ -1245,7 +1243,7 @@ class BABS:
 
         # Prepare for checking alert messages in log files:
         #   get the pre-defined alert messages:
-        config_msg_alert = get_config_msg_alert(container_config_yaml_file)
+        config_msg_alert = get_config_msg_alert(container_config)
 
         # Get username, if `--job-account` is requested:
         username_lowercase = get_username()
@@ -1266,7 +1264,7 @@ class BABS:
                 df_job_updated = df_job.copy()
 
                 # Get all jobs' status:
-                df_all_job_status = request_all_job_status(self.type_system)
+                df_all_job_status = request_all_job_status(self.queue)
 
                 # For jobs that have been submitted but not successful yet:
                 # Update job status, and resubmit if requested:
@@ -1384,7 +1382,7 @@ class BABS:
 
                                 #     # kill original one
                                 #     proc_kill = subprocess.run(
-                                #         [get_cmd_cancel_job(self.type_system),
+                                #         [get_cmd_cancel_job(self.queue),
                                 #          job_id_str],  # e.g., `qdel <job_id>`
                                 #         stdout=subprocess.PIPE
                                 #     )
@@ -1393,7 +1391,7 @@ class BABS:
                                 #     job_id_updated, _, log_filename = \
                                 #         submit_one_job(self.analysis_path,
                                 #                        self.type_session,
-                                #                        self.type_system,
+                                #                        self.queue,
                                 #                        sub, ses)
                                 #     # update fields:
                                 #     df_job_updated = df_update_one_job(
@@ -1443,7 +1441,7 @@ class BABS:
                                     # kill original one
                                     proc_kill = subprocess.run(
                                         [
-                                            get_cmd_cancel_job(self.type_system),
+                                            get_cmd_cancel_job(self.queue),
                                             job_id_str,
                                         ],  # e.g., `qdel <job_id>`
                                         stdout=subprocess.PIPE,
@@ -1489,7 +1487,7 @@ class BABS:
 
                             #     #     # kill original one
                             #     #     proc_kill = subprocess.run(
-                            #     #         [get_cmd_cancel_job(self.type_system),
+                            #     #         [get_cmd_cancel_job(self.queue),
                             #     #          job_id_str],   # e.g., `qdel <job_id>`
                             #     #         stdout=subprocess.PIPE
                             #     #     )
@@ -1498,7 +1496,7 @@ class BABS:
                             #     #     job_id_updated, _, log_filename = \
                             #     #         submit_one_job(self.analysis_path,
                             #     #                        self.type_session,
-                            #     #                        self.type_system,
+                            #     #                        self.queue,
                             #     #                        sub, ses)
                             #     #     # update fields:
                             #     #     df_job_updated = df_update_one_job(
@@ -1564,7 +1562,7 @@ class BABS:
                                         job_id_str,
                                         job_name,
                                         username_lowercase,
-                                        self.type_system,
+                                        self.queue,
                                     )
                                     raise Exception('This should be impossible to reach')
                                     # df_job_updated.at[i_job, 'job_account'] = msg_job_account
@@ -1578,7 +1576,7 @@ class BABS:
                     job_id, _, task_id_list, log_filename_list = submit_array(
                         self.analysis_path,
                         self.type_session,
-                        self.type_system,
+                        self.queue,
                         maxarray,
                     )
                     # Update `analysis/code/job_submit.csv` with new status
@@ -1670,7 +1668,7 @@ class BABS:
 
                     #     # kill original one
                     #     proc_kill = subprocess.run(
-                    #         [get_cmd_cancel_job(self.type_system),
+                    #         [get_cmd_cancel_job(self.queue),
                     #          job_id_str],   # e.g., `qdel <job_id>`
                     #         stdout=subprocess.PIPE
                     #     )
@@ -1679,7 +1677,7 @@ class BABS:
                     #     job_id_updated, _, log_filename = \
                     #         submit_one_job(self.analysis_path,
                     #                        self.type_session,
-                    #                        self.type_system,
+                    #                        self.queue,
                     #                        sub, ses)
                     #     # update fields:
                     #     df_job_updated = df_update_one_job(df_job_updated, i_job, job_id_updated,
@@ -2015,7 +2013,7 @@ class BABS:
             )
             print('\n`babs merge` did not fully finish yet!')
 
-    def babs_unzip(self, container_config_yaml_file):
+    def babs_unzip(self, container_config):
         """
         This function unzips results and extract desired files.
         This is done in 3 steps:
@@ -2384,7 +2382,7 @@ class System:
             for how to run this type of cluster.
         """
         # validate and assign to attribute `type`:
-        self.type = validate_type_system(system_type)
+        self.type = validate_queue(system_type)
 
         # get attribute `dict` - the guidance dict for how to run this type of cluster:
         self.get_dict()
@@ -2545,12 +2543,12 @@ class Container:
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, (
                 "Section 'bids_app_args' is missing in the provided"
-                ' `container_config_yaml_file`. As there are more than one'
+                ' `container_config`. As there are more than one'
                 ' input dataset, you must include this section to specify'
                 ' to which argument that each input dataset will go.'
             )
             # if there is only one input ds, fine:
-            print("Section 'bids_app_args' was not included in the `container_config_yaml_file`. ")
+            print("Section 'bids_app_args' was not included in the `container_config`. ")
             cmd_singularity_flags = ''  # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
