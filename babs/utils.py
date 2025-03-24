@@ -162,25 +162,6 @@ def validate_type_session(type_session):
     return type_session
 
 
-def validate_queue(queue):
-    """
-    To validate if the type of the cluster system is valid.
-    For valid ones, the type string will be changed to lower case.
-    If not valid, raise error message.
-    """
-    list_supported = ['slurm']
-    if queue.lower() in list_supported:
-        queue = queue.lower()  # change to lower case, if needed
-    elif queue.lower() == 'sge':
-        raise ValueError('We no longer support SGE. Use BABS 0.0.8 for SGE support.')
-    else:
-        raise ValueError(
-            f"Invalid cluster system type: '{queue}'! "
-            f'Currently BABS only support one of these: {", ".join(list_supported)}'
-        )
-    return queue
-
-
 def read_yaml(fn, if_filelock=False):
     """
     This is to read yaml file.
@@ -2278,13 +2259,13 @@ def get_config_msg_alert(container_config):
     """
     To extract the configs of alert msgs in log files.
 
-    Parameters
+    Parameters:
     ----------
     container_config: str or None
         path to the config yaml file of containers, which might includes
         a section of `alert_log_messages`
 
-    Returns
+    Returns:
     -------
     config_msg_alert: dict or None
     """

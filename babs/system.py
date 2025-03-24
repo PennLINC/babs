@@ -2,7 +2,24 @@ import os.path as op
 
 import yaml
 
-from babs.utils import validate_queue
+
+def validate_queue(queue):
+    """
+    To validate if the type of the cluster system is valid.
+    For valid ones, the type string will be changed to lower case.
+    If not valid, raise error message.
+    """
+    list_supported = ['slurm']
+    if queue.lower() in list_supported:
+        queue = queue.lower()  # change to lower case, if needed
+    elif queue.lower() == 'sge':
+        raise ValueError('We no longer support SGE. Use BABS 0.0.8 for SGE support.')
+    else:
+        raise ValueError(
+            f"Invalid cluster system type: '{queue}'! "
+            f'Currently BABS only support one of these: {", ".join(list_supported)}'
+        )
+    return queue
 
 
 class System:

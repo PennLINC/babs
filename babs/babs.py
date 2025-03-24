@@ -19,6 +19,8 @@ import yaml
 from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader
 
+from babs.system import validate_queue
+
 # from datalad.interface.base import build_doc
 from babs.utils import (
     calcu_runtime,
@@ -51,7 +53,6 @@ from babs.utils import (
     request_all_job_status,
     submit_array,
     submit_one_test_job,
-    validate_queue,
     validate_type_session,
     write_yaml,
 )
