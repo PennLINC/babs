@@ -28,10 +28,7 @@ def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
     df = pd.DataFrame(
         {
             'is_zipped': [True, False],
-            'path_now_abs': [
-                zipped_dset,
-                unzipped_dset,
-            ],
+            'path_now_abs': [zipped_dset, unzipped_dset],
             'name': ['zipped_dset', 'unzipped_dset'],
         }
     )
