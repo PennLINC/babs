@@ -69,7 +69,7 @@ def validate_unzipped_datasets(input_ds, processing_level):
         print('Performing sanity check for any unzipped input dataset...')
 
     for i_ds in range(input_ds.num_ds):
-        if input_ds.df.loc[i_ds, 'is_zipped'] is False:  # unzipped ds:
+        if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
             input_ds_path = input_ds.df.loc[i_ds, 'path_now_abs']
             # Check if there is sub-*:
             subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
