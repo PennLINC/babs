@@ -67,6 +67,8 @@ def validate_unzipped_datasets(input_ds, processing_level):
 
     if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
+    else:
+        raise ValueError('No unzipped input dataset found.')
 
     for i_ds in range(input_ds.num_ds):
         print(f'Validating dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}"...')
