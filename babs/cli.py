@@ -803,8 +803,9 @@ def _parse_merge():
         description='Merge results and provenance from all successfully finished jobs.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+    user_args = parser.add_argument_group('User arguments')
     PathExists = partial(_path_exists, parser=parser)
-    parser.add_argument(
+    user_args.add_argument(
         'project_root',
         metavar='PATH',
         help=(
@@ -816,7 +817,10 @@ def _parse_merge():
         default=Path.cwd(),
         type=PathExists,
     )
-    parser.add_argument(
+    dev_args = parser.add_argument_group(
+        'Developer arguments', 'Parameters for developers. Users should not use these.'
+    )
+    dev_args.add_argument(
         '--chunk-size',
         '--chunk_size',
         type=int,
@@ -826,7 +830,7 @@ def _parse_merge():
     )
     # Matt: 5000 is not good, 2000 is appropriate.
     #   Smaller chunk is, more merging commits which is fine.
-    parser.add_argument(
+    dev_args.add_argument(
         '--trial-run',
         '--trial_run',
         action='store_true',
@@ -1144,6 +1148,73 @@ def check_df_job_specific(df, job_status_path_abs, type_session, which_function)
     return df
 
 
+def _parse_sync_code():
+    """Create and configure the argument parser for the `babs sync-code` command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        description='Save and push code changes to input dataset.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        'project_root',
+        nargs='?',
+        default=Path.cwd(),
+        help=(
+            'Absolute path to the root of BABS project. '
+            "For example, '/path/to/my_BABS_project/' "
+            '(default is current working directory).'
+        ),
+    )
+    parser.add_argument(
+        '-m',
+        '--message',
+        help='Commit message for datalad save',
+        default='[babs] sync code changes',
+    )
+
+    return parser
+
+
+def babs_sync_code_main(project_root: str, commit_message: str):
+    """This is the core function of babs sync-code.
+
+    Parameters
+    ----------
+    project_root: str
+        absolute path to the directory of BABS project
+    commit_message: str
+        commit message for datalad save
+    """
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+    babs_proj, _ = get_existing_babs_proj(project_root)
+
+    # Change to `analysis/code` directory
+    analysis_code_dir = os.path.join(project_root, 'analysis/code')
+    if not os.path.exists(analysis_code_dir):
+        raise FileNotFoundError(
+            f'`analysis/code` directory does not exist at: {analysis_code_dir}'
+        )
+
+    # Run datalad commands with filter to exclude specific files
+    # job_status and job_submit are modified every time `babs status` or `babs submit` is run
+    # no need to save and push these files
+    babs_proj.datalad_save(
+        analysis_code_dir,
+        commit_message,
+        filter_files=[
+            'job_status.csv',
+            'job_status.csv.lock',
+            'job_submit.csv',
+            'job_submit.csv.lock',
+        ],
+    )
+    babs_proj.datalad_push(analysis_code_dir, '--to input')
+
+
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
@@ -1151,6 +1222,7 @@ COMMANDS = [
     ('status', _parse_status, babs_status_main),
     ('merge', _parse_merge, babs_merge_main),
     ('unzip', _parse_unzip, babs_unzip_main),
+    ('sync-code', _parse_sync_code, babs_sync_code_main),
 ]
 
 

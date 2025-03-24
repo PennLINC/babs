@@ -1,9 +1,9 @@
 =======================================================
 Developer's notes on container configuration YAML file
 =======================================================
-.. # currently we only support the option of "singularity_run"
+.. # currently we only support the option of "bids_app_args"
 .. # In the future, we might:
-..     # Priority: cli_call > singularity_run > cli_options
+..     # Priority: cli_call > bids_app_args > cli_options
 ..         # If anything provided at higher level, the lower levels will be ignored.
 
 Developer's notes:
