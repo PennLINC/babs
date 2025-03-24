@@ -7,7 +7,7 @@ import os.path as op
 import re
 import subprocess
 import sys
-import warnings  # built-in, no need to install
+import warnings
 from argparse import Action
 from datetime import datetime
 from importlib.metadata import version
@@ -310,13 +310,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     singuRun_input_dir: None or str
         The positional argument of input dataset path in `singularity run`
     """
-    # human readable: (just like appearance in a yaml file;
-    # print(yaml.dump(config["bids_app_args"], sort_keys=False))
-
-    # not very human readable way, if nested structure:
-    # for key, value in config.items():
-    #     print(key + " : " + str(value))
-
     from .constants import PATH_FS_LICENSE_IN_CONTAINER
 
     cmd = ''
@@ -433,10 +426,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         singuRun_input_dir = input_ds.df['path_data_rel'][0]
         # ^^ path to data (if zipped ds: after unzipping)
 
-    # example of access one slot:
-    # config["bids_app_args"]["n_cpus"]
-
-    # print(cmd)
     return (
         cmd,
         subject_selection_flag,
@@ -444,13 +433,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         path_fs_license,
         singuRun_input_dir,
     )
-
-
-# adding zip filename:
-# if value != '':
-#     raise Exception("Invalid element under `one_dash`: " + str(key) + ": " + str(value) +
-#                     "\n" + "The value should be empty '', instead of " + str(value))
-#     # tested: '' or "" is the same to pyyaml
 
 
 def generate_cmd_set_envvar(env_var_name):
@@ -724,41 +706,6 @@ def generate_cmd_unzip_inputds(input_ds, type_session):
             cmd += '\n7z x `basename ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}`'
             #   ^^ ${FREESURFER_ZIP} includes `path_now_rel` of input_ds
             #   so needs to get the basename
-
-            # Way #2: get the tag in the zipfilename ---------------------------------------------
-            #   but need to assume it's consistent across all zipfilename...
-            # # get the zip filename:
-            # if type_session == "multi-ses":
-            #     list_zipfiles = \
-            #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
-            #                           "sub-*_ses-*_" + input_ds.df["name"][i_ds] + "*.zip"))
-            #     if len(list_zipfiles) == 0:
-            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds]
-            #                         + "'," + " the zip file(s) does not follow the pattern of "
-            #                         + "'sub-*_ses-*_'" + input_ds.df["name"][i_ds] + "*.zip")
-            # elif type_session == "single-ses":
-            #     list_zipfiles = \
-            #         glob.glob(op.join(input_ds.df["path_now_abs"][i_ds],
-            #                           "sub-*_" + input_ds.df["name"][i_ds] + "*.zip"))
-            #     if len(list_zipfiles) == 0:
-            #         raise Exception("In zipped input dataset '" + input_ds.df["name"][i_ds]
-            #                          + "'," + " the zip file(s) does not follow the pattern of "
-            #                         + "'sub-*_'" + input_ds.df["name"][i_ds] + "*.zip")
-            # else:
-            #     raise Exception("invalid `type_session`: " + type_session)
-
-            # # assume all the zip filenames are regular, so only check out the first one:
-
-            # temp_filename = op.basename(list_zipfiles[0])
-            # temp_regex = regex.search(input_ds.df["name"][i_ds] + '(.*)' + '.zip',
-            #                           temp_filename)
-            # temp_pattern = temp_regex.group(0)   # e.g., "fmriprep-0.0.0.zip"
-            # # ^^ .group(1) will be "-0.0.0"
-            # if type_session == "multi-ses":
-            #     cmd += "\n7z x ${subid}_${sesid}_" + \
-            #         temp_pattern
-            # elif type_session == "single-ses":
-            #     cmd += "\n7z x ${subid}_" + temp_pattern
 
             cmd += '\ncd $wd\n'
 
@@ -1550,13 +1497,6 @@ def submit_array(analysis_path, type_session, queue, maxarray, flag_print_messag
     to_print = 'Job for an array of ' + maxarray
     job_name = job_name_template.replace('${max_array}', str(int(maxarray) - 1))
 
-    # COMMENT OUT BECAUSE sub and ses AREN'T NEEDED FOR JOB SUBMISSION
-    # if type_session == "single-ses":
-    #     sub_list_path = op.join(analysis_path, "code", "sub_final_inclu.csv")
-    # elif type_session == "multi-ses":
-    #     sub_list_path = op.join(analysis_path, "code", "sub_ses_final_inclu.csv")
-    # print(cmd)
-
     # run the command, get the job id:
     proc_cmd = subprocess.run(
         cmd.split(),
@@ -1602,8 +1542,9 @@ def df_submit_update(
     a lot of fields will be reset. For other cases (e.g., to update job status
     to running state / successfully finished state, etc.), you may directly
     update df_jobs without using this function.
-    Parameters:
-    ----------------
+
+    Parameters
+    ----------
     df_job_submit: pd.DataFrame
         dataframe of the submitted job
     job_id: int
@@ -1620,8 +1561,8 @@ def df_submit_update(
         whether the job auditing fields need to be reset to np.nan
         (fields include last_line_stdout_file, and alert_message).
 
-    Returns:
-    ------------------
+    Returns
+    -------
     df_job_submit: pd.DataFrame
         dataframe of the submitted job, updated
     """
@@ -1759,11 +1700,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
             i_job = df_job.index[temp].to_list()
             # # sanity check: there should only be one `i_job`:
             # #   ^^ can be removed as done in `core_functions.py`
-            # assert_msg = "There are duplications in `job_status.csv`" \
-            #     + " for " + sub
-            # if self.type_session == "multi-ses":
-            #     assert_msg += ", " + ses
-            # assert len(i_job) == 1, assert_msg + "!"
+
             i_job = i_job[0]  # take the element out of the list
 
             # check if the job has already been submitted:
@@ -1896,8 +1833,6 @@ def create_job_status_csv(babs):
         df_job['duration'] = np.nan
         df_job['is_done'] = False  # = has branch in output_ria
         df_job['needs_resubmit'] = False
-        # df_job["echo_success"] = np.nan   # echoed success in log file; # TODO
-        # # if ^^ is False, but `is_done` is True, did not successfully clean the space
         df_job['is_failed'] = np.nan
         df_job['log_filename'] = np.nan
         df_job['last_line_stdout_file'] = np.nan
