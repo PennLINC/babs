@@ -168,7 +168,7 @@ Create failed cases for testing ``babs status`` failed job auditing
 
         * if you don't want to wait for that long, just set the hard runtime limit to very low value, e.g., 20 sec
 
-* Perform job auditing using ``--container-config-yaml-file``:
+* Perform job auditing using ``--container-config``:
 
     * add some msg into the ``alert_log_messages``, which can be seen in the "failed" jobs - for testing purpose
 

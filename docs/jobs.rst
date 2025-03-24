@@ -17,7 +17,7 @@ List of included subjects (and sessions) to process
     * If not, BABS will list the subjects and sessions from the first input dataset, and use it as initial list
 
 #. Filter the initial list: Remove subjects (and sessions) which do not have the required files
-   that are defined in :ref:`required_files` in ``--container-config-yaml-file``
+   that are defined in :ref:`required_files` in ``--container-config``
    provided when running ``babs init``.
 
 Now, BABS gets the final included subjects (and sessions) to process.
@@ -78,13 +78,12 @@ you can use two options of ``babs status`` here:
 
     babs status \
         /path/to/my_BABS_project \
-        --container-config-yaml-file /path/to/my_yaml_file.yaml
+        --container-config /path/to/my_yaml_file.yaml
 
   i.e., using **alert_log_messages** in the YAML file for failed job auditing.
   See :ref:`the section below <setup-section-alert-log-messages>`
   for how to set up this section **alert_log_messages**.
   With the YAML file provided, this may take ~1.5 min for ~2500 jobs.
-
 
 .. _setup-section-alert-log-messages:
 
@@ -109,7 +108,7 @@ section **alert_log_messages** in the container's configuration YAML file.
 
     babs status \
         /path/to/my_BABS_project \
-        --container-config-yaml-file /path/to/updated_yaml_file.yaml
+        --container-config /path/to/updated_yaml_file.yaml
 
   to ask BABS to find updated list of alert messages.
 * For more details about this section, please refer to :ref:`alert_log_messages`.
@@ -169,6 +168,7 @@ As you can see, in the summary ``Job status``, there are multiple sections:
    as well as their breakdowns: number of jobs submitted/finished/pending/running/failed;
 #. Line #18-22: Summary of failed jobs, based on the provided section **alert_log_messages** in
    ``--container-config-yaml-file``, BABS tried to find user-defined alert messages in failed jobs' log files;
+
 
 Finally, you can find the log files (``stdout``, ``stderr``) in the path provided
 in the last line of the printed message (line #27).
@@ -263,10 +263,10 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
     * Example ``alert_message``: ``'stdout file: fMRIPrep failed'`` (alert messages found);
       ``BABS: No alert message found in log files.`` (alert messages not found).
     * This column of all submitted jobs will be updated every time ``babs status`` is called.
-      It will be updated based on current ``--container-config-yaml-file`` (if provided).
-      if ``--container-config-yaml-file`` is not provided,
+      It will be updated based on current ``--container-config`` (if provided).
+      if ``--container-config`` is not provided,
       column ``alert_message`` will be reset to ``np.nan``.
-    * If a job hasn't been submitted, or ``--container-config-yaml-file`` was not specified
+    * If a job hasn't been submitted, or ``--container-config`` was not specified
       in ``babs status``, ``alert_message = np.nan``.
 
 

@@ -42,7 +42,7 @@ Only use alert messages in log files for failed job auditing:
 
     babs status \
         /path/to/my_BABS_project \
-        --container-config-yaml-file /path/to/container_config.yaml
+        --container-config /path/to/container_config.yaml
 
 Use alert messages in log files + Perform job account for jobs
 without alert messages in log files:

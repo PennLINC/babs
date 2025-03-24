@@ -89,8 +89,8 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container',
     )
@@ -116,10 +116,9 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--type_system',
-        '--type-system',
-        choices=['sge', 'slurm'],
-        help='The name of the job scheduling type_system that you will use.',
+        '--queue',
+        choices=['slurm'],
+        help='The name of the job scheduling queue that you will use.',
         required=True,
     )
     parser.add_argument(
@@ -161,9 +160,9 @@ def babs_init_main(
     list_sub_file: str,
     container_ds: str,
     container_name: str,
-    container_config_yaml_file: str,
+    container_config: str,
     type_session: str,
-    type_system: str,
+    queue: str,
     keep_if_failed: bool,
 ):
     """This is the core function of babs init.
@@ -186,12 +185,12 @@ def babs_init_main(
     container_name: str
         name of the container, best to include version number.
         e.g., 'fmriprep-0-0-0'
-    container_config_yaml_file: str
+    container_config: str
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container
     type_session: str
         multi-ses or single-ses
-    type_system: str
+    queue: str
         sge or slurm
     keep_if_failed: bool
         If `babs init` failed with error, whether to keep the created BABS project.
@@ -240,16 +239,16 @@ def babs_init_main(
     # currently solution: add notes in Debugging in `babs init` docs: `babs init.rst`
 
     # Create an instance of babs class:
-    babs_proj = BABS(project_root, type_session, type_system)
+    babs_proj = BABS(project_root, type_session, queue)
 
-    # Validate system's type name `type_system`:
-    system = System(type_system)
+    # Validate system's type name `queue`:
+    system = System(queue)
 
     # print out key information for visual check:
     print('')
     print('project_root of this BABS project: ' + babs_proj.project_root)
     print('type of data of this BABS project: ' + babs_proj.type_session)
-    print('job scheduling system of this BABS project: ' + babs_proj.type_system)
+    print('job scheduling system of this BABS project: ' + babs_proj.queue)
     print('')
 
     # Call method `babs_bootstrap()`:
@@ -260,7 +259,7 @@ def babs_init_main(
             input_ds,
             container_ds,
             container_name,
-            container_config_yaml_file,
+            container_config,
             system,
         )
     except Exception:
@@ -594,8 +593,8 @@ def _parse_status():
     #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
     #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
         ' ``babs status`` will use this section for failed job auditing,'
@@ -639,7 +638,7 @@ def babs_status_main(
         each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
-    container_config_yaml_file: str or None
+    container_config: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
         It may include 'alert_log_messages' section
@@ -882,8 +881,8 @@ def _parse_unzip():
         type=PathExists,
     )
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file of the BIDS App container that contains information of'
         ' what files to unzip etc.',
     )
@@ -908,7 +907,7 @@ def _enter_unzip(argv=None):
 
 def babs_unzip_main(
     project_root: str,
-    container_config_yaml_file: str,
+    container_config: str,
 ):
     """
     This is the core function of babs-unzip, which unzip results zip files
@@ -917,22 +916,22 @@ def babs_unzip_main(
     project_root: str
         Absolute path to the root of BABS project.
         For example, '/path/to/my_BABS_project/'.
-    container_config_yaml_file: str
+    container_config: str
         path to container's configuration YAML file.
         These two sections will be used:
         1. 'unzip_desired_filenames' - must be included
         2. 'rename_conflict_files' - optional
     """
     # container config:
-    config = read_yaml(container_config_yaml_file)
+    config = read_yaml(container_config)
     # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
 
     # Sanity checks:
     if 'unzip_desired_filenames' not in config:
         raise Exception(
             "Section 'unzip_desired_filenames' is not included"
-            ' in `--container_config_yaml_file`. This section is required.'
-            " Path to this YAML file: '" + container_config_yaml_file + "'."
+            ' in `--container_config`. This section is required.'
+            " Path to this YAML file: '" + container_config + "'."
         )
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
@@ -980,7 +979,7 @@ def get_existing_babs_proj(project_root):
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
 
     # make sure the YAML file has necessary sections:
-    list_sections = ['type_session', 'type_system', 'input_ds', 'container']
+    list_sections = ['type_session', 'queue', 'input_ds', 'container']
     for i in range(0, len(list_sections)):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
@@ -990,10 +989,10 @@ def get_existing_babs_proj(project_root):
             )
 
     type_session = babs_proj_config['type_session']
-    type_system = babs_proj_config['type_system']
+    queue = babs_proj_config['queue']
 
     # Get the class `BABS`:
-    babs_proj = BABS(project_root, type_session, type_system)
+    babs_proj = BABS(project_root, type_session, queue)
 
     # update key information including `output_ria_data_dir`:
     babs_proj.wtf_key_info(flag_output_ria_only=True)
