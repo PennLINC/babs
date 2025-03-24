@@ -695,13 +695,13 @@ You'll see something like this (the job ID will probably be different):
     4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
     5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN
 
-                    log_filename  last_line_stdout_file  alert_message  job_account
-    0  toy_sub-01_ses-A.*4639278                    NaN            NaN          NaN
-    1                        NaN                    NaN            NaN          NaN
-    2                        NaN                    NaN            NaN          NaN
-    3                        NaN                    NaN            NaN          NaN
-    4                        NaN                    NaN            NaN          NaN
-    5                        NaN                    NaN            NaN          NaN
+                    log_filename  last_line_stdout_file  alert_message
+    0  toy_sub-01_ses-A.*4639278                    NaN            NaN
+    1                        NaN                    NaN            NaN
+    2                        NaN                    NaN            NaN
+    3                        NaN                    NaN            NaN
+    4                        NaN                    NaN            NaN
+    5                        NaN                    NaN            NaN
 
 You can check the job status via ``babs status``:
 
@@ -765,13 +765,13 @@ Now, you can submit all other jobs by specifying ``--all``:
     4  sub-02  ses-B           True  4649006                 NaN             NaN       NaN    False       NaN
     5  sub-02  ses-D           True  4649009                 NaN             NaN       NaN    False       NaN
 
-                    log_filename last_line_stdout_file  alert_message  job_account
-    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN          NaN
-    1  toy_sub-01_ses-B.*4648997                   NaN            NaN          NaN
-    2  toy_sub-01_ses-C.*4649000                   NaN            NaN          NaN
-    3  toy_sub-02_ses-A.*4649003                   NaN            NaN          NaN
-    4  toy_sub-02_ses-B.*4649006                   NaN            NaN          NaN
-    5  toy_sub-02_ses-D.*4649009                   NaN            NaN          NaN
+                    log_filename last_line_stdout_file  alert_message
+    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN
+    1  toy_sub-01_ses-B.*4648997                   NaN            NaN
+    2  toy_sub-01_ses-C.*4649000                   NaN            NaN
+    3  toy_sub-02_ses-A.*4649003                   NaN            NaN
+    4  toy_sub-02_ses-B.*4649006                   NaN            NaN
+    5  toy_sub-02_ses-D.*4649009                   NaN            NaN
 
 You can again call ``babs status $PWD`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:

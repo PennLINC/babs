@@ -1618,7 +1618,7 @@ def df_submit_update(
         whether the is_done field has to be updated
     debug: bool
         whether the job auditing fields need to be reset to np.nan
-        (fields include last_line_stdout_file, alert_message, and job_account).
+        (fields include last_line_stdout_file, and alert_message).
 
     Returns:
     ------------------
@@ -1646,7 +1646,6 @@ def df_submit_update(
         if debug:
             df_job_submit.loc[ind, 'last_line_stdout_file'] = np.nan
             df_job_submit.loc[ind, 'alert_message'] = np.nan
-            df_job_submit.loc[ind, 'job_account'] = np.nan
     return df_job_submit
 
 
@@ -1672,7 +1671,7 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
         whether the is_done field has to be updated
     debug: bool
         whether the job auditing fields need to be reset to np.nan
-        (fields include last_line_stdout_file, alert_message, and job_account).
+        (fields include last_line_stdout_file, and alert_message).
 
     Returns:
     ------------------
@@ -1709,7 +1708,6 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
         if debug:
             df_jobs.loc[mask, 'last_line_stdout_file'] = row['last_line_stdout_file']
             df_jobs.loc[mask, 'alert_message'] = row['alert_message']
-            df_jobs.loc[mask, 'job_account'] = row['job_account']
     return df_jobs
 
 
@@ -1904,7 +1902,6 @@ def create_job_status_csv(babs):
         df_job['log_filename'] = np.nan
         df_job['last_line_stdout_file'] = np.nan
         df_job['alert_message'] = np.nan
-        df_job['job_account'] = np.nan
 
         # TODO: add different kinds of error
 
@@ -1975,8 +1972,6 @@ def report_job_status(df, analysis_path, config_msg_alert):
         This is used to determine if to report `alert_message` column
     """
 
-    from .constants import MSG_NO_ALERT_IN_LOGS
-
     print('\nJob status:')
 
     total_jobs = df.shape[0]
@@ -2034,48 +2029,6 @@ def report_job_status(df, analysis_path, config_msg_alert):
                             + str(unique_alert_msg)
                             + "';"
                         )
-
-                # if there is 'no_alert' in 'alert_message', check 'job_account' column:
-                if MSG_NO_ALERT_IN_LOGS in unique_list_alert_message:
-                    list_index_job_failed_no_alert = (df['is_failed']) & (
-                        df['alert_message'] == MSG_NO_ALERT_IN_LOGS
-                    )
-
-                    # because there could be 'np.nan' in the df, and pd.series -> tolist()
-                    #   becomes [nan] which is not str(np.nan) or np.nan..., i.e., not detectable,
-                    #   so we need to check that first...
-                    pdseries = df['job_account'][list_index_job_failed_no_alert]
-                    # check if all selected are np.nan:
-                    if all(pd.isna(pdseries)):
-                        # if so, 'job_account' was not applied yet:
-                        print(
-                            "\nFor the failed job(s) that don't have alert message in log files,"
-                            ' you may use `--job-account` to get more information'
-                            ' about why they are failed.'
-                            ' Note that with `--job-account`, `babs status` may take longer time.'
-                        )
-                    else:
-                        all_job_account = pdseries.tolist()
-                        # ^^ only limit to jobs failed & no alert message in log files
-                        unique_list_job_account = list(set(all_job_account))
-                        # unique_list_job_account.sort()   # sort and update the list itself
-                        # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
-
-                        print(
-                            '\nAmong job(s) that are failed'
-                            " and don't have alert message in log files:"
-                        )
-                        for unique_job_account in unique_list_job_account:
-                            # count:
-                            temp_count = all_job_account.count(unique_job_account)
-                            print(
-                                str(temp_count)
-                                + " job(s) have job account of: '"
-                                + str(unique_job_account)
-                                + "';"
-                            )
-                            # ^^ str(unique_job_account) is in case it is `np.nan`,
-                            #   though should not be possible to be `np.nan`
 
         print('\nAll log files are located in folder: ' + op.join(analysis_path, 'logs'))
 

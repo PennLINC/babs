@@ -23,7 +23,6 @@ from jinja2 import Environment, PackageLoader
 from babs.utils import (
     calcu_runtime,
     ceildiv,
-    check_job_account,
     check_validity_unzipped_input_dataset,
     df_status_update,
     df_submit_update,
@@ -44,7 +43,6 @@ from babs.utils import (
     get_info_zip_foldernames,
     get_last_line,
     get_list_sub_ses,
-    get_username,
     prepare_job_array_df,
     print_versions_from_yaml,
     read_job_status_csv,
@@ -1200,7 +1198,6 @@ class BABS:
         df_resubmit_task_specific=None,
         reckless=False,
         container_config=None,
-        job_account=False,
     ):
         """
         This function checks job status and resubmit jobs if requested.
@@ -1226,10 +1223,6 @@ class BABS:
             of how to run the BIDS App container.
             It may include 'alert_log_messages' section
             to be used by babs status.
-        job_account: bool
-            Whether to account failed jobs (e.g., using `qacct` for SGE),
-            which may take some time.
-            This step will be skipped if `--resubmit failed` was requested.
         """
 
         # `create_job_status_csv(self)` has been called in `babs_status()`
@@ -1244,9 +1237,6 @@ class BABS:
         # Prepare for checking alert messages in log files:
         #   get the pre-defined alert messages:
         config_msg_alert = get_config_msg_alert(container_config)
-
-        # Get username, if `--job-account` is requested:
-        username_lowercase = get_username()
 
         # Get the list of branches in output RIA:
         proc_git_branch_all = subprocess.run(
@@ -1552,20 +1542,6 @@ class BABS:
                                 df_job_updated.at[i_task, 'job_state_code'] = np.nan
                                 df_job_updated.at[i_task, 'duration'] = np.nan
                                 # ROADMAP: ^^ get duration via `qacct`
-
-                                # If `--job-account` is requested:
-                                if job_account & if_no_alert_in_log:
-                                    # if `--job-account` is requested, and there is no alert
-                                    #   message found in log files:
-                                    job_name = log_filename.split('.*')[0]
-                                    check_job_account(
-                                        job_id_str,
-                                        job_name,
-                                        username_lowercase,
-                                        self.queue,
-                                    )
-                                    raise Exception('This should be impossible to reach')
-                                    # df_job_updated.at[i_job, 'job_account'] = msg_job_account
 
                 # Collect all to-be-resubmitted tasks into a single DataFrame
                 df_job_resubmit = df_job_updated[df_job_updated['needs_resubmit']].copy()
