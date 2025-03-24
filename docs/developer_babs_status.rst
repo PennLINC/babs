@@ -44,11 +44,6 @@ Source code: ``babs/babs.py`` -> ``class BABS()`` --> ``def babs_status()``
 
                 * update ``df_job_updated``
                 * resubmit if 'failed' in ``flags_resubmit``, or request specifically: resubmit and update ``df_job_updated``
-                * if did not resubmit:
-
-                    * if ``--job-account`` and no alert messages in logs:
-
-                        * do ``qacct``, and update 'job_account' column.
 
     * for each job that marked as "is_done" in previous round:
 
@@ -119,8 +114,8 @@ Example ``job_status.csv``
 
 When this CSV was just initialized::
 
-    sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message,job_account
-    sub-01,ses-A,False,-1,,,,False,,,,,
+    sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message
+    sub-01,ses-A,False,-1,,,,False,,,,
 
 
 when ``print(df)`` by python::
@@ -128,8 +123,8 @@ when ``print(df)`` by python::
         sub_id ses_id  has_submitted  job_id  job_state_category  job_state_code  \
     0  sub-01  ses-A          False      -1                 NaN             NaN
 
-        duration  is_done  is_failed  log_filename  last_line_stdout_file  alert_message  job_account
-    0       NaN    False        NaN           NaN               NaN            NaN          NaN
+        duration  is_done  is_failed  log_filename  last_line_stdout_file  alert_message
+    0       NaN    False        NaN           NaN               NaN            NaN
 
 Note: ``0`` at the beginning: index of pd.DataFrame
 
@@ -165,7 +160,7 @@ Create failed cases for testing ``babs status`` failed job auditing
 
     * when the job is pending, manually kill it
 
-        * For Slurm cluster: you'll see normal msg from ``State`` column of ``sacct`` msg when ``--job-account``
+        * For Slurm cluster: you'll see normal msg from ``State`` column of ``sacct`` msg
         * For SGE cluster: you'll see warning that ``qacct`` failed for this job - this is normal. See PR #98 for more details.
 
     * when the job is running, manually kill it
@@ -178,11 +173,6 @@ Create failed cases for testing ``babs status`` failed job auditing
     * add some msg into the ``alert_log_messages``, which can be seen in the "failed" jobs - for testing purpose
 
         * although they can be normal msg seen in successful jobs
-
-* Perform job auditing using ``--job-account`` (and ``--container-config-yaml-file``):
-
-    * delete the ``alert_log_messages`` from the yaml file;
-    * Now, you should see job account for these failed jobs
 
 ===========================
 Terminology
