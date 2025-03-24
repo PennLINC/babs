@@ -595,17 +595,6 @@ def _parse_status():
         ' by checking if any defined alert messages'
         " can be found in failed jobs' log files.",
     )
-    parser.add_argument(
-        '--job_account',
-        '--job-account',
-        action='store_true',
-        # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
-        help='Whether to account failed jobs, which may take some time.'
-        ' When using ``--job-account``, please also add ``--container_config``.'
-        ' If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)'
-        ' is also requested,'
-        ' this ``--job-account`` will be skipped.',
-    )
 
     return parser
 
@@ -630,7 +619,6 @@ def babs_status_main(
     resubmit: list,
     resubmit_job: list,
     container_config: str,
-    job_account: bool,
     reckless: bool = False,
 ):
     """
@@ -649,9 +637,6 @@ def babs_status_main(
         of how to run the BIDS App container.
         It may include 'alert_log_messages' section
         to be used by babs status.
-    job_account: bool
-        Whether to account failed jobs (e.g., using `qacct` for SGE),
-        which may take some time.
     reckless: bool
         Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running.
         This is hardcoded as False for now.
@@ -692,19 +677,6 @@ def babs_status_main(
     else:  # `resubmit` is None:
         print('Did not request resubmit based on job states (no `--resubmit`).')
         flags_resubmit = []  # empty list
-
-    # If `--job-account` is requested:
-    if job_account:
-        if 'failed' not in flags_resubmit:
-            print('`--job-account` was requested; `babs status` may take longer time...')
-        else:
-            # this is meaningless to run `job-account` if resubmitting anyway:
-            print(
-                'Although `--job-account` was requested,'
-                ' as `--resubmit failed` was also requested,'
-                " it's meaningless to run job account on previous failed jobs,"
-                ' so will skip `--job-account`'
-            )
 
     # If `resubmit-job` is requested:
     if resubmit_job is not None:
@@ -782,7 +754,6 @@ def babs_status_main(
         df_resubmit_job_specific,
         reckless,
         container_config,
-        job_account,
     )
 
 

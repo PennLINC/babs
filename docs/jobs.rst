@@ -84,18 +84,6 @@ you can use two options of ``babs status`` here:
   See :ref:`the section below <setup-section-alert-log-messages>`
   for how to set up this section **alert_log_messages**.
   With the YAML file provided, this may take ~1.5 min for ~2500 jobs.
-* If time allows, and there are failed jobs without alert messages,
-  you may add ``--job-account``::
-
-    babs status \
-        /path/to/my_BABS_project \
-        --container-config /path/to/my_yaml_file.yaml \
-        --job-account
-
-  This will perform job account, thus it may take longer
-  (e.g., ~0.5h for ~250 failed jobs without alert messages;
-  also depending on the speed of the cluster).
-
 
 .. _setup-section-alert-log-messages:
 
@@ -149,11 +137,9 @@ Example job status summary from ``babs status``
 
     $ babs status \
         /path/to/my_BABS_project \
-        --container_config /path/to/config.yaml \
-        --job-account
+        --container_config /path/to/config.yaml
 
     Did not request resubmit based on job states (no `--resubmit`).
-    `--job-account` was requested; `babs status` may take longer time...
 
     Job status:
     There are in total of 2565 jobs to complete.
@@ -181,18 +167,8 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 #. Line #9-16: Overall summary of number of jobs to complete,
    as well as their breakdowns: number of jobs submitted/finished/pending/running/failed;
 #. Line #18-22: Summary of failed jobs, based on the provided section **alert_log_messages** in
-   ``--container-config``, BABS tried to find user-defined alert messages in failed jobs' log files;
-#. Line #24-25: If there are jobs that failed but don't have defined alert message,
-   and ``--job-account`` is requested, BABS will then run job account
-   and try to extract more information and summarize.
-   For each of these jobs, BABS runs job account command and extracts messages from it.
+   ``--container-config-yaml-file``, BABS tried to find user-defined alert messages in failed jobs' log files;
 
-    * In the above case, line #25 tells us that these jobs were killed by the cluster
-      because they exceeded resource limits.
-    * For SGE clusters: BABS uses command ``qacct`` for job account,
-      and pulls out the code and message from ``failed`` section in ``qacct``.
-    * For Slurm clusters: BABS uses command ``sacct`` for job account,
-      and pulls out message from the ``State`` column.
 
 Finally, you can find the log files (``stdout``, ``stderr``) in the path provided
 in the last line of the printed message (line #27).
@@ -292,16 +268,6 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
       column ``alert_message`` will be reset to ``np.nan``.
     * If a job hasn't been submitted, or ``--container-config`` was not specified
       in ``babs status``, ``alert_message = np.nan``.
-* ``job_account``: string or ``np.nan``, information extracted by running job account.
-  This is designed for failed jobs that don't have alert message in the log files. More detailed explanation of how and what information is get by BABS can be found in :ref:`example_job_status_summary`. Other details about this column:
-
-    * This column is only updated when ``--job-account`` is requested in ``babs status``
-      but ``--resubmit failed`` is not requested
-    * For other jobs (not failed, or failed jobs but alert messages were found),
-      ``job_account = np.nan``
-    * if ``babs status`` was called again, but without ``--job-account``,
-      the previous round's ``job_account`` column will be kept, unless the job was resubmitted.
-      This is because the job ID did not change, so job account information should not change for a finished job.
 
 
 *******************************************************
@@ -317,18 +283,6 @@ that BABS does not recognize. Please wait for a bit moment, and rerun ``babs sta
 .. developer's notes: if calling `babs status` immediately after `babs submit` on MSI Slurm cluster,
 ..  you may see this. This is because jobs are in atypical states `CF` (configuring).
 ..  Just wait several sec and rerun `babs status`.
-
-Q: In ``job_status.csv``, why column ``alert_message`` is updated every time ``babs status`` is called,
-whereas column ``job_account`` is only updated when ``--job-account`` is called?
-
-A:
-
-    #. ``alert_message`` is got from log files, which are dynamic as the jobs progress;
-       also, ``alert_log_messages`` in the yaml file can also be changed in each ``babs status`` call.
-       On the other hand, only failed jobs have ``job_account`` with actual contents,
-       and job account won't change after a job is finished (though failed).
-    #. Updating ``alert_message`` is quick, whereas running job account
-       (e.g., calling ``qacct`` on SGE clusters) is slow
 
 Q: A job is done (i.e., ``is_done = True`` in ``job_status.csv``),
 but column ``last_line_stdout_file`` is not ``SUCCESS``?
