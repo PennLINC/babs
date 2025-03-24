@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from babs.babs import BABS, Container, Input_ds, System
+from babs.babs import BABS, Container, Input_ds
+from babs.system import System
 
 # Get the path to the notebooks directory
 NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
