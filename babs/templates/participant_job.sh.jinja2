@@ -25,7 +25,7 @@ varname_jobid='JOB_ID'
 varname_jobid='SLURM_ARRAY_JOB_ID'
 {% endif %}
 
-{% if type_session == 'multi-ses' %}
+{% if processing_level == 'session' %}
 BRANCH="job-${varname_jobid}-${subid}-${sesid}"
 {% else %}
 BRANCH="job-${varname_jobid}-${subid}"

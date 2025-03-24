@@ -140,7 +140,7 @@ an SGE cluster:
         --container_ds /path/to/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
         --container_config /path/to/container_toybidsapp.yaml \
-        --type_session multi-ses \
+        --processing_level session \
         --queue sge \
         /path/to/a/folder/holding/BABS/project/my_BABS_project
 
