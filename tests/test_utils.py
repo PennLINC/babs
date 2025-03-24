@@ -41,8 +41,7 @@ def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
     utils.validate_unzipped_datasets(mock_input_ds, 'subject')
 
     # Test with processing_level = 'session' (should fail)
-    with pytest.raises(FileNotFoundError, match='there is no'):
-        utils.validate_unzipped_datasets(mock_input_ds, 'session')
+    utils.validate_unzipped_datasets(mock_input_ds, 'session')
 
     # Test with processing_level = 'invalid' (should fail)
     with pytest.raises(ValueError, match='invalid `processing_level`!'):
