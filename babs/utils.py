@@ -334,7 +334,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
         if '$INPUT_PATH' not in config['bids_app_args']:
             raise Exception(
                 "The key '$INPUT_PATH' is expected in section `bids_app_args`"
-                ' in `container_config_yaml_file`, because there are more than'
+                ' in `container_config`, because there are more than'
                 ' one input dataset!'
             )
     else:  # only 1 input dataset:
@@ -345,7 +345,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 raise Exception(
                     "As there is only one input dataset, the value of '$INPUT_PATH'"
                     ' in section `bids_app_args`'
-                    ' in `container_config_yaml_file` should be'
+                    ' in `container_config` should be'
                     " '" + expected_temp + "'; You can also choose"
                     " not to specify '$INPUT_PATH'."
                 )
@@ -366,7 +366,7 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
                 warnings.warn(
                     "'" + value + "' specified after $INPUT_PATH"
                     ' (in section `bids_app_args`'
-                    ' in `container_config_yaml_file`), does not'
+                    ' in `container_config`), does not'
                     " match with any dataset's current path."
                     ' This may cause error when running the BIDS App.',
                     stacklevel=2,
@@ -542,7 +542,7 @@ def get_info_zip_foldernames(config):
     # Sanity check: this section should exist:
     if 'zip_foldernames' not in config:
         raise Exception(
-            'The `container_config_yaml_file` does not contain'
+            'The `container_config` does not contain'
             ' the section `zip_foldernames`. Please add this section!'
         )
 
@@ -633,7 +633,7 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, type_session):
         temp = temp + 1
         if (temp != 1) & (value_temp != value):  # not matching last value
             warnings.warn(
-                'In section `zip_foldernames` in `container_config_yaml_file`: \n'
+                'In section `zip_foldernames` in `container_config`: \n'
                 "The version string of '" + key + "': '" + value + "'"
                 ' does not match with the last version string; '
                 'we suggest using the same version string across all foldernames.',
@@ -806,10 +806,7 @@ def generate_one_bashhead_resources(system, key, value):
     if key not in system.dict:
         raise Exception(
             f"Invalid key '{key}' in section `cluster_resources`"
-            ' in `container_config_yaml_file`; This key has not been defined'
-            " in file 'dict_cluster_systems.yaml'."
-            f"Invalid key '{key}' in section `cluster_resources`"
-            ' in `container_config_yaml_file`; This key has not been defined'
+            ' in `container_config`; This key has not been defined'
             " in file 'dict_cluster_systems.yaml'."
         )
 
@@ -845,8 +842,7 @@ def generate_bashhead_resources(system, config):
 
     # sanity check: `cluster_resources` exists:
     if 'cluster_resources' not in config:
-        raise Exception('There is no section `cluster_resources` in `container_config_yaml_file`!')
-        raise Exception('There is no section `cluster_resources` in `container_config_yaml_file`!')
+        raise Exception('There is no section `cluster_resources` in `container_config`!')
 
     # generate the command for interpreting shell first:
     if 'interpreting_shell' not in config['cluster_resources']:
@@ -884,7 +880,7 @@ def generate_bashhead_resources(system, config):
 def generate_cmd_script_preamble(config):
     """
     This is to generate bash cmd based on `script_preamble`
-    from the `container_config_yaml_file`
+    from the `container_config`
 
     Parameters:
     ------------
@@ -904,7 +900,7 @@ def generate_cmd_script_preamble(config):
     if 'script_preamble' not in config:
         warnings.warn(
             "Did not find the section 'script_preamble'"
-            ' in `container_config_yaml_file`.'
+            ' in `container_config`.'
             ' Not to generate script preamble.',
             stacklevel=2,
         )
@@ -919,7 +915,7 @@ def generate_cmd_script_preamble(config):
 def generate_cmd_job_compute_space(config):
     """
     This is to generate bash cmd based on `job_compute_space`
-    from the `container_config_yaml_file`
+    from the `container_config`
 
     Parameters
     ----------
@@ -937,9 +933,7 @@ def generate_cmd_job_compute_space(config):
     cmd = ''
     # sanity check:
     if 'job_compute_space' not in config:
-        raise Exception(
-            "Did not find the section 'job_compute_space'" + ' in `container_config_yaml_file`!'
-        )
+        raise Exception("Did not find the section 'job_compute_space'" + ' in `container_config`!')
 
     cmd += '\n# Change path to an ephemeral (temporary) job compute workspace:\n'
     cmd += (
@@ -1228,14 +1222,14 @@ def get_list_sub_ses(input_ds, config, babs):
     if 'required_files' in config:
         print(
             'Filtering out subjects (and sessions) based on `required files`'
-            ' designated in `container_config_yaml_file`...'
+            ' designated in `container_config`...'
         )
 
         # sanity check on the target input dataset(s):
         if len(config['required_files']) > input_ds.num_ds:
             raise Exception(
                 'Number of input datasets designated in `required_files`'
-                ' in `container_config_yaml_file`'
+                ' in `container_config`'
                 ' is more than actual number of input datasets!'
             )
         for i in range(0, len(config['required_files'])):
@@ -1469,7 +1463,7 @@ def get_list_sub_ses(input_ds, config, babs):
 
     else:
         print(
-            'Did not provide `required files` in `container_config_yaml_file`.'
+            'Did not provide `required files` in `container_config`.'
             ' Not to filter subjects (or sessions)...'
         )
 
@@ -2330,23 +2324,23 @@ def get_last_line(fn):
     return last_line
 
 
-def get_config_msg_alert(container_config_yaml_file):
+def get_config_msg_alert(container_config):
     """
     To extract the configs of alert msgs in log files.
 
-    Parameters:
-    --------------
-    container_config_yaml_file: str or None
+    Parameters
+    ----------
+    container_config: str or None
         path to the config yaml file of containers, which might includes
         a section of `alert_log_messages`
 
-    Returns:
-    ---------------
+    Returns
+    -------
     config_msg_alert: dict or None
     """
 
-    if container_config_yaml_file is not None:  # yaml file is provided
-        with open(container_config_yaml_file) as f:
+    if container_config is not None:  # yaml file is provided
+        with open(container_config) as f:
             container_config = yaml.safe_load(f)
 
         # Check if there is section 'alert_log_messages':
@@ -2359,7 +2353,7 @@ def get_config_msg_alert(container_config_yaml_file):
                 if ('stdout' not in config_msg_alert) & ('stderr' not in config_msg_alert):
                     # neither is included:
                     warnings.warn(
-                        "Section 'alert_log_messages' is provided in `container_config_yaml_file`,"
+                        "Section 'alert_log_messages' is provided in `container_config`,"
                         " but neither 'stdout' nor 'stderr' is included in this section."
                         " So BABS won't check if there is"
                         ' any alerting message in log files.',
@@ -2368,7 +2362,7 @@ def get_config_msg_alert(container_config_yaml_file):
                     config_msg_alert = None  # not useful anymore, set to None then.
             else:  # nothing under "alert_log_messages":
                 warnings.warn(
-                    "Section 'alert_log_messages' is provided in `container_config_yaml_file`, but"
+                    "Section 'alert_log_messages' is provided in `container_config`, but"
                     " neither 'stdout' nor 'stderr' is included in this section."
                     " So BABS won't check if there is"
                     ' any alerting message in log files.',
@@ -2379,7 +2373,7 @@ def get_config_msg_alert(container_config_yaml_file):
             config_msg_alert = None
             warnings.warn(
                 "There is no section called 'alert_log_messages' in the provided"
-                " `container_config_yaml_file`. So BABS won't check if there is"
+                " `container_config`. So BABS won't check if there is"
                 ' any alerting message in log files.',
                 stacklevel=2,
             )

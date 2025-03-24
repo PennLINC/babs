@@ -112,11 +112,11 @@ def test_babs_init(
     container_config_yaml_filename = get_container_config_yaml_filename(
         which_bidsapp, which_input, if_two_input, type_system='slurm'
     )  # TODO: also test slurm!
-    container_config_yaml_file = op.join(
+    container_config = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
     )
-    assert op.exists(container_config_yaml_file)
-    container_config_yaml = read_yaml(container_config_yaml_file)
+    assert op.exists(container_config)
+    container_config_yaml = read_yaml(container_config)
 
     if '--fs-license-file' in container_config_yaml['bids_app_args']:
         # ^^ this way is consistent with BABS re: how to determine if fs license is needed;
@@ -143,7 +143,7 @@ def test_babs_init(
         list_sub_file=None,
         container_ds=container_ds_path,
         container_name=container_name,
-        container_config_yaml_file=container_config_yaml_file,
+        container_config=container_config,
         type_session=type_session,
         type_system='slurm',
         keep_if_failed=False,
@@ -260,7 +260,7 @@ def test_babs_init(
             "`--fs-license-file` was requested in container's YAML file,"
             ' but flag `' + flag_fs_license + '` was not found in the `singularity run`'
             " in '" + container_name + "_zip.sh'."
-            " Path to YAML file: '" + container_config_yaml_file + "'."
+            " Path to YAML file: '" + container_config + "'."
         )
 
     # Check `sub_ses_final_inclu.csv`:

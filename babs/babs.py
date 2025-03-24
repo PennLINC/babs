@@ -278,9 +278,7 @@ class BABS:
                 # if first and the last characters are quotes: remove them
                 self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
 
-    def babs_bootstrap(
-        self, input_ds, container_ds, container_name, container_config_yaml_file, system
-    ):
+    def babs_bootstrap(self, input_ds, container_ds, container_name, container_config, system):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
 
@@ -293,7 +291,7 @@ class BABS:
             e.g., 'fmriprep-0-0-0'
         container_ds: str
             path to the container datalad dataset which the user provides
-        container_config_yaml_file: str
+        container_config: str
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container
         system: class `System`
@@ -477,7 +475,7 @@ class BABS:
         # cd ${PROJECTROOT}/analysis
         # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
-        container = Container(container_ds, container_name, container_config_yaml_file)
+        container = Container(container_ds, container_name, container_config)
 
         # sanity check of container ds:
         container.sanity_check(self.analysis_path)
@@ -1058,7 +1056,7 @@ class BABS:
                 raise Exception(
                     '\nThere is something wrong probably in the setups.'
                     ' Please check the log files'
-                    ' and the `--container_config_yaml_file`'
+                    ' and the `--container_config`'
                     ' provided in `babs init`!'
                 )
             else:  # flag_success_test_job == True:
@@ -1071,7 +1069,7 @@ class BABS:
                     raise Exception(
                         'The designated workspace is not writable!'
                         ' Please change it in the YAML file'
-                        ' used in `babs init --container-config-yaml-file`,'
+                        ' used in `babs init --container-config`,'
                         ' then rerun `babs init` with updated YAML file.'
                     )
                     # NOTE: ^^ currently this is not aligned with YAML file sections;
@@ -1082,14 +1080,14 @@ class BABS:
                         ' in the designated environment!'
                         ' Please install them in the designated environment,'
                         ' or change the designated environment you hope to use'
-                        ' in `--container-config-yaml-file` and rerun `babs init`!'
+                        ' in `--container-config` and rerun `babs init`!'
                     )
 
                 print(
                     'Please check if above versions are the ones you hope to use!'
                     ' If not, please change the version in the designated environment,'
                     ' or change the designated environment you hope to use'
-                    ' in `--container-config-yaml-file` and rerun `babs init`.'
+                    ' in `--container-config` and rerun `babs init`.'
                 )
                 print(CHECK_MARK + ' All good in test job!')
                 print('\n`babs check-setup` was successful! ')
@@ -1201,7 +1199,7 @@ class BABS:
         flags_resubmit,
         df_resubmit_task_specific=None,
         reckless=False,
-        container_config_yaml_file=None,
+        container_config=None,
         job_account=False,
     ):
         """
@@ -1223,7 +1221,7 @@ class BABS:
             This is used when `--resubmit-job`.
             NOTE: currently this argument has not been tested;
             NOTE: `--reckless` has been removed from `babs status` CLI. Always: `reckless=False`
-        container_config_yaml_file: str or None
+        container_config: str or None
             Path to a YAML file that contains the configurations
             of how to run the BIDS App container.
             It may include 'alert_log_messages' section
@@ -1245,7 +1243,7 @@ class BABS:
 
         # Prepare for checking alert messages in log files:
         #   get the pre-defined alert messages:
-        config_msg_alert = get_config_msg_alert(container_config_yaml_file)
+        config_msg_alert = get_config_msg_alert(container_config)
 
         # Get username, if `--job-account` is requested:
         username_lowercase = get_username()
@@ -2015,7 +2013,7 @@ class BABS:
             )
             print('\n`babs merge` did not fully finish yet!')
 
-    def babs_unzip(self, container_config_yaml_file):
+    def babs_unzip(self, container_config):
         """
         This function unzips results and extract desired files.
         This is done in 3 steps:
@@ -2545,12 +2543,12 @@ class Container:
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, (
                 "Section 'bids_app_args' is missing in the provided"
-                ' `container_config_yaml_file`. As there are more than one'
+                ' `container_config`. As there are more than one'
                 ' input dataset, you must include this section to specify'
                 ' to which argument that each input dataset will go.'
             )
             # if there is only one input ds, fine:
-            print("Section 'bids_app_args' was not included in the `container_config_yaml_file`. ")
+            print("Section 'bids_app_args' was not included in the `container_config`. ")
             cmd_singularity_flags = ''  # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:

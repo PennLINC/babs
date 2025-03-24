@@ -17,7 +17,7 @@ List of included subjects (and sessions) to process
     * If not, BABS will list the subjects and sessions from the first input dataset, and use it as initial list
 
 #. Filter the initial list: Remove subjects (and sessions) which do not have the required files
-   that are defined in :ref:`required_files` in ``--container-config-yaml-file``
+   that are defined in :ref:`required_files` in ``--container-config``
    provided when running ``babs init``.
 
 Now, BABS gets the final included subjects (and sessions) to process.
@@ -78,7 +78,7 @@ you can use two options of ``babs status`` here:
 
     babs status \
         /path/to/my_BABS_project \
-        --container-config-yaml-file /path/to/my_yaml_file.yaml
+        --container-config /path/to/my_yaml_file.yaml
 
   i.e., using **alert_log_messages** in the YAML file for failed job auditing.
   See :ref:`the section below <setup-section-alert-log-messages>`
@@ -89,7 +89,7 @@ you can use two options of ``babs status`` here:
 
     babs status \
         /path/to/my_BABS_project \
-        --container-config-yaml-file /path/to/my_yaml_file.yaml \
+        --container-config /path/to/my_yaml_file.yaml \
         --job-account
 
   This will perform job account, thus it may take longer
@@ -120,7 +120,7 @@ section **alert_log_messages** in the container's configuration YAML file.
 
     babs status \
         /path/to/my_BABS_project \
-        --container-config-yaml-file /path/to/updated_yaml_file.yaml
+        --container-config /path/to/updated_yaml_file.yaml
 
   to ask BABS to find updated list of alert messages.
 * For more details about this section, please refer to :ref:`alert_log_messages`.
@@ -149,7 +149,7 @@ Example job status summary from ``babs status``
 
     $ babs status \
         /path/to/my_BABS_project \
-        --container_config_yaml_file /path/to/config.yaml \
+        --container_config /path/to/config.yaml \
         --job-account
 
     Did not request resubmit based on job states (no `--resubmit`).
@@ -181,7 +181,7 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 #. Line #9-16: Overall summary of number of jobs to complete,
    as well as their breakdowns: number of jobs submitted/finished/pending/running/failed;
 #. Line #18-22: Summary of failed jobs, based on the provided section **alert_log_messages** in
-   ``--container-config-yaml-file``, BABS tried to find user-defined alert messages in failed jobs' log files;
+   ``--container-config``, BABS tried to find user-defined alert messages in failed jobs' log files;
 #. Line #24-25: If there are jobs that failed but don't have defined alert message,
    and ``--job-account`` is requested, BABS will then run job account
    and try to extract more information and summarize.
@@ -287,10 +287,10 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
     * Example ``alert_message``: ``'stdout file: fMRIPrep failed'`` (alert messages found);
       ``BABS: No alert message found in log files.`` (alert messages not found).
     * This column of all submitted jobs will be updated every time ``babs status`` is called.
-      It will be updated based on current ``--container-config-yaml-file`` (if provided).
-      if ``--container-config-yaml-file`` is not provided,
+      It will be updated based on current ``--container-config`` (if provided).
+      if ``--container-config`` is not provided,
       column ``alert_message`` will be reset to ``np.nan``.
-    * If a job hasn't been submitted, or ``--container-config-yaml-file`` was not specified
+    * If a job hasn't been submitted, or ``--container-config`` was not specified
       in ``babs status``, ``alert_message = np.nan``.
 * ``job_account``: string or ``np.nan``, information extracted by running job account.
   This is designed for failed jobs that don't have alert message in the log files. More detailed explanation of how and what information is get by BABS can be found in :ref:`example_job_status_summary`. Other details about this column:
