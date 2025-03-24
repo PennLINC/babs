@@ -336,16 +336,16 @@ class BABS:
         env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         template = env.get_template('babs_proj_config.yaml.jinja2')
 
+        template_str = template.render(
+            processing_level=self.processing_level,
+            queue=self.queue,
+            input_ds_string=to_config_string(input_ds.df),
+            container_name=container_name,
+            container_ds=container_ds,
+        )
+        raise Exception(template_str)
         with open(self.config_path, 'w') as f:
-            f.write(
-                template.render(
-                    processing_level=self.processing_level,
-                    queue=self.queue,
-                    input_ds_string=to_config_string(input_ds.df),
-                    container_name=container_name,
-                    container_ds=container_ds,
-                )
-            )
+            f.write(template_str)
         self.datalad_save(
             path=self.config_path,
             message='Initial save of babs_proj_config.yaml',
