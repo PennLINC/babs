@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import traceback
 import warnings
 from functools import partial
 from pathlib import Path
@@ -244,32 +243,13 @@ def babs_init_main(
     # Call method `babs_bootstrap()`:
     #   if success, good!
     #   if failed, and if not `keep_if_failed`: delete the BABS project `babs init` creates!
-    try:
-        babs_proj.babs_bootstrap(
-            input_ds,
-            container_ds,
-            container_name,
-            container_config,
-            system,
-        )
-    except Exception:
-        print('\n`babs init` failed! Below is the error message:')
-        traceback.print_exc()  # print out the traceback error messages
-        if not keep_if_failed:
-            # clean up:
-            print('\nCleaning up created BABS project...')
-            babs_proj.clean_up(input_ds)
-            print(
-                'Please check the error messages above!'
-                ' Then fix the problem, and rerun `babs init`.'
-            )
-        else:
-            print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
-            print(
-                'Please check the error messages above!'
-                ' Then fix the problem, delete this failed BABS project,'
-                ' and rerun `babs init`.'
-            )
+    babs_proj.babs_bootstrap(
+        input_ds,
+        container_ds,
+        container_name,
+        container_config,
+        system,
+    )
 
 
 def _parse_check_setup():
