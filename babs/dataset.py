@@ -1,9 +1,10 @@
 """This module is for input dataset(s)."""
 
-import glob
+import os
 import shutil
 import tempfile
 import warnings
+from glob import glob
 
 import datalad.api as dlapi
 import pandas as pd
