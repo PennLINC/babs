@@ -10,7 +10,8 @@ from pathlib import Path
 import pandas as pd
 from filelock import FileLock, Timeout
 
-from babs.babs import BABS, InputDatasets
+from babs.babs import BABS
+from babs.dataset import InputDatasets
 from babs.system import System
 from babs.utils import (
     ToDict,

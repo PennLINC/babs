@@ -3,7 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from babs.babs import BABS, Container, Input_ds
+from babs.babs import BABS, Container
+from babs.dataset import InputDatasets
 from babs.system import System
 
 # Get the path to the notebooks directory
@@ -132,7 +133,7 @@ def test_participant_job_script_generation(babs_instance, test_config, test_work
     )
 
     # Create a simple input dataset
-    input_ds = Input_ds([['test_input', str(test_workspace / 'inputs')]])
+    input_ds = InputDatasets([['test_input', str(test_workspace / 'inputs')]])
 
     # Generate the script
     script_path = code_dir / 'participant_job.sh'
