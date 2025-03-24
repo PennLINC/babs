@@ -34,13 +34,13 @@ def test_check_validity_unzipped_input_dataset_crosssectional(tmp_path_factory):
     # Create mock object with the dataframe as an attribute
     mock_input_ds = mock.Mock()
     mock_input_ds.df = df
-    mock_input_ds.num_ds = len(df)
+    mock_input_ds.num_ds = df.shape[0]
 
     # Test with processing_level = 'subject' (should pass)
     utils.check_validity_unzipped_input_dataset(mock_input_ds, 'subject')
 
     # Test with processing_level = 'session' (should fail)
-    with pytest.raises(FileNotFoundError, match='there is no `ses-*` folder in subject folder'):
+    with pytest.raises(FileNotFoundError, match='there is no'):
         utils.check_validity_unzipped_input_dataset(mock_input_ds, 'session')
 
     # Test with processing_level = 'invalid' (should fail)

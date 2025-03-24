@@ -68,46 +68,29 @@ def check_validity_unzipped_input_dataset(input_ds, processing_level):
     if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
 
-    for i_ds in range(0, input_ds.num_ds):
-        if input_ds.df['is_zipped'][i_ds] is False:  # unzipped ds:
-            input_ds_path = input_ds.df['path_now_abs'][i_ds]
+    for i_ds in range(input_ds.num_ds):
+        if input_ds.df.loc[i_ds, 'is_zipped'] is False:  # unzipped ds:
+            input_ds_path = input_ds.df.loc[i_ds, 'path_now_abs']
             # Check if there is sub-*:
-            full_paths = sorted(glob.glob(input_ds_path + '/sub-*'))
+            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
 
             # only get the sub's foldername, if it's a directory:
-            list_subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
-            if len(list_subs) == 0:  # no folders with `sub-*`:
-                raise Exception(
-                    'There is no `sub-*` folder in input dataset #'
-                    + str(i_ds + 1)
-                    + " '"
-                    + input_ds.df['name'][i_ds]
-                    + "'!"
+            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
+            if len(subjects) == 0:  # no folders with `sub-*`:
+                raise FileNotFoundError(
+                    f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
+                    f'"{input_ds.df.loc[i_ds, "name"]}"!'
                 )
 
             # For session: also check if there is session in each sub-*:
             if processing_level == 'session':
-                for sub_temp in list_subs:  # every sub- folder should contain a session folder
-                    if sub_temp[0] == '.':  # hidden folder
-                        continue  # skip it
-                    is_valid_seslevel = False
-                    list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
-                    for ses_temp in list_sess:
-                        if ses_temp[0:4] == 'ses-':
-                            # if one of the folder starts with "ses-", then it's fine
-                            is_valid_seslevel = True
-                            break
-
-                    if not is_valid_seslevel:
+                for subject in subjects:  # every sub- folder should contain a session folder
+                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
+                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
+                    if len(sessions) == 0:
                         raise FileNotFoundError(
-                            'In input dataset #'
-                            + str(i_ds + 1)
-                            + " '"
-                            + input_ds.df['name'][i_ds]
-                            + "',"
-                            + " there is no `ses-*` folder in subject folder '"
-                            + sub_temp
-                            + "'!"
+                            f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '
+                            f'there is no `ses-*` folder in subject folder "{subject}"!'
                         )
 
 
