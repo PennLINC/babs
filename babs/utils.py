@@ -63,7 +63,7 @@ def check_validity_unzipped_input_dataset(input_ds, processing_level):
     """
 
     if processing_level not in ['session', 'subject']:
-        raise Exception('invalid `processing_level`!')
+        raise ValueError('invalid `processing_level`!')
 
     if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
@@ -72,9 +72,8 @@ def check_validity_unzipped_input_dataset(input_ds, processing_level):
         if input_ds.df['is_zipped'][i_ds] is False:  # unzipped ds:
             input_ds_path = input_ds.df['path_now_abs'][i_ds]
             # Check if there is sub-*:
-            full_paths = sorted(
-                glob.glob(input_ds_path + '/sub-*')  # `sorted()` is optional
-            )
+            full_paths = sorted(glob.glob(input_ds_path + '/sub-*'))
+
             # only get the sub's foldername, if it's a directory:
             list_subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
             if len(list_subs) == 0:  # no folders with `sub-*`:
@@ -100,7 +99,7 @@ def check_validity_unzipped_input_dataset(input_ds, processing_level):
                             break
 
                     if not is_valid_seslevel:
-                        raise Exception(
+                        raise FileNotFoundError(
                             'In input dataset #'
                             + str(i_ds + 1)
                             + " '"
