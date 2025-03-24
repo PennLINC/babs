@@ -39,7 +39,7 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
-def check_validity_unzipped_input_dataset(input_ds, processing_level):
+def validate_unzipped_datasets(input_ds, processing_level):
     """
     Check if each of the unzipped input datasets is valid.
     Here we only check the "unzipped" datasets;
@@ -1033,7 +1033,7 @@ def get_list_sub_ses(input_ds, config, babs):
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
             full_paths = sorted(glob.glob(input_ds.df['path_now_abs'][i_ds] + '/sub-*'))
             # no need to check if there is `sub-*` in this dataset
-            #   have been checked in `check_validity_unzipped_input_dataset()`
+            #   have been checked in `validate_unzipped_datasets()`
             # only get the sub's foldername, if it's a directory:
             subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
         else:  # zipped:
@@ -1074,7 +1074,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     full_paths = sorted(full_paths)
                     sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
                     # no need to validate again that session exists
-                    # -  have been done in `check_validity_unzipped_input_dataset()`
+                    # -  have been done in `validate_unzipped_datasets()`
 
                     list_sub_ses[i_sub] = sess
 

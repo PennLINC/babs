@@ -9,7 +9,7 @@ import babs.utils as utils
 
 
 def test_check_validity_unzipped_input_dataset_crosssectional(tmp_path_factory):
-    """Test the check_validity_unzipped_input_dataset function."""
+    """Test the validate_unzipped_datasets function."""
     # Mock up a dataset
     # The dataframe needs the following columns: is_zipped, path_now_abs, name
     zipped_dset = tmp_path_factory.mktemp('zipped_dset')
@@ -37,19 +37,19 @@ def test_check_validity_unzipped_input_dataset_crosssectional(tmp_path_factory):
     mock_input_ds.num_ds = df.shape[0]
 
     # Test with processing_level = 'subject' (should pass)
-    utils.check_validity_unzipped_input_dataset(mock_input_ds, 'subject')
+    utils.validate_unzipped_datasets(mock_input_ds, 'subject')
 
     # Test with processing_level = 'session' (should fail)
     with pytest.raises(FileNotFoundError, match='there is no'):
-        utils.check_validity_unzipped_input_dataset(mock_input_ds, 'session')
+        utils.validate_unzipped_datasets(mock_input_ds, 'session')
 
     # Test with processing_level = 'invalid' (should fail)
     with pytest.raises(ValueError, match='invalid `processing_level`!'):
-        utils.check_validity_unzipped_input_dataset(mock_input_ds, 'invalid')
+        utils.validate_unzipped_datasets(mock_input_ds, 'invalid')
 
 
 def test_check_validity_unzipped_input_dataset_longitudinal(tmp_path_factory):
-    """Test the check_validity_unzipped_input_dataset function."""
+    """Test the validate_unzipped_datasets function."""
     # Mock up a dataset
     # The dataframe needs the following columns: is_zipped, path_now_abs, name
     zipped_dset = tmp_path_factory.mktemp('zipped_dset')
@@ -78,11 +78,11 @@ def test_check_validity_unzipped_input_dataset_longitudinal(tmp_path_factory):
     mock_input_ds.num_ds = len(df)
 
     # Test with processing_level = 'subject' (should pass)
-    utils.check_validity_unzipped_input_dataset(mock_input_ds, 'subject')
+    utils.validate_unzipped_datasets(mock_input_ds, 'subject')
 
     # Test with processing_level = 'session' (should pass)
-    utils.check_validity_unzipped_input_dataset(mock_input_ds, 'session')
+    utils.validate_unzipped_datasets(mock_input_ds, 'session')
 
     # Test with processing_level = 'invalid' (should fail)
     with pytest.raises(ValueError, match='invalid `processing_level`!'):
-        utils.check_validity_unzipped_input_dataset(mock_input_ds, 'invalid')
+        utils.validate_unzipped_datasets(mock_input_ds, 'invalid')
