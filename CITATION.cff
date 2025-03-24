@@ -1,0 +1,102 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: >-
+  BABS : BIDS App Bootstrap
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file, as well as the
+  Imaging Neuroscience (doi:10.1162/imag_a_00074) and
+  Biological Psychiatry (doi:10.1016/j.biopsych.2024.02.056) papers.
+type: software
+authors:
+  - given-names: Chenying
+    family-names: Zhao
+    orcid: "https://orcid.org/0000-0001-7878-6259"
+  - given-names: Dorota
+    family-names: Jarecka
+  - given-names: Sydney
+    family-names: Covitz
+    affiliation: Stanford University
+    orcid: "https://orcid.org/0000-0002-7430-4125"
+  - given-names: Yibei
+    family-names: Chen
+  - given-names: Simon B.
+    family-names: Eickhoff
+  - given-names: Damien
+    family-names: Fair
+    affiliation: University of Minnesota
+    orcid: "https://orcid.org/0000-0001-8602-393X"
+  - given-names: Alexandre R.
+    family-names: Franco
+  - given-names: Yaroslav O.
+    family-names: Halchenko
+  - given-names: Timothy J.
+    family-names: Hendrickson
+  - given-names: Felix
+    family-names: Hoffstaedter
+  - given-names: Audrey
+    family-names: Houghton
+  - given-names: Gregory
+    family-names: Kiar
+  - given-names: Austin
+    family-names: Macdonald
+  - given-names: Kahini
+    family-names: Mehta
+    email: kahini.mehta@pennmedicine.upenn.edu
+    affiliation: Columbia University
+    orcid: "https://orcid.org/0000-0001-9466-100X"
+  - given-names: Michael P.
+    family-names: Milham
+  - given-names: Taylor
+    family-names: Salo
+    email: salot@pennmedicine.upenn.edu
+    affiliation:Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+    orcid: "https://orcid.org/0000-0001-9813-3167"
+  - given-names: Michael
+    family-names: Hanke
+  - given-names: Satrajit S.
+    family-names: Ghosh
+  - given-names: Brooke L.
+    family-names: Sevchik
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA.
+  - given-names: S. Parker
+    family-names: Singleton
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+    orcid: "https://orcid.org/0000-0002-7102-7820"
+  - given-names: Tien
+    family-names: Tong
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+    orcid: 'https://orcid.org/0000-0002-1940-3198'
+  - given-names: Matthew
+    family-names: Cieslak
+    email: matthew.cieslak@pennmedicine.upenn.edu
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+    orcid: "https://orcid.org/0000-0002-1931-4734"
+  - given-names: Steven
+    family-names: Meisler
+    orcid: "https://orcid.org/0000-0002-8888-1572"
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+  - given-names: Theodore
+    family-names: Satterthwaite
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+    orcid: "https://orcid.org/0000-0001-7072-9399"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.8184642
+    description: The Zenodo DOI
+repository-code: "https://github.com/PennLINC/babs"
+url: "https://pennlinc-babs.readthedocs.io/"
+abstract: >-
+  BIDS App Bootstrap (BABS) is a reproducible, generalizable, and scalable
+  Python package for BIDS App analysis of large datasets.
+  It uses DataLad and adopts the FAIRly big framework.
+  Currently, BABS supports jobs submissions and audits on SLURM
+  high performance computing (HPC) clusters.
+keywords:
+  - BIDS-App
+  - Neuroimaging
+license: MIT
+version: 0.0.10
+date-released: "2025-03-24"
