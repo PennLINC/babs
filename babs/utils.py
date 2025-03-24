@@ -6,7 +6,6 @@ import os
 import os.path as op
 import re
 import subprocess
-import sys
 import warnings
 from argparse import Action
 from datetime import datetime
@@ -19,16 +18,6 @@ import yaml
 from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader
 from qstat import qstat  # https://github.com/relleums/qstat
-
-
-# Disable the behavior of printing messages:
-def blockPrint():
-    sys.stdout = open(os.devnull, 'w')
-
-
-# Restore the behavior of printing messages:
-def enablePrint():
-    sys.stdout = sys.__stdout__
 
 
 def get_datalad_version():
@@ -110,31 +99,6 @@ def check_validity_unzipped_input_dataset(input_ds, processing_level):
                             + sub_temp
                             + "'!"
                         )
-
-
-def if_input_ds_from_osf(path_in):
-    """
-    This is to check if the input datalad dataset is from OSF.
-    Checking is based on the pattern of the path's string. Might not be robust!
-
-    Parameters:
-    -----------
-    path_in: str
-        path to the input dataset
-
-    Returns:
-    --------
-    if_osf: bool
-        the input dataset is from OSF (True) or not (False)
-    """
-
-    if_osf = False
-    if path_in[0:6] == 'osf://':
-        if_osf = True
-    if path_in[0:14] == 'https://osf.io':
-        if_osf = True
-
-    return if_osf
 
 
 def validate_processing_level(processing_level):
@@ -593,37 +557,6 @@ def generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level):
     cmd += 'cd ..\n'
 
     return cmd
-
-
-def generate_cmd_filterfile(container_name):
-    """
-    Generate the command to create a filter file for BIDS App.
-
-    Parameters:
-    ------------
-    container_name: str
-        Name of the container (e.g., 'fmriprep', 'qsiprep')
-
-    Returns:
-    ------------
-    str
-        Command to create the filter file
-    """
-    from jinja2 import Environment, PackageLoader
-
-    # Create Jinja environment
-    env = Environment(
-        loader=PackageLoader('babs', 'templates'),
-        trim_blocks=True,
-        lstrip_blocks=True,
-        autoescape=False,
-    )
-
-    # Load the template
-    template = env.get_template('filter_file.sh.jinja2')
-
-    # Render the template
-    return template.render(container_name=container_name)
 
 
 def generate_cmd_unzip_inputds(input_ds, processing_level):
@@ -2289,7 +2222,7 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
             alert_message = msg_no_alert
 
             for key in config_msg_alert:  # as it's dict, keys cannot be duplicated
-                if key == 'stdout' or 'stderr':
+                if key in ['stdout', 'stderr']:
                     one_char = key[3]  # 'o' or 'e'
                     # the log file to look into:
                     fn = log_fn.replace('*', one_char)
@@ -2345,226 +2278,6 @@ def get_username():
     username_lowercase = username_lowercase.replace('\n', '')  # remove \n
 
     return username_lowercase
-
-
-def check_job_account(job_id_str, job_name, username_lowercase, queue):
-    """
-    This is to get information for a finished job
-    by calling job account command, e.g., `qacct` for SGE, `sacct` for Slurm
-
-    Parameters:
-    ------------
-    job_id_str: str
-        string version of ID of the job
-    job_name: str
-        Name of the job
-    username_lowercase: str
-        username that this job was requested to run
-    queue: str
-        the type of job scheduling system, "sge" or "slurm"
-
-    Returns:
-    ------------
-    msg_toreturn: str
-        The message got from `qacct` field `failed`, if that's not 0
-        - If `qacct` was successful:
-            - If field 'failed' in `qacct` was not 0: use string from that field
-            - If it's 0 (no error): use `msg_no_alert_qacct_failed`
-        - If `qacct` was NOT successful:
-            - use `msg_failed_to_call_qacct`
-
-    Notes:
-    ----------
-    This can only apply to jobs that are out of the queue; but not
-    jobs under qw, r, etc, or does not exist (not submitted);
-    Also, the current username should be the same one as that used for job submission.
-    """
-    if queue == 'sge':
-        return _check_job_account_sge(job_id_str, job_name, username_lowercase)
-    elif queue == 'slurm':
-        return _check_job_account_slurm(job_id_str, job_name, username_lowercase)
-
-
-def _check_job_account_slurm(job_id_str, job_name, username_lowercase):
-    """
-    get information for a finished job in Slurm by calling `sacct`
-    """
-    msg_no_sacct = "BABS: sacct doesn't provide information about the job."
-    if_no_sacct = False
-    msg_more_than_one = 'BABS: sacct detects more than one job for this job ID.'
-
-    len_char_jobid = 20
-    len_char_jobname = 50
-
-    the_delimiter = '!'  # use a special delimiter for easy parsing
-    # ^^ if parsing with default e.g., space:
-    #   will have problem when State is "CANCELLED by 78382" - it will also be parsed out...
-    proc_sacct = subprocess.run(
-        [
-            'sacct',
-            '-u',
-            username_lowercase,
-            '-j',
-            job_id_str,
-            '--format=JobID%'
-            + str(len_char_jobid)
-            + ','
-            + 'JobName%'
-            + str(len_char_jobname)
-            + ',State%30,ExitCode%15',
-            # ^^ specific format: column names and the number of chars
-            # e.g., '--format=JobID%20,JobName%50,State%30,ExitCode%15'
-            '--parsable2',  # Output will be delimited without a delimiter at the end.
-            '--delimiter=' + the_delimiter,
-        ],
-        stdout=subprocess.PIPE,
-    )
-    # ref: https://slurm.schedmd.com/sacct.html
-    # also based on ref: https://github.com/ComputeCanada/slurm_utils/blob/master/sacct-all.py
-
-    proc_sacct.check_returncode()
-    # even if the job does not exist, there will still be printed msg from sacct,
-    #   at least a header. So `check_returncode()` should always succeed.
-    msg_l = proc_sacct.stdout.decode('utf-8').split('\n')  # all lines from `sacct`
-    # 1st line: column names
-    # 2nd and forward lines: job information
-    #   ^^ if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
-    #   Usually there are more than one job lines;
-    #   However if the job was manually killed when pending, then there will only be one job line.
-    msg_head = msg_l[0].split(the_delimiter)  # list of column names
-
-    # Check if there is any problem when calling `sacct` for this job:
-    if 'State' not in msg_head or 'JobID' not in msg_head or 'JobName' not in msg_head:
-        if_no_sacct = True
-    if len(msg_l) <= 1 or msg_l[1] == '':
-        # if there is only header (len <= 1 or the 2nd element is empty):
-        if_no_sacct = True
-
-    if if_no_sacct:  # there is no information about this job in sacct:
-        warnings.warn(
-            '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name,
-            stacklevel=2,
-        )
-        print(
-            'Hint: check if the job is still in the queue, e.g., in state of pending, running, etc'
-        )
-        print(
-            'Hint: check if the username used for submitting this job'
-            " was not current username '" + username_lowercase + "'"
-        )
-        msg_toreturn = msg_no_sacct
-    else:
-        # create a pd.DataFrame for printed messages from `sacct`:
-        df = pd.DataFrame(data=[], columns=msg_head)
-        msg_l_jobs = msg_l[1:]  # only keeps rows for jobs
-        # ^^ NOTE: if using `--parsable2` and `--delimiter`, there is no 2nd line of "----" dashes
-        for i_row in range(0, len(msg_l_jobs)):
-            if msg_l_jobs[i_row] == '':  # empty
-                pass
-            else:
-                # add to df:
-                df.loc[len(df)] = msg_l_jobs[i_row].split(the_delimiter)
-
-        # find the row that matches the job id and job name
-        #   i.e., without '.batch' or '.extern'; usually is the first line:
-        temp = df.index[(df['JobID'] == job_id_str) & (df['JobName'] == job_name)].tolist()
-        if len(temp) == 0:  # did not find the job:
-            warnings.warn(
-                '`sacct` did not provide information about job ' + job_id_str + ', ' + job_name,
-                stacklevel=2,
-            )
-            print(
-                'Hint: check if the job is still in the queue,'
-                ' e.g., in state of pending, running, etc'
-            )
-            print(
-                'Hint: check if the username used for submitting this job'
-                " was not current username '" + username_lowercase + "'"
-            )
-            print(
-                'Hint: check if the job ID is more than ' + str(len_char_jobid) + ' chars,'
-                ' or job name is more than ' + str(len_char_jobname) + ' chars.'
-            )
-            msg_toreturn = msg_no_sacct
-        elif len(temp) > 1:  # more than one matched:
-            warnings.warn(
-                '`sacct` detects more than one job for this job ' + job_id_str + ', ' + job_name,
-                stacklevel=2,
-            )
-            print(
-                'Hint: check if the job ID is more than ' + str(len_char_jobid) + ' chars,'
-                ' or job name is more than ' + str(len_char_jobname) + ' chars.'
-            )
-            msg_toreturn = msg_more_than_one
-        else:  # expected, only one:
-            msg_toreturn = (
-                'sacct: state: ' + df.loc[temp[0], 'State']
-            )  # `temp[0]`: first and the only element from list `temp`
-
-    return msg_toreturn
-
-
-def _check_job_account_sge(job_id_str, job_name, username_lowercase):
-    """
-    get information for a finished job in SGE by calling `qacct`
-    """
-    msg_no_alert_qacct_failed = "qacct: no alert message in field 'failed'"
-    msg_failed_to_call_qacct = "BABS: failed to call 'qacct'"
-
-    if_valid_qacct_failed = True  # by default, it is valid, i.e., not np.nan
-    # this is to avoid check `np.isnan(<variable_name>)`, as `np.isnan(str)` causes error.
-
-    proc_qacct = subprocess.run(
-        ['qacct', '-o', username_lowercase, '-j', job_id_str], stdout=subprocess.PIPE
-    )
-    try:
-        proc_qacct.check_returncode()
-        msg = proc_qacct.stdout.decode('utf-8')
-        list_qacct_failed = re.findall(r'(?:failed)(.*?)(?:\n)', msg)  # find all, return a list
-        # ^^ between `failed` and `\n`
-        # example output: ['      xcpsub-00000   ', '      fpsub-0000  ']
-        if len(list_qacct_failed) > 1:  # more than one job were found:
-            # determine which is the job we want:
-            list_jobnames = re.findall(r'(?:jobname)(.*?)(?:\n)', msg)
-            for i_temp, temp_jobname in enumerate(list_jobnames):
-                if job_name == temp_jobname.replace(' ', ''):  # remove spaces:
-                    # ^^ the job name we want to find:
-                    qacct_failed = list_qacct_failed[i_temp]
-                    break
-        elif len(list_qacct_failed) == 1:
-            qacct_failed = list_qacct_failed[0]
-        else:
-            warnings.warn(
-                'Error when `qacct` for job ' + job_id_str + ', ' + job_name, stacklevel=2
-            )
-            qacct_failed = np.nan
-            if_valid_qacct_failed = False
-            msg_toreturn = msg_failed_to_call_qacct
-
-        if if_valid_qacct_failed:
-            # example: '       0    '
-            qacct_failed = qacct_failed.strip()  # remove the spaces at the beginning and the end
-
-            if qacct_failed != '0':  # field `failed` is not '0', i.e., was not success:
-                msg_toreturn = 'qacct: failed: ' + qacct_failed
-            else:
-                msg_toreturn = msg_no_alert_qacct_failed
-
-    except subprocess.CalledProcessError:  # if `proc_qacct.check_returncode()` failed:
-        # if the job is still in queue (qw or r etc), this will throw out an error:
-        #   '.... returned non-zero exit status 1.'
-        warnings.warn('Error when `qacct` for job ' + job_id_str + ', ' + job_name, stacklevel=2)
-        print('Hint: check if the job is still in the queue, e.g., in state of qw, r, etc')
-        print(
-            'Hint: check if the username used for submitting this job'
-            " was not current username '" + username_lowercase + "'"
-        )
-        print('Hint: check if the job was killed during pending state')
-        # ^^ for SGE cluster: job manually killed during pending: `qacct` will fail:
-        #   "error: job id xxx not found"
-        msg_toreturn = msg_failed_to_call_qacct
-
-    return msg_toreturn
 
 
 def get_cmd_cancel_job(queue):
