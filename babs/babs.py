@@ -20,7 +20,6 @@ from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader
 
 from babs.system import validate_queue
-
 from babs.utils import (
     calcu_runtime,
     ceildiv,
@@ -52,7 +51,7 @@ from babs.utils import (
     request_all_job_status,
     submit_array,
     submit_one_test_job,
-    validate_type_session,
+    validate_processing_level,
     write_yaml,
 )
 
