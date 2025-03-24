@@ -64,20 +64,19 @@ class Container:
             or a folder (`op.isdir()`, more likely for docker container)
         """
 
+        # sanity check if `config_yaml_file` exists:
+        if not op.exists(config_yaml_file):
+            raise FileNotFoundError(
+                "The yaml file of the container's configurations '"
+                + config_yaml_file
+                + "' does not exist!"
+            )
         self.container_ds = container_ds
         self.container_name = container_name
         self.config_yaml_file = config_yaml_file
 
-        # sanity check if `config_yaml_file` exists:
-        if op.exists(self.config_yaml_file) is False:
-            raise Exception(
-                "The yaml file of the container's configurations '"
-                + self.config_yaml_file
-                + "' does not exist!"
-            )
-
-        # read the container's config yaml file and get the `config`:
-        self.read_container_config_yaml()
+        with open(self.config_yaml_file) as f:
+            self.config = yaml.safe_load(f)
 
         self.container_path_relToAnalysis = op.join(
             'containers', '.datalad', 'environments', self.container_name, 'image'
@@ -92,10 +91,9 @@ class Container:
         analysis_path: str
             Absolute path to the `analysis` folder in a BABS project.
         """
-        # path to the symlink/folder `image`:
-        container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
         # e.g.:
         #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
+        container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
 
         # Sanity check: the path to `container_name` should exist in the cloned `container_ds`:
         # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
@@ -113,15 +111,6 @@ class Container:
             + container_path_abs
             + "'."
         )
-
-    def read_container_config_yaml(self):
-        """
-        This is to get the config dict from `config_yaml_file`
-        """
-        with open(self.config_yaml_file) as f:
-            self.config = yaml.safe_load(f)
-            # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
-        f.close()
 
     def generate_bash_run_bidsapp(self, bash_path, input_ds, processing_level):
         """
