@@ -29,32 +29,27 @@ def get_immediate_subdirectories(a_dir):
 
 
 def validate_unzipped_datasets(input_ds, processing_level):
-    """
-    Check if each of the unzipped input datasets is valid.
+    """Check if each of the unzipped input datasets is valid.
+
     Here we only check the "unzipped" datasets;
     the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
 
-    * if it's session: subject + session should both appear
-    * if it's subject: there should be sub folder, but no ses folder
+    * If subject-wise processing is enabled, there should be "sub" folders.
+      "ses" folders are optional.
+    * If session-wise processing is enabled, there should be both "sub" and "ses" folders.
 
     Parameters
     ----------
-    input_ds: class `InputDatasets`
+    input_ds : :obj:`babs.dataset.InputDatasets`
         info on input dataset(s)
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
-
-    Notes
-    -----
-    Tested with session and subject data;
-        made sure that only subject data + processing_level = "session" raise error.
-    TODO: add above tests to pytests
     """
 
     if processing_level not in ['session', 'subject']:
         raise ValueError('invalid `processing_level`!')
 
-    if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
+    if not all(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
 
     for i_ds in range(input_ds.num_ds):
