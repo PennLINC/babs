@@ -438,7 +438,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
         --datasets BIDS=https://osf.io/w2nu3/ \
         --container_ds ${PWD}/toybidsapp-container \
         --container_name toybidsapp-0-0-7 \
-        --container_config_yaml_file ${PWD}/config_toybidsapp_demo.yaml \
+        --container_config ${PWD}/config_toybidsapp_demo.yaml \
         --type_session multi-ses \
         --queue sge \
         ${PWD}/my_BABS_project

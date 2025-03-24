@@ -89,8 +89,8 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container',
     )
@@ -160,7 +160,7 @@ def babs_init_main(
     list_sub_file: str,
     container_ds: str,
     container_name: str,
-    container_config_yaml_file: str,
+    container_config: str,
     type_session: str,
     queue: str,
     keep_if_failed: bool,
@@ -185,7 +185,7 @@ def babs_init_main(
     container_name: str
         name of the container, best to include version number.
         e.g., 'fmriprep-0-0-0'
-    container_config_yaml_file: str
+    container_config: str
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container
     type_session: str
@@ -259,7 +259,7 @@ def babs_init_main(
             input_ds,
             container_ds,
             container_name,
-            container_config_yaml_file,
+            container_config,
             system,
         )
     except Exception:
@@ -593,8 +593,8 @@ def _parse_status():
     #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
     #     " WARNING: This hasn't been tested yet!!!")
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file that contains the configurations'
         ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
         ' ``babs status`` will use this section for failed job auditing,'
@@ -607,7 +607,7 @@ def _parse_status():
         action='store_true',
         # ^^ if `--job-account` is specified, args.job_account = True; otherwise, False
         help='Whether to account failed jobs, which may take some time.'
-        ' When using ``--job-account``, please also add ``--container_config_yaml_file``.'
+        ' When using ``--job-account``, please also add ``--container_config``.'
         ' If ``--resubmit failed`` or ``--resubmit-job`` (for some failed jobs)'
         ' is also requested,'
         ' this ``--job-account`` will be skipped.',
@@ -635,7 +635,7 @@ def babs_status_main(
     project_root: str,
     resubmit: list,
     resubmit_job: list,
-    container_config_yaml_file: str,
+    container_config: str,
     job_account: bool,
     reckless: bool = False,
 ):
@@ -650,7 +650,7 @@ def babs_status_main(
         each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for single-ses) or 2 (for multi-ses)
-    container_config_yaml_file: str or None
+    container_config: str or None
         Path to a YAML file that contains the configurations
         of how to run the BIDS App container.
         It may include 'alert_log_messages' section
@@ -785,7 +785,7 @@ def babs_status_main(
         flags_resubmit,
         df_resubmit_job_specific,
         reckless,
-        container_config_yaml_file,
+        container_config,
         job_account,
     )
 
@@ -910,8 +910,8 @@ def _parse_unzip():
         type=PathExists,
     )
     parser.add_argument(
-        '--container_config_yaml_file',
-        '--container-config-yaml-file',
+        '--container_config',
+        '--container-config',
         help='Path to a YAML file of the BIDS App container that contains information of'
         ' what files to unzip etc.',
     )
@@ -936,7 +936,7 @@ def _enter_unzip(argv=None):
 
 def babs_unzip_main(
     project_root: str,
-    container_config_yaml_file: str,
+    container_config: str,
 ):
     """
     This is the core function of babs-unzip, which unzip results zip files
@@ -945,22 +945,22 @@ def babs_unzip_main(
     project_root: str
         Absolute path to the root of BABS project.
         For example, '/path/to/my_BABS_project/'.
-    container_config_yaml_file: str
+    container_config: str
         path to container's configuration YAML file.
         These two sections will be used:
         1. 'unzip_desired_filenames' - must be included
         2. 'rename_conflict_files' - optional
     """
     # container config:
-    config = read_yaml(container_config_yaml_file)
+    config = read_yaml(container_config)
     # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
 
     # Sanity checks:
     if 'unzip_desired_filenames' not in config:
         raise Exception(
             "Section 'unzip_desired_filenames' is not included"
-            ' in `--container_config_yaml_file`. This section is required.'
-            " Path to this YAML file: '" + container_config_yaml_file + "'."
+            ' in `--container_config`. This section is required.'
+            " Path to this YAML file: '" + container_config + "'."
         )
 
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
