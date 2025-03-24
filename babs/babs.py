@@ -1,9 +1,9 @@
-# This is the main module.
+"""This is the main module."""
 
 import glob
 import os
 import os.path as op
-import re  # regular expression operations
+import re
 import shutil
 import subprocess
 import tempfile
@@ -19,7 +19,6 @@ import yaml
 from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader
 
-# from datalad.interface.base import build_doc
 from babs.utils import (
     calcu_runtime,
     ceildiv,
@@ -57,7 +56,6 @@ from babs.utils import (
 )
 
 
-# @build_doc
 class BABS:
     """The BABS class is for babs projects of BIDS Apps"""
 
@@ -242,22 +240,6 @@ class BABS:
 
         if not flag_output_ria_only:  # also want other information:
             # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
-
-            # way #1: using datalad api; however, it always prints out the full,
-            # lengthy wtf report....
-            # # full dict from `datalad wtf`:
-            # blockPrint()
-            # full_wtf_list = dlapi.wtf(dataset=self.analysis_path)
-            # enablePrint()
-            # # ^^ this is a list
-            # if len(full_wtf_list) > 1:
-            #     warnings.warn("There are more than one dictionary for input RIA's `datalad wtf`."
-            #                   + " We'll only use the first one.")
-            # full_wtf = full_wtf_list[0]
-            # # ^^ only take the first dict (element) from the full list
-            # self.analysis_dataset_id = full_wtf["infos"]["dataset"]["id"]
-            # # ^^: $ datalad -f '{infos[dataset][id]}' wtf -S dataset
-
             # way #2: command line of datalad:
             proc_analysis_dataset_id = subprocess.run(
                 ['datalad', '-f', "'{infos[dataset][id]}'", 'wtf', '-S', 'dataset'],
@@ -453,9 +435,7 @@ class BABS:
         )
 
         # Add container as sub-dataset of `analysis`: -----------------------------
-        # # TO ASK: WHY WE NEED TO CLONE IT FIRST INTO `project_root`???
-        # dlapi.clone(source = container_ds,    # container datalad dataset
-        #             path = op.join(self.project_root, "containers"))   # path to clone into
+        # XXX: WHY DO WE NEED TO CLONE IT FIRST INTO `project_root`???
 
         # directly add container as sub-dataset of `analysis`:
         print('\nAdding the container as a sub-dataset of `analysis` dataset...')
@@ -465,13 +445,6 @@ class BABS:
             path=op.join(self.analysis_path, 'containers'),
         )
         # into `analysis/containers` folder
-
-        # original bash command, if directly going into as sub-dataset:
-        # datalad install -d . --source ../../toybidsapp-container-docker/ containers
-
-        # from our the way:
-        # cd ${PROJECTROOT}/analysis
-        # datalad install -d . --source ${PROJECTROOT}/pennlinc-containers
 
         container = Container(container_ds, container_name, container_config)
 
@@ -881,12 +854,7 @@ class BABS:
                 )
             if the_sibling['name'] == 'input':  # input ria:
                 if_found_sibling_input = True
-                # assert the_sibling['url'] == actual_input_ria_data_dir, (
-                #     "The `analysis` datalad dataset's sibling 'input' url does not match"
-                #     ' the path to the input RIA.'
-                #     ' Former = ' + the_sibling['url'] + ';'
-                #     ' Latter = ' + actual_input_ria_data_dir
-                # )
+
         if not if_found_sibling_input:
             raise Exception(
                 "Did not find a sibling of 'analysis' DataLad dataset"
@@ -1355,38 +1323,6 @@ class BABS:
                                     #   can add this ^^ back after supporting `--reckless` in CLI
                                     warnings.warn(to_print, stacklevel=2)
 
-                                # COMMENT OUT BECAUSE reckless is always False
-                                # AND THIS HAS BEEN REMOVE FROM CLI
-                                # if if_request_resubmit_this_task & reckless:
-                                # # force to resubmit:
-                                #     # Resubmit:
-                                #     # did_resubmit = True
-                                #     # print a message:
-                                #     to_print = "Resubmit job for " + sub
-                                #     if self.processing_level == "session":
-                                #         to_print += ", " + ses
-                                #     to_print += ", although it was running," \
-                                #         + " resubmit for this job was requested" \
-                                #         + " and `--reckless` was specified."
-                                #     print(to_print)
-
-                                #     # kill original one
-                                #     proc_kill = subprocess.run(
-                                #         [get_cmd_cancel_job(self.queue),
-                                #          job_id_str],  # e.g., `qdel <job_id>`
-                                #         stdout=subprocess.PIPE
-                                #     )
-                                #     proc_kill.check_returncode()
-                                #     # submit new one:
-                                #     job_id_updated, _, log_filename = \
-                                #         submit_one_job(self.analysis_path,
-                                #                        self.processing_level,
-                                #                        self.queue,
-                                #                        sub, ses)
-                                #     # update fields:
-                                #     df_job_updated = df_update_one_job(
-                                #         df_job_updated, i_job, job_id_updated,
-                                #         log_filename, debug=True)
                                 else:  # just let it run:
                                     df_job_updated.at[i_task, 'job_state_category'] = (
                                         state_category
@@ -1445,58 +1381,6 @@ class BABS:
                                         state_category
                                     )
                                     df_job_updated.at[i_task, 'job_state_code'] = state_code
-
-                            # COMMENT OUT BECAUSE "eqw" is SGE STATE
-                            # elif state_code == "eqw":
-                            #     # NOTE: comment out resubmission of `eqw` jobs
-                            #     #   as this was not tested out;
-                            #     #   also, equivalent `eqw` code on Slurm was not mapped either.
-
-                            #     if ('stalled' in flags_resubmit) or
-                            #        (if_request_resubmit_this_task):
-                            #         # requested resubmit,
-                            #         #   but currently not support resubmitting stalled jobs:
-                            #         #   print warning msg:
-                            #         to_print = "Although resubmission for job: " + sub
-                            #         if self.processing_level == "session":
-                            #             to_print += ", " + ses
-                            #         to_print += " was requested, as this job is stalled" \
-                            #             + " (e.g., job state code 'eqw' on SGE)," \
-                            #             + " BABS won't resubmit this job."
-                            #         warnings.warn(to_print)
-
-                            #     #     # Resubmit:
-                            #     #     # did_resubmit = True
-                            #     #     # print a message:
-                            #     #     to_print = "Resubmit job for " + sub
-                            #     #     if self.processing_level == "session":
-                            #     #         to_print += ", " + ses
-                            #     #     to_print += ",
-                            #     #     as it was stalled and resubmit was requested."
-                            #     #     print(to_print)
-
-                            #     #     # kill original one
-                            #     #     proc_kill = subprocess.run(
-                            #     #         [get_cmd_cancel_job(self.queue),
-                            #     #          job_id_str],   # e.g., `qdel <job_id>`
-                            #     #         stdout=subprocess.PIPE
-                            #     #     )
-                            #     #     proc_kill.check_returncode()
-                            #     #     # submit new one:
-                            #     #     job_id_updated, _, log_filename = \
-                            #     #         submit_one_job(self.analysis_path,
-                            #     #                        self.processing_level,
-                            #     #                        self.queue,
-                            #     #                        sub, ses)
-                            #     #     # update fields:
-                            #     #     df_job_updated = df_update_one_job(
-                            #     #         df_job_updated, i_job, job_id_updated,
-                            #     #         log_filename, debug=True)
-                            #     # else:   # not to resubmit:
-
-                            #     # only update fields:
-                            #     df_job_updated.at[i_task, "job_state_category"] = state_category
-                            #     df_job_updated.at[i_task, "job_state_code"] = state_code
 
                         else:  # did not find in `df_all_job_status`, i.e., job queue
                             # probably error
