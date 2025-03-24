@@ -1,7 +1,6 @@
 datalad run \
 	-i "code/{{ container.container_name }}_zip.sh" \
 {{ input_ds_string }}
-{% endfor %}
 	-i "{{ container.container_path_relToAnalysis }}" \
 {% if flag_expand_inputs %}
 	--expand inputs \
