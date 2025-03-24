@@ -8,12 +8,16 @@ import pytest
 import babs.utils as utils
 
 
-def test_check_validity_unzipped_input_dataset_crosssectional(tmp_path_factory):
+def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
     """Test the validate_unzipped_datasets function."""
     # Mock up a dataset
     # The dataframe needs the following columns: is_zipped, path_now_abs, name
-    zipped_dset = tmp_path_factory.mktemp('zipped_dset')
-    unzipped_dset = tmp_path_factory.mktemp('unzipped_dset')
+    zipped_dset = tmp_path_factory.mktemp(
+        'test_validate_unzipped_datasets_crosssectional_zipped_dset'
+    )
+    unzipped_dset = tmp_path_factory.mktemp(
+        'test_validate_unzipped_datasets_crosssectional_unzipped_dset'
+    )
 
     # Write sub-01.zip to zipped dset
     (zipped_dset / 'sub-01.zip').touch()
