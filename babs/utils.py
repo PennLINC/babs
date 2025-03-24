@@ -162,26 +162,23 @@ def validate_type_session(type_session):
     return type_session
 
 
-def validate_type_system(type_system):
+def validate_queue(queue):
     """
     To validate if the type of the cluster system is valid.
     For valid ones, the type string will be changed to lower case.
     If not valid, raise error message.
     """
     list_supported = ['slurm']
-    if type_system.lower() in list_supported:
-        type_system = type_system.lower()  # change to lower case, if needed
-    elif type_system.lower() == 'sge':
-        raise Exception('We no longer support SGE. Use BABS 0.0.8 for SGE support.')
+    if queue.lower() in list_supported:
+        queue = queue.lower()  # change to lower case, if needed
+    elif queue.lower() == 'sge':
+        raise ValueError('We no longer support SGE. Use BABS 0.0.8 for SGE support.')
     else:
-        raise Exception(
-            "Invalid cluster system type: '"
-            + type_system
-            + "'!"
-            + ' Currently BABS only support one of these: '
-            + ', '.join(list_supported)
-        )  # names separated by ', '
-    return type_system
+        raise ValueError(
+            f"Invalid cluster system type: '{queue}'! "
+            f'Currently BABS only support one of these: {", ".join(list_supported)}'
+        )
+    return queue
 
 
 def read_yaml(fn, if_filelock=False):
@@ -1503,7 +1500,7 @@ def get_list_sub_ses(input_ds, config, babs):
         return dict_sub_ses
 
 
-def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_message=True):
+def submit_array(analysis_path, type_session, queue, maxarray, flag_print_message=True):
     """
     This is to submit a job array based on template yaml file.
 
@@ -1513,7 +1510,7 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
         path to the `analysis` folder. One attribute in class `BABS`
     type_session: str
         multi-ses or single-ses
-    type_system: str
+    queue: str
         the type of job scheduling system, "sge" or "slurm"
     maxarray: str
         max index of the array (first index is always 1)
@@ -1569,10 +1566,10 @@ def submit_array(analysis_path, type_session, type_system, maxarray, flag_print_
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
 
-    if type_system == 'sge':
+    if queue == 'sge':
         job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
         # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    elif type_system == 'slurm':
+    elif queue == 'slurm':
         job_id_str = msg.split()[-1]
         # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
         # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
@@ -1794,7 +1791,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, type_session):
     return df_job_submit
 
 
-def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
+def submit_one_test_job(analysis_path, queue, flag_print_message=True):
     """
     This is to submit one *test* job.
     This is used by `babs check-setup`.
@@ -1803,7 +1800,7 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     ----------------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
-    type_system: str
+    queue: str
         the type of job scheduling system, "sge" or "slurm"
     flag_print_message: bool
         to print a message (True) or not (False)
@@ -1847,10 +1844,10 @@ def submit_one_test_job(analysis_path, type_system, flag_print_message=True):
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
 
-    if type_system == 'sge':
+    if queue == 'sge':
         job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
         # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    elif type_system == 'slurm':
+    elif queue == 'slurm':
         job_id_str = msg.split()[-1]
         # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
         # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
@@ -2083,14 +2080,14 @@ def report_job_status(df, analysis_path, config_msg_alert):
         print('\nAll log files are located in folder: ' + op.join(analysis_path, 'logs'))
 
 
-def request_all_job_status(type_system):
+def request_all_job_status(queue):
     """
     This is to get all jobs' status
     using `qstat` for SGE clusters and `squeue` for Slurm
 
-    Parameters:
-    --------------
-    type_system: str
+    Parameters
+    ----------
+    queue: str
         the type of job scheduling system, "sge" or "slurm"
 
     Returns:
@@ -2100,9 +2097,9 @@ def request_all_job_status(type_system):
         If there is no job in the queue, df will be an empty DataFrame
         (i.e., Columns: [], Index: [])
     """
-    if type_system == 'sge':
+    if queue == 'sge':
         return _request_all_job_status_sge()
-    elif type_system == 'slurm':
+    elif queue == 'slurm':
         return _request_all_job_status_slurm()
 
 
@@ -2267,10 +2264,10 @@ def calcu_runtime(start_time_str):
         Duration time of running.
         Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
 
-    Notes:
-    ---------
-    TODO: add type_system if needed
-    Currently we don't need to add `type_system`. Whether 'duration' has been returned
+    Notes
+    -----
+    TODO: add queue if needed
+    Currently we don't need to add `queue`. Whether 'duration' has been returned
     is checked before current function is called.
     However the format of the duration that got from Slurm cluster might be a bit different from
     what we get here. See examples in function `_parsing_squeue_out()` for Slurm clusters.
@@ -2500,7 +2497,7 @@ def get_username():
     return username_lowercase
 
 
-def check_job_account(job_id_str, job_name, username_lowercase, type_system):
+def check_job_account(job_id_str, job_name, username_lowercase, queue):
     """
     This is to get information for a finished job
     by calling job account command, e.g., `qacct` for SGE, `sacct` for Slurm
@@ -2513,7 +2510,7 @@ def check_job_account(job_id_str, job_name, username_lowercase, type_system):
         Name of the job
     username_lowercase: str
         username that this job was requested to run
-    type_system: str
+    queue: str
         the type of job scheduling system, "sge" or "slurm"
 
     Returns:
@@ -2532,9 +2529,9 @@ def check_job_account(job_id_str, job_name, username_lowercase, type_system):
     jobs under qw, r, etc, or does not exist (not submitted);
     Also, the current username should be the same one as that used for job submission.
     """
-    if type_system == 'sge':
+    if queue == 'sge':
         return _check_job_account_sge(job_id_str, job_name, username_lowercase)
-    elif type_system == 'slurm':
+    elif queue == 'slurm':
         return _check_job_account_slurm(job_id_str, job_name, username_lowercase)
 
 
@@ -2720,15 +2717,15 @@ def _check_job_account_sge(job_id_str, job_name, username_lowercase):
     return msg_toreturn
 
 
-def get_cmd_cancel_job(type_system):
+def get_cmd_cancel_job(queue):
     """
     This is to get the command used for canceling a job
     (i.e., deleting a job from the queue).
     This is dependent on cluster system.
 
-    Parameters:
-    ------------
-    type_system: str
+    Parameters
+    ----------
+    queue: str
         the type of job scheduling system, "sge" or "slurm"
 
     Returns:
@@ -2742,12 +2739,12 @@ def get_cmd_cancel_job(type_system):
     On Slurm clusters, we use `scancel <job_id>` to cancel a job.
     """
 
-    if type_system == 'sge':
+    if queue == 'sge':
         cmd = 'qdel'
-    elif type_system == 'slurm':
+    elif queue == 'slurm':
         cmd = 'scancel'
     else:
-        raise Exception('Invalid job scheduler system type `type_system`: ' + type_system)
+        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
 
     # print("the command for cancelling the job: " + cmd)   # NOTE: for testing only
     return cmd

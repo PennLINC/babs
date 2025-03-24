@@ -34,7 +34,7 @@ babs init \
     --container_name toybidsapp-0-0-7 \
     --container_config "/tests/tests/e2e-slurm/container/config_toybidsapp.yaml" \
     --type_session multi-ses \
-    --type_system slurm \
+    --queue slurm \
     "${PWD}/${SUBPROJECT_NAME}"
 
 echo "PASSED: babs init"
