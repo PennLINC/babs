@@ -2186,7 +2186,7 @@ def get_config_msg_alert(container_config):
         path to the config yaml file of containers, which might includes
         a section of `alert_log_messages`
 
-    Returns:
+    Returns
     -------
     config_msg_alert: dict or None
     """
