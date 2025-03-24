@@ -26,7 +26,7 @@ def test_system_get_dict():
 
 def test_invalid_system_type():
     """Test that System raises a ValueError for invalid type"""
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid cluster system type: 'invalid_system'!"):
         System('invalid_system')
 
 
