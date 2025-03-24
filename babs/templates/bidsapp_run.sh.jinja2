@@ -2,14 +2,14 @@
 set -e -u -x
 
 subid="$1"
-{% if type_session == 'multi-ses' %}
+{% if processing_level == 'multi-ses' %}
 sesid="$2"
 {% endif %}
 
 
 {% for i in range(input_ds.num_ds) %}
 {% if input_ds.df.loc[i, 'is_zipped'] is true %}
-{{ input_ds.df.loc[i, 'name'].upper() }}_ZIP="${{ loop.index + (2 if type_session == 'multi-ses' else 1) }}"
+{{ input_ds.df.loc[i, 'name'].upper() }}_ZIP="${{ loop.index + (2 if processing_level == 'multi-ses' else 1) }}"
 {% endif %}
 {% endfor %}
 {% if flag_filterfile %}

@@ -354,7 +354,7 @@ class BABS:
         with open(self.config_path, 'w') as f:
             f.write(
                 template.render(
-                    type_session=self.type_session,
+                    processing_level=self.processing_level,
                     type_system=self.type_system,
                     input_ds=input_ds,
                     container_name=container_name,
@@ -2586,7 +2586,7 @@ class Container:
                 flag_filterfile = True
 
         # Check if any dataset is zipped; if so, add commands of unzipping:
-        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, type_session)
+        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, processing_level)
 
         # Environment variables in container:
         # get environment variables to be injected into container and whose value to be bound:
@@ -2595,7 +2595,7 @@ class Container:
         )
 
         # Generate zip command
-        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
+        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level)
 
         # Render the template
         env = Environment(
@@ -2607,7 +2607,7 @@ class Container:
         template = env.get_template('bidsapp_run.sh.jinja2')
 
         rendered_script = template.render(
-            type_session=type_session,
+            processing_level=processing_level,
             input_ds=input_ds,
             container_name=self.container_name,
             flag_filterfile=flag_filterfile,
@@ -2639,7 +2639,7 @@ class Container:
         print('Below is the generated BIDS App run script:')
         print(rendered_script)
 
-    def generate_bash_participant_job(self, bash_path, input_ds, type_session, system):
+    def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
         """Generate bash script for participant job.
 
         Parameters
@@ -2672,10 +2672,10 @@ class Container:
         cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
 
         # Determine zip filename:
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, type_session)
+        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, processing_level)
 
         # Generate datalad run command:
-        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, type_session)
+        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, processing_level)
 
         with open(bash_path, 'w') as f:
             f.write(
@@ -2686,7 +2686,7 @@ class Container:
                     cmd_determine_zipfilename=cmd_determine_zipfilename,
                     cmd_datalad_run=cmd_datalad_run,
                     system=system,
-                    type_session=type_session,
+                    processing_level=processing_level,
                     input_ds=input_ds,
                 )
             )

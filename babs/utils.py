@@ -1067,7 +1067,7 @@ def generate_cmd_datalad_run(container, input_ds, processing_level):
     cmd = template.render(
         container=container,
         input_ds=input_ds,
-        type_session=type_session,
+        processing_level=processing_level,
         flag_expand_inputs=flag_expand_inputs,
     )
 
