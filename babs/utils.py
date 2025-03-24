@@ -2180,7 +2180,7 @@ def get_config_msg_alert(container_config):
     """
     To extract the configs of alert msgs in log files.
 
-    Parameters:
+    Parameters
     ----------
     container_config: str or None
         path to the config yaml file of containers, which might includes
