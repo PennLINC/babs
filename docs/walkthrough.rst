@@ -286,7 +286,7 @@ Below is an example YAML file for toy BIDS App:
 
 As you can see, there are several sections in this YAML file.
 
-Here, in section ``singularity_run``, ``$SUBJECT_SELECTION_FLAG`` designates the flag used for selecting participants in the BIDS app.
+Here, in section ``bids_app_args``, ``$SUBJECT_SELECTION_FLAG`` designates the flag used for selecting participants in the BIDS app.
 . Additionally, both ``--dummy`` and ``-v`` are dummy arguments to this toy BIDS Apps:
 argument ``--dummy`` can take any value afterwards, whereas argument ``-v`` does not take values.
 Here we use these arguments to show examples of:

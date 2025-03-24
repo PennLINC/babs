@@ -109,3 +109,6 @@ build/
 # Distribution / packaging
 dist/
 babs/VERSION
+
+.vscode
+.vscode/settings.json

@@ -11,7 +11,7 @@ For more, please refer to [the documentation for how to prepare a container conf
 
 Please also note that, these YAML files were prepared for specific
 versions of the BIDS Apps. If there are changes in the BIDS App itself (e.g., argument names) in different BIDS App versions, please change the YAML files accordingly.
-In addition, please check if the function of the YAML files (especially the `singularity_run` section) fits your purpose.
+In addition, please check if the function of the YAML files (especially the `bids_app_args` section) fits your purpose.
 
 * Naming convention: `eg_<bidsapp-0-0-0>_<task>.yaml`
     * `<bidsapp-0-0-0>`: BIDS App name and version

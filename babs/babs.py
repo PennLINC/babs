@@ -158,7 +158,7 @@ class BABS:
         self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
         self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
 
-    def datalad_save(self, path, message=None):
+    def datalad_save(self, path, message=None, filter_files=None):
         """
         Save the current status of datalad dataset `analysis`
         Also checks that all the statuses returned are "ok" (or "notneeded")
@@ -169,14 +169,31 @@ class BABS:
             the path to the file(s) or folder(s) to save
         message: str or None
             commit message in `datalad save`
+        filter_files: list of str or None
+            list of filenames to exclude from saving
+            if None, no files will be filtered
 
         Notes
         -----
         If the path does not exist, the status will be "notneeded", and won't be error message
             And there won't be a commit with that message
         """
+        if filter_files is not None:
+            # Create a temporary .gitignore file to exclude specified files
+            gitignore_path = os.path.join(self.analysis_path, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                for file in filter_files:
+                    f.write(f'{file}\n')
 
-        statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            try:
+                statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            finally:
+                # Clean up the temporary .gitignore file
+                if os.path.exists(gitignore_path):
+                    os.remove(gitignore_path)
+        else:
+            statuses = self.analysis_datalad_handle.save(path=path, message=message)
+
         # ^^ number of dicts in list `statuses` = len(path)
         # check that all statuses returned are "okay":
         # below is from cubids
@@ -344,7 +361,10 @@ class BABS:
                     container_ds=container_ds,
                 )
             )
-
+        self.datalad_save(
+            path=self.config_path,
+            message='Initial save of babs_proj_config.yaml',
+        )
         # Create output RIA sibling: -----------------------------
         print('\nCreating output and input RIA...')
         self.analysis_datalad_handle.create_sibling_ria(
@@ -376,13 +396,7 @@ class BABS:
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
             i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel'])
-            print(
-                'Cloning input dataset #'
-                + str(i_ds + 1)
-                + ": '"
-                + input_ds.df.loc[i_ds, 'name']
-                + "'"
-            )
+            print(f'Cloning input dataset #{i_ds + 1}: ' + input_ds.df.loc[i_ds, 'name'])
             # clone input dataset(s) as sub-dataset into `analysis` dataset:
             dlapi.clone(
                 dataset=self.analysis_path,
@@ -2523,22 +2537,22 @@ class Container:
             os.makedirs(bash_dir)
 
         # check if `self.config` from the YAML file contains information we need:
-        # 1. check `singularity_run` section:
-        if 'singularity_run' not in self.config:
+        # 1. check `bids_app_args` section:
+        if 'bids_app_args' not in self.config:
             # sanity check: there should be only one input ds
             #   otherwise need to specify in this section:
             assert input_ds.num_ds == 1, (
-                "Section 'singularity_run' is missing in the provided"
+                "Section 'bids_app_args' is missing in the provided"
                 ' `container_config`. As there are more than one'
                 ' input dataset, you must include this section to specify'
                 ' to which argument that each input dataset will go.'
             )
             # if there is only one input ds, fine:
-            print("Section 'singularity_run' was not included in the `container_config`. ")
+            print("Section 'bids_app_args' was not included in the `container_config`. ")
             cmd_singularity_flags = ''  # should be empty
             # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
             #   also have values:
-            # as "--fs-license-file" was not one of the value in `singularity_run` section:
+            # as "--fs-license-file" was not one of the value in `bids_app_args` section:
             flag_fs_license = False
             path_fs_license = None
             # copied from `generate_cmd_singularityRun_from_config`:
@@ -2558,7 +2572,8 @@ class Container:
             self.config
         )
 
-        print()
+        # 3. check `singularity_args` section:
+        singularity_args = self.config.get('singularity_args', [])
 
         # Check if the bash file already exist:
         if op.exists(bash_path):
@@ -2575,12 +2590,9 @@ class Container:
 
         # Environment variables in container:
         # get environment variables to be injected into container and whose value to be bound:
-        cmd_env_templateflow, templateflow_home, templateflow_in_container = (
-            generate_cmd_set_envvar('TEMPLATEFLOW_HOME')
+        templateflow_home_on_disk, templateflow_in_container = generate_cmd_set_envvar(
+            'TEMPLATEFLOW_HOME'
         )
-        # With `--containall`, templateflow_home=None
-        # from running generate_cmd_set_envvar('TEMPLATEFLOW_HOME'), had to be defined here:
-        templateflow_home = '${TEMPLATEFLOW_HOME}'
 
         # Generate zip command
         cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, type_session)
@@ -2594,28 +2606,27 @@ class Container:
         )
         template = env.get_template('bidsapp_run.sh.jinja2')
 
+        rendered_script = template.render(
+            type_session=type_session,
+            input_ds=input_ds,
+            container_name=self.container_name,
+            flag_filterfile=flag_filterfile,
+            cmd_unzip_inputds=cmd_unzip_inputds,
+            templateflow_home_on_disk=templateflow_home_on_disk,
+            templateflow_in_container=templateflow_in_container,
+            flag_fs_license=flag_fs_license,
+            path_fs_license=path_fs_license,
+            PATH_FS_LICENSE_IN_CONTAINER=PATH_FS_LICENSE_IN_CONTAINER,
+            container_path_relToAnalysis=self.container_path_relToAnalysis,
+            singuRun_input_dir=singuRun_input_dir,
+            path_output_folder=path_output_folder,
+            cmd_singularity_flags=cmd_singularity_flags,
+            cmd_zip=cmd_zip,
+            OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
+            singularity_args=singularity_args,
+        )
         with open(bash_path, 'w') as f:
-            f.write(
-                template.render(
-                    type_session=type_session,
-                    input_ds=input_ds,
-                    container_name=self.container_name,
-                    flag_filterfile=flag_filterfile,
-                    cmd_unzip_inputds=cmd_unzip_inputds,
-                    cmd_env_templateflow=cmd_env_templateflow,
-                    templateflow_home=templateflow_home,
-                    templateflow_in_container=templateflow_in_container,
-                    flag_fs_license=flag_fs_license,
-                    path_fs_license=path_fs_license,
-                    PATH_FS_LICENSE_IN_CONTAINER=PATH_FS_LICENSE_IN_CONTAINER,
-                    container_path_relToAnalysis=self.container_path_relToAnalysis,
-                    singuRun_input_dir=singuRun_input_dir,
-                    path_output_folder=path_output_folder,
-                    cmd_singularity_flags=cmd_singularity_flags,
-                    cmd_zip=cmd_zip,
-                    OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
-                )
-            )
+            f.write(rendered_script)
 
         # Execute necessary commands:
         # change the permission of this bash file:
@@ -2625,23 +2636,8 @@ class Container:
         )
         proc_chmod_bashfile.check_returncode()
 
-        print('Below is the generated `singularity run` command:')
-        print('singularity run --containall --writable-tmpfs \\')
-        print('\t-B ${PWD}')
-        if templateflow_home:
-            print(f'\t-B {templateflow_home}:{templateflow_in_container}')
-        if flag_fs_license:
-            print(f'\t-B {path_fs_license}:{PATH_FS_LICENSE_IN_CONTAINER}')
-        if templateflow_home:
-            print(f'\t{cmd_env_templateflow}')
-        print(f'\t{self.container_path_relToAnalysis} \\')
-        print(f'\t$PWD/{singuRun_input_dir} \\')
-        print(f'\t$PWD/{path_output_folder} \\')
-        print('\tparticipant')
-        if flag_filterfile:
-            print('\t--bids-filter-file "${filterfile}"')
-        print('\t--participant-label "${subid}"')
-        print(cmd_singularity_flags)
+        print('Below is the generated BIDS App run script:')
+        print(rendered_script)
 
     def generate_bash_participant_job(self, bash_path, input_ds, type_session, system):
         """Generate bash script for participant job.

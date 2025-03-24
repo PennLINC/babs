@@ -11,7 +11,7 @@
 #   Therefore, please change and tailor it for your case before use it!!!
 
 # Arguments in `singularity run`:
-singularity_run:
+bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
@@ -22,8 +22,7 @@ singularity_run:
     --nthreads: "8"
     --omp-nthreads: "8"
     --mem-gb: "50"
-    --atlases:
-        "4S1056Parcels \
+    --atlases: "4S1056Parcels \
         4S156Parcels \
         4S256Parcels \
         4S356Parcels \
@@ -39,11 +38,16 @@ singularity_run:
         MIDB \
         Tian"
 
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'xcpd' to wrap all derivatives:
 zip_foldernames:
     $TO_CREATE_FOLDER: "true"
-    xcpd: "0-10-6"   # folder 'xcpd' will be zipped into 'sub-xx_(ses-yy_)xcpd-0-10-5.zip'
+    xcpd: "0-10-6" # folder 'xcpd' will be zipped into 'sub-xx_(ses-yy_)xcpd-0-10-5.zip'
 
 # How much cluster resources it needs:
 cluster_resources:
@@ -66,6 +70,6 @@ script_preamble: |
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 
 # Where to run the jobs:
-job_compute_space: "path/to/temporary_compute_space"   # [FIX ME] replace "/path/to/temporary_compute_space" with yours
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
 
 # `required_files` and `alert_log_messages` sections are not provided in this example.
