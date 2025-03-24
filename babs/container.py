@@ -179,9 +179,7 @@ class Container:
             ) = generate_cmd_singularityRun_from_config(self.config, input_ds)
 
         # 2. check `zip_foldernames` section:
-        dict_zip_foldernames, if_mk_output_folder, path_output_folder = get_info_zip_foldernames(
-            self.config
-        )
+        dict_zip_foldernames, _, path_output_folder = get_info_zip_foldernames(self.config)
 
         # 3. check `singularity_args` section:
         singularity_args = self.config.get('singularity_args', [])
