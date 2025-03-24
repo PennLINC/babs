@@ -369,10 +369,10 @@ def to_datalad_run_string(df, processing_level):
                 tmpstr = '${subid}'
             datalad_run_string += f"""\
     -i "{df.loc[i_ds, 'path_now_abs']}/{tmpstr}" \\
-    -i "{df.loc[i_ds, 'path_now_abs']}/*json" \\
+    -i "{df.loc[i_ds, 'path_now_abs']}/*json" \\\
 """
         else:
             datalad_run_string += f"""\
-    -i {df.loc[i_ds, 'name']}_ZIP \\
+    -i {df.loc[i_ds, 'name']}_ZIP \\\
 """
     return datalad_run_string
