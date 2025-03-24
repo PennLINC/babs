@@ -22,13 +22,7 @@ from babs.dataset import (
     to_config_string,
     to_participant_job_string,
 )
-from babs.system import validate_queue
-from babs.utils import (
-    calcu_runtime,
-    ceildiv,
-    check_validity_unzipped_input_dataset,
-    df_status_update,
-    df_submit_update,
+from babs.generation import (
     generate_bashhead_resources,
     generate_cmd_datalad_run,
     generate_cmd_determine_zipfilename,
@@ -38,6 +32,14 @@ from babs.utils import (
     generate_cmd_singularityRun_from_config,
     generate_cmd_unzip_inputds,
     generate_cmd_zipping_from_config,
+)
+from babs.system import validate_queue
+from babs.utils import (
+    calcu_runtime,
+    ceildiv,
+    check_validity_unzipped_input_dataset,
+    df_status_update,
+    df_submit_update,
     get_alert_message_in_log_files,
     get_cmd_cancel_job,
     get_config_msg_alert,
