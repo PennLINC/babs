@@ -68,18 +68,14 @@ class Container:
 
         self.container_ds = container_ds
         self.container_name = container_name
-        self.config_yaml_file = config_yaml_file
 
-        # sanity check if `config_yaml_file` exists:
-        if op.exists(self.config_yaml_file) is False:
-            raise Exception(
-                "The yaml file of the container's configurations '"
-                + self.config_yaml_file
-                + "' does not exist!"
-            )
+        if not op.exists(self.config_yaml_file):
+            raise FileNotFoundError(f"The yaml file '{self.config_yaml_file}' does not exist!")
 
         # read the container's config yaml file and get the `config`:
-        self.read_container_config_yaml()
+        with open(self.config_yaml_file) as f:
+            self.config = yaml.safe_load(f)
+        self.config_yaml_file = config_yaml_file
 
         self.container_path_relToAnalysis = op.join(
             'containers', '.datalad', 'environments', self.container_name, 'image'
@@ -96,15 +92,9 @@ class Container:
         """
         # path to the symlink/folder `image`:
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
-        # e.g.:
-        #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
-
-        # Sanity check: the path to `container_name` should exist in the cloned `container_ds`:
-        # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
         assert op.exists(op.dirname(container_path_abs)), (
-            "There is no valid image named '"
-            + self.container_name
-            + "' in the provided container DataLad dataset!"
+            f"There is no valid image named '{self.container_name}' in the "
+            'provided container DataLad dataset!'
         )
 
         # the 'image' symlink or folder should exist:
@@ -116,18 +106,9 @@ class Container:
             + "'."
         )
 
-    def read_container_config_yaml(self):
-        """
-        This is to get the config dict from `config_yaml_file`
-        """
-        with open(self.config_yaml_file) as f:
-            self.config = yaml.safe_load(f)
-            # ^^ config is a dict; elements can be accessed by `config["key"]["sub-key"]`
-        f.close()
-
     def generate_bash_run_bidsapp(self, bash_path, input_ds, processing_level):
         """
-        This is to generate a bash script that runs the BIDS App singularity image.
+        Generate a bash script that runs the containerized BIDS App.
 
         Parameters
         ----------

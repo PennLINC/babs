@@ -277,7 +277,6 @@ def generate_cmd_singularityRun_from_config(config, input_ds):
     ------------
     config: dictionary
         attribute `config` in class Container;
-        got from `read_container_config_yaml()`
     input_ds: class `InputDatasets`
         input dataset(s) information
     Returns:
@@ -480,7 +479,6 @@ def get_info_zip_foldernames(config):
     ------------
     config: dictionary
         attribute `config` in class Container;
-        got from `read_container_config_yaml()`
 
     Returns:
     ---------
@@ -760,7 +758,6 @@ def generate_bashhead_resources(system, config):
         information about cluster management system
     config: dictionary
         attribute `config` in class Container;
-        got from `read_container_config_yaml()`
 
     Returns:
     ------------
@@ -817,7 +814,6 @@ def generate_cmd_script_preamble(config):
     ------------
     config: dictionary
         attribute `config` in class Container;
-        got from `read_container_config_yaml()`
 
     Returns:
     --------
@@ -852,7 +848,6 @@ def generate_cmd_job_compute_space(config):
     ----------
     config: dictionary
         attribute `config` in class Container;
-        got from `read_container_config_yaml()`
 
     Returns
     -------
