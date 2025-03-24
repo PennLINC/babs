@@ -313,11 +313,11 @@ def to_config_string(df):
     config_string = ''
     for i_ds in range(df.shape[0]):
         config_string += f"""\
-$INPUT_DATASET_#{i_ds + 1}:
-name: '{df.loc[i_ds, 'name']}'
-path_in: '{df.loc[i_ds, 'path_in']}'
-path_data_rel: 'TO_BE_FILLED'
-is_zipped: 'TO_BE_FILLED'
+    $INPUT_DATASET_#{i_ds + 1}:
+        name: '{df.loc[i_ds, 'name']}'
+        path_in: '{df.loc[i_ds, 'path_in']}'
+        path_data_rel: 'TO_BE_FILLED'
+        is_zipped: 'TO_BE_FILLED'
 """
     return config_string
 
