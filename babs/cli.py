@@ -624,7 +624,7 @@ def babs_status_main(
     project_root: str,
     resubmit: list,
     resubmit_job: list,
-    container_config_yaml_file: str,
+    container_config: str,
     reckless: bool = False,
 ):
     """
@@ -757,7 +757,7 @@ def babs_status_main(
         flags_resubmit,
         df_resubmit_job_specific,
         reckless,
-        container_config_yaml_file,
+        container_config,
     )
 
 

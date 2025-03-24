@@ -137,7 +137,7 @@ Example job status summary from ``babs status``
 
     $ babs status \
         /path/to/my_BABS_project \
-        --container_config_yaml_file /path/to/config.yaml
+        --container_config /path/to/config.yaml
 
     Did not request resubmit based on job states (no `--resubmit`).
 

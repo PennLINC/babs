@@ -1197,7 +1197,7 @@ class BABS:
         flags_resubmit,
         df_resubmit_task_specific=None,
         reckless=False,
-        container_config_yaml_file=None,
+        container_config=None,
     ):
         """
         This function checks job status and resubmit jobs if requested.
