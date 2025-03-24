@@ -1,12 +1,6 @@
 datalad run \
 	-i "code/{{ container.container_name }}_zip.sh" \
-{% for dataset in input_datasets %}
-{% if not dataset.is_zipped %}
-	-i "{{ dataset.path }}/{% if processing_level == 'session' %}${subid}/${sesid}{% else %}${subid}{% endif %}" \
-	-i "{{ dataset.path }}/*json" \
-{% else %}
-	-i ${ {{ dataset.name }}_ZIP} \
-{% endif %}
+{{ input_ds_string }}
 {% endfor %}
 	-i "{{ container.container_path_relToAnalysis }}" \
 {% if flag_expand_inputs %}

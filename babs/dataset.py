@@ -306,3 +306,73 @@ class InputDatasets:
                         ),
                         stacklevel=2,
                     )
+
+
+def to_config_string(df):
+    """Convert the InputDatasets object to a string that can be used in a config file."""
+    config_string = ''
+    for i_ds in range(df.shape[0]):
+        config_string += f"""\
+$INPUT_DATASET_#{i_ds + 1}:
+name: '{df.loc[i_ds, 'name']}'
+path_in: '{df.loc[i_ds, 'path_in']}'
+path_data_rel: 'TO_BE_FILLED'
+is_zipped: 'TO_BE_FILLED'
+"""
+    return config_string
+
+
+def to_bidsapp_run_string(df, processing_level):
+    """Convert the InputDatasets object to a string that can be used in a
+    bidsapp_run.sh.jinja2 template.
+    """
+    bidsapp_run_string = ''
+    for i_ds in range(df.shape[0]):
+        tmpstr = f'{i_ds + (2 if processing_level == "session" else 1)}'
+        if df.loc[i_ds, 'is_zipped']:
+            bidsapp_run_string += f"""\
+{df.loc[i_ds, 'name'].upper()}_ZIP="{tmpstr}"
+"""
+    return bidsapp_run_string
+
+
+def to_participant_job_string(df):
+    """Convert the InputDatasets object to a string that can be used in a
+    participant_job.sh.jinja2 template.
+    """
+    participant_job_string = ''
+    for i_ds in range(df.shape[0]):
+        relpath = df.loc[i_ds, 'path_now_rel']
+        if not df.loc[i_ds, 'is_zipped']:
+            participant_job_string += f"""\
+datalad get -n "{relpath}/${{subid}}"
+(cd {relpath}/${{subid}} && find . -type d -name 'sub*' | grep -v $subid | xargs rm -rf)
+"""
+        else:
+            participant_job_string += f"""\
+datalad get -n "{relpath}"
+(cd {relpath} && find . -type f -name 'sub*.zip' | grep -v $subid | xargs rm -f)
+"""
+    return participant_job_string
+
+
+def to_datalad_run_string(df, processing_level):
+    """Convert the InputDatasets object to a string that can be used in a datalad_run.sh.jinja2
+    template.
+    """
+    datalad_run_string = ''
+    for i_ds in range(df.shape[0]):
+        if df.loc[i_ds, 'is_zipped']:
+            if processing_level == 'session':
+                tmpstr = '${subid}/${sesid}'
+            else:
+                tmpstr = '${subid}'
+            datalad_run_string += f"""\
+    -i "{df.loc[i_ds, 'path_now_abs']}/{tmpstr}" \
+    -i "{df.loc[i_ds, 'path_now_abs']}/*json" \
+"""
+        else:
+            datalad_run_string += f"""\
+    -i {df.loc[i_ds, 'name']}_ZIP \
+"""
+    return datalad_run_string

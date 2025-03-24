@@ -20,6 +20,8 @@ from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader
 from qstat import qstat  # https://github.com/relleums/qstat
 
+from babs.dataset import to_datalad_run_string
+
 
 # Disable the behavior of printing messages:
 def blockPrint():
@@ -1010,7 +1012,7 @@ def generate_cmd_datalad_run(container, input_ds, processing_level):
     # Render the template
     cmd = template.render(
         container=container,
-        input_ds=input_ds,
+        input_ds_string=to_datalad_run_string(input_ds.df, processing_level),
         processing_level=processing_level,
         flag_expand_inputs=flag_expand_inputs,
     )

@@ -51,15 +51,7 @@ git checkout -b "${BRANCH}"
 
 # pull down input data (but don't retrieve the data content) and remove other sub's data:
 echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
-{% for i in range(input_ds.num_ds) %}
-{% if not input_ds.df.loc[i, 'is_zipped'] %}
-datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}/${subid}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type d -name 'sub*' | grep -v $subid | xargs rm -rf)
-{% else %}
-datalad get -n "{{ input_ds.df.loc[i, 'path_now_rel'] }}"
-(cd {{ input_ds.df.loc[i, 'path_now_rel'] }} && find . -type f -name 'sub*.zip' | grep -v $subid | xargs rm -f)
-{% endif %}
-{% endfor %}
+{{ input_ds_string}}
 
 {{ cmd_determine_zipfilename }}
 

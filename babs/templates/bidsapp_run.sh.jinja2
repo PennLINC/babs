@@ -7,11 +7,7 @@ sesid="$2"
 {% endif %}
 
 
-{% for i in range(input_ds.num_ds) %}
-{% if input_ds.df.loc[i, 'is_zipped'] is true %}
-{{ input_ds.df.loc[i, 'name'].upper() }}_ZIP="${{ loop.index + (2 if processing_level == 'session' else 1) }}"
-{% endif %}
-{% endfor %}
+{{ input_ds_string }}
 {% if flag_filterfile %}
 # Create a filter file that only allows this session
 filterfile=${PWD}/${sesid}_filter.json

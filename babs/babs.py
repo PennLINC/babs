@@ -17,6 +17,11 @@ import yaml
 from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader
 
+from babs.dataset import (
+    to_bidsapp_run_string,
+    to_config_string,
+    to_participant_job_string,
+)
 from babs.utils import (
     calcu_runtime,
     ceildiv,
@@ -334,7 +339,7 @@ class BABS:
                 template.render(
                     processing_level=self.processing_level,
                     queue=self.queue,
-                    input_ds=input_ds,
+                    input_ds_string=to_config_string(input_ds.df),
                     container_name=container_name,
                     container_ds=container_ds,
                 )
@@ -2153,7 +2158,7 @@ class Container:
 
         rendered_script = template.render(
             processing_level=processing_level,
-            input_ds=input_ds,
+            input_ds_string=to_bidsapp_run_string(input_ds.df, processing_level),
             container_name=self.container_name,
             flag_filterfile=flag_filterfile,
             cmd_unzip_inputds=cmd_unzip_inputds,
@@ -2232,7 +2237,7 @@ class Container:
                     cmd_datalad_run=cmd_datalad_run,
                     system=system,
                     processing_level=processing_level,
-                    input_ds=input_ds,
+                    input_ds_string=to_participant_job_string(input_ds.df),
                 )
             )
 
