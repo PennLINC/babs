@@ -104,10 +104,9 @@ def _parse_init():
         required=True,
     )
     parser.add_argument(
-        '--type_system',
-        '--type-system',
-        choices=['sge', 'slurm'],
-        help='The name of the job scheduling type_system that you will use.',
+        '--queue',
+        choices=['slurm'],
+        help='The name of the job scheduling queue that you will use.',
         required=True,
     )
     parser.add_argument(
@@ -151,7 +150,7 @@ def babs_init_main(
     container_name: str,
     container_config: str,
     processing_level: str,
-    type_system: str,
+    queue: str,
     keep_if_failed: bool,
 ):
     """This is the core function of babs init.
@@ -179,7 +178,7 @@ def babs_init_main(
         of how to run the BIDS App container
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
-    type_system: str
+    queue: str
         sge or slurm
     keep_if_failed: bool
         If `babs init` failed with error, whether to keep the created BABS project.
@@ -228,16 +227,16 @@ def babs_init_main(
     # currently solution: add notes in Debugging in `babs init` docs: `babs init.rst`
 
     # Create an instance of babs class:
-    babs_proj = BABS(project_root, processing_level, type_system)
+    babs_proj = BABS(project_root, processing_level, queue)
 
-    # Validate system's type name `type_system`:
-    system = System(type_system)
+    # Validate system's type name `queue`:
+    system = System(queue)
 
     # print out key information for visual check:
     print('')
     print('project_root of this BABS project: ' + babs_proj.project_root)
     print('processing level of this BABS project: ' + babs_proj.processing_level)
-    print('job scheduling system of this BABS project: ' + babs_proj.type_system)
+    print('job scheduling system of this BABS project: ' + babs_proj.queue)
     print('')
 
     # Call method `babs_bootstrap()`:
@@ -985,7 +984,7 @@ def get_existing_babs_proj(project_root):
     babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
 
     # make sure the YAML file has necessary sections:
-    list_sections = ['processing_level', 'type_system', 'input_ds', 'container']
+    list_sections = ['processing_level', 'queue', 'input_ds', 'container']
     for i in range(0, len(list_sections)):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
@@ -995,10 +994,10 @@ def get_existing_babs_proj(project_root):
             )
 
     processing_level = babs_proj_config['processing_level']
-    type_system = babs_proj_config['type_system']
+    queue = babs_proj_config['queue']
 
     # Get the class `BABS`:
-    babs_proj = BABS(project_root, processing_level, type_system)
+    babs_proj = BABS(project_root, processing_level, queue)
 
     # update key information including `output_ria_data_dir`:
     babs_proj.wtf_key_info(flag_output_ria_only=True)

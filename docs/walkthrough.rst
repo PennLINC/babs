@@ -440,7 +440,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
         --container_name toybidsapp-0-0-7 \
         --container_config ${PWD}/config_toybidsapp_demo.yaml \
         --processing_level session \
-        --type_system sge \
+        --queue sge \
         ${PWD}/my_BABS_project
 
 .. dropdown:: If there is no Internet connection on compute nodes
@@ -457,7 +457,7 @@ It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--contain
 is consistent with the image name you specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
 If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session`` (line #9).
-Finally, please change the cluster system type ``--type_system`` (highlighted line #10) to yours;
+Finally, please change the cluster system type ``--queue`` (highlighted line #10) to yours;
 currently BABS supports ``sge`` and ``slurm``.
 
 If ``babs init`` succeeded, you should see this message at the end:

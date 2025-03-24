@@ -217,7 +217,7 @@ def container_ds_path(where_now, tmp_path_factory):
     return origin_container_ds
 
 
-def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input, type_system):
+def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input, queue):
     """
     This is to get the container's config YAML file name,
     depending on the BIDS App and if there are two inputs (for fMRIPrep)
@@ -231,7 +231,7 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
         "fmriprep" for zipped BIDS derivates
     if_two_input: bool
         whether there are two input BIDS datasets
-    type_system: str
+    queue: str
         "sge" or "slurm"
 
     Returns

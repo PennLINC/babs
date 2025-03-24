@@ -90,7 +90,7 @@ def test_babs_init(
     if_circleci: fixture; bool
         Whether currently in CircleCI
 
-    TODO: add `type_system` and to test out Slurm version!
+    TODO: add `queue` and to test out Slurm version!
     """
     # Sanity checks:
     assert which_bidsapp in LIST_WHICH_BIDSAPP
@@ -121,7 +121,7 @@ def test_babs_init(
     # Preparation of freesurfer: for fmriprep and qsiprep:
     # check if `--fs-license-file` is included in YAML file:
     container_config_yaml_filename = get_container_config_yaml_filename(
-        which_bidsapp, which_input, if_two_input, type_system='slurm'
+        which_bidsapp, which_input, if_two_input, queue='slurm'
     )  # TODO: also test slurm!
     container_config = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
@@ -156,7 +156,7 @@ def test_babs_init(
         container_name=container_name,
         container_config=container_config,
         processing_level=processing_level,
-        type_system='slurm',
+        queue='slurm',
         keep_if_failed=False,
     )
 

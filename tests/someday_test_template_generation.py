@@ -27,7 +27,7 @@ def test_workspace(tmp_path):
 @pytest.fixture
 def babs_instance(test_workspace):
     """Create a BABS instance for testing"""
-    return BABS(project_root=str(test_workspace), processing_level='subject', type_system='slurm')
+    return BABS(project_root=str(test_workspace), processing_level='subject', queue='slurm')
 
 
 def run_shellcheck(script_path):
