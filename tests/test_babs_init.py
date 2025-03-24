@@ -28,30 +28,36 @@ from babs.utils import read_yaml  # noqa
 
 @pytest.mark.order(index=1)
 @pytest.mark.parametrize(
-    ('which_bidsapp', 'which_input', 'type_session', 'if_input_local', 'if_two_input'),
-    #  test toybidsapp: BIDS/zipped x single/multi-ses:
+    (
+        'which_bidsapp',
+        'which_input',
+        'processing_level',
+        'if_input_local',
+        'if_two_input',
+    ),
+    #  test toybidsapp: BIDS/zipped x single/session:
     #    the input data will also be remote by default:
     [
-        ('toybidsapp', 'BIDS', 'single-ses', False, False),
-        ('toybidsapp', 'BIDS', 'multi-ses', False, False),
-        ('toybidsapp', 'fmriprep', 'single-ses', False, False),
-        ('toybidsapp', 'fmriprep', 'multi-ses', False, False),
+        ('toybidsapp', 'BIDS', 'subject', False, False),
+        ('toybidsapp', 'BIDS', 'session', False, False),
+        ('toybidsapp', 'fmriprep', 'subject', False, False),
+        ('toybidsapp', 'fmriprep', 'session', False, False),
         # test if input is local:
-        ('toybidsapp', 'BIDS', 'single-ses', True, False),
-        # test fmriprep: single/multi-ses
-        ('fmriprep', 'BIDS', 'single-ses', False, False),
-        ('fmriprep', 'BIDS', 'multi-ses', False, False),
-        # test qsiprep multi-ses: remove sessions without dMRI
-        ('qsiprep', 'BIDS', 'multi-ses', False, False),
+        ('toybidsapp', 'BIDS', 'subject', True, False),
+        # test fmriprep: single/session
+        ('fmriprep', 'BIDS', 'subject', False, False),
+        ('fmriprep', 'BIDS', 'session', False, False),
+        # test qsiprep session: remove sessions without dMRI
+        ('qsiprep', 'BIDS', 'session', False, False),
         # test 2 input datasets (2nd one will be zipped fmriprep derivatives):
-        ('fmriprep', 'BIDS', 'single-ses', False, True),
-        ('fmriprep', 'BIDS', 'multi-ses', False, True),
+        ('fmriprep', 'BIDS', 'subject', False, True),
+        ('fmriprep', 'BIDS', 'session', False, True),
     ],
 )
 def test_babs_init(
     which_bidsapp,
     which_input,
-    type_session,
+    processing_level,
     if_input_local,
     if_two_input,
     tmp_path,
@@ -71,8 +77,8 @@ def test_babs_init(
         It must be one of the string in `LIST_WHICH_BIDSAPP`.
     which_input: str
         which input dataset. Options see keys in `origin_input_dataset.yaml`
-    type_session: str
-        multi-ses or single-ses
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
     if_input_local: bool
         whether the input dataset is a local copy (True), or it's remote (False)
     if_two_input: bool
@@ -90,14 +96,19 @@ def test_babs_init(
     assert which_bidsapp in LIST_WHICH_BIDSAPP
 
     # Get the path to input dataset:
-    path_in = get_input_data(which_input, type_session, if_input_local, tmp_path_factory)
+    path_in = get_input_data(
+        which_input,
+        processing_level,
+        if_input_local,
+        tmp_path_factory,
+    )
     input_ds_cli = {which_input: path_in}
     if if_two_input:
         # get another input dataset: qsiprep derivatives
         assert INFO_2ND_INPUT_DATA['which_input'] != which_input  # avoid repeated input ds name
         path_in_2nd = get_input_data(
             INFO_2ND_INPUT_DATA['which_input'],
-            type_session,  # should be consistent with the 1st dataset
+            processing_level,  # should be consistent with the 1st dataset
             INFO_2ND_INPUT_DATA['if_input_local'],
             tmp_path_factory,
         )
@@ -144,7 +155,7 @@ def test_babs_init(
         container_ds=container_ds_path,
         container_name=container_name,
         container_config=container_config,
-        type_session=type_session,
+        processing_level=processing_level,
         queue='slurm',
         keep_if_failed=False,
     )
@@ -167,7 +178,7 @@ def test_babs_init(
     #   currently strategy in BABS: if env var `$TEMPLATEFLOW_HOME` exists, set this up in cmd;
     #   and in this pytest, we have set this env var up at the beginning of this test.
     # 2) for generating `--bids-filter-file` file + command
-    #   only when qsiprep/fmriprep + multi-ses
+    #   only when qsiprep/fmriprep + session
     # 3) for freesurfer: flag `--fs-license-file`
 
     # first, read in `<container_name>-0-0-0_zip.sh`:
@@ -213,13 +224,13 @@ def test_babs_init(
     #     " but env variable 'SINGULARITYENV_TEMPLATEFLOW_HOME' was not set"
     #     " with `--env` in '" + container_name + "_zip.sh'."
     # )
-    # 2) BIDS filter file: only when qsiprep/fmriprep & multi-ses:
-    if (which_bidsapp in ['qsiprep', 'fmriprep']) & (type_session == 'multi-ses'):
+    # 2) BIDS filter file: only when qsiprep/fmriprep & session:
+    if (which_bidsapp in ['qsiprep', 'fmriprep']) & (processing_level == 'session'):
         assert if_generate_bidsfilterfile, (
             "This is BIDS App '"
             + which_bidsapp
             + "' and "
-            + type_session
+            + processing_level
             + ','
             + ' however, filterfile to be used in `--bids-filter-file` was not generated'
             + " in '"
@@ -230,7 +241,7 @@ def test_babs_init(
             "This is BIDS App '"
             + which_bidsapp
             + "' and "
-            + type_session
+            + processing_level
             + ','
             + ' however, flag `--bids-filter-file` was not included in `singularity run`'
             + " in '"
@@ -242,7 +253,7 @@ def test_babs_init(
             "This is BIDS App '"
             + which_bidsapp
             + "' and "
-            + type_session
+            + processing_level
             + ','
             + ' so `--bids-filter-file` should not be generated or used in `singularity run`'
             + " in '"
@@ -264,8 +275,8 @@ def test_babs_init(
         )
 
     # Check `sub_ses_final_inclu.csv`:
-    #   if qsiprep + multi-ses:  one session without dMRI should not be included
-    if (which_bidsapp == 'qsiprep') & (type_session == 'multi-ses'):
+    #   if qsiprep + session:  one session without dMRI should not be included
+    if (which_bidsapp == 'qsiprep') & (processing_level == 'session'):
         # load `sub_ses_final_inclu.csv`:
         fn_list_final_inclu = op.join(project_root, 'analysis/code', 'sub_ses_final_inclu.csv')
         file_list_final_inclu = open(fn_list_final_inclu)
@@ -279,7 +290,7 @@ def test_babs_init(
             "'sub-02,ses-A' without dMRI was included in the BABS project of "
             + which_bidsapp
             + ', '
-            + type_session
+            + processing_level
         )
 
     # Note: No need to manually remove temporary dirs; those are created by pytest's fixtures
