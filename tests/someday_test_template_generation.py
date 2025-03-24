@@ -27,9 +27,7 @@ def test_workspace(tmp_path):
 @pytest.fixture
 def babs_instance(test_workspace):
     """Create a BABS instance for testing"""
-    return BABS(
-        project_root=str(test_workspace), processing_level='single-ses', type_system='slurm'
-    )
+    return BABS(project_root=str(test_workspace), processing_level='subject', type_system='slurm')
 
 
 def run_shellcheck(script_path):
@@ -138,7 +136,7 @@ def test_participant_job_script_generation(babs_instance, test_config, test_work
     # Generate the script
     script_path = code_dir / 'participant_job.sh'
     container.generate_bash_participant_job(
-        bash_path=str(script_path), input_ds=input_ds, processing_level='single-ses', system=system
+        bash_path=str(script_path), input_ds=input_ds, processing_level='subject', system=system
     )
 
     # Check if file was created

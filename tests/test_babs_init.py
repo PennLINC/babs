@@ -224,7 +224,7 @@ def test_babs_init(
     #     " but env variable 'SINGULARITYENV_TEMPLATEFLOW_HOME' was not set"
     #     " with `--env` in '" + container_name + "_zip.sh'."
     # )
-    # 2) BIDS filter file: only when qsiprep/fmriprep & multi-ses:
+    # 2) BIDS filter file: only when qsiprep/fmriprep & session:
     if (which_bidsapp in ['qsiprep', 'fmriprep']) & (processing_level == 'session'):
         assert if_generate_bidsfilterfile, (
             "This is BIDS App '"
