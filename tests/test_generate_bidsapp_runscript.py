@@ -124,7 +124,7 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
         templateflow_home='/path/to/templateflow_home',
     )
 
-    out_fn = Path('.') / f'{config_path.name}.sh'
+    out_fn = Path('.') / f'{config_path.name}_{processing_level}.sh'
     with open(out_fn, 'w') as f:
         f.write(script_content)
     passed, status = run_shellcheck(str(out_fn))

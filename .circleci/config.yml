@@ -50,7 +50,7 @@ jobs:
           command: |
             micromamba install -y -c conda-forge shellcheck
             pip install .[tests]
-            pytest -n 4 -sv --durations=0 --timeout=300 --log-cli-level=DEBUG
+            pytest -n 4 -sv --durations=0 --timeout=300
 
   e2e-slurm:
     machine:
