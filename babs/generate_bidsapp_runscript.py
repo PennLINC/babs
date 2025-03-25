@@ -10,7 +10,7 @@ from babs.utils import (
 )
 
 
-def generate_bidsapp_run_script(
+def generate_bidsapp_runscript(
     input_datasets,
     processing_level,
     container_name,
@@ -57,19 +57,19 @@ def generate_bidsapp_run_script(
         )
         # if there is only one input ds, fine:
         print("Section 'bids_app_args' was not included in the `container_config`. ")
-        cmd_singularity_flags = ''  # should be empty
+        bids_app_args = ''  # should be empty
         flag_fs_license = False
         path_fs_license = None
         singuRun_input_dir = input_datasets[0]['path_data_rel']
     else:
         # read config from the yaml file:
         (
-            cmd_singularity_flags,
+            bids_app_args,
             subject_selection_flag,
             flag_fs_license,
             path_fs_license,
             singuRun_input_dir,
-        ) = container_args_from_config(bids_app_args, input_datasets)
+        ) = bids_app_args_from_config(bids_app_args, input_datasets)
 
     # Get unzip commands for any zipped input datasets
     cmd_unzip_inputds = get_input_unzipping_cmds(input_datasets)
@@ -100,7 +100,7 @@ def generate_bidsapp_run_script(
         container_path_relToAnalysis=relative_container_path,
         singuRun_input_dir=singuRun_input_dir,
         output_directory=output_directory,
-        cmd_singularity_flags=cmd_singularity_flags,
+        bids_app_args=bids_app_args,
         cmd_zip=cmd_zip,
         OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
         singularity_args=singularity_args,
@@ -161,7 +161,7 @@ def get_output_zipping_cmds(dict_zip_foldernames, processing_level):
     return cmd
 
 
-def container_args_from_config(bids_app_args, input_datasets):
+def bids_app_args_from_config(bids_app_args, input_datasets):
     """
     This is to generate command (in strings) of singularity run
     from config read from container config yaml file.
@@ -192,7 +192,6 @@ def container_args_from_config(bids_app_args, input_datasets):
     from .constants import PATH_FS_LICENSE_IN_CONTAINER
 
     cmds = []
-    # is_first_flag = True
     flag_fs_license = False
     path_fs_license = None
     singuRun_input_dir = None
@@ -220,7 +219,7 @@ def container_args_from_config(bids_app_args, input_datasets):
                 )
 
     subject_selection_flag = None
-    for key, value in bids_app_args:
+    for key, value in bids_app_args.items():
         # INPUT_PATH is a placeholder for the path to the input dataset
         if key == '$INPUT_PATH':
             value = value.rstrip('/')

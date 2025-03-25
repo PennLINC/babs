@@ -208,7 +208,7 @@ def replace_placeholder_from_config(value):
     """
     value = str(value)
     if value == '$BABS_TMPDIR':
-        replaced = '${PWD}/.git/tmp/wkdir'
+        replaced = '"${PWD}/.git/tmp/wkdir"'
 
     return replaced
 

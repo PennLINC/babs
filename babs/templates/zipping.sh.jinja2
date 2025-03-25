@@ -4,7 +4,7 @@ cd {{ output_main_folder }}
 {% set value_temp = '' %}
 {% for key, value in dict_zip_foldernames.items() %}
 {% set value_temp = value %}
-7z a ../${subid}{{ str_sesid }}_{{ key }}-{{ value }}.zip {{ key }}
+7z a ../"${subid}{{ str_sesid }}_{{ key }}-{{ value }}.zip" "{{ key }}"
 {% endfor %}
 
 cd ..
