@@ -1,0 +1,8 @@
+wd=${PWD}
+{% for input_ds in input_datasets %}
+{% if input_ds['is_zipped'] %}
+cd {{ input_ds['path_now_rel'] }}
+7z x $(basename ${ {{input_ds['name'].upper() }}_ZIP })
+cd "$wd"
+{% endif %}
+{% endfor %}

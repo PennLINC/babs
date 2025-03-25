@@ -7,18 +7,14 @@ import warnings
 import yaml
 from jinja2 import Environment, PackageLoader
 
+from babs.generate_bidsapp_runscript import generate_bidsapp_run_script
 from babs.utils import (
     generate_bashhead_resources,
     generate_cmd_datalad_run,
     generate_cmd_determine_zipfilename,
     generate_cmd_job_compute_space,
     generate_cmd_script_preamble,
-    generate_cmd_set_envvar,
-    generate_cmd_singularityRun_from_config,
-    generate_cmd_unzip_inputds,
-    generate_cmd_zipping_from_config,
     get_info_zip_foldernames,
-    validate_processing_level,
 )
 
 
@@ -125,106 +121,32 @@ class Container:
         processing_level : {'subject', 'session'}
             whether processing is done on a subject-wise or session-wise basis
         """
-        from jinja2 import Environment
-
-        from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
-
-        processing_level = validate_processing_level(processing_level)
 
         # Check if the folder exist; if not, create it:
         bash_dir = op.dirname(bash_path)
         if not op.exists(bash_dir):
             os.makedirs(bash_dir)
 
-        # check if `self.config` from the YAML file contains information we need:
-        # 1. check `bids_app_args` section:
-        if 'bids_app_args' not in self.config:
-            # sanity check: there should be only one input ds
-            #   otherwise need to specify in this section:
-            assert input_ds.num_ds == 1, (
-                "Section 'bids_app_args' is missing in the provided"
-                ' `container_config`. As there are more than one'
-                ' input dataset, you must include this section to specify'
-                ' to which argument that each input dataset will go.'
-            )
-            # if there is only one input ds, fine:
-            print("Section 'bids_app_args' was not included in the `container_config`. ")
-            cmd_singularity_flags = ''  # should be empty
-            # Make sure other returned variables from `generate_cmd_singularityRun_from_config`
-            #   also have values:
-            # as "--fs-license-file" was not one of the value in `bids_app_args` section:
-            flag_fs_license = False
-            path_fs_license = None
-            # copied from `generate_cmd_singularityRun_from_config`:
-            singuRun_input_dir = input_ds.df.loc[0, 'path_data_rel']
-        else:
-            # read config from the yaml file:
-            (
-                cmd_singularity_flags,
-                subject_selection_flag,
-                flag_fs_license,
-                path_fs_license,
-                singuRun_input_dir,
-            ) = generate_cmd_singularityRun_from_config(self.config, input_ds)
+        input_datasets = input_ds.df.to_dict(orient='records')
+        templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
 
-        # 2. check `zip_foldernames` section:
+        # What should the outputs look like?
         dict_zip_foldernames, _, path_output_folder = get_info_zip_foldernames(self.config)
 
-        # 3. check `singularity_args` section:
-        singularity_args = self.config.get('singularity_args', [])
-
-        # Check if the bash file already exist:
-        if op.exists(bash_path):
-            os.remove(bash_path)  # remove it
-
-        # Check if `--bids-filter-file "${filterfile}"` is needed:
-        flag_filterfile = False
-        if processing_level == 'session':
-            if any(ele in self.container_name.lower() for ele in ['fmriprep', 'qsiprep']):
-                flag_filterfile = True
-
-        # Check if any dataset is zipped; if so, add commands of unzipping:
-        cmd_unzip_inputds = generate_cmd_unzip_inputds(input_ds, processing_level)
-
-        # Environment variables in container:
-        # get environment variables to be injected into container and whose value to be bound:
-        templateflow_home_on_disk, templateflow_in_container = generate_cmd_set_envvar(
-            'TEMPLATEFLOW_HOME'
-        )
-
-        # Generate zip command
-        cmd_zip = generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level)
-
-        # Render the template
-        env = Environment(
-            loader=PackageLoader('babs', 'templates'),
-            trim_blocks=True,
-            lstrip_blocks=True,
-            autoescape=False,
-        )
-        template = env.get_template('bidsapp_run.sh.jinja2')
-
-        rendered_script = template.render(
-            processing_level=processing_level,
-            input_ds=input_ds,
+        script_content = generate_bidsapp_run_script(
+            input_datasets,
+            processing_level,
             container_name=self.container_name,
-            flag_filterfile=flag_filterfile,
-            cmd_unzip_inputds=cmd_unzip_inputds,
-            templateflow_home_on_disk=templateflow_home_on_disk,
-            templateflow_in_container=templateflow_in_container,
-            flag_fs_license=flag_fs_license,
-            path_fs_license=path_fs_license,
-            PATH_FS_LICENSE_IN_CONTAINER=PATH_FS_LICENSE_IN_CONTAINER,
-            container_path_relToAnalysis=self.container_path_relToAnalysis,
-            singuRun_input_dir=singuRun_input_dir,
-            path_output_folder=path_output_folder,
-            cmd_singularity_flags=cmd_singularity_flags,
-            cmd_zip=cmd_zip,
-            OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
-            singularity_args=singularity_args,
+            relative_container_path=self.container_path_relToAnalysis,
+            output_directory=path_output_folder,
+            dict_zip_foldernames=dict_zip_foldernames,
+            bids_app_args=self.config.get('bids_app_args', None),
+            singularity_args=self.config.get('singularity_args', []),
+            templateflow_home=templateflow_home,
         )
+
         with open(bash_path, 'w') as f:
-            f.write(rendered_script)
+            f.write(script_content)
 
         # Execute necessary commands:
         # change the permission of this bash file:
@@ -235,7 +157,7 @@ class Container:
         proc_chmod_bashfile.check_returncode()
 
         print('Below is the generated BIDS App run script:')
-        print(rendered_script)
+        print(script_content)
 
     def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
         """Generate bash script for participant job.

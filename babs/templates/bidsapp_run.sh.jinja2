@@ -5,13 +5,12 @@ subid="$1"
 {% if processing_level == 'session' %}
 sesid="$2"
 {% endif %}
-
-
-{% for i in range(input_ds.num_ds) %}
-{% if input_ds.df.loc[i, 'is_zipped'] is true %}
-{{ input_ds.df.loc[i, 'name'].upper() }}_ZIP="${{ loop.index + (2 if processing_level == 'session' else 1) }}"
+{% for input_ds in input_datasets) %}
+{% if input_ds['is_zipped'] %}
+{{ input_ds['name'].upper() }}_ZIP="${{ loop.index + (2 if processing_level == 'session' else 1) }}"
 {% endif %}
 {% endfor %}
+
 {% if flag_filterfile %}
 # Create a filter file that only allows this session
 filterfile=${PWD}/${sesid}_filter.json
@@ -42,7 +41,7 @@ mkdir -p ${PWD}/.git/tmp/wkdir
 mkdir -p {{ templateflow_home_on_disk }}
 {% endif %}
 
-singularity run --containall --writable-tmpfs \
+singularity run \
     -B ${PWD} \
 {% if templateflow_home_on_disk %}
     -B {{ templateflow_home_on_disk }}:{{ templateflow_in_container }} \
