@@ -1,1 +1,25 @@
-../tests/e2e-slurm/container/config_toybidsapp.yaml
+# Arguments in `singularity run`:
+bids_app_args:
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
+    --no-zipped: ""
+    --dummy: "2"
+    -v: ""
+
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+zip_foldernames:
+    toybidsapp: "0-0-7"
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: /bin/bash
+
+script_preamble: |
+    PATH=/opt/conda/envs/babs/bin:$PATH
+
+# Where to run the jobs:
+job_compute_space: "/tmp"

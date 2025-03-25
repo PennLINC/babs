@@ -713,11 +713,12 @@ Example section **job_compute_space**:
 
 ..  code-block:: yaml
 
-    job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+    job_compute_space: "/tmp"
 
-Here, ``"${CBICA_TMPDIR}"`` is an environment variable recognized by Penn Medicine CUBIC cluster,
-which points to some temporary compute space local to the compute node. This environment variable
-might not be recognized by your clusters, but you can use the path that's specific to yours::
+Here, ``"/tmp"`` is NOT a good choice, check your cluster's documentation for
+the correct path.
+This environment variable might not be recognized by your cluster,
+but you can use the path that's specific to yours::
 
     job_compute_space: "/path/to/some_temporary_compute_space"
 

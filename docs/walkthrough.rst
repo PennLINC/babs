@@ -282,7 +282,7 @@ Below is an example YAML file for toy BIDS App:
    :language: yaml
    :lines: 21-
    :linenos:
-   :emphasize-lines: 12,13,17,18,21
+   :emphasize-lines: 18,19,21,22,25
 
 As you can see, there are several sections in this YAML file.
 
@@ -391,10 +391,10 @@ There are several lines (highlighted above) that require customization based on 
 
 * Section ``job_compute_space``:
 
-    * You need to change ``"${CBICA_TMPDIR}"`` to the temporary compute space available on your cluster
+    * You need to change ``/tmp`` to the temporary compute space available on your cluster
       where you will be running jobs,
       e.g., ``"/path/to/some_temporary_compute_space"``.
-      Here ``"${CBICA_TMPDIR}"`` is for Penn Medicine CUBIC cluster only.
+      Here ``"/tmp"`` is NOT a good choice, check your cluster's documentation for the correct path.
     * For more, please see: :ref:`job-compute-space`.
 
 .. developer's note:
