@@ -306,7 +306,7 @@ def app_output_settings_from_config(config):
                 ' but BABS can only create one output folder.'
                 " Please only keep one of them in 'zip_foldernames' section."
             )
-        bids_app_output_dir += '/' + config['zip_foldernames'].keys()[0]
+        bids_app_output_dir += '/' + next(iter(config['zip_foldernames'].keys()))
 
     return config['zip_foldernames'], bids_app_output_dir
 

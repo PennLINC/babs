@@ -387,8 +387,8 @@ where the BIDS App will generate one or several folders that wrap all derivative
 Example use cases are ``fMRIPrep`` with legacy output layout, as well as ``QSIPrep`` and ``XCP-D``.
 
 If the BIDS App won't generate one or several folders that wrap all derivative files,
-users should ask BABS to create a folder as an extra layer by specifying ``CREATE_ROOT_OUTPUT_DIR: "true"``.
-We explain how to do so in :ref:`Exmample #2 <example_zip_foldernames_for_fmriprep_BIDS_output_layout>`.
+users should ask BABS to create a folder as an extra layer by specifying ``all_results_in_one_zip: true``.
+We explain how to do so in :ref:`Example #2 <example_zip_foldernames_for_fmriprep_BIDS_output_layout>`.
 An example use case is ``fMRIPrep`` with BIDS output layout.
 
 
@@ -468,11 +468,11 @@ Example section **zip_foldernames** for ``fMRIPrep`` *BIDS* output layout:
 ..  code-block:: yaml
     :linenos:
 
+    all_results_in_one_zip: true
     zip_foldernames:
-        CREATE_ROOT_OUTPUT_DIR: "true"
         fmriprep: "23-1-3"
 
-Line #2 ``CREATE_ROOT_OUTPUT_DIR: "true"`` asks BABS to create an additional folder,
+Line #1 ``all_results_in_one_zip: true`` asks BABS to create an additional folder,
 i.e., ``fmriprep`` specified in line #3, to wrap all derivatives.
 In this way, the output will look like below::
 
@@ -486,8 +486,8 @@ In this way, the output will look like below::
 Note that all derivatives will locate in the "wrapper" folder called ``fmriprep``.
 BABS will zip this folder into zip file ``${sub-id}_${ses-id}_fmriprep-23-1-3.zip``.
 
-In addition, when using ``CREATE_ROOT_OUTPUT_DIR: "true"``,
-please only provide one foldername for BABS to create.
+In addition, when using ``all_results_in_one_zip: true``,
+you must only provide one foldername in ``zip_foldernames``.
 
 Other detailed instructions
 ---------------------------------

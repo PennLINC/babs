@@ -43,6 +43,7 @@ mkdir -p "${PWD}/.git/tmp/wkdir"
 mkdir -p {{ templateflow_home_on_disk }}
 {% endif %}
 
+mkdir -p "{{ bids_app_output_dir }}"
 singularity run \
     -B "${PWD}" \
 {% if templateflow_home_on_disk %}
@@ -60,7 +61,7 @@ singularity run \
 {% endfor %}
     {{ container_path_relToAnalysis }} \
         "${PWD}/{{ singuRun_input_dir }}" \
-        "${PWD}/{{ path_output_folder }}" \
+        "${PWD}/{{ bids_app_output_dir }}" \
         participant \
 {% if flag_filterfile %}
         --bids-filter-file "${filterfile}" \
@@ -73,7 +74,6 @@ singularity run \
         --participant-label "${subid}"
 
 {{ cmd_zip }}
-
 rm -rf {{ OUTPUT_MAIN_FOLDERNAME }} .git/tmp/wkdir
 {% if flag_filterfile %}
 rm "${filterfile}"

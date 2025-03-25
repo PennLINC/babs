@@ -35,7 +35,6 @@ bids_app_args:
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsiprep' to wrap all derivatives:
 all_results_in_one_zip: true
 zip_foldernames:
-    CREATE_ROOT_OUTPUT_DIR: "true"
     qsiprep: "1-0-0" # folder 'qsiprep' will be zipped into 'sub-xx_(ses-yy_)qsiprep-1-0-0.zip'
 
 # How much cluster resources it needs:

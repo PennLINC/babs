@@ -47,7 +47,6 @@ singularity_args:
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'xcpd' to wrap all derivatives:
 all_results_in_one_zip: true
 zip_foldernames:
-    CREATE_ROOT_OUTPUT_DIR: "true"
     xcpd: "0-10-6" # folder 'xcpd' will be zipped into 'sub-xx_(ses-yy_)xcpd-0-10-5.zip'
 
 # How much cluster resources it needs:

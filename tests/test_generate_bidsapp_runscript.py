@@ -7,7 +7,10 @@ from babs.generate_bidsapp_runscript import (
     generate_bidsapp_runscript,
     get_input_unzipping_cmds,
 )
-from babs.utils import read_yaml
+from babs.utils import (
+    app_output_settings_from_config,
+    read_yaml,
+)
 
 input_datasets_prep = [
     {
@@ -74,6 +77,7 @@ NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
 testing_pairs = [
     (input_ds, config, level)
     for input_ds, config in [
+        (input_datasets_prep, 'eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml'),
         (input_datasets_prep, 'eg_aslprep-0-7-5.yaml'),
         (input_datasets_prep, 'eg_fmriprep-24-1-1_anatonly.yaml'),
         (input_datasets_prep, 'eg_fmriprep-24-1-1_regular.yaml'),
@@ -112,12 +116,13 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
     config_path = NOTEBOOKS_DIR / config_file
     container_name = config_file.split('_')[1]
     config = read_yaml(config_path)
+    dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(config)
     script_content = generate_bidsapp_runscript(
         input_datasets,
         processing_level,
         container_name=container_name,
         relative_container_path=f'containers/.datalad/containers/{container_name}/image',
-        output_directory='outputs',
+        bids_app_output_dir=bids_app_output_dir,
         dict_zip_foldernames=config['zip_foldernames'],
         bids_app_args=config['bids_app_args'],
         singularity_args=config['singularity_args'],

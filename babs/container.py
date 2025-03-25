@@ -131,14 +131,14 @@ class Container:
         templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
 
         # What should the outputs look like?
-        dict_zip_foldernames, path_output_folder = app_output_settings_from_config(self.config)
+        dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(self.config)
 
         script_content = generate_bidsapp_runscript(
             input_datasets,
             processing_level,
             container_name=self.container_name,
             relative_container_path=self.container_path_relToAnalysis,
-            output_directory=path_output_folder,
+            bids_app_output_dir=bids_app_output_dir,
             dict_zip_foldernames=dict_zip_foldernames,
             bids_app_args=self.config.get('bids_app_args', None),
             singularity_args=self.config.get('singularity_args', []),
