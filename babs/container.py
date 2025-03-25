@@ -7,7 +7,7 @@ import warnings
 import yaml
 from jinja2 import Environment, PackageLoader
 
-from babs.generate_bidsapp_runscript import generate_bidsapp_run_script
+from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.utils import (
     generate_bashhead_resources,
     generate_cmd_datalad_run,
@@ -133,7 +133,7 @@ class Container:
         # What should the outputs look like?
         dict_zip_foldernames, _, path_output_folder = get_info_zip_foldernames(self.config)
 
-        script_content = generate_bidsapp_run_script(
+        script_content = generate_bidsapp_runscript(
             input_datasets,
             processing_level,
             container_name=self.container_name,
