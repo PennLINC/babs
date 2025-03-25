@@ -72,17 +72,21 @@ NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
 
 # match the inputs with their corresponding yaml files in notebooks/
 testing_pairs = [
-    (input_datasets_prep, 'eg_aslprep-0-7-5.yaml'),
-    (input_datasets_prep, 'eg_fmriprep-24-1-1_anatonly.yaml'),
-    (input_datasets_prep, 'eg_fmriprep-24-1-1_regular.yaml'),
-    (
-        input_datasets_fmriprep_ingressed_anat,
-        'eg_fmriprep-24-1-1_ingressed-fs.yaml',
-    ),
-    (input_datasets_prep, 'eg_qsiprep-1-0-0_regular.yaml'),
-    (input_datasets_xcpd, 'eg_xcpd-0-10-6_linc.yaml'),
-    (input_datasets_qsirecon, 'eg_qsirecon-1-0-1_custom_spec.yaml'),
-    (input_datasets_qsirecon_ingressed_anat_zipped, 'eg_qsirecon-1-0-1_hsvs.yaml'),
+    (input_ds, config, level)
+    for input_ds, config in [
+        (input_datasets_prep, 'eg_aslprep-0-7-5.yaml'),
+        (input_datasets_prep, 'eg_fmriprep-24-1-1_anatonly.yaml'),
+        (input_datasets_prep, 'eg_fmriprep-24-1-1_regular.yaml'),
+        (
+            input_datasets_fmriprep_ingressed_anat,
+            'eg_fmriprep-24-1-1_ingressed-fs.yaml',
+        ),
+        (input_datasets_prep, 'eg_qsiprep-1-0-0_regular.yaml'),
+        (input_datasets_xcpd, 'eg_xcpd-0-10-6_linc.yaml'),
+        (input_datasets_qsirecon, 'eg_qsirecon-1-0-1_custom_spec.yaml'),
+        (input_datasets_qsirecon_ingressed_anat_zipped, 'eg_qsirecon-1-0-1_hsvs.yaml'),
+    ]
+    for level in ['subject', 'session']
 ]
 
 
@@ -102,15 +106,15 @@ def test_get_input_unipping_cmds():
     assert len(qsirecon_anat_cmd) > len(qsirecon_cmd)
 
 
-@pytest.mark.parametrize(('input_datasets', 'config_file'), testing_pairs)
-def test_generate_bidsapp_runscript(input_datasets, config_file):
+@pytest.mark.parametrize(('input_datasets', 'config_file', 'processing_level'), testing_pairs)
+def test_generate_bidsapp_runscript(input_datasets, config_file, processing_level):
     """Test that the bidsapp runscript is generated correctly."""
     config_path = NOTEBOOKS_DIR / config_file
     container_name = config_file.split('_')[1]
     config = read_yaml(config_path)
     script_content = generate_bidsapp_runscript(
         input_datasets,
-        'session',
+        processing_level,
         container_name=container_name,
         relative_container_path=f'containers/.datalad/containers/{container_name}/image',
         output_directory='outputs',
