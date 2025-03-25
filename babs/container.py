@@ -9,12 +9,12 @@ from jinja2 import Environment, PackageLoader
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.utils import (
+    app_output_settings_from_config,
     generate_bashhead_resources,
     generate_cmd_datalad_run,
     generate_cmd_determine_zipfilename,
     generate_cmd_job_compute_space,
     generate_cmd_script_preamble,
-    get_info_zip_foldernames,
 )
 
 
@@ -131,7 +131,7 @@ class Container:
         templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
 
         # What should the outputs look like?
-        dict_zip_foldernames, _, path_output_folder = get_info_zip_foldernames(self.config)
+        dict_zip_foldernames, path_output_folder = app_output_settings_from_config(self.config)
 
         script_content = generate_bidsapp_runscript(
             input_datasets,

@@ -27,8 +27,9 @@ singularity_args:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As MRIQC will use BIDS output layout, we need to ask BABS to create a folder 'mriqc' to wrap all derivatives:
+all_results_in_one_zip: true
 zip_foldernames:
-    $TO_CREATE_FOLDER: "true"
+    CREATE_ROOT_OUTPUT_DIR: "true"
     mriqc: "24-0-2" # folder 'mriqc' will be zipped into 'sub-xx_(ses-yy_)mriqc-24-0-2.zip'
 
 # How much cluster resources it needs:

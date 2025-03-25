@@ -213,7 +213,7 @@ def replace_placeholder_from_config(value):
     return replaced
 
 
-def get_info_zip_foldernames(config):
+def app_output_settings_from_config(config):
     """
     This is to get information from `zip_foldernames` section
     in the container configuration YAML file.
@@ -234,13 +234,13 @@ def get_info_zip_foldernames(config):
     ---------
     dict_zip_foldernames: dict
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
-    if_mk_folder: bool
+    create_output_dir_for_single_zip: bool
         whether requested to create a sub-folder in `outputs`.
-    path_output_folder: str
+    bids_app_output_dir: str
         output folder used in `singularity run` of the BIDS App.
         see examples below.
 
-    Examples `path_output_folder` of BIDS App:
+    Examples `bids_app_output_dir` of BIDS App:
     -------------------------------------------------
     In `zip_foldernames` section:
     1. No placeholder:                  outputs
@@ -251,7 +251,16 @@ def get_info_zip_foldernames(config):
     In fact, we use `OUTPUT_MAIN_FOLDERNAME` to define the 'outputs' string.
     """
 
-    from .constants import OUTPUT_MAIN_FOLDERNAME, PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
+    # create a copy of the config to avoid modifying the original
+    config = copy.deepcopy(config)
+
+    from .constants import (
+        OUTPUT_MAIN_FOLDERNAME,
+        PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED,
+    )
+
+    # By default, the output folder is `outputs`:
+    bids_app_output_dir = OUTPUT_MAIN_FOLDERNAME
 
     # Sanity check: this section should exist:
     if 'zip_foldernames' not in config:
@@ -260,52 +269,46 @@ def get_info_zip_foldernames(config):
             ' the section `zip_foldernames`. Please add this section!'
         )
 
-    # Check if placeholder to make a sub-folder in `outputs` folder:
-    if_mk_folder = False
-    if PLACEHOLDER_MK_SUB_OUTPUT_FOLDER in config['zip_foldernames']:
-        # check its value:
-        #   there cannot be two placeholders (w/ same strings);
-        #   otherwise error when loading yaml file
-        value = config['zip_foldernames'][PLACEHOLDER_MK_SUB_OUTPUT_FOLDER]
-        if value.lower() == 'true':  # lower case is "true"
-            if_mk_folder = True
+    # Check if placeholder to make a sub-folder in `outputs` folder
+    create_output_dir_for_single_zip = config.get('all_results_in_one_zip', None)
+
+    deprecated_create_output_dir_for_single_zip = None
+    if PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED in config['zip_foldernames']:
+        warnings.warn(
+            "The placeholder '"
+            + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED
+            + "' is deprecated. Please use the root level `all_results_in_one_zip`'"
+            + "' instead.",
+            stacklevel=2,
+        )
+        deprecated_create_output_dir_for_single_zip = (
+            config['zip_foldernames'].pop(PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED).lower()
+            == 'true'
+        )
+
+    # Only raise an exception if both are defined and they don't match
+    if None not in (deprecated_create_output_dir_for_single_zip, create_output_dir_for_single_zip):
+        if not deprecated_create_output_dir_for_single_zip == create_output_dir_for_single_zip:
+            raise ValueError(
+                'The `all_results_in_one_zip` and the deprecated placeholder'
+                "'" + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED + "' do not match."
+            )
+
+    # Make sure it's not empty after we popped the deprecated key
+    if not config['zip_foldernames']:
+        raise Exception('No output folder name provided in `zip_foldernames` section.')
 
     # Get the dict of foldernames + version number:
-    dict_zip_foldernames = config['zip_foldernames']
-    if if_mk_folder:
-        # remove key of placeholder if there is:
-        _ = dict_zip_foldernames.pop(PLACEHOLDER_MK_SUB_OUTPUT_FOLDER)
-        # ^^ the returned value is the value of this key
-
-        # sanity check: if there was placeholder, we expect only one output folder to create:
-        if len(dict_zip_foldernames) == 1:  # good
-            pass
-        elif len(dict_zip_foldernames) == 0:  # only placeholder was provided:
-            raise Exception(
-                "Only placeholder '"
-                + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
-                + "'"
-                + " is provided in section 'zip_foldernames'."
-                + ' You should also provide'
-                + ' a name of output folder to create and zip.'
-            )
-        else:  # len(dict_zip_foldernames) > 1:   # more than one foldernames provided:
+    if create_output_dir_for_single_zip:
+        if not len(config['zip_foldernames']) == 1:
             raise Exception(
                 'You ask BABS to create more than one output folder,'
                 ' but BABS can only create one output folder.'
                 " Please only keep one of them in 'zip_foldernames' section."
             )
+        bids_app_output_dir += '/' + config['zip_foldernames'].keys()[0]
 
-    # Get the list of foldernames (w/o version number):
-    list_foldernames = list(dict_zip_foldernames.keys())
-
-    # Generate the output folder path:
-    path_output_folder = OUTPUT_MAIN_FOLDERNAME
-    if if_mk_folder:
-        the_folder = list_foldernames[0]  # there is only one folder
-        path_output_folder += '/' + the_folder
-
-    return dict_zip_foldernames, if_mk_folder, path_output_folder
+    return config['zip_foldernames'], bids_app_output_dir
 
 
 def generate_one_bashhead_resources(system, key, value):

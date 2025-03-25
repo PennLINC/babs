@@ -115,7 +115,7 @@ def get_output_zipping_cmds(dict_zip_foldernames, processing_level):
     ------------
     dict_zip_foldernames: dictionary
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
-        got from `get_info_zip_foldernames()`.
+        got from `app_output_settings_from_config()`.
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
 

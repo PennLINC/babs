@@ -28,8 +28,8 @@ bids_app_args:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As ASLPrep will use BIDS output layout, we need to ask BABS to create a folder 'aslprep' to wrap all derivatives:
+all_results_in_one_zip: true
 zip_foldernames:
-    $TO_CREATE_FOLDER: "true"
     aslprep: "0-7-5" # folder 'aslprep' will be zipped into 'sub-xx_(ses-yy_)aslprep-0-7-5.zip'
 
 # How much cluster resources it needs:
