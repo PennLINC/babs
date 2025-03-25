@@ -280,7 +280,6 @@ Below is an example YAML file for toy BIDS App:
 
 .. literalinclude:: ../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
    :language: yaml
-   :lines: 21-
    :linenos:
    :emphasize-lines: 18,19,21,22,25
 
