@@ -387,8 +387,8 @@ where the BIDS App will generate one or several folders that wrap all derivative
 Example use cases are ``fMRIPrep`` with legacy output layout, as well as ``QSIPrep`` and ``XCP-D``.
 
 If the BIDS App won't generate one or several folders that wrap all derivative files,
-users should ask BABS to create a folder as an extra layer by specifying ``$TO_CREATE_FOLDER: "true"``.
-We explain how to do so in :ref:`Exmample #2 <example_zip_foldernames_for_fmriprep_BIDS_output_layout>`.
+users should ask BABS to create a folder as an extra layer by specifying ``all_results_in_one_zip: true``.
+We explain how to do so in :ref:`Example #2 <example_zip_foldernames_for_fmriprep_BIDS_output_layout>`.
 An example use case is ``fMRIPrep`` with BIDS output layout.
 
 
@@ -468,11 +468,11 @@ Example section **zip_foldernames** for ``fMRIPrep`` *BIDS* output layout:
 ..  code-block:: yaml
     :linenos:
 
+    all_results_in_one_zip: true
     zip_foldernames:
-        $TO_CREATE_FOLDER: "true"
         fmriprep: "23-1-3"
 
-Line #2 ``$TO_CREATE_FOLDER: "true"`` asks BABS to create an additional folder,
+Line #1 ``all_results_in_one_zip: true`` asks BABS to create an additional folder,
 i.e., ``fmriprep`` specified in line #3, to wrap all derivatives.
 In this way, the output will look like below::
 
@@ -486,8 +486,8 @@ In this way, the output will look like below::
 Note that all derivatives will locate in the "wrapper" folder called ``fmriprep``.
 BABS will zip this folder into zip file ``${sub-id}_${ses-id}_fmriprep-23-1-3.zip``.
 
-In addition, when using ``$TO_CREATE_FOLDER: "true"``,
-please only provide one foldername for BABS to create.
+In addition, when using ``all_results_in_one_zip: true``,
+you must only provide one foldername in ``zip_foldernames``.
 
 Other detailed instructions
 ---------------------------------
@@ -713,11 +713,12 @@ Example section **job_compute_space**:
 
 ..  code-block:: yaml
 
-    job_compute_space: "${CBICA_TMPDIR}"   # Penn Med CUBIC cluster tmp space
+    job_compute_space: "/tmp"
 
-Here, ``"${CBICA_TMPDIR}"`` is an environment variable recognized by Penn Medicine CUBIC cluster,
-which points to some temporary compute space local to the compute node. This environment variable
-might not be recognized by your clusters, but you can use the path that's specific to yours::
+Here, ``"/tmp"`` is NOT a good choice, check your cluster's documentation for
+the correct path.
+This environment variable might not be recognized by your cluster,
+but you can use the path that's specific to yours::
 
     job_compute_space: "/path/to/some_temporary_compute_space"
 
