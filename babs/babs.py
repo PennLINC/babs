@@ -20,7 +20,6 @@ from babs.system import validate_queue
 from babs.utils import (
     calcu_runtime,
     ceildiv,
-    check_validity_unzipped_input_dataset,
     df_status_update,
     df_submit_update,
     get_alert_message_in_log_files,
@@ -39,6 +38,7 @@ from babs.utils import (
     submit_array,
     submit_one_test_job,
     validate_processing_level,
+    validate_unzipped_datasets,
     write_yaml,
 )
 
@@ -399,7 +399,7 @@ class BABS:
 
         # Check validity of unzipped ds:
         #   if session, has `ses-*` in each `sub-*`; if subject, has a `sub-*`
-        check_validity_unzipped_input_dataset(input_ds, self.processing_level)
+        validate_unzipped_datasets(input_ds, self.processing_level)
 
         # Update input ds information in `babs_proj_config.yaml`:
         babs_proj_config = read_yaml(self.config_path, if_filelock=True)

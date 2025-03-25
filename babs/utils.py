@@ -28,76 +28,53 @@ def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 
 
-def check_validity_unzipped_input_dataset(input_ds, processing_level):
-    """
-    Check if each of the unzipped input datasets is valid.
+def validate_unzipped_datasets(input_ds, processing_level):
+    """Check if each of the unzipped input datasets is valid.
+
     Here we only check the "unzipped" datasets;
     the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
 
-    * if it's session: subject + session should both appear
-    * if it's subject: there should be sub folder, but no ses folder
+    * If subject-wise processing is enabled, there should be "sub" folders.
+      "ses" folders are optional.
+    * If session-wise processing is enabled, there should be both "sub" and "ses" folders.
 
     Parameters
     ----------
-    input_ds: class `InputDatasets`
+    input_ds : :obj:`babs.dataset.InputDatasets`
         info on input dataset(s)
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
-
-    Notes
-    -----
-    Tested with session and subject data;
-        made sure that only subject data + processing_level = "session" raise error.
-    TODO: add above tests to pytests
     """
 
     if processing_level not in ['session', 'subject']:
-        raise Exception('invalid `processing_level`!')
+        raise ValueError('invalid `processing_level`!')
 
-    if False in list(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
+    if not all(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
         print('Performing sanity check for any unzipped input dataset...')
 
-    for i_ds in range(0, input_ds.num_ds):
-        if input_ds.df['is_zipped'][i_ds] is False:  # unzipped ds:
-            input_ds_path = input_ds.df['path_now_abs'][i_ds]
+    for i_ds in range(input_ds.num_ds):
+        if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
+            input_ds_path = input_ds.df.loc[i_ds, 'path_now_abs']
             # Check if there is sub-*:
-            full_paths = sorted(
-                glob.glob(input_ds_path + '/sub-*')  # `sorted()` is optional
-            )
+            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
+
             # only get the sub's foldername, if it's a directory:
-            list_subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
-            if len(list_subs) == 0:  # no folders with `sub-*`:
-                raise Exception(
-                    'There is no `sub-*` folder in input dataset #'
-                    + str(i_ds + 1)
-                    + " '"
-                    + input_ds.df['name'][i_ds]
-                    + "'!"
+            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
+            if len(subjects) == 0:  # no folders with `sub-*`:
+                raise FileNotFoundError(
+                    f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
+                    f'"{input_ds.df.loc[i_ds, "name"]}"!'
                 )
 
             # For session: also check if there is session in each sub-*:
             if processing_level == 'session':
-                for sub_temp in list_subs:  # every sub- folder should contain a session folder
-                    if sub_temp[0] == '.':  # hidden folder
-                        continue  # skip it
-                    is_valid_seslevel = False
-                    list_sess = get_immediate_subdirectories(op.join(input_ds_path, sub_temp))
-                    for ses_temp in list_sess:
-                        if ses_temp[0:4] == 'ses-':
-                            # if one of the folder starts with "ses-", then it's fine
-                            is_valid_seslevel = True
-                            break
-
-                    if not is_valid_seslevel:
-                        raise Exception(
-                            'In input dataset #'
-                            + str(i_ds + 1)
-                            + " '"
-                            + input_ds.df['name'][i_ds]
-                            + "',"
-                            + " there is no `ses-*` folder in subject folder '"
-                            + sub_temp
-                            + "'!"
+                for subject in subjects:  # every sub- folder should contain a session folder
+                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
+                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
+                    if len(sessions) == 0:
+                        raise FileNotFoundError(
+                            f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '
+                            f'there is no `ses-*` folder in subject folder "{subject}"!'
                         )
 
 
@@ -679,7 +656,7 @@ def get_list_sub_ses(input_ds, config, babs):
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
             full_paths = sorted(glob.glob(input_ds.df['path_now_abs'][i_ds] + '/sub-*'))
             # no need to check if there is `sub-*` in this dataset
-            #   have been checked in `check_validity_unzipped_input_dataset()`
+            #   have been checked in `validate_unzipped_datasets()`
             # only get the sub's foldername, if it's a directory:
             subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
         else:  # zipped:
@@ -720,7 +697,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     full_paths = sorted(full_paths)
                     sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
                     # no need to validate again that session exists
-                    # -  have been done in `check_validity_unzipped_input_dataset()`
+                    # -  have been done in `validate_unzipped_datasets()`
 
                     list_sub_ses[i_sub] = sess
 
