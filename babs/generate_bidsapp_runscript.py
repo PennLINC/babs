@@ -90,7 +90,7 @@ def generate_bidsapp_runscript(
         processing_level=processing_level,
         input_datasets=input_datasets,
         container_name=container_name,
-        flag_filterfile=processing_level == 'session',
+        flag_filterfile=processing_level == 'session' and 'prep' in container_name.lower(),
         cmd_unzip_inputds=cmd_unzip_inputds,
         templateflow_home_on_disk=templateflow_home,
         templateflow_in_container='/SGLR/TEMPLATEFLOW_HOME',
