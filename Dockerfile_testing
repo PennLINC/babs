@@ -1,4 +1,4 @@
-FROM pennlinc/slurm-docker-ci:0.9
+FROM pennlinc/slurm-docker-ci:0.10
 
 # # install BABS
 COPY . /babs

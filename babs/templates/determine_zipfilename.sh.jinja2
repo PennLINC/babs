@@ -1,0 +1,24 @@
+{% if input_ds.df['is_zipped'].any() %}
+# Get the zip filename of current subject (or session):
+{% endif %}
+
+{% for i_ds in range(input_ds.num_ds) %}
+{% if input_ds.df['is_zipped'][i_ds] %}
+{{ input_ds.df['name'][i_ds].upper() }}_ZIP=$(ls {{ input_ds.df['path_now_rel'][i_ds] }}/${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ input_ds.df['name'][i_ds] }}*.zip | cut -d '@' -f 1 || true)
+
+echo 'found {{ input_ds.df['name'][i_ds] }} zipfile:'
+echo ${ {{ input_ds.df['name'][i_ds].upper() }}_ZIP}
+
+if [ -z "${ {{ input_ds.df['name'][i_ds].upper() }}_ZIP}" ]; then
+    echo 'No input zipfile of {{ input_ds.df['name'][i_ds] }} found for ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}'
+    exit 99
+fi
+
+# sanity check: there should be only 1 matched file:
+array=(${{ input_ds.df['name'][i_ds].upper() }}_ZIP)
+if [ "${#array[@]}" -gt "1" ]; then
+    echo 'There is more than one input zipfile of {{ input_ds.df['name'][i_ds] }} found for ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}'
+    exit 98
+fi
+{% endif %}
+{% endfor %}

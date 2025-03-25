@@ -189,7 +189,7 @@ def test_babs_init(
     # check:
     # if_bind_templateflow = False  # `singularity run -B` to bind a path to container
     if_bind_freesurfer = False
-    str_bind_freesurfer = '-B ' + str_fs_license_file + ':/SGLR/FREESURFER_HOME/license.txt'
+    str_bind_freesurfer = f'-B "{str_fs_license_file}":"/SGLR/FREESURFER_HOME/license.txt"'
     print(str_bind_freesurfer)  # FOR DEBUGGING
 
     # if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
@@ -206,7 +206,7 @@ def test_babs_init(
         #     if_bind_templateflow = True
         if str_bind_freesurfer in line:
             if_bind_freesurfer = True
-        if 'filterfile=${PWD}/${sesid}_filter.json' in line:
+        if 'filterfile="${PWD}/${sesid}_filter.json"' in line:
             if_generate_bidsfilterfile = True
         if '--bids-filter-file "${filterfile}"' in line:
             if_flag_bidsfilterfile = True

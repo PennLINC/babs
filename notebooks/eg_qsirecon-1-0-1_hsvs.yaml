@@ -21,17 +21,17 @@ bids_app_args:
     --recon-spec: "/code/recon_spec.yaml" # [FIX ME] you will need to 1) bind this file in the singularity run yourself (in the qsirecon_zip.sh and participant_job.sh in analysis/code) and 2) add this file in your analysis/code, then babs sync-code
     --nthreads: "8"
     --omp-nthreads: "8"
+    $INPUT_PATH: "inputs/data/qsiprep"
 
 # Arguments that are passed directly to singularity/apptainer:
 singularity_args:
     - --containall
     - --writable-tmpfs
-    - -B /path/to/recon_spec.yaml:/code/recon_spec.yaml
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsirecon' to wrap all derivatives:
+all_results_in_one_zip: true
 zip_foldernames:
-    $TO_CREATE_FOLDER: "true"
     qsirecon: "1-0-1" # folder 'qsirecon' will be zipped into 'sub-xx_(ses-yy_)qsirecon-1-0-1.zip'
 
 # How much cluster resources it needs:

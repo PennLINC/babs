@@ -45,8 +45,8 @@ singularity_args:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'xcpd' to wrap all derivatives:
+all_results_in_one_zip: true
 zip_foldernames:
-    $TO_CREATE_FOLDER: "true"
     xcpd: "0-10-6" # folder 'xcpd' will be zipped into 'sub-xx_(ses-yy_)xcpd-0-10-5.zip'
 
 # How much cluster resources it needs:

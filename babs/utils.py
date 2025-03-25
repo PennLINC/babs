@@ -185,207 +185,12 @@ def replace_placeholder_from_config(value):
     """
     value = str(value)
     if value == '$BABS_TMPDIR':
-        replaced = '${PWD}/.git/tmp/wkdir'
+        replaced = '"${PWD}/.git/tmp/wkdir"'
 
     return replaced
 
 
-def generate_cmd_singularityRun_from_config(config, input_ds):
-    """
-    This is to generate command (in strings) of singularity run
-    from config read from container config yaml file.
-
-    Parameters:
-    ------------
-    config: dictionary
-        attribute `config` in class Container;
-    input_ds: class `InputDatasets`
-        input dataset(s) information
-    Returns:
-    ---------
-    cmd: str
-        It's part of the singularity run command; it is generated
-        based on section `bids_app_args` in the yaml file.
-    subject_selection_flag: str
-        It's part of the singularity run command; it's the command-line flag
-        used to specify the subject(s) to be processed by the BIDS app.
-    flag_fs_license: True or False
-        Whether FreeSurfer's license will be used.
-        This is determined by checking if there is argument called `--fs-license-file`
-        If so, the license file will be bound into and used by the container
-    path_fs_license: None or str
-        Path to the FreeSurfer license. This is provided by the user in `--fs-license-file`.
-    singuRun_input_dir: None or str
-        The positional argument of input dataset path in `singularity run`
-    """
-    from .constants import PATH_FS_LICENSE_IN_CONTAINER
-
-    cmd = ''
-    # is_first_flag = True
-    flag_fs_license = False
-    path_fs_license = None
-    singuRun_input_dir = None
-
-    # re: positional argu `$INPUT_PATH`:
-    if input_ds.num_ds > 1:  # more than 1 input dataset:
-        # check if `$INPUT_PATH` is one of the keys (must):
-        if '$INPUT_PATH' not in config['bids_app_args']:
-            raise Exception(
-                "The key '$INPUT_PATH' is expected in section `bids_app_args`"
-                ' in `container_config`, because there are more than'
-                ' one input dataset!'
-            )
-    else:  # only 1 input dataset:
-        # check if the path is consistent with the name of the only input ds's name:
-        if '$INPUT_PATH' in config['bids_app_args']:
-            expected_temp = 'inputs/data/' + input_ds.df['name'][0]
-            if config['bids_app_args']['$INPUT_PATH'] != expected_temp:
-                raise Exception(
-                    "As there is only one input dataset, the value of '$INPUT_PATH'"
-                    ' in section `bids_app_args`'
-                    ' in `container_config` should be'
-                    " '" + expected_temp + "'; You can also choose"
-                    " not to specify '$INPUT_PATH'."
-                )
-
-    # example key: "-w", "--n_cpus"
-    # example value: "", "xxx", Null (placeholder)
-    subject_selection_flag = None
-    for key, value in config['bids_app_args'].items():
-        # print(key + ": " + str(value))
-
-        if key == '$INPUT_PATH':  # placeholder
-            #   if not, warning....
-            if value[-1] == '/':
-                value = value[:-1]  # remove the unnecessary forward slash at the end
-
-            # sanity check that `value` should match with one of input ds's `path_data_rel`
-            if value not in list(input_ds.df['path_data_rel']):  # after unzip, if needed
-                warnings.warn(
-                    "'" + value + "' specified after $INPUT_PATH"
-                    ' (in section `bids_app_args`'
-                    ' in `container_config`), does not'
-                    " match with any dataset's current path."
-                    ' This may cause error when running the BIDS App.',
-                    stacklevel=2,
-                )
-
-            singuRun_input_dir = value
-            # ^^ no matter one or more input dataset(s)
-            # and not add to the flag cmd
-
-        # Check if FreeSurfer license will be used:
-        elif key == '--fs-license-file':
-            flag_fs_license = True
-            path_fs_license = value  # the provided value is the path to the FS license
-            # sanity check: `path_fs_license` exists:
-            if op.exists(path_fs_license) is False:
-                # raise a warning, instead of an error
-                #   so that pytest using example yaml files will always pass
-                #   regardless of the path provided in the yaml file
-                warnings.warn(
-                    'Path to FreeSurfer license provided in `--fs-license-file`'
-                    " in container's configuration YAML file"
-                    " does NOT exist! The path provided: '" + path_fs_license + "'.",
-                    stacklevel=2,
-                )
-
-            # if alright: Now use the path within the container:
-            cmd += ' \\' + '\n\t' + str(key) + ' ' + PATH_FS_LICENSE_IN_CONTAINER
-            # ^^ the 'license.txt' will be bound to above path.
-
-        elif key == '$SUBJECT_SELECTION_FLAG':
-            subject_selection_flag = value
-
-        else:  # check on values:
-            if value == '':  # a flag, without value
-                cmd += ' \\' + '\n\t' + str(key)
-            else:  # a flag with value
-                # check if it is a placeholder which needs to be replaced:
-                # e.g., `$BABS_TMPDIR`
-                if str(value)[:6] == '$BABS_':
-                    replaced = replace_placeholder_from_config(value)
-                    cmd += ' \\' + '\n\t' + str(key) + ' ' + str(replaced)
-
-                elif value is None:  # if entered `Null` or `NULL` without quotes
-                    cmd += ' \\' + '\n\t' + str(key)
-                elif value in [
-                    'Null',
-                    'NULL',
-                ]:  # "Null" or "NULL" w/ quotes, i.e., as strings
-                    cmd += ' \\' + '\n\t' + str(key)
-
-                # there is no placeholder to deal with:
-                else:
-                    cmd += ' \\' + '\n\t' + str(key) + ' ' + str(value)
-
-    # Ensure that subject_selection_flag is not None before returning
-    if subject_selection_flag is None:
-        subject_selection_flag = '--participant-label'
-        print(
-            "'$SUBJECT_SELECTION_FLAG' not found in `bids_app_args` section of the YAML file. "
-            'Using `--participant-label` as the default subject selection flag.'
-        )
-
-    # Finalize `singuRun_input_dir`:
-    if singuRun_input_dir is None:
-        # now, it must be only one input dataset, and user did not provide `$INPUT_PATH` key:
-        assert input_ds.num_ds == 1
-        singuRun_input_dir = input_ds.df['path_data_rel'][0]
-        # ^^ path to data (if zipped ds: after unzipping)
-
-    return (
-        cmd,
-        subject_selection_flag,
-        flag_fs_license,
-        path_fs_license,
-        singuRun_input_dir,
-    )
-
-
-def generate_cmd_set_envvar(env_var_name):
-    """
-    This is to generate argument `--env` in `singularity run`,
-    and to get the env var value for later use: binding the path (env var value).
-    Call this function for `TEMPLATEFLOW_HOME`.
-
-    Parameters:
-    ----------------
-    env_var_name: str
-        The name of the environment variable to be injected into the container
-        e.g., "TEMPLATEFLOW_HOME"
-
-    Returns:
-    ------------
-    env_var_value: str
-        The value of the env variable `env_var_name`
-    env_var_value_in_container: str
-        The env var value used in container;
-        e.g., "/SGLR/TEMPLATEFLOW_HOME"
-    """
-
-    # Generate argument `--env` in `singularity run`:
-    env_var_value_in_container = '/SGLR/' + env_var_name
-
-    # Get env var's value, to be used for binding `-B` in `singularity run`:
-    env_var_value = os.getenv(env_var_name)
-
-    # If it's templateflow:
-    if env_var_name == 'TEMPLATEFLOW_HOME':
-        if env_var_value is None:
-            warnings.warn(
-                'Usually BIDS App depends on TemplateFlow,'
-                ' but environment variable `TEMPLATEFLOW_HOME` was not set up.'
-                ' Therefore, BABS will not bind its directory'
-                ' or inject this environment variable into the container'
-                ' when running the container. This may cause errors.',
-                stacklevel=2,
-            )
-
-    return env_var_value, env_var_value_in_container
-
-
-def get_info_zip_foldernames(config):
+def app_output_settings_from_config(config):
     """
     This is to get information from `zip_foldernames` section
     in the container configuration YAML file.
@@ -406,13 +211,13 @@ def get_info_zip_foldernames(config):
     ---------
     dict_zip_foldernames: dict
         `config["zip_foldernames"]` w/ placeholder key/value pair removed.
-    if_mk_folder: bool
+    create_output_dir_for_single_zip: bool
         whether requested to create a sub-folder in `outputs`.
-    path_output_folder: str
+    bids_app_output_dir: str
         output folder used in `singularity run` of the BIDS App.
         see examples below.
 
-    Examples `path_output_folder` of BIDS App:
+    Examples `bids_app_output_dir` of BIDS App:
     -------------------------------------------------
     In `zip_foldernames` section:
     1. No placeholder:                  outputs
@@ -423,7 +228,16 @@ def get_info_zip_foldernames(config):
     In fact, we use `OUTPUT_MAIN_FOLDERNAME` to define the 'outputs' string.
     """
 
-    from .constants import OUTPUT_MAIN_FOLDERNAME, PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
+    # create a copy of the config to avoid modifying the original
+    config = copy.deepcopy(config)
+
+    from .constants import (
+        OUTPUT_MAIN_FOLDERNAME,
+        PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED,
+    )
+
+    # By default, the output folder is `outputs`:
+    bids_app_output_dir = OUTPUT_MAIN_FOLDERNAME
 
     # Sanity check: this section should exist:
     if 'zip_foldernames' not in config:
@@ -432,160 +246,46 @@ def get_info_zip_foldernames(config):
             ' the section `zip_foldernames`. Please add this section!'
         )
 
-    # Check if placeholder to make a sub-folder in `outputs` folder:
-    if_mk_folder = False
-    if PLACEHOLDER_MK_SUB_OUTPUT_FOLDER in config['zip_foldernames']:
-        # check its value:
-        #   there cannot be two placeholders (w/ same strings);
-        #   otherwise error when loading yaml file
-        value = config['zip_foldernames'][PLACEHOLDER_MK_SUB_OUTPUT_FOLDER]
-        if value.lower() == 'true':  # lower case is "true"
-            if_mk_folder = True
+    # Check if placeholder to make a sub-folder in `outputs` folder
+    create_output_dir_for_single_zip = config.get('all_results_in_one_zip', None)
+
+    deprecated_create_output_dir_for_single_zip = None
+    if PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED in config['zip_foldernames']:
+        warnings.warn(
+            "The placeholder '"
+            + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED
+            + "' is deprecated. Please use the root level `all_results_in_one_zip`'"
+            + "' instead.",
+            stacklevel=2,
+        )
+        deprecated_create_output_dir_for_single_zip = (
+            config['zip_foldernames'].pop(PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED).lower()
+            == 'true'
+        )
+
+    # Only raise an exception if both are defined and they don't match
+    if None not in (deprecated_create_output_dir_for_single_zip, create_output_dir_for_single_zip):
+        if not deprecated_create_output_dir_for_single_zip == create_output_dir_for_single_zip:
+            raise ValueError(
+                'The `all_results_in_one_zip` and the deprecated placeholder'
+                "'" + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED + "' do not match."
+            )
+
+    # Make sure it's not empty after we popped the deprecated key
+    if not config['zip_foldernames']:
+        raise Exception('No output folder name provided in `zip_foldernames` section.')
 
     # Get the dict of foldernames + version number:
-    dict_zip_foldernames = config['zip_foldernames']
-    if if_mk_folder:
-        # remove key of placeholder if there is:
-        _ = dict_zip_foldernames.pop(PLACEHOLDER_MK_SUB_OUTPUT_FOLDER)
-        # ^^ the returned value is the value of this key
-
-        # sanity check: if there was placeholder, we expect only one output folder to create:
-        if len(dict_zip_foldernames) == 1:  # good
-            pass
-        elif len(dict_zip_foldernames) == 0:  # only placeholder was provided:
-            raise Exception(
-                "Only placeholder '"
-                + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER
-                + "'"
-                + " is provided in section 'zip_foldernames'."
-                + ' You should also provide'
-                + ' a name of output folder to create and zip.'
-            )
-        else:  # len(dict_zip_foldernames) > 1:   # more than one foldernames provided:
+    if create_output_dir_for_single_zip:
+        if not len(config['zip_foldernames']) == 1:
             raise Exception(
                 'You ask BABS to create more than one output folder,'
                 ' but BABS can only create one output folder.'
                 " Please only keep one of them in 'zip_foldernames' section."
             )
+        bids_app_output_dir += '/' + next(iter(config['zip_foldernames'].keys()))
 
-    # Get the list of foldernames (w/o version number):
-    list_foldernames = list(dict_zip_foldernames.keys())
-
-    # Generate the output folder path:
-    path_output_folder = OUTPUT_MAIN_FOLDERNAME
-    if if_mk_folder:
-        the_folder = list_foldernames[0]  # there is only one folder
-        path_output_folder += '/' + the_folder
-
-    return dict_zip_foldernames, if_mk_folder, path_output_folder
-
-
-def generate_cmd_zipping_from_config(dict_zip_foldernames, processing_level):
-    """
-    This is to generate bash command to zip BIDS App outputs.
-
-    Parameters:
-    ------------
-    dict_zip_foldernames: dictionary
-        `config["zip_foldernames"]` w/ placeholder key/value pair removed.
-        got from `get_info_zip_foldernames()`.
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-
-    Returns:
-    ---------
-    cmd: str
-        It's part of the `<containerName_zip.sh>`; it is generated
-        based on section `zip_foldernames` in the yaml file.
-    """
-
-    from .constants import OUTPUT_MAIN_FOLDERNAME
-
-    # cd to output folder:
-    cmd = 'cd ' + OUTPUT_MAIN_FOLDERNAME + '\n'
-
-    # 7z:
-    if processing_level == 'session':
-        str_sesid = '_${sesid}'
-    else:
-        str_sesid = ''
-
-    # start to generate 7z commands:
-    value_temp = ''
-    temp = 0
-    for key, value in dict_zip_foldernames.items():
-        # each key is a foldername to be zipped;
-        # each value is the version string;
-        temp = temp + 1
-        if (temp != 1) & (value_temp != value):  # not matching last value
-            warnings.warn(
-                'In section `zip_foldernames` in `container_config`: \n'
-                "The version string of '" + key + "': '" + value + "'"
-                ' does not match with the last version string; '
-                'we suggest using the same version string across all foldernames.',
-                stacklevel=2,
-            )
-        value_temp = value
-
-        cmd += '7z a ../${subid}' + str_sesid + '_' + key + '-' + value + '.zip' + ' ' + key + '\n'
-        # e.g., 7z a ../${subid}_${sesid}_fmriprep-0-0-0.zip fmriprep  # this is session
-
-    # return to original dir:
-    cmd += 'cd ..\n'
-
-    return cmd
-
-
-def generate_cmd_unzip_inputds(input_ds, processing_level):
-    """
-    This is to generate command in `<containerName>_zip.sh` to unzip
-    a specific input dataset if needed.
-
-    Parameters
-    ----------
-    input_ds: class `InputDatasets`
-        information about input dataset(s)
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-
-    Returns:
-    ---------
-    cmd: str
-        It's part of the `<containerName_zip.sh>`.
-        Example of Way #1:
-            wd=${PWD}
-            cd inputs/data/freesurfer
-            7z x `basename ${FREESURFER_ZIP}`
-            cd $wd
-        Examples of Way #2: (now commented out)
-            wd=${PWD}
-            cd inputs/data/fmriprep
-            7z x ${subid}_${sesid}_fmriprep-20.2.3.zip
-            cd $wd
-
-
-    """
-
-    cmd = ''
-
-    if True in list(input_ds.df['is_zipped']):
-        # print("there is zipped dataset to be unzipped.")
-        cmd += '\nwd=${PWD}'
-
-    for i_ds in range(0, input_ds.num_ds):
-        if input_ds.df['is_zipped'][i_ds] is True:  # zipped ds
-            cmd += '\ncd ' + input_ds.df['path_now_rel'][i_ds]
-
-            # Way #1: directly use the argument in `<container>_zip.sh`, e.g., ${FREESURFER_ZIP}
-            # -----------------------------------------------------------------------------------
-            #   basically getting the zipfilename will be done in `participant_job.sh` by bash
-            cmd += '\n7z x `basename ${' + input_ds.df['name'][i_ds].upper() + '_ZIP}`'
-            #   ^^ ${FREESURFER_ZIP} includes `path_now_rel` of input_ds
-            #   so needs to get the basename
-
-            cmd += '\ncd $wd\n'
-
-    return cmd
+    return config['zip_foldernames'], bids_app_output_dir
 
 
 def generate_one_bashhead_resources(system, key, value):
@@ -1434,7 +1134,7 @@ def df_submit_update(
         whether the job auditing fields need to be reset to np.nan
         (fields include last_line_stdout_file, and alert_message).
 
-    Returns
+    Returns:
     -------
     df_job_submit: pd.DataFrame
         dataframe of the submitted job, updated

@@ -1,0 +1,9 @@
+wd=${PWD}
+{% for input_ds in input_datasets %}
+{% if input_ds['is_zipped'] %}
+cd {{ input_ds['path_now_rel'] }}
+ZIPNAME=$(basename "${% raw %}{{% endraw %}{{input_ds['name'].upper()}}_ZIP{% raw %}}{% endraw %}")
+7z x "${ZIPNAME}"
+cd "$wd"
+{% endif %}
+{% endfor %}

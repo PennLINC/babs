@@ -27,8 +27,8 @@ bids_app_args:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'fmriprep_anat' to wrap all derivatives:
+all_results_in_one_zip: true
 zip_foldernames:
-    $TO_CREATE_FOLDER: "true"
     fmriprep_anat: "24-1-1" # folder 'fmriprep_anat' will be zipped into 'sub-xx_(ses-yy_)fmriprep_anat-24-1-1.zip'
 # Note: The generated data can also be used to provide FreeSurfer derivatives as input dataset when running fMRIPrep on fMRI data,
 #   i.e., for use case: fMRIPrep with FreeSurfer results ingressed.
