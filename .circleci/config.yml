@@ -108,21 +108,21 @@ jobs:
       - run: echo Deploying!
 
   deploy_pypi: # deploy to pypi
-    <<: *dockersetup
+    resource_class: small
+    docker:
+      - image: cimg/python:3.11.11
     working_directory: /tmp/src/babs
     steps:
       - checkout
       - run:
-          name: Generate distribution archives
-          command: |
-            python3 -m pip install --upgrade build
-            python3 -m build
+          name: Update build tools
+          command: pip install --upgrade build twine
+      - run:
+          name: Build BABS
+          command: python -m build
       - run:
           name: Upload packages to PyPI
-          command: |
-            python3 -m pip install --upgrade twine
-            python3 -m twine upload dist/*
-        # NOTE: if want to test with test pypi, add `--repository testpypi` after `twine upload`
+          command: python -m twine upload -u __token__ -p ${PYPI_PASS} dist/babs*
 
 workflows:
   # version: 2
