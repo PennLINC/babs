@@ -1,19 +1,22 @@
-{% if any(input_dataset['is_zipped'] for input_dataset in input_datasets) %}
+# shellcheck disable=SC1091
+{% if has_a_zipped_input_dataset %}
 find_single_zipfile() {% raw %}{{% endraw %}
+
     local path="$1"
     local name="$2"
-    local pattern="${path}/${subid}_${sesid:+${sesid}_}*${name}*.zip"
+    local pattern="${path}/${subid}{% if processing_level == 'session' %}_${sesid}{%endif%}_*${name}*.zip"
     local zipfile
-    zipfile=$(ls $pattern | cut -d '@' -f 1 || true)
 
+    # Use find instead of ls for better handling of non-alphanumeric filenames
+    zipfile=$(find "$path" -maxdepth 1 -name "${pattern}" -print -quit || true)
     if [ -z "$zipfile" ]; then
-        echo "No zip file found matching pattern: $pattern" >&2
-        exit 99
+        echo "ERROR: No zip file found matching pattern: ${pattern}" >&2
+        exit 1
     fi
 
-    # Convert to array to check count
-    local files=($zipfile)
-    if [ "${% raw %}{{% endraw %}#files[@]{% raw %}}{% endraw %}" -gt "1" ]; then
+    # Check if there's a second match
+    another_zipfile=$(find "$path" -maxdepth 1 -name "${pattern}" -print -quit -skip 1 || true)
+    if [ -n "${another_zipfile}" ]; then
         echo "Multiple zip files found matching pattern: $pattern" >&2
         exit 98
     fi
@@ -25,7 +28,7 @@ find_single_zipfile() {% raw %}{{% endraw %}
 {% if input_dataset['is_zipped'] %}
 {{ input_dataset['name'].upper() }}_ZIP="$(find_single_zipfile {{ input_dataset['path_now_rel'] }} {{ input_dataset['name'] }})"
 echo 'found {{ input_dataset['name'] }} zipfile:'
-echo "${{{ input_dataset['name'].upper() }}}_ZIP"
+echo "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}"
 {% endif %}
 {% endfor %}
 {% endif %}

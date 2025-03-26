@@ -5,7 +5,7 @@ datalad run \
 	-i "{{ input_dataset['path'] }}/{% if processing_level == 'session' %}${subid}/${sesid}{% else %}${subid}{% endif %}" \
 	-i "{{ input_dataset['path'] }}/*json" \
 {% else %}
-	-i ${ {{ input_dataset['name'] }}_ZIP} \
+	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
 	-i "containers/.datalad/environments/{{container_name}}/image" \
@@ -17,4 +17,4 @@ datalad run \
 	-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
 	-m "{{ container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
-	"bash ./code/{{ container_name }}_zip.sh ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %} {% for dataset in input_datasets %}{% if dataset.is_zipped %} ${ {{ dataset.name }}_ZIP}{%endif%}{%endfor%}"
+	"bash ./code/{{ container_name }}_zip.sh ${subid}{% if processing_level == 'session' %}${sesid}{% endif %}{% for dataset in input_datasets %}{% if dataset.is_zipped %} ${ {{ dataset.name }}_ZIP}{%endif%}{%endfor%}"

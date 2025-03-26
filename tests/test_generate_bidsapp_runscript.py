@@ -15,8 +15,8 @@ from babs.utils import (
 input_datasets_prep = [
     {
         'name': 'bids',
-        'path_now_rel': 'inputs/data/bids',
-        'path_data_rel': 'inputs/data/bids',
+        'path_now_rel': 'inputs/data/BIDS',
+        'path_data_rel': 'inputs/data/BIDS',
         'is_zipped': False,
     },
 ]
@@ -30,8 +30,8 @@ input_datasets_fmriprep_ingressed_anat = [
     },
     {
         'name': 'bids',
-        'path_now_rel': 'inputs/data/bids',
-        'path_data_rel': 'inputs/data/bids',
+        'path_now_rel': 'inputs/data/BIDS',
+        'path_data_rel': 'inputs/data/BIDS',
         'is_zipped': False,
     },
 ]

@@ -5,7 +5,7 @@ import subprocess
 import warnings
 
 import yaml
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.utils import (
@@ -224,9 +224,6 @@ class Container:
             Path to the check_setup folder
         system : System
             System object containing system-specific information
-        # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
-        template = env.get_template('test_job.sh.jinja2')
         folder_check_setup : str
             Path to the check_setup folder
         system : System
@@ -365,7 +362,13 @@ class Container:
                 array_args = '--array=1-${max_array}'
 
         # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+            undefined=StrictUndefined,
+        )
         template = env.get_template('job_submit.yaml.jinja2')
 
         with open(yaml_path, 'w') as f:

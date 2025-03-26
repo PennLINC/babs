@@ -4,7 +4,7 @@ import warnings
 from importlib import resources
 
 import yaml
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, StrictUndefined
 
 # Multiple scheduler system handling
 DIRECTIVE_PREFIX = {
@@ -13,7 +13,7 @@ DIRECTIVE_PREFIX = {
 }
 
 # Load scheduler system lookup table from YAML
-with resources.open_text('babs', 'dict_cluster_systems.yaml') as f:
+with resources.files('babs').joinpath('dict_cluster_systems.yaml').open() as f:
     SCHEDULER_SYSTEM_LUT = yaml.safe_load(f)
 
 
@@ -44,6 +44,7 @@ def generate_submit_script(
         trim_blocks=True,
         lstrip_blocks=True,
         autoescape=False,
+        undefined=StrictUndefined,
     )
     participant_job_template = env.get_template('participant_job.sh.jinja2')
 
@@ -52,21 +53,35 @@ def generate_submit_script(
         queue_system, cluster_resources_config
     )
 
+    if queue_system == 'sge':
+        varname_jobid = 'JOB_ID'
+    elif queue_system == 'slurm':
+        varname_jobid = 'SLURM_ARRAY_JOB_ID'
+
     # If any input dataset is zipped, get the setup for the zipfile locator:
     zip_locator_template = env.get_template('determine_zipfilename.sh.jinja2')
     zip_locator_text = zip_locator_template.render(
         input_datasets=input_datasets,
         processing_level=processing_level,
+        has_a_zipped_input_dataset=any(
+            input_dataset['is_zipped'] for input_dataset in input_datasets
+        ),
     )
 
     return participant_job_template.render(
         interpreting_shell=interpreting_shell,
+        processing_level=processing_level,
         scheduler_directives=scheduler_directives,
         script_preamble=script_preamble,
         job_scratch_directory=job_scratch_directory,
         zip_locator_text=zip_locator_text,
         container_name=container_name,
         zip_foldernames=zip_foldernames,
+        varname_jobid=varname_jobid,
+        input_datasets=input_datasets,
+        datalad_expand_inputs=any(
+            not input_dataset['is_zipped'] for input_dataset in input_datasets
+        ),
     )
 
 

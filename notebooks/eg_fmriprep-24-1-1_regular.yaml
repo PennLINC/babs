@@ -51,7 +51,7 @@ cluster_resources:
 # Necessary commands to be run first:
 #   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
 script_preamble: |
-    source ${CONDA_PREFIX}/bin/activate babs # you may need to change this to work with your environment manager.
+    source "${CONDA_PREFIX}"/bin/activate babs # you may need to change this to work with your environment manager.
     source xxxx    # [FIX ME or DELETE ME] source any necessary program
     module load xxxx # [FIX ME or DELETE ME] source any necessary program
 

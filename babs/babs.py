@@ -13,7 +13,7 @@ import datalad.api as dlapi
 import numpy as np
 import pandas as pd
 from filelock import FileLock, Timeout
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
 from babs.system import validate_queue
@@ -315,7 +315,11 @@ class BABS:
         print('Save BABS project configurations in a YAML file ...')
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
 
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            autoescape=False,
+            undefined=StrictUndefined,
+        )
         template = env.get_template('babs_proj_config.yaml.jinja2')
 
         with open(self.config_path, 'w') as f:

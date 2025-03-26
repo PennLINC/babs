@@ -53,9 +53,6 @@ singularity run \
 {% if flag_fs_license %}
     -B "{{ path_fs_license }}":"{{ PATH_FS_LICENSE_IN_CONTAINER }}" \
 {% endif %}
-{% if templateflow_home %}
-    {{ flag_env_templateflow }} \
-{% endif %}
 {% for singularity_flag in singularity_flags %}
     {{ singularity_flag }} \
 {% endfor %}

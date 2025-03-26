@@ -383,7 +383,7 @@ There are several lines (highlighted above) that require customization based on 
       .. code-block:: yaml
 
             script_preamble: |
-                source ${CONDA_PREFIX}/bin/activate babs
+                source "${CONDA_PREFIX}"/bin/activate babs
                 module load xxxx
 
     * For more, please see: :ref:`script-preamble`.
