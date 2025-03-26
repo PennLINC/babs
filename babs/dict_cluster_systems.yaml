@@ -8,17 +8,9 @@
 #   e.g., '#$ ' for SGE clusters
 #   e.g., '#SBATCH ' for Slurm clusters
 
-sge:
-  interpreting_shell: "#!$VALUE"   # "#!/bin/bash" on cubic
-  hard_memory_limit: "-l h_vmem=$VALUE"   # "-l h_vmem=25G" on cubic
-  soft_memory_limit: "-l s_vmem=$VALUE"   # "-l s_vmem=23.5G" on cubic
-  temporary_disk_space: "-l tmpfree=$VALUE"   # "-l tmpfree=200G" on cubic
-  number_of_cpus: "-pe threaded $VALUE"   # "-pe threaded N" or a range: "-pe threaded N-M", N<M on cubic
-  hard_runtime_limit: "-l h_rt=$VALUE"    # "-l h_rt=24:00:00" on cubic
 slurm:
-  interpreting_shell: "#!$VALUE"  #    e.g., "#!/bin/bash -l" on MSI
   hard_memory_limit: "--mem=$VALUE"
   soft_memory_limit: ""
-  temporary_disk_space: "--tmp=$VALUE"   # "#SBATCH --tmp=20g" on MSI
+  temporary_disk_space: "--tmp=$VALUE" # "#SBATCH --tmp=20g" on MSI
   number_of_cpus: "--cpus-per-task=$VALUE"
   hard_runtime_limit: "--time=$VALUE"

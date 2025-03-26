@@ -10,11 +10,8 @@ from jinja2 import Environment, PackageLoader
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.utils import (
     app_output_settings_from_config,
-    generate_bashhead_resources,
     generate_cmd_datalad_run,
     generate_cmd_determine_zipfilename,
-    generate_cmd_job_compute_space,
-    generate_cmd_script_preamble,
 )
 
 
@@ -183,7 +180,7 @@ class Container:
         template = env.get_template('participant_job.sh.jinja2')
 
         # Cluster resources requesting:
-        cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
+        cmd_bashhead_resources = get_scheduler_directives_text(system, self.config)
 
         # Script preambles:
         cmd_script_preamble = generate_cmd_script_preamble(self.config)
@@ -250,7 +247,7 @@ class Container:
             os.remove(fn_call_test_job)  # remove it
 
         # Cluster resources requesting:
-        cmd_bashhead_resources = generate_bashhead_resources(system, self.config)
+        cmd_bashhead_resources = get_scheduler_directives_text(system, self.config)
 
         # Script preambles:
         cmd_script_preamble = generate_cmd_script_preamble(self.config)
@@ -368,7 +365,6 @@ class Container:
                 array_args = '--array=1-${max_array}'
 
         # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
         template = env.get_template('job_submit.yaml.jinja2')
 
