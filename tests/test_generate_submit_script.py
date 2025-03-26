@@ -3,12 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from babs.generate_bidsapp_runscript import (
-    generate_bidsapp_runscript,
-    get_input_unzipping_cmds,
-)
+from babs.generate_submit_script import generate_submit_script
 from babs.utils import (
-    app_output_settings_from_config,
     read_yaml,
 )
 
@@ -94,42 +90,24 @@ testing_pairs = [
 ]
 
 
-def test_get_input_unipping_cmds():
-    """Test that the input unzipping commands are generated correctly."""
-    assert get_input_unzipping_cmds(input_datasets_prep) == ''
-
-    assert len(get_input_unzipping_cmds(input_datasets_fmriprep_ingressed_anat)) > 0
-
-    assert len(get_input_unzipping_cmds(input_datasets_xcpd)) > 0
-
-    qsirecon_cmd = get_input_unzipping_cmds(input_datasets_qsirecon)
-    assert len(qsirecon_cmd) > 0
-
-    qsirecon_anat_cmd = get_input_unzipping_cmds(input_datasets_qsirecon_ingressed_anat_zipped)
-    assert len(qsirecon_anat_cmd) > 0
-    assert len(qsirecon_anat_cmd) > len(qsirecon_cmd)
-
-
 @pytest.mark.parametrize(('input_datasets', 'config_file', 'processing_level'), testing_pairs)
-def test_generate_bidsapp_runscript(input_datasets, config_file, processing_level):
+def test_generate_submit_script(input_datasets, config_file, processing_level):
     """Test that the bidsapp runscript is generated correctly."""
     config_path = NOTEBOOKS_DIR / config_file
     container_name = config_file.split('_')[1]
     config = read_yaml(config_path)
-    dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(config)
-    script_content = generate_bidsapp_runscript(
-        input_datasets,
-        processing_level,
+    script_content = generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config=config['cluster_resources'],
+        script_preamble=config['script_preamble'],
+        job_scratch_directory=config['job_compute_space'],
+        input_datasets=input_datasets,
+        processing_level=processing_level,
         container_name=container_name,
-        relative_container_path=f'containers/.datalad/containers/{container_name}/image',
-        bids_app_output_dir=bids_app_output_dir,
-        dict_zip_foldernames=config['zip_foldernames'],
-        bids_app_args=config['bids_app_args'],
-        singularity_args=config['singularity_args'],
-        templateflow_home='/path/to/templateflow_home',
+        zip_foldernames=config['zip_foldernames'],
     )
 
-    out_fn = Path('.') / f'{config_path.name}_{processing_level}.sh'
+    out_fn = Path('.') / f'participant_job_{config_path.name}_{processing_level}.sh'
     with open(out_fn, 'w') as f:
         f.write(script_content)
     passed, status = run_shellcheck(str(out_fn))

@@ -667,13 +667,13 @@ Example section **script_preamble** for a specific cluster:
 ..  code-block:: yaml
 
     script_preamble: |
-        source ${CONDA_PREFIX}/bin/activate babs    # Penn Med CUBIC cluster; replace 'babs' with your conda env name
+        source "${CONDA_PREFIX}"/bin/activate babs    # Penn Med CUBIC cluster; replace 'babs' with your conda env name
         echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 This will appear as below in the ``participant_job.sh``::
 
     # Script preambles:
-    source ${CONDA_PREFIX}/bin/activate babs     # Penn Med CUBIC cluster; replace 'babs' with your conda env name
+    source "${CONDA_PREFIX}"/bin/activate babs     # Penn Med CUBIC cluster; replace 'babs' with your conda env name
     echo "I am running BABS."   # this is an example command to show how to add another line; not necessary to include.
 
 .. warning::

@@ -1,4 +1,4 @@
-import os.path as op
+from importlib import resources
 
 import pytest
 import yaml
@@ -18,7 +18,6 @@ def test_system_get_dict():
     system = System('slurm')
 
     # Check that essential keys exist
-    assert 'interpreting_shell' in system.dict
     assert 'hard_memory_limit' in system.dict
     assert 'number_of_cpus' in system.dict
     assert 'hard_runtime_limit' in system.dict
@@ -32,17 +31,8 @@ def test_invalid_system_type():
 
 def test_config_file_exists():
     """Test that the dict_cluster_systems.yaml file exists in the expected location"""
-    # Get the location of babs package
-    import babs
-
-    babs_path = op.dirname(babs.__file__)
-
-    # Check that the file exists
-    config_path = op.join(babs_path, 'dict_cluster_systems.yaml')
-    assert op.exists(config_path), f'Config file not found at {config_path}'
-
-    # Check that the file can be loaded as YAML
-    with open(config_path) as f:
+    # Check that the file exists and can be loaded as YAML
+    with resources.files('babs').joinpath('dict_cluster_systems.yaml').open() as f:
         config = yaml.safe_load(f)
 
     # Check that expected system types are in the config

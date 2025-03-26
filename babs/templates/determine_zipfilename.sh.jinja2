@@ -1,24 +1,34 @@
-{% if input_ds.df['is_zipped'].any() %}
-# Get the zip filename of current subject (or session):
-{% endif %}
+# shellcheck disable=SC1091
+{% if has_a_zipped_input_dataset %}
+find_single_zipfile() {% raw %}{{% endraw %}
 
-{% for i_ds in range(input_ds.num_ds) %}
-{% if input_ds.df['is_zipped'][i_ds] %}
-{{ input_ds.df['name'][i_ds].upper() }}_ZIP=$(ls {{ input_ds.df['path_now_rel'][i_ds] }}/${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ input_ds.df['name'][i_ds] }}*.zip | cut -d '@' -f 1 || true)
+    local path="$1"
+    local name="$2"
+    local pattern="${path}/${subid}{% if processing_level == 'session' %}_${sesid}{%endif%}_*${name}*.zip"
+    local zipfile
 
-echo 'found {{ input_ds.df['name'][i_ds] }} zipfile:'
-echo ${ {{ input_ds.df['name'][i_ds].upper() }}_ZIP}
+    # Use find instead of ls for better handling of non-alphanumeric filenames
+    zipfile=$(find "$path" -maxdepth 1 -name "${pattern}" -print -quit || true)
+    if [ -z "$zipfile" ]; then
+        echo "ERROR: No zip file found matching pattern: ${pattern}" >&2
+        exit 1
+    fi
 
-if [ -z "${ {{ input_ds.df['name'][i_ds].upper() }}_ZIP}" ]; then
-    echo 'No input zipfile of {{ input_ds.df['name'][i_ds] }} found for ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}'
-    exit 99
-fi
+    # Check if there's a second match
+    another_zipfile=$(find "$path" -maxdepth 1 -name "${pattern}" -print -quit -skip 1 || true)
+    if [ -n "${another_zipfile}" ]; then
+        echo "Multiple zip files found matching pattern: $pattern" >&2
+        exit 98
+    fi
 
-# sanity check: there should be only 1 matched file:
-array=(${{ input_ds.df['name'][i_ds].upper() }}_ZIP)
-if [ "${#array[@]}" -gt "1" ]; then
-    echo 'There is more than one input zipfile of {{ input_ds.df['name'][i_ds] }} found for ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}'
-    exit 98
-fi
+    echo "$zipfile"
+{% raw %}}{% endraw %}
+
+{% for input_dataset in input_datasets %}
+{% if input_dataset['is_zipped'] %}
+{{ input_dataset['name'].upper() }}_ZIP="$(find_single_zipfile {{ input_dataset['path_now_rel'] }} {{ input_dataset['name'] }})"
+echo 'found {{ input_dataset['name'] }} zipfile:'
+echo "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}"
 {% endif %}
 {% endfor %}
+{% endif %}

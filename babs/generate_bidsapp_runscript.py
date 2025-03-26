@@ -3,7 +3,7 @@
 import os.path as op
 import warnings
 
-from jinja2 import Environment, PackageLoader
+from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.utils import (
     replace_placeholder_from_config,
@@ -83,6 +83,7 @@ def generate_bidsapp_runscript(
         trim_blocks=True,
         lstrip_blocks=True,
         autoescape=False,
+        undefined=StrictUndefined,
     )
 
     template = env.get_template('bidsapp_run.sh.jinja2')
@@ -103,7 +104,7 @@ def generate_bidsapp_runscript(
         bids_app_args=bids_app_args,
         cmd_zip=cmd_zip,
         OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
-        singularity_args=singularity_args,
+        singularity_flags=singularity_args,
     )
 
 
@@ -146,6 +147,7 @@ def get_output_zipping_cmds(dict_zip_foldernames, processing_level):
         trim_blocks=True,
         lstrip_blocks=True,
         autoescape=False,
+        undefined=StrictUndefined,
     )
 
     # Load the template
@@ -317,6 +319,7 @@ def get_input_unzipping_cmds(input_datasets):
         trim_blocks=True,
         lstrip_blocks=True,
         autoescape=False,
+        undefined=StrictUndefined,
     )
     template = env.get_template('unzip_inputds.sh.jinja2')
     cmd = template.render(input_datasets=input_datasets)

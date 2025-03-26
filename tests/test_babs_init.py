@@ -157,7 +157,7 @@ def test_babs_init(
         container_config=container_config,
         processing_level=processing_level,
         queue='slurm',
-        keep_if_failed=False,
+        keep_if_failed=True,
     )
 
     # run `babs init`:
