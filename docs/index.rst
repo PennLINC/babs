@@ -1,4 +1,3 @@
-
 .. include:: ../README.rst
 .. include:: links.rst
 
@@ -20,6 +19,7 @@ Currently there is no alternative usage of BABS.
    walkthrough
    cli
    developer
+   whats_new
 
 Indices and tables
 ====================
