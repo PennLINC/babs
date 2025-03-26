@@ -24,6 +24,6 @@ which_python=$(which python)
 current_pwd=${PWD}
 # call `test_job.py`:
 echo 'Calling `test_job.py`...'
-"${which_python}" "{{ check_setup_python_script }}" --path-workspace "${PWD}" --path-check-setup {{ folder_check_setup }}
+"${which_python}" "{{ check_setup_python_script }}" --path-workspace "${PWD}" --path-check-setup "{{ check_setup_directory }}"
 
 echo SUCCESS
