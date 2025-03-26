@@ -1,24 +1,29 @@
-{{ cmd_bashhead_resources }}
+#!{{ interpreting_shell }}
+{% for scheduler_directive in scheduler_directives %}
+{{ scheduler_directive }}
+{% endfor %}
 
-{{ cmd_script_preamble }}
+# shellcheck disable=SC1091
+{{ script_preamble }}
 
 # Where the analysis folder is:
-path_check_setup={{ folder_check_setup }}
+path_check_setup="{{ check_setup_directory }}"
 
 # Fail whenever something is fishy, use -x to get verbose logfiles:
 set -e -u -x
 
 # NOTE: There is no input argument for this bash file.
 
-{{ cmd_job_compute_space }}
+# Change to a temporary directory
+cd "{{ job_scratch_directory }}"
 
 # Call `test_job.py`:
 # get which python:
 echo '# Call `test_job.py`:'
-which_python=`which python`
+which_python=$(which python)
 current_pwd=${PWD}
 # call `test_job.py`:
 echo 'Calling `test_job.py`...'
-${which_python} {{ fn_test_job }} --path-workspace ${current_pwd} --path-check-setup {{ folder_check_setup }}
+"${which_python}" "{{ check_setup_python_script }}" --path-workspace "${PWD}" --path-check-setup {{ folder_check_setup }}
 
 echo SUCCESS

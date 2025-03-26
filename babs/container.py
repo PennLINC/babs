@@ -1,18 +1,14 @@
 import os
 import os.path as op
-import shutil
-import subprocess
 import warnings
+from importlib import resources
 
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
-from babs.utils import (
-    app_output_settings_from_config,
-    generate_cmd_datalad_run,
-    generate_cmd_determine_zipfilename,
-)
+from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
+from babs.utils import app_output_settings_from_config
 
 
 class Container:
@@ -144,14 +140,7 @@ class Container:
 
         with open(bash_path, 'w') as f:
             f.write(script_content)
-
-        # Execute necessary commands:
-        # change the permission of this bash file:
-        proc_chmod_bashfile = subprocess.run(
-            ['chmod', '+x', bash_path],  # e.g., chmod +x code/fmriprep_zip.sh
-            stdout=subprocess.PIPE,
-        )
-        proc_chmod_bashfile.check_returncode()
+        os.chmod(bash_path, 0o700)  # rwx------ (owner only)
 
         print('Below is the generated BIDS App run script:')
         print(script_content)
@@ -171,52 +160,23 @@ class Container:
             information on cluster management system
         """
 
-        env = Environment(
-            loader=PackageLoader('babs', 'templates'),
-            trim_blocks=True,
-            lstrip_blocks=True,
-            autoescape=False,
+        script_content = generate_submit_script(
+            queue_system=system.type,
+            cluster_resources_config=self.config['cluster_resources'],
+            script_preamble=self.config['script_preamble'],
+            job_scratch_directory=self.config['job_compute_space'],
+            input_datasets=input_ds.df.to_dict(orient='records'),
+            processing_level=processing_level,
+            container_name=self.container_name,
+            zip_foldernames=self.config['zip_foldernames'],
         )
-        template = env.get_template('participant_job.sh.jinja2')
-
-        # Cluster resources requesting:
-        cmd_bashhead_resources = get_scheduler_directives_text(system, self.config)
-
-        # Script preambles:
-        cmd_script_preamble = generate_cmd_script_preamble(self.config)
-
-        # Change path to a temporary job compute workspace:
-        cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
-
-        # Determine zip filename:
-        cmd_determine_zipfilename = generate_cmd_determine_zipfilename(input_ds, processing_level)
-
-        # Generate datalad run command:
-        cmd_datalad_run = generate_cmd_datalad_run(self, input_ds, processing_level)
 
         with open(bash_path, 'w') as f:
-            f.write(
-                template.render(
-                    cmd_bashhead_resources=cmd_bashhead_resources,
-                    cmd_script_preamble=cmd_script_preamble,
-                    cmd_job_compute_space=cmd_job_compute_space,
-                    cmd_determine_zipfilename=cmd_determine_zipfilename,
-                    cmd_datalad_run=cmd_datalad_run,
-                    system=system,
-                    processing_level=processing_level,
-                    input_ds=input_ds,
-                )
-            )
-
-        # change the permission of this bash file:
-        proc_chmod_bashfile = subprocess.run(
-            ['chmod', '+x', bash_path],  # e.g., chmod +x code/participant_job.sh
-            stdout=subprocess.PIPE,
-        )
-        proc_chmod_bashfile.check_returncode()
+            f.write(script_content)
+        os.chmod(bash_path, 0o700)  # rwx------ (owner only)
 
     def generate_bash_test_job(self, folder_check_setup, system):
-        """Generate bash script for test job.
+        """Generate scripts for test job.
 
         Parameters
         ----------
@@ -224,74 +184,29 @@ class Container:
             Path to the check_setup folder
         system : System
             System object containing system-specific information
-        folder_check_setup : str
-            Path to the check_setup folder
-        system : System
-            System object containing system-specific information
         """
-        # Render the template
-        env = Environment(loader=PackageLoader('babs', 'templates'), autoescape=True)
-        template = env.get_template('test_job.sh.jinja2')
 
         fn_call_test_job = op.join(folder_check_setup, 'call_test_job.sh')
         fn_test_job = op.join(folder_check_setup, 'test_job.py')
 
-        # ==============================================================
-        # Generate `call_test_job.sh`, similar to `participant_job.sh`
-        # ==============================================================
-        # Check if the bash file already exist:
-        if op.exists(fn_call_test_job):
-            os.remove(fn_call_test_job)  # remove it
-
-        # Cluster resources requesting:
-        cmd_bashhead_resources = get_scheduler_directives_text(system, self.config)
-
-        # Script preambles:
-        cmd_script_preamble = generate_cmd_script_preamble(self.config)
-
-        # Change path to a temporary job compute workspace:
-        cmd_job_compute_space = generate_cmd_job_compute_space(self.config)
+        script_content = generate_test_submit_script(
+            queue_system=system.type,
+            cluster_resources_config=self.config['cluster_resources'],
+            script_preamble=self.config['script_preamble'],
+            job_scratch_directory=self.config['job_compute_space'],
+            check_setup_directory=folder_check_setup,
+            check_setup_python_script=fn_test_job,
+        )
 
         with open(fn_call_test_job, 'w') as f:
-            f.write(
-                template.render(
-                    cmd_bashhead_resources=cmd_bashhead_resources,
-                    cmd_script_preamble=cmd_script_preamble,
-                    cmd_job_compute_space=cmd_job_compute_space,
-                    folder_check_setup=folder_check_setup,
-                    fn_test_job=fn_test_job,
-                )
-            )
+            f.write(script_content)
+        os.chmod(fn_call_test_job, 0o700)
 
-        # change the permission of this bash file:
-        proc_chmod_bashfile = subprocess.run(
-            ['chmod', '+x', fn_call_test_job],  # e.g., chmod +x code/participant_job.sh
-            stdout=subprocess.PIPE,
-        )
-        proc_chmod_bashfile.check_returncode()
-
-        # ==============================================================
-        # Generate `test_job.py`, similar to `container_zip.sh`
-        # ==============================================================
-        # Check if the bash file already exist:
-        if op.exists(fn_test_job):
-            os.remove(fn_test_job)  # remove it
-
-        # Copy the existing python script to this BABS project:
-        # location of current python script:
-        #   `op.abspath()` is to make sure always returns abs path, regardless of python version
-        #   ref: https://note.nkmk.me/en/python-script-file-path/
-        __location__ = op.realpath(op.dirname(op.abspath(__file__)))
-        fn_from = op.join(__location__, 'template_test_job.py')
-        # copy:
-        shutil.copy(fn_from, fn_test_job)
-
-        # change the permission of this bash file:
-        proc_chmod_pyfile = subprocess.run(
-            ['chmod', '+x', fn_test_job],  # e.g., chmod +x code/participant_job.sh
-            stdout=subprocess.PIPE,
-        )
-        proc_chmod_pyfile.check_returncode()
+        # Copy the template file into the check_setup folder
+        with resources.files('babs').joinpath('template_test_job.py').open('rb') as src:
+            with open(fn_test_job, 'wb') as dst:
+                dst.write(src.read())
+        os.chmod(fn_test_job, 0o700)
 
     def generate_job_submit_template(self, yaml_path, babs, system, test=False):
         """
@@ -312,7 +227,6 @@ class Container:
             flag to set to True if generating the test job submit template
             for `babs check-setup`.
         """
-        from jinja2 import Environment
 
         # Section 1: Command for submitting the job: ---------------------------
         # Flags when submitting the job:

@@ -85,6 +85,37 @@ def generate_submit_script(
     )
 
 
+def generate_test_submit_script(
+    queue_system,
+    cluster_resources_config,
+    script_preamble,
+    job_scratch_directory,
+    check_setup_directory,
+    check_setup_python_script,
+):
+    env = Environment(
+        loader=PackageLoader('babs', 'templates'),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+        undefined=StrictUndefined,
+    )
+    template = env.get_template('test_job.sh.jinja2')
+
+    # Get the setup for the scheduler directives:
+    interpreting_shell, scheduler_directives = generate_scheduler_directives(
+        queue_system, cluster_resources_config
+    )
+    return template.render(
+        interpreting_shell=interpreting_shell,
+        scheduler_directives=scheduler_directives,
+        script_preamble=script_preamble,
+        job_scratch_directory=job_scratch_directory,
+        check_setup_directory=check_setup_directory,
+        check_setup_python_script=check_setup_python_script,
+    )
+
+
 def generate_scheduler_directives(queue_system, cluster_resources_config):
     """
     This is to generate the directives ("head of the bash file")

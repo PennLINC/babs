@@ -698,17 +698,19 @@ class BABS:
                 # otherwise, would take too long..
             )
         }
+
         # statuses should be all "clean", without anything else e.g., "modified":
-        assert analysis_statuses == {'clean'}, (
-            "Analysis DataLad dataset's status is not clean."
-            " There might be untracked or modified files in folder 'analysis'."
-            " Please go to this directory: '" + self.analysis_path + "'\n"
-            ' and run `datalad status` to check what were changed,'
-            " then run `datalad save -m 'your message'`,"
-            ' then run `datalad push --to input`;'
-            " Finally, if you're sure there is no successful jobs finished, you can"
-            ' run `datalad push --to output`.'
-        )
+        if not analysis_statuses == {'clean'}:
+            problem_statuses = [
+                status
+                for status in self.analysis_datalad_handle.status(eval_subdataset_state='commit')
+                if status['state'] != 'clean'
+            ]
+            raise Exception(
+                "Analysis DataLad dataset's status is not clean. "
+                'There are the following issues:' + str(problem_statuses)
+            )
+
         print(CHECK_MARK + ' All good!')
 
         # Check input dataset(s): ---------------------------
