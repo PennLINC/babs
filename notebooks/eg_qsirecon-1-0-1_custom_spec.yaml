@@ -10,6 +10,12 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Files to be copied into the datalad dataset:
+imported_files:
+    # Change original_path to the path to the file on your local machine
+    - original_path: "/path/to/recon_spec.yaml"
+      analysis_path: "code/recon_spec.yaml"
+
 # Arguments in `singularity run`:
 bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
@@ -18,7 +24,8 @@ bids_app_args:
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
     -vv: ""
     --input-type: "qsiprep"
-    --recon-spec: "/code/recon_spec.yaml" # [FIX ME] you will need to 1) bind this file in the singularity run yourself (in the qsirecon_zip.sh and participant_job.sh in analysis/code) and 2) add this file in your analysis/code, then babs sync-code
+    # Note: this file is copied into the datalad dataset from imported_files above
+    --recon-spec: '"${PWD}"/code/recon_spec.yaml'
     --nthreads: "8"
     --omp-nthreads: "8"
 
@@ -29,10 +36,11 @@ singularity_args:
     - -B /path/to/recon_spec.yaml:/code/recon_spec.yaml
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
-#   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsirecon' to wrap all derivatives:
+#   As qsirecon will use BIDS output layout, we need to ask BABS to create a folder 'qsirecon' to wrap all derivatives:
 all_results_in_one_zip: true
 zip_foldernames:
-    qsirecon: "1-0-1" # folder 'qsirecon' will be zipped into 'sub-xx_(ses-yy_)qsirecon-1-0-1.zip'
+    # folder 'qsirecon' will be zipped into 'sub-xx_(ses-yy_)qsirecon-1-0-1.zip'
+    qsirecon: "1-0-1"
 
 # How much cluster resources it needs:
 cluster_resources:

@@ -3,6 +3,7 @@
 import os
 import os.path as op
 import re
+import shutil
 import subprocess
 import time
 import warnings
@@ -481,6 +482,23 @@ class BABS:
         )
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
+
+        # Copy in any other files needed:
+        imported_files = []
+        for imported_file in container.config.get('imported_files', []):
+            # Check that the file exists:
+            assert op.exists(imported_file['original_path']), (
+                f'Requested imported file {imported_file["original_path"]} does not exist.'
+            )
+            imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
+            # Copy the file:
+            shutil.copy(imported_file['original_path'], imported_location)
+            imported_files.append(imported_location)
+        if imported_files:
+            self.datalad_save(
+                path=imported_files,
+                message='Import files',
+            )
 
         # Determine the list of subjects to analyze: -----------------------------
         print('\nDetermining the list of subjects (and sessions) to analyze...')
