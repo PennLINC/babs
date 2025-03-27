@@ -1,5 +1,20 @@
 # What's New
 
+## Version 0.3.0
+
+Critical bugfix for 0.2.0 and adds the ability to add small files to the BABS project
+so they can be tracked by git and accessed during the BIDS app run.
+
+## What's Changed
+### Other Changes
+* Fix SLURM JOB_ID bug by @mattcieslak in https://github.com/PennLINC/babs/pull/267
+* Add imported_files section to config files by @mattcieslak in https://github.com/PennLINC/babs/pull/266
+* Update docs to reflect changes in 0.3 by @mattcieslak in https://github.com/PennLINC/babs/pull/268
+
+
+**Full Changelog**: https://github.com/PennLINC/babs/compare/0.2.0...pre-0.3.0
+
+
 ## Version 0.2.0
 
 ### What's Changed
