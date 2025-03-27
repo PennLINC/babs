@@ -81,6 +81,7 @@ Example section **singularity_args**
 ------------------------------------
 
 For maximum isolation, you can use ``--containall`` and ``--writable-tmpfs``::
+
 ..  code-block:: yaml
 
     singularity_args:
@@ -88,6 +89,8 @@ For maximum isolation, you can use ``--containall`` and ``--writable-tmpfs``::
         - --writable-tmpfs
 
 But this doesn't always work for all clusters.
+Add/remove arguments as needed.
+If you need to use a GPU, this would be where to add an ``--nv`` flag.
 
 
 Section ``imported_files``
@@ -165,16 +168,6 @@ This section will be turned into commands (here also showing the Singularity run
                 -v -v \
                 --bids-filter-file "${filterfile}" \
                 --participant-label "${subid}"
-
-.. dropdown:: explanation of generated ``singualrity run`` command
-
-    * line #1 is to set up a path for argument ``-w``;
-    * line #2 starts the ``singularity run`` command;
-    * line #3-6 bind necessary paths and set necessary environment variables;
-    * line #7 sets the path to the container image;
-    * line #8-10 are positional arguments of BIDS App;
-    * line #11-end are named arguments of BIDS App, where some are requested by the user
-      in the YAML file, some are automatically set up by BABS.
 
 
 Basics - Manual of writing section ``bids_app_args``
