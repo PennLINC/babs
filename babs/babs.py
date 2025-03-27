@@ -3,7 +3,6 @@
 import os
 import os.path as op
 import re
-import shutil
 import subprocess
 import time
 import warnings
@@ -491,9 +490,18 @@ class BABS:
                 f'Requested imported file {imported_file["original_path"]} does not exist.'
             )
             imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
-            # Copy the file:
-            shutil.copy(imported_file['original_path'], imported_location)
-            imported_files.append(imported_location)
+            # Copy the file using pure Python:
+            with (
+                open(imported_file['original_path'], 'rb') as src,
+                open(imported_location, 'wb') as dst,
+            ):
+                dst.write(src.read())
+            if not op.exists(imported_location):
+                raise FileNotFoundError(
+                    f'Failed to copy file {imported_file["original_path"]} to {imported_location}'
+                )
+            # Append the relative path instead of absolute path
+            imported_files.append(op.relpath(imported_location, self.analysis_path))
         if imported_files:
             self.datalad_save(
                 path=imported_files,
