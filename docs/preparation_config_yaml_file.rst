@@ -78,7 +78,7 @@ Singularity/Apptainer are configured differently for different clusters.
 The arguments here are specified as a list and are added directly to the ``singularity run`` command.
 
 Example section **singularity_args**
------------------------------------
+------------------------------------
 
 For maximum isolation, you can use ``--containall`` and ``--writable-tmpfs``::
 ..  code-block:: yaml
@@ -235,7 +235,7 @@ Basics - Manual of writing section ``bids_app_args``
 .. _advanced_manual_singularity_run:
 
 Advanced - Manual of writing section ``bids_app_args``
------------------------------------------------------
+------------------------------------------------------
 
 * How to specify a number as a value?
 
@@ -730,8 +730,8 @@ Section ``job_compute_space``
 =============================
 The jobs will be computed in ephemeral (temporary) compute space.
 Specifically, this space could be temporary space on a cluster node, or some scratch space.
-It's totally fine (and recommended!) if the data or the directory in the space will be removed after the job finishes
- - all results will be pushed back to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates.
+It's totally fine (and recommended!) if the data or the directory in the space will be removed
+after the job finishes - all results will be pushed back to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates.
 
 .. dropdown:: Why recommending space where data/directory will be automatically removed after the job finishes?
 
