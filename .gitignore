@@ -112,3 +112,5 @@ babs/VERSION
 
 .vscode
 .vscode/settings.json
+
+*.yaml*.sh

@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
+import yaml
 
 sys.path.append('..')
 from get_data import (  # noqa
@@ -23,7 +24,7 @@ from get_data import (  # noqa
 )
 
 from babs.cli import _enter_check_setup, _enter_init  # noqa
-from babs.utils import read_yaml  # noqa
+from babs.utils import read_yaml, write_yaml  # noqa
 
 
 @pytest.mark.order(index=1)
@@ -122,12 +123,30 @@ def test_babs_init(
     # check if `--fs-license-file` is included in YAML file:
     container_config_yaml_filename = get_container_config_yaml_filename(
         which_bidsapp, which_input, if_two_input, queue='slurm'
-    )  # TODO: also test slurm!
+    )
     container_config = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
     )
     assert op.exists(container_config)
     container_config_yaml = read_yaml(container_config)
+
+    # Create temporary files for each of the imported files:
+    needs_yaml_rewrite = False
+    for imported_file in container_config_yaml.get('imported_files', []):
+        # create a temporary file:
+        fn_imported_file = tmp_path / imported_file['original_path'].lstrip('/')
+        fn_imported_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(fn_imported_file, 'w') as f:
+            f.write('FAKE DATA')
+        imported_file['original_path'] = fn_imported_file
+        needs_yaml_rewrite = True
+    if needs_yaml_rewrite:
+        print('Rewriting container config YAML file to include temporary files')
+        yaml_data = container_config_yaml.copy()
+        for imported_file in yaml_data.get('imported_files', []):
+            imported_file['original_path'] = str(imported_file['original_path'])
+        with open(container_config, 'w') as f:
+            yaml.dump(yaml_data, f)
 
     if '--fs-license-file' in container_config_yaml['bids_app_args']:
         # ^^ this way is consistent with BABS re: how to determine if fs license is needed;

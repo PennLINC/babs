@@ -1,4 +1,9 @@
 # Arguments in `singularity run`:
+
+imported_files:
+    - original_path: "/imported_file.txt"
+      analysis_path: "code/imported_file.txt"
+
 bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     --no-zipped: ""

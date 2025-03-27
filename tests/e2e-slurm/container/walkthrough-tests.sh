@@ -8,6 +8,9 @@ export SUBPROJECT_NAME=test_project
 echo "Git user: $(git config user.name)"
 echo "Git email: $(git config user.email)"
 
+# Create a file that will be imported into the BABS project
+export IMPORTED_DATA_FILE=/imported_file.txt
+echo "FAKE DATA" > "$IMPORTED_DATA_FILE"
 DATA_DIR=/home/circleci/test_data
 
 if [ ! -d "${DATA_DIR}/BIDS_multi-ses" ]; then
@@ -41,6 +44,12 @@ echo "PASSED: babs init"
 echo "Check setup, without job"
 babs check-setup "${PWD}"/test_project/
 echo "PASSED: Check setup, without job"
+
+# Check that the imported file is present
+if [ ! -f "${PWD}/${SUBPROJECT_NAME}/analysis/code/imported_file.txt" ]; then
+    echo "Imported file ${PWD}/${SUBPROJECT_NAME}/analysis/code/imported_file.txt does not exist"
+    exit 1
+fi
 
 babs check-setup "${PWD}"/test_project/ --job-test
 echo "Job submitted: Check setup, with job"

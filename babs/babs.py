@@ -482,6 +482,32 @@ class BABS:
         # NOTE: `dlapi.save()` does not work...
         # e.g., datalad save -m "Participant compute job implementation"
 
+        # Copy in any other files needed:
+        imported_files = []
+        for imported_file in container.config.get('imported_files', []):
+            # Check that the file exists:
+            assert op.exists(imported_file['original_path']), (
+                f'Requested imported file {imported_file["original_path"]} does not exist.'
+            )
+            imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
+            # Copy the file using pure Python:
+            with (
+                open(imported_file['original_path'], 'rb') as src,
+                open(imported_location, 'wb') as dst,
+            ):
+                dst.write(src.read())
+            if not op.exists(imported_location):
+                raise FileNotFoundError(
+                    f'Failed to copy file {imported_file["original_path"]} to {imported_location}'
+                )
+            # Append the relative path instead of absolute path
+            imported_files.append(op.relpath(imported_location, self.analysis_path))
+        if imported_files:
+            self.datalad_save(
+                path=imported_files,
+                message='Import files',
+            )
+
         # Determine the list of subjects to analyze: -----------------------------
         print('\nDetermining the list of subjects (and sessions) to analyze...')
         _ = get_list_sub_ses(input_ds, container.config, self)
