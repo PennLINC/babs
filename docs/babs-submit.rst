@@ -1,6 +1,6 @@
-##################################################
+###########################
 ``babs submit``: Submit jobs
-##################################################
+###########################
 
 .. contents:: Table of Contents
 
@@ -19,12 +19,12 @@ Command-Line Arguments
     while it's running! Otherwise, new job IDs may not be captured or saved into the ``job_status.csv``!
 
 
-**********************
+****************
 Example commands
-**********************
+****************
 
 Basic use
----------------
+---------
 If users only provide the required argument ``project_root``,
 ``babs submit`` will only submit one job:
 
@@ -33,7 +33,7 @@ If users only provide the required argument ``project_root``,
     babs submit /path/to/my_BABS_project
 
 Submitting a certain amount of jobs
--------------------------------------
+-----------------------------------
 
 .. code-block:: bash
 
@@ -45,7 +45,7 @@ Change ``N`` to the number of jobs to be submitted.
 
 
 Submit all remaining jobs
----------------------------
+-------------------------
 To submit jobs for remaining subjects (and sessions) whose jobs haven't been submitted yet:
 
 .. code-block:: bash
@@ -56,7 +56,7 @@ To submit jobs for remaining subjects (and sessions) whose jobs haven't been sub
 
 
 Submit jobs for specific subjects (and sessions)
----------------------------------------------------
+------------------------------------------------
 For single-session dataset, say you'd like to submit jobs for ``sub-01`` and ``sub-02``:
 
 .. code-block:: bash
@@ -76,7 +76,7 @@ For multi-session dataset, say you'd like to submit jobs for ``sub-01, ses-A`` a
         --job sub-02 ses-B
 
 
-**********************
+********
 See also
-**********************
+********
 :doc:`jobs`

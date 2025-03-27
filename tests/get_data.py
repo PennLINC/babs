@@ -232,7 +232,7 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
     if_two_input: bool
         whether there are two input BIDS datasets
     queue: str
-        "sge" or "slurm"
+        "slurm"
 
     Returns
     -------

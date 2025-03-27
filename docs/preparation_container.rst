@@ -1,9 +1,9 @@
-************************************************************
+***************************************************
 Prepare containerized BIDS App as a DataLad dataset
-************************************************************
+***************************************************
 
 Understand the concept "container DataLad dataset"
-======================================================
+==================================================
 BIDS Apps, by definition, are container images that process BIDS-formatted datasets [Gorgolewski2017]_.
 Besides input BIDS datasets, BABS also requires BIDS App container to be in a *DataLad dataset*.
 It's a bit hard at first to understand
@@ -13,17 +13,17 @@ and this "DataLad dataset" is version tracked by DataLad. So "container DataLad 
 container image(s) in a folder tracked by DataLad".
 
 Toy BIDS App
-==========================================================
+============
 We prepared a toy BIDS App that can be used for quick testing. It counts non-hidden files
 in a subject's (or a session's) folder. The detailed descriptions can be found
 `here <https://github.com/PennLINC/babs_tests/blob/main/docker/README.md>`_.
 Its docker image is publicly available on `Docker Hub <https://hub.docker.com/r/pennlinc/toy_bids_app>`_.
 
 How to prepare a container DataLad dataset of BIDS App?
-==========================================================
+=======================================================
 
 Step 1. Get BIDS App container image
--------------------------------------------
+------------------------------------
 
 As the data processing will be performed on a cluster, and usually clusters only accept
 Singularity image (but not Docker image), you probably need to build the BIDS App as a Singularity image.
@@ -41,7 +41,7 @@ Below is an example of building a Singularity image of toy BIDS App from
 .. _create-a-container-datalad-dataset:
 
 Step 2. Create a container DataLad dataset
-----------------------------------------------
+------------------------------------------
 You may use DataLad command ``datalad containers-add`` to add the built Singularity image
 (sif file) of BIDS App to a DataLad dataset:
 
@@ -59,7 +59,7 @@ Remember what you assign as the *image NAME* because you will copy it for argume
 ``--container_ds`` when ``babs init``.
 
 (Optional) Step 3. Delete the original sif file
---------------------------------------------------
+-----------------------------------------------
 Lastly, as you have copied the sif file into this container DataLad dataset,
 you can delete the original sif file:
 
@@ -71,7 +71,7 @@ you can delete the original sif file:
 .. Note: above steps have been tested on CUBIC cluster. CZ 4/3/2023.
 
 References
-===============
+==========
 For more details, please refer to:
 
 * ``datalad containers-add``'s command-line interface: `DataLad documentation <http://docs.datalad.org/projects/container/en/latest/generated/man/datalad-containers-add.html>`_

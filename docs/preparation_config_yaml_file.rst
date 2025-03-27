@@ -14,16 +14,19 @@ These sections not only define how exactly the BIDS App will be run, but also wi
 in filtering out unnecessary subjects (and sessions), and in an informative debugging.
 
 Overview of the configuration YAML file structure
-====================================================
+=================================================
 
 Sections in the configuration YAML file
 -----------------------------------------
 
-* **bids_app_args**: the arguments for ``singularity run`` of the BIDS App;
-* **zip_foldernames**: the results foldername(s) to be zipped;
 * **cluster_resources**: how much cluster resources are needed to run this BIDS App?
 * **script_preamble**: the preamble in the script to run a participant's job;
 * **job_compute_space**: where to run the jobs?
+* **singularity_args**: the arguments for ``singularity run``;
+* **bids_app_args**: the arguments for the BIDS App;
+* **imported_files**: the files to be copied into the datalad dataset;
+* **all_results_in_one_zip**: whether to zip all results in one zip file;
+* **zip_foldernames**: the results foldername(s) to be zipped;
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
 * **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
@@ -37,11 +40,11 @@ Among these sections, these sections are optional:
 
 * **required_files**
 * **alert_log_messages**
-
+* **imported_files**
 
 
 Example/prepopulated configuration YAML files
------------------------------------------------
+---------------------------------------------
 
 Example/prepopulated configuration YAML files can be found in ``notebooks/`` folder of BABS GitHub repository.
 See `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_ for a full list and descriptions.
@@ -52,13 +55,13 @@ These include example YAML files for:
 * Cases with different input BIDS datasets, including one raw BIDS dataset, one zipped BIDS derivates dataset,
   and the combination of these two.
 
-These YAML files can be customized for different clusters, including SGE and Slurm clusters.
+These YAML files can be customized for your cluster.
 
 .. developer's note: ^^ using main branch on github.
 
 
 Terminology when describing a YAML file:
-------------------------------------------
+----------------------------------------
 Below is an example "section" in a YAML file::
 
     section_name:
@@ -68,15 +71,58 @@ In a section, the string before ``:`` is called ``key``, the string after ``:`` 
 
 Below are the details for each section in this configuration YAML file.
 
+Section ``singularity_args``
+============================
+
+Singularity/Apptainer are configured differently for different clusters.
+The arguments here are specified as a list and are added directly to the ``singularity run`` command.
+
+Example section **singularity_args**
+-----------------------------------
+
+For maximum isolation, you can use ``--containall`` and ``--writable-tmpfs``::
+..  code-block:: yaml
+
+    singularity_args:
+        - --containall
+        - --writable-tmpfs
+
+But this doesn't always work for all clusters.
+
+
+Section ``imported_files``
+==========================
+
+This section is optional. If you need to copy files into your datalad dataset, you can specify them here.
+These will be copied into the datalad dataset from your local machine. This is particularly useful for
+specifying a custom ``recon_spec.yaml`` file for ``qsirecon``.
+
+Example section **imported_files**
+----------------------------------
+
+..  code-block:: yaml
+
+    imported_files:
+        - original_path: "/path/to/recon_spec.yaml"
+          analysis_path: "code/recon_spec.yaml"
+
+The ``analysis_path`` is the path to the file in your datalad dataset.
+In this example, it would guarantee that when running ``qsirecon``,
+the ``recon_spec.yaml`` file will be available at ``"${PWD}/code/recon_spec.yaml``.
+This means I can use ``"${PWD}"/code/recon_spec.yaml`` in the ``bids_app_args`` section.
+It also means that the ``recon_spec.yaml`` file will be tracked by datalad.
+
+**Important**: If you are importing a large file this mechanism will not work.
+
 
 Section ``bids_app_args``
-==================================
+=========================
 Currently, BABS does not support using configurations of running a BIDS App
 that are defined in ``datalad containers-add --call-fmt``.
 Instead, users are expected to define these in this section, **bids_app_args**.
 
 Example **bids_app_args**
------------------------------------
+-------------------------
 
 Below is example section **bids_app_args** for ``fMRIPrep``:
 
@@ -93,7 +139,7 @@ Below is example section **bids_app_args** for ``fMRIPrep``:
         --cifti-output: 91k
         -v: '-v'   # this is for double `-v`
 
-This section will be turned into commands (including a Singularity run command) as below:
+This section will be turned into commands (here also showing the Singularity run command) as below:
 
     ..  code-block:: bash
         :linenos:
@@ -105,20 +151,20 @@ This section will be turned into commands (including a Singularity run command) 
             -B /path/to/freesurfer/license.txt:/SGLR/FREESURFER_HOME/license.txt \
             --env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME \
             containers/.datalad/environments/fmriprep-20-2-3/image \
-            inputs/data/BIDS \
-            outputs \
-            participant \
-            -w ${PWD}/.git/tmp/wkdir \
-            --n_cpus 1 \
-            --stop-on-first-crash \
-            --fs-license-file /SGLR/FREESURFER_HOME/license.txt \
-            --skip-bids-validation \
-            --output-spaces MNI152NLin6Asym:res-2 \
-            --force-bbr \
-            --cifti-output 91k \
-            -v -v \
-            --bids-filter-file "${filterfile}" \
-            --participant-label "${subid}"
+                inputs/data/BIDS \
+                outputs \
+                participant \
+                -w ${PWD}/.git/tmp/wkdir \
+                --n_cpus 1 \
+                --stop-on-first-crash \
+                --fs-license-file /SGLR/FREESURFER_HOME/license.txt \
+                --skip-bids-validation \
+                --output-spaces MNI152NLin6Asym:res-2 \
+                --force-bbr \
+                --cifti-output 91k \
+                -v -v \
+                --bids-filter-file "${filterfile}" \
+                --participant-label "${subid}"
 
 .. dropdown:: explanation of generated ``singualrity run`` command
 
@@ -132,7 +178,7 @@ This section will be turned into commands (including a Singularity run command) 
 
 
 Basics - Manual of writing section ``bids_app_args``
-------------------------------------------------------------
+----------------------------------------------------
 
 * What arguments should I provide in this section? All arguments for running the BIDS App?
 
@@ -189,7 +235,7 @@ Basics - Manual of writing section ``bids_app_args``
 .. _advanced_manual_singularity_run:
 
 Advanced - Manual of writing section ``bids_app_args``
------------------------------------------------------------------
+-----------------------------------------------------
 
 * How to specify a number as a value?
 
@@ -243,11 +289,7 @@ Advanced - Manual of writing section ``bids_app_args``
     * Yes you can! For number of CPUs (e.g., ``--n_cpus`` in QSIPrep),
       if you also use ``number_of_cpus`` in **cluster_resources** section (see below),
       then you can use environment variable for this Singularity run argument.
-    * For *SGE* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
-
-        --n_cpus: "$NSLOTS"
-
-    * For *Slurm* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
+    * For *SLURM* clusters, you can use environment variable ``$NSLOTS``, and you can specify it as::
 
         --n_cpus: "$SLURM_CPUS_PER_TASK"
 
@@ -258,7 +300,7 @@ Advanced - Manual of writing section ``bids_app_args``
       the ``analysis/code`` folder. Make sure to run ``babs sync-code`` after editing the files before
       re-submitting with ``babs submit --all``.
 
-.. developer's note: for Slurm: ref: https://login.scg.stanford.edu/faqs/cores/
+.. developer's note: for SLURM: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
 * When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument
@@ -305,11 +347,11 @@ Advanced - Manual of writing section ``bids_app_args``
 
 * ``--bids-filter-file``: When will BABS automatically add it?
 
-    * When BIDS App is fMRIPrep or QSIPrep, and input BIDS dataset(s) are multi-session data.
-    * How BABS determine it's fMRIPrep or QSIPrep?
+    * When BIDS App is fMRIPrep, QSIPrep or ASLPrep, and input BIDS dataset(s) are multi-session data.
+    * How BABS determine it's fMRIPrep, QSIPrep or ASLPrep?
 
         * Based on ``container_name`` provided when calling ``babs init``:
-          If ``container_name`` contains ``fMRIPrep`` or ``QSIPrep`` (not case sensitive).
+          If ``container_name`` contains ``fMRIPrep``, ``QSIPrep`` or ``ASLPrep`` (not case sensitive).
     * When BABS adds ``--bids-filter-file`` here for Singularity run,
       BABS will also automatically generate a filter file (JSON format) when running each session's data,
       so that only data from a specific session will be included for analysis.
@@ -376,7 +418,7 @@ Advanced - Manual of writing section ``bids_app_args``
 
 
 Section ``zip_foldernames``
-================================
+===========================
 
 This section defines the name(s) of the expected output folder(s).
 BABS will zip those folder(s) into separate zip file(s).
@@ -395,7 +437,7 @@ An example use case is ``fMRIPrep`` with BIDS output layout.
 .. _example_zip_foldernames_for_fmriprep_legacy_output_layout:
 
 Example #1: for ``fMRIPrep`` *legacy* output layout
-------------------------------------------------------
+---------------------------------------------------
 
 Here we use ``fMRIPrep`` (*legacy* output layout) as an example to show you
 how to write this ``zip_foldernames`` section. For this case, all derivative files
@@ -441,7 +483,7 @@ In other words, each subject (or session) will have their specific zip file(s).
 .. _example_zip_foldernames_for_fmriprep_BIDS_output_layout:
 
 Example #2: for ``fMRIPrep`` *BIDS* output layout: asking BABS to create additional output folder
----------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------
 
 Recent ``fMRIPrep`` (version >= 21.0) uses
 `BIDS output layout <https://fmriprep.org/en/stable/outputs.html#layout>`_
@@ -490,7 +532,7 @@ In addition, when using ``all_results_in_one_zip: true``,
 you must only provide one foldername in ``zip_foldernames``.
 
 Other detailed instructions
----------------------------------
+---------------------------
 
 * The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
 
@@ -513,12 +555,12 @@ Other detailed instructions
 .. _cluster-resources:
 
 Section ``cluster_resources``
-=================================
+=============================
 This section defines the cluster resources each job will use,
 and the interpreting shell for executing the job script.
 
 Example section **cluster_resources**
-----------------------------------------
+-------------------------------------
 
 Example section **cluster_resources** for ``QSIPrep``:
 
@@ -531,16 +573,6 @@ Example section **cluster_resources** for ``QSIPrep``:
         number_of_cpus: "6"
 
 These will be turned into options in the directives (at the beginning) of ``participant_job.sh`` shown as below.
-This script could be found at: ``/path/to/my_BABS_project/analysis/code``.
-Note that these directives were generated for an **SGE** cluster,
-and generated directives for Slurm clusters would be different.
-
-.. code-block::
-
-    #!/bin/bash
-    #$ -l h_vmem=32G
-    #$ -l tmpfree=200G
-    #$ -pe threaded 6
 
 For example, a job requires no more than 32 GB of memory,
 i.e., on SGE clusters, ``-l h_vmem=32G``.
@@ -550,7 +582,7 @@ You may simply specify: ``hard_memory_limit: 32G``.
     Make sure you add ``interpreting_shell``!
     It is very important.
     For SGE, you might need: ``interpreting_shell: /bin/bash``;
-    For Slurm, you might need: ``interpreting_shell: /bin/bash -l``.
+    For SLURM, you might need: ``interpreting_shell: /bin/bash -l``.
     Check what it should be like in the manual of your cluster!
 
 
@@ -581,7 +613,7 @@ The second row in each cell, which is also in (), is an example.
     :widths: 60 40 40
 
     +------------------------------------------+------------------------------------------+-------------------------------------------+
-    | | Section ``cluster_resources`` in YAML  | | Generated directives for SGE clusters  | | Generated directives for Slurm clusters |
+    | | Section ``cluster_resources`` in YAML  | | Generated directives for SGE clusters  | | Generated directives for SLURM clusters |
     | |         (example key-value)            | |           (example outcome)            | |           (example outcome)             |
     +==========================================+==========================================+===========================================+
     | | ``interpreting_shell: $VALUE``         | | ``#!$VALUE``                           | | ``#!$VALUE``                            |
@@ -607,8 +639,8 @@ The second row in each cell, which is also in (), is an example.
 Note the following:
 
 * For values with numbers only (without letters), it's recommended to quote the value,
-  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
-  and pass the value exactly as is,
+  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts,
+  it will keep the string format of the value and pass the value exactly as is,
   without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
 
@@ -636,11 +668,11 @@ Note that:
 * As customized texts will be directly copied to the script ``participant_job.sh`` (without translation),
   please remember to add any necessary prefix before the option:
 
-    * ``#$`` for SGE clusters
-    * ``#SBATCH`` for Slurm clusters
+    * ``#SBATCH`` for SLURM clusters
 
 * For values with numbers only (without letters), it's recommended to quote the value,
-  e.g., ``number_of_cpus: "6"``. This is to make sure that when BABS generates scripts, it will keep the string format of the value
+  e.g., ``number_of_cpus: "6"``.
+  This is to make sure that when BABS generates scripts, it will keep the string format of the value
   and pass the value exactly as it is,
   without the risk of data type changes (e.g., integers are changed to float numbers; and vice versa).
 
@@ -654,7 +686,7 @@ Note that:
 .. _script-preamble:
 
 Section ``script_preamble``
-=============================
+===========================
 This part also goes to the preamble of the script ``participant_job.sh``
 (located at: ``/path/to/my_BABS_project/analysis/code``). Different from **cluster_resources**
 that provides options for cluster resources requests, this section **script_preamble** is for necessary
@@ -695,11 +727,11 @@ Notes:
 .. _job-compute-space:
 
 Section ``job_compute_space``
-================================
-The jobs will be computed in ephemeral (temporary) compute space. Specifically,
-this space could be temporary space on a cluster node, or some scratch space. It's totally fine (and recommended!)
-if the data or the directory in the space will be removed after the job finishes - all results will be pushed back
-to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates.
+=============================
+The jobs will be computed in ephemeral (temporary) compute space.
+Specifically, this space could be temporary space on a cluster node, or some scratch space.
+It's totally fine (and recommended!) if the data or the directory in the space will be removed after the job finishes
+ - all results will be pushed back to (saved in) the output RIA (i.e., a permanent storage) where your BABS project locates.
 
 .. dropdown:: Why recommending space where data/directory will be automatically removed after the job finishes?
 
@@ -746,7 +778,7 @@ Notes:
 .. _required_files:
 
 Section ``required_files``
-============================
+==========================
 This section is optional.
 
 You may have a dataset where not all the subjects (and sessions) have the required files for
@@ -762,7 +794,8 @@ Example section **required_files** for ``fMRIPrep``:
             - "func/*_bold.nii*"
             - "anat/*_T1w.nii*"
 
-In this example case, we specify that for the input raw BIDS dataset, which is also input dataset #1, each subject (and session) must have:
+In this example case, we specify that for the input raw BIDS dataset,
+ which is also input dataset #1, each subject (and session) must have:
 
 #. At least one BOLD file (``*_bold.nii*``) in folder ``func``;
 #. At least one T1-weighted file (``*_T1w.nii*``) in folder ``anat``.
@@ -770,8 +803,10 @@ In this example case, we specify that for the input raw BIDS dataset, which is a
 
 Notes:
 
-* If needed, you can change ``$INPUT_DATASET_#1`` to other index of input dataset (e.g., ``$INPUT_DATASET_#2``);
-* To determine the index of the input dataset to specify, please check the order of the datasets when you call ``babs init --datasets``.
+* If needed, you can change ``$INPUT_DATASET_#1`` to other index of input dataset
+  (e.g., ``$INPUT_DATASET_#2``);
+* To determine the index of the input dataset to specify,
+  please check the order of the datasets when you call ``babs init --datasets``.
   This index starts from 1, and is a positive integer.
 
     * For example, to use ``fMRIPrep`` with FreeSurfer results ingressed, you want to call command below,
@@ -787,7 +822,8 @@ Notes:
                 freesurfer=/path/to/freesurfer_outputs \
                 ...
 
-* We recommend adding ``*`` after ``.nii`` as there might only be unzipped NIfTI file (e.g., ``.nii`` instead of ``.nii.gz``) in the input dataset;
+* We recommend adding ``*`` after ``.nii`` as there might only be unzipped NIfTI file
+  (e.g., ``.nii`` instead of ``.nii.gz``) in the input dataset;
 * :octicon:`alert-fill` :bdg-warning:`warning` Currently we only support checking required files
   in unzipped input dataset (e.g., raw BIDS dataset).
 

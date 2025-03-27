@@ -1,14 +1,15 @@
-#############################################
+#######################################
 Step III: Job submission and job status
-#############################################
+#######################################
 
 .. contents:: Table of Contents
 
 .. _list_included_subjects:
 
-*******************************************************
+***************************************************
 List of included subjects (and sessions) to process
-*******************************************************
+***************************************************
+
 ``babs init`` follows the steps below to determine the final list of included subjects (and sessions) to process:
 
 #. Determine an initial list:
@@ -27,9 +28,10 @@ is located at ``/path/to/my_BABS_project/analysis/code``.
 
 .. TODO: describe other saved csv files for e.g., exclusions
 
-***************************************************************
+**********************************************************
 Recommended workflow of job submission and status checking
-***************************************************************
+**********************************************************
+
 Processing large-scale datasets and handling hundreds or even thousands of jobs
 can be tough. We hope BABS can help this process.
 We recommend using ``babs submit`` and ``babs status`` in the following way;
@@ -51,9 +53,9 @@ in short, it's a iteration between ``babs submit`` and ``babs status``:
 #. You may start to iteratively call ``babs submit`` and ``babs status`` until all jobs finish.
    See below for tips of each function.
 
-==============================
+=======================
 Tips of ``babs submit``
-==============================
+=======================
 You have several choices when running ``babs submit``:
 
 * Submit one or several specific jobs by ``--job``;
@@ -62,14 +64,15 @@ You have several choices when running ``babs submit``:
   you may submit all remaining jobs by ``--all``.
   After then, only thing you need to do is to run ``babs status`` once a while until all jobs finish.
 
-==============================
+=======================
 Tips of ``babs status``
-==============================
+=======================
 
 .. _check-job-status-and-failed-job-auditing:
 
 Recommended way to check job status (including failed job auditing)
----------------------------------------------------------------------
+-------------------------------------------------------------------
+
 To check job status and perform failed job auditing,
 you can use two options of ``babs status`` here:
 
@@ -88,7 +91,8 @@ you can use two options of ``babs status`` here:
 .. _setup-section-alert-log-messages:
 
 Set up section ``alert_log_messages`` for failed job auditing
--------------------------------------------------------------------
+--------------------------------------------------------------
+
 If there are failed jobs, you may be wondering why they failed.
 A direct way to investigate is to check their log files, but it will take a lot of time to go through
 all failed jobs' log files. ``babs status`` supports failed job auditing and summary
@@ -118,7 +122,8 @@ section **alert_log_messages** in the container's configuration YAML file.
 ..  making it a broken link. Although the rendered path looks fine when building the docs *locally*
 
 Job resubmission
------------------------
+----------------
+
 You can also resubmit jobs that are failed or pending.
 See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 
@@ -128,9 +133,9 @@ See ``--resubmit`` and ``--resubmit-job`` in :doc:`babs-status` for more.
 
 .. _example_job_status_summary:
 
-*******************************************************
+***********************************************
 Example job status summary from ``babs status``
-*******************************************************
+***********************************************
 
 ..  code-block:: console
     :linenos:
@@ -174,9 +179,9 @@ Finally, you can find the log files (``stdout``, ``stderr``) in the path provide
 in the last line of the printed message (line #27).
 
 
-*******************************************************
+*********************************
 Explanation on ``job_status.csv``
-*******************************************************
+*********************************
 As described above, BABS ``babs status`` has provided a summary of all the jobs.
 This summary is based on ``job_status.csv`` (located at: ``/path/to/my_BABS_project/analysis/code``).
 If you hope to dig out more information, you may take a look at this CSV file.
@@ -189,9 +194,9 @@ If you hope to dig out more information, you may take a look at this CSV file.
     Changes that are not made by ``babs submit`` or ``babs status`` may cause conflicts
     or confusions to BABS on the job status.
 
-==============================
+==========================
 Loading ``job_status.csv``
-==============================
+==========================
 
 To take a look at ``job_status.csv``, you may load it into Python.
 Below is an example python script of reading ``job_status.csv``::
@@ -217,9 +222,9 @@ matches with a specific string, etc.
 
 .. _detailed_description_of_job_status_csv:
 
-==================================================
+==========================================
 Detailed description of ``job_status.csv``
-==================================================
+==========================================
 
 Each row in the ``job_status.csv`` is for a job, i.e., of a subject (single-session dataset),
 or of a session of a subject (multiple-session dataset).
@@ -232,10 +237,10 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 * ``has_submitted``: bool (True or False), whether a job has been submitted.
 * ``job_id``: integer (usually positive), ID of a job. Before a job is submitted, ``job_id = -1``.
 * ``job_state_category``: string or ``np.nan``, the category of a job's state,
-  e.g., "pending", "running", etc on SGE clusters. Before a job is submitted,
+  e.g., "pending", "running", etc. Before a job is submitted,
   ``job_state_category = np.nan``.
 * ``job_state_code``: string or ``np.nan``, the code of a job's state,
-  e.g., "qw",  "r", etc on SGE clusters. Before a job is submitted, ``job_state_code = np.nan``.
+  e.g., "qw",  "r", etc. Before a job is submitted, ``job_state_code = np.nan``.
 * ``duration``: string or ``np.nan``, the runtime of a running job since it starts running,
   e.g., ``0:00:14.733701`` (i.e., 14.733701 sec). If a job is not running
   (not submitted, pending, finished, etc), ``duration = np.nan``.
@@ -270,9 +275,9 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
       in ``babs status``, ``alert_message = np.nan``.
 
 
-*******************************************************
+******************************************
 FAQ for job submission and status checking
-*******************************************************
+******************************************
 
 Q: In printed messages from ``babs status``, what if the number of submitted jobs
 does not match with the total number of jobs summarized under "Among submitted jobs"?
@@ -280,7 +285,7 @@ does not match with the total number of jobs summarized under "Among submitted j
 A: This should happen infrequently. Those "missing" jobs may in some uncommon or brief states
 that BABS does not recognize. Please wait for a bit moment, and rerun ``babs status``.
 
-.. developer's notes: if calling `babs status` immediately after `babs submit` on MSI Slurm cluster,
+.. developer's notes: if calling `babs status` immediately after `babs submit` on MSI SLURM cluster,
 ..  you may see this. This is because jobs are in atypical states `CF` (configuring).
 ..  Just wait several sec and rerun `babs status`.
 
@@ -291,9 +296,9 @@ A: This should be an edge case. Simply run ``babs status`` again,
 and it might be updated with 'SUCCESS'.
 
 
-*******************************************************
+********
 See also
-*******************************************************
+********
 :doc:`babs-submit`
 
 :doc:`babs-status`

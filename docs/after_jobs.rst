@@ -1,11 +1,11 @@
-***************************************
+*********************************
 Step IV: After jobs have finished
-***************************************
+*********************************
 
 .. contents:: Table of Contents
 
 Step 3.1. Merge the results and provenance
-=============================================
+==========================================
 
 Once all jobs have finished, the results will be on different branches.
 Please use ``babs merge`` to merge the results and provenance
@@ -24,7 +24,7 @@ If ``babs merge`` finishes successfully, you'll see::
 Otherwise, there were some warnings or errors.
 
 Step 3.2. Get the results
-==================================
+=========================
 
 Now you can get the results out by cloning the output RIA:
 

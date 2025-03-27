@@ -3,7 +3,7 @@
 ## Example container configuration YAML files
 
 Here we provide a few example container configuration YAML files
-for different use cases. With customization, these YAML files can be applied to both SGE and Slurm clusters.
+for different use cases. With customization, these YAML files can be applied to Slurm clusters.
 Note that because of inevitable differences across clusters, these YAML files
 require customization before you apply it to your cluster.
 We provide hints in the YAML files (e.g., `[FIX ME]`) for how to customize it.

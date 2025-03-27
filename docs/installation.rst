@@ -1,14 +1,14 @@
-**********************
+************
 Installation
-**********************
+************
 
 .. contents:: Table of Contents
 
-Step 0. System requirement
-=============================================
+Step 0. System requirements
+===========================
 
 Currently BABS supports applications on high performance computing (HPC) clusters,
-specifically, Sun Grid Engine (SGE) and Slurm clusters.
+specifically and SLURM clusters.
 Please make sure Singularity or one of its successors
 (i.e. SingularityCE or Apptainer which BABS currently supports) is available on the cluster.
 
@@ -19,14 +19,14 @@ Currently, BABS is **not** compatible with:
 * computing nodes without job scheduling systems.
 
 Step 1. Choose an environment manager for BABS
-===============================================
+==============================================
 For this, we strongly recommend `miniforge/mamba <https://github.com/conda-forge/miniforge>`_
 or optionally `micromamba <https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html>`_.
 These packages work the same as ``conda``, but they are open-source and will never move to a pay-structure as
 anaconda has recently done.
 
 Step 2. Install BABS and dependent software
-============================================
+===========================================
 
 We have a `yaml` file on our repo for easily installing BABS and its dependencies with a single command::
 
@@ -62,7 +62,7 @@ You only need to do this step once on a given system.
 ..  ref: https://git-scm.com/book/en/v2/Getting-Started-First-Time-Git-Setup
 
 Optional: set-up ``datalad-osf``
----------------------------------
+--------------------------------
 You also need to configure ``datalad-osf`` only if:
 
 * if you're an end user and your input DataLad dataset is on OSF;
@@ -79,7 +79,7 @@ How to configure ``datalad-osf``::
 For up-to-date information on configuring ``datalad-osf`` see: http://docs.datalad.org/projects/osf/en/latest/settingup.html
 
 Check if you have everything installed and up-to-date
---------------------------------------------------------
+-----------------------------------------------------
 .. warning::
     Before moving on, please check if you have up-to-date required dependencies! Sometimes although
     dependent software has been installed, the version might be too old or not up-to-date, causing

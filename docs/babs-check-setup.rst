@@ -1,6 +1,6 @@
-##################################################
+###############################################
 ``babs check-setup``: Validate the BABS project
-##################################################
+###############################################
 
 .. contents:: Table of Contents
 
@@ -14,13 +14,13 @@ Command-Line Arguments
    :nodefault:
    :nodefaultconst:
 
-**********************
+********************
 Detailed description
-**********************
+********************
 
---------------------------------------------------------------------
+----------------------------------
 What does ``babs check-setup`` do?
---------------------------------------------------------------------
+----------------------------------
 
 ``babs check-setup`` will perform these steps:
 
@@ -30,9 +30,9 @@ What does ``babs check-setup`` do?
    are installed in the designated environment. This happen when ``--job-test``
    is requested. We highly recommend doing so.
 
----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 What if ``babs check-setup`` fails or the BABS project's setup is not what I desire?
----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------
 
 If running ``babs check-setup`` (e.g., with test jobs) fails,
 or the summarized information from ``babs check-setup`` is not what you desire,
@@ -70,9 +70,9 @@ In details,
 
 #. Generate a new BABS project by running ``babs init``.
 
-**********************
+****************
 Example commands
-**********************
+****************
 
 We highly recommend running ``babs check-setup`` with a test job::
 
@@ -82,8 +82,8 @@ Otherwise, you could run without a test job::
 
     babs check-setup /path/to/my_BABS_project
 
-**********************
+********
 See also
-**********************
+********
 
 * :doc:`create_babs_project`

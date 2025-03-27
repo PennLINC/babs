@@ -26,21 +26,21 @@ Command-Line Arguments
       here: :ref:`what-if-babs-init-fails` for details.
 
 
-**********************
+********************
 Detailed description
-**********************
+********************
 
---------------------------------------------------------------------
-How to prepare input dataset, container, and container's YAML file?
---------------------------------------------------------------------
+-------------------------------------------------------------------------
+How do I prepare the input dataset, container, and container's YAML file?
+-------------------------------------------------------------------------
 
 Please see document :ref:`preparation` for how to prepare these inputs.
 
 .. _how-to-define-name-of-input-dataset:
 
-------------------------------------------------------------------------------
-How to define the input dataset's name ``<name>`` in ``babs init --datasets``?
-------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+How do I define the input dataset's name ``<name>`` in ``babs init --datasets``?
+--------------------------------------------------------------------------------
 
 **General guideline**: a string you think that's informative.
 Examples are ``BIDS``, ``freesurfer``.
@@ -75,9 +75,9 @@ Examples are ``BIDS``, ``freesurfer``.
             │   └── sub-02
             etc
 
---------------------------------------------------------
+------------------------------------------------------
 How is the list of subjects (and sessions) determined?
---------------------------------------------------------
+------------------------------------------------------
 A list of subjects (and sessions) will be determined when running ``babs init``,
 and will be saved in a CSV file called named ``sub_final_inclu.csv`` (for single-session dataset)
 or ``sub_ses_final_inclu.csv`` (for multiple-session dataset),
@@ -89,9 +89,9 @@ See :ref:`list_included_subjects` for how this list is determined.
 
 .. _what-if-babs-init-fails:
 
---------------------------------------------------------------------
+----------------------------
 What if ``babs init`` fails?
---------------------------------------------------------------------
+----------------------------
 
 If ``babs init`` fails, by default it will remove ("clean up") the created, failed BABS project.
 
@@ -126,12 +126,12 @@ to do are as follows:
    If you don't remove the failed BABS project, you cannot overwrite it by running ``babs init`` again.
 
 
-**********************
+****************
 Example commands
-**********************
+****************
 
 Example ``babs init`` command for toy BIDS App + multi-session data on
-an SGE cluster:
+a SLURM cluster:
 
 .. code-block:: bash
 
@@ -141,7 +141,7 @@ an SGE cluster:
         --container_name toybidsapp-0-0-7 \
         --container_config /path/to/container_toybidsapp.yaml \
         --processing_level session \
-        --queue sge \
+        --queue slurm \
         /path/to/a/folder/holding/BABS/project/my_BABS_project
 
 Example command if you have more than one input datasets, e.g., raw BIDS data, and fMRIPrep
@@ -158,13 +158,13 @@ Therefore, the 2nd input dataset should be named as 'freesurfer', a keyword in f
         freesurfer=/path/to/freesurfer_results_datalad_dataset \
         ...
 
-***************
+*********
 Debugging
-***************
+*********
 
-----------------------------------------
+-----------------------------------
 Error when cloning an input dataset
-----------------------------------------
+-----------------------------------
 What happened: After ``babs init`` prints out a message like this:
 ``Cloning input dataset #x: '/path/to/input_dataset'``, there was an error message that includes this information:
 ``err: 'fatal: repository '/path/to/input_dataset' does not exist'``.
@@ -176,9 +176,9 @@ How to solve the problem: Fix this path. To confirm the updated path is valid, y
 it to a temporary directory with ``datalad clone /updated/path/to/input_dataset``. If it is successful,
 you can go ahead rerun ``babs init``.
 
-**********************
+********
 See also
-**********************
+********
 
 * :doc:`preparation`
 * :doc:`create_babs_project`

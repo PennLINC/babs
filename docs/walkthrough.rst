@@ -1,6 +1,6 @@
-**********************
+*******************
 Example walkthrough
-**********************
+*******************
 
 .. contents:: Table of Contents
 
@@ -13,7 +13,6 @@ Example walkthrough
 
 In this example walkthrough, we will use toy BIDS data and a toy BIDS App
 to demonstrate how to use BABS.
-We use SGE clusters as examples here; adaptations to Slurm clusters will also be covered.
 
 By following the :doc:`the installation page <installation>`,
 on the cluster, you should have successfully installed BABS and its dependent software
@@ -164,7 +163,7 @@ as you can directly use its OSF link for input dataset for BABS:
 
 
 Step 1. Get prepared
-===========================
+====================
 There are three things required by BABS as input:
 
 #. DataLad dataset of BIDS dataset(s);
@@ -172,10 +171,10 @@ There are three things required by BABS as input:
 #. A YAML file regarding how the BIDS App should be executed.
 
 Step 1.1. Prepare DataLad dataset(s) of BIDS dataset(s)
----------------------------------------------------------
-As mentioned above,
-you will use a toy, multi-session BIDS dataset available on OSF:
-https://osf.io/w2nu3/. You'll directly copy this link as the path to the input dataset,
+-------------------------------------------------------
+As mentioned above, you will use a toy, multi-session BIDS dataset available on OSF:
+https://osf.io/w2nu3/.
+You'll directly copy this link as the path to the input dataset,
 so no extra work needs to be done here.
 
 .. dropdown:: If there is no Internet connection on compute nodes
@@ -183,14 +182,14 @@ so no extra work needs to be done here.
     When providing the path to the input BIDS dataset,
     please do not use the OSF http link;
     instead, please use the path to the local copy of this dataset.
-    We will provide more guides when we reach that step.
+    We will provide more guidance when we reach that step.
 
-Step 1.2. Prepare DataLad dataset of containerized BIDS App
--------------------------------------------------------------
-For the BIDS App, we have prepared a `toy BIDS App <https://hub.docker.com/r/pennlinc/toy_bids_app>`_
+Step 1.2. Prepare a DataLad dataset of the containerized BIDS App
+-----------------------------------------------------------------
+For this walkthrough, we have prepared a `toy BIDS App <https://hub.docker.com/r/pennlinc/toy_bids_app>`_
 that performs a simple task: if the input dataset is a raw BIDS dataset (unzipped),
 the toy BIDS App will count non-hidden files in a subject's folder. Note that
-even if the input dataset is multi-session dataset, it will still count at subject-level
+even if the input dataset is multi-session dataset, it will still count at the subject-level
 (instead of session-level).
 
 You now need to pull our toy BIDS App as a Singularity image (the latest version is ``0.0.7``):
@@ -214,11 +213,12 @@ Now you should see the file ``toybidsapp-0.0.7.sif`` in the current directory.
 
 Then create a DataLad dataset of this container (i.e., let DataLad track this Singularity image):
 
-.. dropdown:: I'm confused - Why the container is another DataLad `dataset`?
+.. dropdown:: I'm confused - Why is the container another DataLad `dataset`?
 
-    Here, "DataLad dataset of container" means "a collection of container image(s) in a folder tracked by DataLad".
-    Same as DataLad dataset of input BIDS dataset, it's tracked by DataLad;
-    but different from input BIDS dataset, "DataLad dataset of container"
+    Here, "DataLad dataset of the container" means
+    "a collection of container image(s) in a folder tracked by DataLad".
+    It's the same as a DataLad dataset of input BIDS dataset - it's tracked by DataLad;
+    but different from input BIDS dataset, a "DataLad dataset of the container"
     contains container image(s), and it won't `be processed`.
 
 .. code-block:: console
@@ -269,7 +269,7 @@ you can remove the original ``sif`` file:
 .. developer's note: for my case, it's ``/cbica/projects/BABS/babs_demo/toybidsapp-container``
 
 Step 1.3. Prepare a YAML file for the BIDS App
--------------------------------------------------------------
+----------------------------------------------
 
 Finally, you'll prepare a YAML file that instructs BABS for how to run the BIDS App.
 Below is an example YAML file for toy BIDS App:
@@ -281,7 +281,7 @@ Below is an example YAML file for toy BIDS App:
 .. literalinclude:: ../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
    :language: yaml
    :linenos:
-   :emphasize-lines: 18,19,21,22,25
+   :emphasize-lines: 23,24,26,27,30
 
 As you can see, there are several sections in this YAML file.
 
@@ -320,14 +320,14 @@ There are several lines (highlighted above) that require customization based on 
 * Section ``cluster_resources``:
 
     * Check out if line #13 ``interpreting_shell`` looks appropriate for your cluster.
-      Some Slurm clusters may recommend adding ``-l`` at the end,
+      Some SLURM clusters may recommend adding ``-l`` at the end,
       i.e.,::
 
         interpreting_shell: "/bin/bash -l"
 
       See :ref:`cluster-resources` for more explanations about this line.
 
-    * For Slurm clusters, if you would like to use specific partition(s),
+    * For SLURM clusters, if you would like to use specific partition(s),
       as requesting partition is currently not a pre-defined key in BABS,
       you can use ``customized_text`` instead, and add line #3-4 highlighted in the block below:
 
@@ -349,25 +349,11 @@ There are several lines (highlighted above) that require customization based on 
       temporary disk space of 20GB (``temporary_disk_space: 20G``),
       Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
-    * .. dropdown:: For Penn Medicine CUBIC cluster only:
 
-        You may need to add line #4-5 highlighted in the block below
-        to avoid some compute nodes
-        that currently have issues in file locks:
-
-        ..  code-block:: yaml
-            :linenos:
-            :emphasize-lines: 4,5
-
-            cluster_resources:
-                interpreting_shell: /bin/bash
-                hard_memory_limit: 2G
-                customized_text: |
-                    #$ -l hostname=!compute-fed*
 
 .. developer's note: if YAML file of walkthrough was changed:
 ..  also need to change above copied section "cluster_resources"!
-.. developer's note: for MSI Slurm cluster: need to add `hard_runtime_limit: "20"`
+.. developer's note: for MSI SLURM cluster: need to add `hard_runtime_limit: "20"`
 ..  without it, when using e.g. `k40` partition, one job was success (branch pushed to output RIA)
 ..  but "TIMEOUT" in `sacct`, leaving last 2 lines of stdout message of "deleting branch:\n job-xx-xx-xx"
 
@@ -419,10 +405,10 @@ By now, you have prepared these in the ``~/babs_demo`` folder:
 Now you can start to use BABS for data analysis.
 
 Step 2. Create a BABS project
-=================================
+=============================
 
 Step 2.1. Use ``babs init`` to create a BABS project
------------------------------------------------------------
+----------------------------------------------------
 A BABS project is the place where all the inputs are cloned to, all scripts are generated,
 and results and provenance are saved. An example command of ``babs init`` is as follows:
 
@@ -439,7 +425,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
         --container_name toybidsapp-0-0-7 \
         --container_config ${PWD}/config_toybidsapp_demo.yaml \
         --processing_level session \
-        --queue sge \
+        --queue slurm \
         ${PWD}/my_BABS_project
 
 .. dropdown:: If there is no Internet connection on compute nodes
@@ -456,8 +442,7 @@ It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--contain
 is consistent with the image name you specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
 If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session`` (line #9).
-Finally, please change the cluster system type ``--queue`` (highlighted line #10) to yours;
-currently BABS supports ``sge`` and ``slurm``.
+
 
 If ``babs init`` succeeded, you should see this message at the end:
 
@@ -480,13 +465,18 @@ If ``babs init`` succeeded, you should see this message at the end:
 
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
-    You may receive this warning from ``babs init`` if you did not set up environment variable ``$TEMPLATEFLOW_HOME``::
+    You may receive this warning from ``babs init`` if you did not set up
+    the environment variable ``$TEMPLATEFLOW_HOME``::
 
-        UserWarning: Usually BIDS App depends on TemplateFlow, but environment variable `TEMPLATEFLOW_HOME` was not set up.
-        Therefore, BABS will not bind its directory or inject this environment variable into the container when running the container. This may cause errors.
+        UserWarning: Usually BIDS App depends on TemplateFlow, but environment
+        variable `TEMPLATEFLOW_HOME` was not set up.
+        Therefore, BABS will not bind its directory or inject this environment
+        variable into the container when running the container.
+        This may cause errors.
 
-    This is totally fine to toy BIDS App, and it won't use TemplateFlow.
-    However, a lot of BIDS Apps would use it. Make sure you set it up when you use those BIDS Apps.
+    This is totally fine for the toy BIDS App we're using here, and it won't use TemplateFlow.
+    However, a lot of BIDS Apps would use it.
+    Make sure you set it up when you use those BIDS Apps.
 
 
 It's very important to check if the generated ``singularity run`` command is what you desire.
@@ -506,8 +496,9 @@ The command below can be found in the printed messages from ``babs init``:
         --participant-label "${subid}"
 
 
-As you can see, BABS has automatically handled the positional arguments of BIDS App (i.e., input directory,
-output directory, and analysis level - 'participant'). ``--participant-label`` is also covered by BABS, too.
+As you can see, BABS has automatically handled the positional arguments of BIDS App
+(i.e., input directory, output directory, and analysis level - 'participant').
+``--participant-label`` is also covered by BABS, too.
 
 It's also important to check if the generated directives for job submission are what you desire.
 You can get them via:
@@ -519,40 +510,20 @@ You can get them via:
 
 The first several lines starting with ``#`` and before the line ``# Script preambles:``
 are directives for job submissions.
-It should be noted that, when using different types of cluster system (e.g., SGE, Slurm),
+It should be noted that, when using different types of cluster systems (e.g., SLURM),
 you will see different generated directives.
 In addition, depending on the BABS version, you'll see slightly different directives, too.
-If you used YAML file above *without further modification*,
+If you used the YAML file above *without further modification*,
 the generated directives would be:
 
 .. developer's note: below: not all the 10 lines from `head participant_job.sh`, but only lines of directives.
 
-.. dropdown:: If on a Slurm cluster + using BABS version >0.0.3, you'll see:
+.. dropdown:: If on a SLURM cluster + using BABS version >0.0.3, you'll see:
 
     ..  code-block:: console
 
         #!/bin/bash
         #SBATCH --mem=2G
-
-.. developer's note: above was got via BABS 0.0.4+47.g33b9419 on MSI Slurm cluster.
-
-.. dropdown:: If on an SGE cluster + using BABS version >0.0.3, you'll see:
-
-    ..  code-block:: console
-
-        #!/bin/bash
-        #$ -l h_vmem=2G
-
-.. developer's note: above was got via BABS 0.0.4.
-
-.. dropdown:: If on an SGE cluster + using BABS version 0.0.3, you'll see:
-
-    ..  code-block:: console
-
-        #!/bin/bash
-        #$ -S /bin/bash
-        #$ -l h_vmem=2G
-
 
 .. developer's note: below is generated based on `tree -L 3 .`
 
@@ -589,27 +560,26 @@ the generated directives would be:
 
 
 Step 2.2. Use ``babs check-setup`` to make sure it's good to go
---------------------------------------------------------------------
-It's important to let BABS check to be sure that the project has been initialized correctly. In addition,
-it's often a good idea to run a test job to make sure
+---------------------------------------------------------------
+It's important to let BABS check to be sure that the project has been initialized correctly.
+In addition, it's often a good idea to run a test job to make sure
 that the environment and cluster resources specified in the YAML file are workable.
 
 Note that starting from this step in this example walkthrough, without further instructions,
 all BABS functions will be called from where the BABS project
 is located: ``~/babs_demo/my_BABS_project``.
-This is to make sure you can directly use ``${PWD}`` for argument ``project_root``.
+This is to make the BABS commands a little shorter - they assume the
+BABS project is located in the current working directory.
 Therefore, please make sure you switch to this directory before calling them.
 
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs check-setup \
-        ${PWD} \
-        --job-test
+    $ babs check-setup --job-test
 
 It might take a bit time to finish, depending on how busy your cluster is,
 and how much resources you requested in the YAML file - in this example,
-you only requested very minimal amount of resources.
+you only requested very minimal resources.
 
 You'll see this message at the end if ``babs check-setup`` was successful:
 
@@ -617,12 +587,12 @@ You'll see this message at the end if ``babs check-setup`` was successful:
 
     `babs check-setup` was successful!
 
-Before moving on, please make sure you review the summarized information of designated environment,
-especially the version numbers:
+Before moving on, please make sure you review the summarized information of
+the designated environment, especially the version numbers:
 
 ..  code-block:: console
 
-    Below is the information of designated environment and temporary workspace:
+    Below is the information of the designated environment and temporary workspace:
 
     workspace_writable: true
     which_python: '/cbica/projects/BABS/miniconda3/envs/babs/bin/python'
@@ -648,7 +618,7 @@ especially the version numbers:
 Now it's ready for job submissions.
 
 Step 3. Submit jobs and check job status
-==========================================
+========================================
 We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and check job status.
 
 We first use ``babs status`` to check the number of jobs we initially expect to finish successfully.
@@ -660,7 +630,7 @@ so BABS will submit one job for each session.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs status $PWD
+    $ babs status
 
 You'll see:
 
@@ -679,7 +649,7 @@ If you would like to submit all jobs, you can use the ``--all`` argument.
 
 .. code-block:: console
 
-    $ babs submit $PWD
+    $ babs submit
 
 You'll see something like this (the job ID will probably be different):
 
@@ -706,7 +676,7 @@ You can check the job status via ``babs status``:
 
 ..  code-block:: console
 
-    $ babs status $PWD
+    $ babs status
 
 ..
    when pending::
@@ -746,7 +716,7 @@ Now, you can submit all other jobs by specifying ``--all``:
 
 .. code-block:: console
 
-    $ babs submit $PWD --all
+    $ babs submit --all
 
 ..
     printed messages you'll see:
@@ -772,7 +742,7 @@ Now, you can submit all other jobs by specifying ``--all``:
     4  toy_sub-02_ses-B.*4649006                   NaN            NaN
     5  toy_sub-02_ses-D.*4649009                   NaN            NaN
 
-You can again call ``babs status $PWD`` to check status.
+You can again call ``babs status`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
 
 ..  code-block:: console
@@ -815,10 +785,10 @@ If all jobs have finished successfully, you'll see:
 ..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
 
 Step 4. After jobs have finished
-===================================
+================================
 
 Step 4.1. Use ``babs merge`` to merge all results and provenance
---------------------------------------------------------------------
+----------------------------------------------------------------
 After all jobs have finished successfully,
 we will merge all the results and provenance.
 Each job was executed on a different branch, so we must
@@ -828,7 +798,7 @@ We now run ``babs merge`` in the root directory of ``my_BABS_project``:
 
 ..  code-block:: console
 
-    $ babs merge $PWD
+    $ babs merge
 
 If it was successful, you'll see this message at the end:
 
@@ -852,7 +822,7 @@ If it was successful, you'll see this message at the end:
 Now you're ready to consume the results.
 
 Step 4.2. Consume results
-------------------------------
+-------------------------
 
 To consume the results, you should not access the output RIA store
 or ``merge_ds`` directories inside the BABS project.
