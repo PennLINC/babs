@@ -1,6 +1,6 @@
-#########################################################
+###################################################
 Prepare input BIDS dataset(s) as DataLad dataset(s)
-#########################################################
+###################################################
 
 .. contents:: Table of Contents
 
@@ -15,9 +15,9 @@ For more details, please refer to
 `its documentation <http://docs.datalad.org/en/stable/generated/man/datalad-create.html>`_,
 and `DataLad Handbook <https://handbook.datalad.org/en/latest/basics/101-101-create.html>`__.
 
-==============================================================================
+====================================================
 Raw (unzipped) BIDS dataset, or zipped BIDS dataset?
-==============================================================================
+====================================================
 
 * If there are zip files, like ``sub-*.zip``,
   it would be considered as a zipped BIDS derivatives dataset.
@@ -34,16 +34,16 @@ was categorized as a raw (unzipped) dataset or a zipped dataset.
 
 .. _requirements_for_zipped_BIDS_derivatives_dataset:
 
-==========================================================
+========================================================
 Requirements for a zipped BIDS derivatives input dataset
-==========================================================
+========================================================
 There are several requirements for zipped BIDS derivatives dataset:
 
 Note: an input dataset's name is defined when ``babs init --name``.
 
--------------------------
+----------------
 Naming zip files
--------------------------
+----------------
 
 * For single-session dataset, the zip filename should follow the pattern of
   ``sub-*_<name>*.zip``, where ``<name>`` is the name of this input dataset.
@@ -60,9 +60,9 @@ Naming zip files
       There should not be another zip file with ``freesurfer`` for this session,
       e.g., ``sub-01_ses-A_freesurfer-xxx.zip``
 
--------------------------
+------------------------
 Content of the zip files
--------------------------
+------------------------
 Within the zip file of a specific subject (or session), there should be a folder
 named by this input dataset's name, e.g., folder ``freesurfer``
 inside ``sub-01_ses-A_freesurfer-20-2-3.zip`` in the input dataset ``freesurfer``.
@@ -71,16 +71,16 @@ inside ``sub-01_ses-A_freesurfer-20-2-3.zip`` in the input dataset ``freesurfer`
 
 For more explanations and examples, please refer to "See also" below.
 
--------------------
+--------
 See also
--------------------
+--------
 
 Notes in ``babs init`` CLI: :ref:`how-to-define-name-of-input-dataset`
 
 
-==================================================================
+================================================================
 Using results from another BABS project as an input BIDS dataset
-==================================================================
+================================================================
 If you hope to use zipped results from another BABS project ("BABS project A")
 as input dataset for a new BABS project ("BABS project B"), you may follow these steps:
 
@@ -125,9 +125,10 @@ as input dataset for a new BABS project ("BABS project B"), you may follow these
 
 .. _example_input_BIDS_datasets_for_BABS:
 
-================================================================
+====================================
 Example input BIDS datasets for BABS
-================================================================
+====================================
+
 .. list-table:: Example input datasets available on OSF
    :widths: 25 25 25
    :header-rows: 1

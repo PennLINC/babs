@@ -2,7 +2,7 @@
 .. include:: links.rst
 
 Documentation
-==================
+=============
 
 Please follow the instructions in this documentation to use BABS.
 Currently there is no alternative usage of BABS.
@@ -22,7 +22,7 @@ Currently there is no alternative usage of BABS.
    whats_new
 
 Indices and tables
-====================
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`

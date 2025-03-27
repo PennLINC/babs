@@ -1,6 +1,6 @@
-#########################################
+####################################
 Developer's notes on ``babs status``
-#########################################
+####################################
 
 ============================================================
 Logic flow of the ``babs_status()`` method of ``BABS`` class
@@ -64,9 +64,9 @@ Summary:
 - 'alert_log_messages' is detected in all submitted jobs, no matter 'is_done' in previous round or not
 
 
-=========================================
+===================================
 Resubmissions based on job's status
-=========================================
+===================================
 
 Note: currently, ``babs status`` CLI does not support ``--reckless``.
 
@@ -108,9 +108,9 @@ Note: currently, ``babs status`` CLI does not support ``--reckless``.
 .. developer's note: CZ remembers she tested those edge cases (except eqw one) on 6/5/23 Mon after
 ..  handling issue #85, but the terminals were closed so she did not have a log for this
 
-===================================
+==========================
 Example ``job_status.csv``
-===================================
+==========================
 
 When this CSV was just initialized::
 
@@ -130,13 +130,13 @@ Note: ``0`` at the beginning: index of pd.DataFrame
 
 .. _how_to_test_out_babs_status:
 
-====================================
+===============================
 How to test out ``babs status``
-====================================
+===============================
 
-------------------------------------------
+-----------------------------
 Create pending or failed jobs
-------------------------------------------
+-----------------------------
 
 Change/Add these in ``participant_job.sh``:
 
@@ -145,14 +145,12 @@ Change/Add these in ``participant_job.sh``:
   e.g., memory, number of CPUs, temporary disk space, etc.
 
     - on SLurm clusters: increase ``#SBATCH --mem``, ``#SBATCH --tmp``, etc
-    - on SGE clusters: increase ``-l h_vmem`` and ``-l s_vmem``; increase ``-pe threaded N``
-- stalled (``eqw`` on SGE clusters): skip this for now. See Bergman email 12/20/22
 
 After these changes, ``datalad save -m "message"`` and ``datalad push --to input``
 
----------------------------------------------------------------------
+-------------------------------------------------------------------
 Create failed cases for testing ``babs status`` failed job auditing
----------------------------------------------------------------------
+-------------------------------------------------------------------
 
 * Add ``sleep 3600`` to ``container_zip.sh``; make sure you ``datalad save`` the changes
 * Change hard runtime limit to 20min (on SGE: ``-l h_rt=0:20:00``)
@@ -160,7 +158,7 @@ Create failed cases for testing ``babs status`` failed job auditing
 
     * when the job is pending, manually kill it
 
-        * For Slurm cluster: you'll see normal msg from ``State`` column of ``sacct`` msg
+        * For SLURM cluster: you'll see normal msg from ``State`` column of ``sacct`` msg
         * For SGE cluster: you'll see warning that ``qacct`` failed for this job - this is normal. See PR #98 for more details.
 
     * when the job is running, manually kill it
@@ -174,9 +172,9 @@ Create failed cases for testing ``babs status`` failed job auditing
 
         * although they can be normal msg seen in successful jobs
 
-===========================
+===========
 Terminology
-===========================
+===========
 
 - ``<jobname>.o<jobid>``: standard output stream of the job
 - ``<jobname>.e<jobid>``: standard error stream of the job
