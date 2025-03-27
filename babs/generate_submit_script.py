@@ -56,7 +56,7 @@ def generate_submit_script(
     if queue_system == 'sge':
         varname_jobid = 'JOB_ID'
     elif queue_system == 'slurm':
-        varname_jobid = 'SLURM_ARRAY_JOB_ID'
+        varname_jobid = 'SLURM_ARRAY_TASK_ID'
 
     # If any input dataset is zipped, get the setup for the zipfile locator:
     zip_locator_template = env.get_template('determine_zipfilename.sh.jinja2')
