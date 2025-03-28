@@ -366,7 +366,7 @@ class BABS:
         print('\nRegistering the input dataset(s)...')
         for i_ds in range(0, input_ds.num_ds):
             # path to cloned dataset:
-            i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel'])
+            i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'relative_path'])
             print(f'Cloning input dataset #{i_ds + 1}: ' + input_ds.df.loc[i_ds, 'name'])
             # clone input dataset(s) as sub-dataset into `analysis` dataset:
             dlapi.clone(
@@ -392,14 +392,14 @@ class BABS:
             proc_git_commit_amend.check_returncode()
 
         # get the current absolute path to the input dataset:
-        input_ds.assign_path_now_abs(self.analysis_path)
+        input_ds.update_abs_paths(self.analysis_path)
 
         # Check the type of each input dataset: (zipped? unzipped?)
         #   this also gets `is_zipped`
         print('\nChecking whether each input dataset is a zipped or unzipped dataset...')
-        input_ds.check_if_zipped()
+        input_ds.determine_input_zipped_status()
         # sanity checks:
-        input_ds.check_validity_zipped_input_dataset(self.processing_level)
+        input_ds.validate_zipped_input_contents(self.processing_level)
 
         # Check validity of unzipped ds:
         #   if session, has `ses-*` in each `sub-*`; if subject, has a `sub-*`
@@ -409,14 +409,14 @@ class BABS:
         babs_proj_config = read_yaml(self.config_path, use_filelock=True)
         for i_ds in range(0, input_ds.num_ds):
             ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-            # update `path_data_rel`:
-            babs_proj_config['input_ds'][ds_index_str]['path_data_rel'] = input_ds.df.loc[
-                i_ds, 'path_data_rel'
-            ]
+            # update `data_parent_dir`:
+            babs_proj_config['input_ds'][ds_index_str]['data_parent_dir'] = str(
+                input_ds.df.loc[i_ds, 'data_parent_dir']
+            )
             # update `is_zipped`:
-            babs_proj_config['input_ds'][ds_index_str]['is_zipped'] = input_ds.df.loc[
-                i_ds, 'is_zipped'
-            ]
+            babs_proj_config['input_ds'][ds_index_str]['is_zipped'] = bool(
+                input_ds.df.loc[i_ds, 'is_zipped']
+            )
         # dump:
         write_yaml(babs_proj_config, self.config_path, use_filelock=True)
         # datalad save: update:
@@ -560,7 +560,7 @@ class BABS:
         print("DataLad dropping input dataset's contents...")
         for i_ds in range(0, input_ds.num_ds):
             _ = self.analysis_datalad_handle.drop(
-                path=input_ds.df.loc[i_ds, 'path_now_rel'],
+                path=input_ds.df.loc[i_ds, 'relative_path'],
                 recursive=True,  # and potential subdataset
                 reckless='availability',
             )
@@ -626,13 +626,11 @@ class BABS:
                 print('Removing input dataset(s) if cloned...')
                 for i_ds in range(0, input_ds.num_ds):
                     # check if it exists yet:
-                    path_now_abs = op.join(
-                        self.analysis_path, input_ds.df.loc[i_ds, 'path_now_rel']
-                    )
-                    if op.exists(path_now_abs):  # this input dataset has been cloned:
+                    abs_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'relative_path'])
+                    if op.exists(abs_path):  # this input dataset has been cloned:
                         # use `datalad remove` to remove:
                         _ = self.analysis_datalad_handle.remove(
-                            path=path_now_abs, reckless='modification'
+                            path=abs_path, reckless='modification'
                         )
 
                 # `git annex dead here`:
@@ -750,27 +748,27 @@ class BABS:
 
         # check each input ds:
         for i_ds in range(0, input_ds.num_ds):
-            path_now_abs = input_ds.df.loc[i_ds, 'path_now_abs']
+            abs_path = input_ds.df.loc[i_ds, 'abs_path']
 
             # check if the dir of this input ds exists:
-            assert op.exists(path_now_abs), (
+            assert op.exists(abs_path), (
                 'The path to the cloned input dataset #'
                 + str(i_ds + 1)
                 + " '"
                 + input_ds.df.loc[i_ds, 'name']
                 + "' does not exist: "
-                + path_now_abs
+                + abs_path
             )
 
             # check if dir of input ds is a datalad dataset:
-            assert op.exists(op.join(path_now_abs, '.datalad/config')), (
+            assert op.exists(op.join(abs_path, '.datalad/config')), (
                 'The input dataset #'
                 + str(i_ds + 1)
                 + " '"
                 + input_ds.df.loc[i_ds, 'name']
                 + "' is not a valid DataLad dataset:"
                 + " There is no file '.datalad/config' in its directory: "
-                + path_now_abs
+                + abs_path
             )
 
             # ROADMAP: check if input dataset ID saved in YAML file

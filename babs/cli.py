@@ -1013,19 +1013,19 @@ def get_existing_babs_proj(project_root):
     # Get the class `InputDatasets`:
     input_ds = InputDatasets(datasets)
     # update information based on current babs project:
-    # 1. `path_now_abs`:
-    input_ds.assign_path_now_abs(babs_proj.analysis_path)
-    # 2. `path_data_rel` and `is_zipped`:
+    # 1. `abs_path`:
+    input_ds.update_abs_paths(babs_proj.analysis_path)
+    # 2. `data_parent_dir` and `is_zipped`:
     for i_ds in range(0, input_ds.num_ds):
         ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-        # `path_data_rel`:
-        input_ds.df.loc[i_ds, 'path_data_rel'] = babs_proj_config['input_ds'][ds_index_str][
-            'path_data_rel'
+        # `data_parent_dir`:
+        input_ds.df.loc[i_ds, 'data_parent_dir'] = babs_proj_config['input_ds'][ds_index_str][
+            'data_parent_dir'
         ]
         # `is_zipped`:
-        input_ds.df.loc[i_ds, 'is_zipped'] = babs_proj_config['input_ds'][ds_index_str][
-            'is_zipped'
-        ]
+        input_ds.df.loc[i_ds, 'is_zipped'] = bool(
+            babs_proj_config['input_ds'][ds_index_str]['is_zipped']
+        )
 
     return babs_proj, input_ds
 

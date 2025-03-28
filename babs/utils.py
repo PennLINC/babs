@@ -53,7 +53,7 @@ def validate_unzipped_datasets(input_ds, processing_level):
 
     for i_ds in range(input_ds.num_ds):
         if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
-            input_ds_path = input_ds.df.loc[i_ds, 'path_now_abs']
+            input_ds_path = input_ds.df.loc[i_ds, 'abs_path']
             # Check if there is sub-*:
             subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
 
@@ -142,6 +142,27 @@ def write_yaml(config, fn, use_filelock=False):
     use_filelock: bool
         whether to use filelock
     """
+
+    # Convert numpy types to native Python types
+    def convert_numpy(obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return obj
+
+    # Recursively convert numpy types in the config
+    def convert_dict(d):
+        if isinstance(d, dict):
+            return {k: convert_dict(v) for k, v in d.items()}
+        elif isinstance(d, list):
+            return [convert_dict(v) for v in d]
+        return convert_numpy(d)
+
+    config = convert_dict(config)
+
     if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
@@ -337,7 +358,7 @@ def get_list_sub_ses(input_ds, config, babs):
         )
         i_ds = 0
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
-            full_paths = sorted(glob.glob(input_ds.df['path_now_abs'][i_ds] + '/sub-*'))
+            full_paths = sorted(glob.glob(input_ds.df['abs_path'][i_ds] + '/sub-*'))
             # no need to check if there is `sub-*` in this dataset
             #   have been checked in `validate_unzipped_datasets()`
             # only get the sub's foldername, if it's a directory:
@@ -346,14 +367,11 @@ def get_list_sub_ses(input_ds, config, babs):
             # full paths to the zip files:
             if babs.processing_level == 'subject':
                 full_paths = glob.glob(
-                    input_ds.df['path_now_abs'][i_ds]
-                    + '/sub-*_'
-                    + input_ds.df['name'][i_ds]
-                    + '*.zip'
+                    input_ds.df['abs_path'][i_ds] + '/sub-*_' + input_ds.df['name'][i_ds] + '*.zip'
                 )
             elif babs.processing_level == 'session':
                 full_paths = glob.glob(
-                    input_ds.df['path_now_abs'][i_ds]
+                    input_ds.df['abs_path'][i_ds]
                     + '/sub-*_ses-*'
                     + input_ds.df['name'][i_ds]
                     + '*.zip'
@@ -374,9 +392,7 @@ def get_list_sub_ses(input_ds, config, babs):
             if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
                 for i_sub, sub in enumerate(subs):
                     # get the list of sess:
-                    full_paths = glob.glob(
-                        op.join(input_ds.df['path_now_abs'][i_ds], sub, 'ses-*')
-                    )
+                    full_paths = glob.glob(op.join(input_ds.df['abs_path'][i_ds], sub, 'ses-*'))
                     full_paths = sorted(full_paths)
                     sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
                     # no need to validate again that session exists
@@ -389,7 +405,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     # get the list of sess:
                     full_paths = glob.glob(
                         op.join(
-                            input_ds.df['path_now_abs'][i_ds],
+                            input_ds.df['abs_path'][i_ds],
                             sub + '_ses-*_' + input_ds.df['name'][i_ds] + '*.zip',
                         )
                     )
@@ -477,11 +493,11 @@ def get_list_sub_ses(input_ds, config, babs):
                     # iter of list of required files:
                     for required_file in list_required_files:
                         temp_files = glob.glob(
-                            op.join(input_ds.df['path_now_abs'][i_ds], sub, required_file)
+                            op.join(input_ds.df['abs_path'][i_ds], sub, required_file)
                         )
                         temp_files_2 = glob.glob(
                             op.join(
-                                input_ds.df['path_now_abs'][i_ds],
+                                input_ds.df['abs_path'][i_ds],
                                 sub,
                                 '**',  # consider potential `ses-*` folder
                                 required_file,
@@ -571,7 +587,7 @@ def get_list_sub_ses(input_ds, config, babs):
                             for required_file in list_required_files:
                                 temp_files = glob.glob(
                                     op.join(
-                                        input_ds.df['path_now_abs'][i_ds],
+                                        input_ds.df['abs_path'][i_ds],
                                         sub,
                                         ses,
                                         required_file,

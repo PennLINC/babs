@@ -11,7 +11,7 @@ import babs.utils as utils
 def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
     """Test the validate_unzipped_datasets function."""
     # Mock up a dataset
-    # The dataframe needs the following columns: is_zipped, path_now_abs, name
+    # The dataframe needs the following columns: is_zipped, abs_path, name
     zipped_dset = tmp_path_factory.mktemp(
         'test_validate_unzipped_datasets_crosssectional_zipped_dset'
     )
@@ -28,7 +28,7 @@ def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
     df = pd.DataFrame(
         {
             'is_zipped': [True, False],
-            'path_now_abs': [zipped_dset, unzipped_dset],
+            'abs_path': [zipped_dset, unzipped_dset],
             'name': ['zipped_dset', 'unzipped_dset'],
         }
     )
@@ -52,7 +52,7 @@ def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
 def test_validate_unzipped_datasets_longitudinal(tmp_path_factory):
     """Test the validate_unzipped_datasets function."""
     # Mock up a dataset
-    # The dataframe needs the following columns: is_zipped, path_now_abs, name
+    # The dataframe needs the following columns: is_zipped, abs_path, name
     zipped_dset = tmp_path_factory.mktemp(
         'test_validate_unzipped_datasets_longitudinal_zipped_dset'
     )
@@ -70,7 +70,7 @@ def test_validate_unzipped_datasets_longitudinal(tmp_path_factory):
     df = pd.DataFrame(
         {
             'is_zipped': [True, False],
-            'path_now_abs': [
+            'abs_path': [
                 zipped_dset,
                 unzipped_dset,
             ],

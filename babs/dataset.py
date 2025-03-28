@@ -7,6 +7,7 @@ import warnings
 from glob import glob
 
 import datalad.api as dlapi
+import numpy as np
 import pandas as pd
 
 from babs.utils import get_immediate_subdirectories
@@ -29,13 +30,13 @@ class InputDatasets:
             includes necessary information:
             - name: str: a name the user gives
             - path_in: str: the path to the input ds
-            - path_now_rel: the path to where the input ds is cloned, relative to `analysis` folder
-            - path_now_abs: the absolute path to the input ds
-            - path_data_rel: the path to where the input data (for a sub or a ses) is,
+            - relative_path: the path to where the input ds is cloned, relative to `analysis` folder
+            - abs_path: the absolute path to the input ds
+            - data_parent_dir: the path to where the input data (for a sub or a ses) is,
                 relative to `analysis` folder.
-                If it's zipped ds, `path_data_rel` = `path_now_rel`/`name`,
+                If it's zipped ds, `data_parent_dir` = `relative_path`/`name`,
                 i.e., extra layer of folder got from unzipping
-                If it's an unzipped ds, `path_data_rel` = `path_now_rel`
+                If it's an unzipped ds, `data_parent_dir` = `relative_path`
             - is_zipped: True or False, is the input data zipped or not
         num_ds: int
             number of input dataset(s)
@@ -53,9 +54,9 @@ class InputDatasets:
             columns=[
                 'name',
                 'path_in',
-                'path_now_rel',
-                'path_now_abs',
-                'path_data_rel',
+                'relative_path',
+                'abs_path',
+                'data_parent_dir',
                 'is_zipped',
             ],
         )
@@ -67,7 +68,7 @@ class InputDatasets:
         for i_dset, (name, path) in enumerate(datasets.items()):
             self.df.loc[i_dset, 'name'] = name
             self.df.loc[i_dset, 'path_in'] = path
-            self.df.loc[i_dset, 'path_now_rel'] = os.path.join(
+            self.df.loc[i_dset, 'relative_path'] = os.path.join(
                 'inputs/data',
                 self.df.loc[i_dset, 'name'],
             )
@@ -99,21 +100,18 @@ class InputDatasets:
         # Get the initial included sub/ses list from `list_sub_file` CSV:
         if list_sub_file is None:  # if not to specify that flag in CLI, it'll be `None`
             self.initial_inclu_df = None
+            return
+        if not os.path.isfile(list_sub_file):
+            raise FileNotFoundError(
+                f'`list_sub_file` does not exists! Please check: {list_sub_file}'
+            )
         else:
-            if not os.path.isfile(list_sub_file):
-                raise FileNotFoundError(
-                    f'`list_sub_file` does not exists! Please check: {list_sub_file}'
-                )
-            else:
-                self.initial_inclu_df = pd.read_csv(list_sub_file)
-                self.validate_initial_inclu_df(processing_level)
-
-    def validate_initial_inclu_df(self, processing_level):
+            self.initial_inclu_df = pd.read_csv(list_sub_file)
         # Sanity check: there are expected column(s):
-        if 'sub_id' not in list(self.initial_inclu_df.columns):
+        if 'sub_id' not in self.initial_inclu_df.columns:
             raise Exception("There is no 'sub_id' column in `list_sub_file`!")
 
-        if processing_level == 'session' and 'ses_id' not in list(self.initial_inclu_df.columns):
+        if processing_level == 'session' and 'ses_id' not in self.initial_inclu_df.columns:
             raise Exception(
                 "There is no 'ses_id' column in `list_sub_file`! "
                 'It is expected as user requested to process data on a session-wise basis.'
@@ -122,21 +120,15 @@ class InputDatasets:
         # Sanity check: no repeated sub (or sessions):
         if processing_level == 'subject':
             # there should only be one occurrence per sub:
-            if len(set(self.initial_inclu_df['sub_id'])) != len(self.initial_inclu_df['sub_id']):
+            if self.initial_inclu_df['sub_id'].duplicated().any():
                 raise Exception("There are repeated 'sub_id' in `list_sub_file`!")
 
         elif processing_level == 'session':
             # there should not be repeated combinations of `sub_id` and `ses_id`:
-            after_dropping = self.initial_inclu_df.drop_duplicates(
-                subset=['sub_id', 'ses_id'],
-                keep='first',
-            )
-            if after_dropping.shape[0] < self.initial_inclu_df.shape[0]:
-                print(
-                    "Combinations of 'sub_id' and 'ses_id' in some rows are duplicated. "
-                    'Will only keep the first occurrence...'
+            if self.initial_inclu_df.duplicated(subset=['sub_id', 'ses_id']).any():
+                raise Exception(
+                    "There are repeated combinations of 'sub_id' and 'ses_id' in `list_sub_file`!"
                 )
-                self.initial_inclu_df = after_dropping
 
         if processing_level == 'subject':
             self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id'])
@@ -145,7 +137,7 @@ class InputDatasets:
             self.initial_inclu_df = self.initial_inclu_df.sort_values(by=['sub_id', 'ses_id'])
             self.initial_inclu_df = self.initial_inclu_df.reset_index(drop=True)
 
-    def assign_path_now_abs(self, analysis_path):
+    def update_abs_paths(self, analysis_path):
         """
         This is the assign the absolute path to input dataset
 
@@ -155,71 +147,59 @@ class InputDatasets:
             absolute path to the `analysis` folder.
         """
 
-        for i_ds in range(self.num_ds):
-            self.df.loc[i_ds, 'path_now_abs'] = os.path.join(
-                analysis_path,
-                self.df.loc[i_ds, 'path_now_rel'],
-            )
+        # Create abs_path using pandas operations
+        self.df['abs_path'] = self.df['relative_path'].apply(
+            lambda x: os.path.join(analysis_path, x)
+        )
 
-    def check_if_zipped(self):
+    def determine_input_zipped_status(self):
         """
-        This is to check if each input dataset is zipped, and assign `path_data_rel`.
-        If it's a zipped ds: `path_data_rel` = `path_now_rel`/`name`,
+        This is to check if each input dataset is zipped, and assign `data_parent_dir`.
+        If it's a zipped ds: `data_parent_dir` = `relative_path`/`name`,
                 i.e., extra layer of folder got from unzipping
-        If it's an unzipped ds, `path_data_rel` = `path_now_rel`
+        If it's an unzipped ds, `data_parent_dir` = `relative_path`
         """
 
         # Determine if it's a zipped dataset, for each input ds:
-        for i_ds in range(self.num_ds):
-            temp_list = glob(os.path.join(self.df.loc[i_ds, 'path_now_abs'], 'sub-*'))
-            count_zip = 0
-            count_dir = 0
-            for i_temp in range(len(temp_list)):
-                if os.path.isdir(temp_list[i_temp]):
-                    count_dir += 1
-                elif temp_list[i_temp][-4:] == '.zip':
-                    count_zip += 1
+        records = self.df.to_dict('records')
+        for row in records:
+            subject_child_files = glob(os.path.join(row['abs_path'], 'sub-*'))
+            n_zipped_children = sum(1 for item in subject_child_files if item.endswith('.zip'))
+            n_directory_children = sum(1 for item in subject_child_files if os.path.isdir(item))
 
-            if (count_zip > 0) & (count_dir == 0):
+            if n_zipped_children > 0 and n_directory_children == 0:
                 # all are zip files
-                self.df.loc[i_ds, 'is_zipped'] = True
-                print(
-                    f"input dataset '{self.df.loc[i_ds, 'name']}' "
-                    'is considered as a zipped dataset.'
-                )
-            elif (count_dir > 0) & (count_zip == 0):
+                row['is_zipped'] = True  # Ensure Python native boolean
+                print(f"input dataset '{row['name']}' is considered as a zipped dataset.")
+            elif n_directory_children > 0 and n_zipped_children == 0:
                 # all are directories
-                self.df.loc[i_ds, 'is_zipped'] = False
-                print(
-                    f"input dataset '{self.df.loc[i_ds, 'name']}' "
-                    'is considered as an unzipped dataset.'
-                )
-            elif (count_zip > 0) & (count_dir > 0):
+                row['is_zipped'] = False  # Ensure Python native boolean
+                print(f"input dataset '{row['name']}' is considered as an unzipped dataset.")
+            elif n_zipped_children > 0 and n_directory_children > 0:
                 # detect both
-                self.df.loc[i_ds, 'is_zipped'] = True  # consider as zipped
+                row['is_zipped'] = True  # Ensure Python native boolean
                 print(
-                    f"input dataset '{self.df.loc[i_ds, 'name']}' "
-                    'has both zipped files and unzipped folders; '
+                    f"input dataset '{row['name']}' has both zipped files and unzipped folders; "
                     'thus it is considered as a zipped dataset.'
                 )
             else:
                 # did not detect any of them...
                 raise FileNotFoundError(
-                    'BABS did not detect any folder or zip file of `sub-*` '
-                    f"in input dataset '{self.df.loc[i_ds, 'name']}'."
+                    f'BABS did not detect any folder or zip file of `sub-*` '
+                    f"in input dataset '{row['name']}'."
                 )
 
-        # Assign `path_data_rel`
-        for i_ds in range(0, self.num_ds):
-            if self.df.loc[i_ds, 'is_zipped']:  # zipped ds
-                self.df.loc[i_ds, 'path_data_rel'] = os.path.join(
-                    self.df.loc[i_ds, 'path_now_rel'],
-                    self.df.loc[i_ds, 'name'],
-                )
-            else:
-                self.df.loc[i_ds, 'path_data_rel'] = self.df.loc[i_ds, 'path_now_rel']
+        # Create new DataFrame from updated records
+        self.df = pd.DataFrame(records)
 
-    def check_validity_zipped_input_dataset(self, processing_level):
+        # Assign `data_parent_dir` using pandas operations
+        self.df['data_parent_dir'] = np.where(
+            self.df['is_zipped'],
+            self.df.apply(lambda x: os.path.join(x['relative_path'], x['name']), axis=1),
+            self.df['relative_path'],
+        )
+
+    def validate_zipped_input_contents(self, processing_level):
         """
         This is to perform two sanity checks on each zipped input dataset:
         1) sanity check on the zip filename:
@@ -237,11 +217,13 @@ class InputDatasets:
             Name of the container
         """
 
-        if any(self.df['is_zipped']):
-            print(
-                'Performing sanity check for any zipped input dataset... '
-                'Getting example zip file(s) to check...'
-            )
+        if not any(self.df['is_zipped']):
+            print('No zipped input dataset found. Skipping check...')
+            return
+        print(
+            'Performing check for any zipped input dataset... '
+            'Getting example zip file(s) to check...'
+        )
 
         for i_ds in range(self.num_ds):
             if self.df.loc[i_ds, 'is_zipped']:
@@ -250,7 +232,7 @@ class InputDatasets:
                     # check if matches the pattern of `sub-*_ses-*_<input_ds_name>*.zip`:
                     temp_list = glob(
                         os.path.join(
-                            self.df.loc[i_ds, 'path_now_abs'],
+                            self.df.loc[i_ds, 'abs_path'],
                             f'sub-*_ses-*_{self.df.loc[i_ds, "name"]}*.zip',
                         )
                     )
@@ -266,7 +248,7 @@ class InputDatasets:
                 elif processing_level == 'subject':
                     temp_list = glob(
                         os.path.join(
-                            self.df.loc[i_ds, 'path_now_abs'],
+                            self.df.loc[i_ds, 'abs_path'],
                             f'sub-*_{self.df.loc[i_ds, "name"]}*.zip',
                         )
                     )
@@ -285,7 +267,7 @@ class InputDatasets:
                 # Sanity check #2: foldername within zipped file: -------------------
                 temp_zipfile = temp_list[0]  # try out the first zipfile
                 temp_zipfilename = os.path.basename(temp_zipfile)
-                dlapi.get(path=temp_zipfile, dataset=self.df.loc[i_ds, 'path_now_abs'])
+                dlapi.get(path=temp_zipfile, dataset=self.df.loc[i_ds, 'abs_path'])
                 # unzip to a temporary folder and get the foldername
                 temp_unzip_to = tempfile.mkdtemp()
                 shutil.unpack_archive(temp_zipfile, temp_unzip_to)
@@ -293,7 +275,7 @@ class InputDatasets:
                 # remove the temporary folder:
                 shutil.rmtree(temp_unzip_to)
                 # `datalad drop` the zipfile:
-                dlapi.drop(path=temp_zipfile, dataset=self.df.loc[i_ds, 'path_now_abs'])
+                dlapi.drop(path=temp_zipfile, dataset=self.df.loc[i_ds, 'abs_path'])
 
                 # check if there is folder named as ds's name:
                 if self.df.loc[i_ds, 'name'] not in list_unzip_foldernames:
