@@ -974,7 +974,7 @@ def get_existing_babs_proj(project_root):
             ' Please rerun `babs init` to finish the setup.'
         )
 
-    babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
+    babs_proj_config = read_yaml(babs_proj_config_yaml, use_filelock=True)
 
     # make sure the YAML file has necessary sections:
     list_sections = ['processing_level', 'queue', 'input_ds', 'container']

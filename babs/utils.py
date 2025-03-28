@@ -89,7 +89,7 @@ def validate_processing_level(processing_level):
     return processing_level
 
 
-def read_yaml(fn, if_filelock=False):
+def read_yaml(fn, use_filelock=False):
     """
     This is to read yaml file.
 
@@ -97,7 +97,7 @@ def read_yaml(fn, if_filelock=False):
     ---------------
     fn: str
         path to the yaml file
-    if_filelock: bool
+    use_filelock: bool
         whether to use filelock
 
     Returns:
@@ -106,7 +106,7 @@ def read_yaml(fn, if_filelock=False):
         content of the yaml file
     """
 
-    if if_filelock:
+    if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
 
@@ -129,7 +129,7 @@ def read_yaml(fn, if_filelock=False):
     return config
 
 
-def write_yaml(config, fn, if_filelock=False):
+def write_yaml(config, fn, use_filelock=False):
     """
     This is to write contents into yaml file.
 
@@ -139,10 +139,10 @@ def write_yaml(config, fn, if_filelock=False):
         the content to write into yaml file
     fn: str
         path to the yaml file
-    if_filelock: bool
+    use_filelock: bool
         whether to use filelock
     """
-    if if_filelock:
+    if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
 
@@ -1545,12 +1545,12 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
             Examples:
             - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
             - if found: "stdout file: <message>"
-    if_no_alert_in_log: bool
+    no_alert_in_log: bool
         There is no alert message in the log files.
         When `alert_message` is `msg_no_alert`,
-        or is `np.nan` (`if_valid_alert_msg=False`), this is True;
+        or is `np.nan` (`valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
-    if_found_log_files: bool or np.nan
+    found_log_files: bool or np.nan
         np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
         Otherwise, True or False based on if any log files were found
 
@@ -1564,20 +1564,20 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     from .constants import MSG_NO_ALERT_IN_LOGS
 
     msg_no_alert = MSG_NO_ALERT_IN_LOGS
-    if_valid_alert_msg = True  # by default, `alert_message` is valid (i.e., not np.nan)
+    valid_alert_msg = True  # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
-    if_found_log_files = np.nan
+    found_log_files = np.nan
 
     if config_msg_alert is None:
         alert_message = np.nan
-        if_valid_alert_msg = False
-        if_found_log_files = np.nan  # unknown if log files exist or not
+        valid_alert_msg = False
+        found_log_files = np.nan  # unknown if log files exist or not
     else:
         o_fn = log_fn.replace('*', 'o')
         e_fn = log_fn.replace('*', 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):  # either exists:
-            if_found_log_files = True
+            found_log_files = True
             found_message = False
             alert_message = msg_no_alert
 
@@ -1608,17 +1608,17 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                     break  # no need to go to next log file
 
         else:  # neither o_fn nor e_fn exists yet:
-            if_found_log_files = False
+            found_log_files = False
             alert_message = np.nan
-            if_valid_alert_msg = False
+            valid_alert_msg = False
 
-    if (alert_message == msg_no_alert) or (not if_valid_alert_msg):
+    if (alert_message == msg_no_alert) or (not valid_alert_msg):
         # either no alert, or `np.nan`
-        if_no_alert_in_log = True
+        no_alert_in_log = True
     else:  # `alert_message`: np.nan or any other message:
-        if_no_alert_in_log = False
+        no_alert_in_log = False
 
-    return alert_message, if_no_alert_in_log, if_found_log_files
+    return alert_message, no_alert_in_log, found_log_files
 
 
 def get_username():

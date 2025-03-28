@@ -406,7 +406,7 @@ class BABS:
         validate_unzipped_datasets(input_ds, self.processing_level)
 
         # Update input ds information in `babs_proj_config.yaml`:
-        babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+        babs_proj_config = read_yaml(self.config_path, use_filelock=True)
         for i_ds in range(0, input_ds.num_ds):
             ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
             # update `path_data_rel`:
@@ -418,7 +418,7 @@ class BABS:
                 i_ds, 'is_zipped'
             ]
         # dump:
-        write_yaml(babs_proj_config, self.config_path, if_filelock=True)
+        write_yaml(babs_proj_config, self.config_path, use_filelock=True)
         # datalad save: update:
         self.datalad_save(
             path='code/babs_proj_config.yaml',
@@ -681,7 +681,7 @@ class BABS:
         """
         from .constants import CHECK_MARK
 
-        babs_proj_config = read_yaml(self.config_path, if_filelock=True)
+        babs_proj_config = read_yaml(self.config_path, use_filelock=True)
 
         print('Will check setups of BABS project located at: ' + self.project_root)
         if flag_job_test:
@@ -859,12 +859,12 @@ class BABS:
         actual_input_ria_data_dir = op.join(self.input_ria_path, data_foldername)
         assert op.exists(actual_input_ria_data_dir)  # make sure this exists
 
-        if_found_sibling_input = False
-        if_found_sibling_output = False
+        has_sibling_input = False
+        has_sibling_output = False
         for i_sibling in range(0, len(analysis_siblings)):
             the_sibling = analysis_siblings[i_sibling]
             if the_sibling['name'] == 'output':  # output ria:
-                if_found_sibling_output = True
+                has_sibling_output = True
                 assert the_sibling['url'] == actual_output_ria_data_dir, (
                     "The `analysis` datalad dataset's sibling 'output' url does not match"
                     ' the path to the output RIA.'
@@ -872,15 +872,15 @@ class BABS:
                     ' Latter = ' + actual_output_ria_data_dir
                 )
             if the_sibling['name'] == 'input':  # input ria:
-                if_found_sibling_input = True
+                has_sibling_input = True
 
-        if not if_found_sibling_input:
+        if not has_sibling_input:
             raise Exception(
                 "Did not find a sibling of 'analysis' DataLad dataset"
                 " that's called 'input'. There may be something wrong when"
                 ' setting up input RIA!'
             )
-        if not if_found_sibling_output:
+        if not has_sibling_output:
             raise Exception(
                 "Did not find a sibling of 'analysis' DataLad dataset"
                 " that's called 'output'. There may be something wrong when"
@@ -1273,7 +1273,7 @@ class BABS:
                         # e.g., job-00000-sub-01-ses-B
 
                     # Check if resubmission of this task is requested:
-                    if_request_resubmit_this_task = False
+                    request_resubmit_this_task = False
                     if df_resubmit_task_specific is not None:
                         if self.processing_level == 'subject':
                             temp = df_resubmit_task_specific['sub_id'] == sub
@@ -1283,7 +1283,7 @@ class BABS:
                             )
 
                         if any(temp):  # any matched; `temp` is pd.Series of True or False
-                            if_request_resubmit_this_task = True
+                            request_resubmit_this_task = True
                             # print("debugging purpose: request to resubmit job: " + sub + ", "
                             #  + ses)
                             # ^^ only for session!
@@ -1297,8 +1297,8 @@ class BABS:
                     #       if df_job.at[i_job, "is_failed"] is not True:    # np.nan or False
                     (
                         alert_message_in_log_files,
-                        if_no_alert_in_log,
-                        if_found_log_files,
+                        no_alert_in_log,
+                        found_log_files,
                     ) = get_alert_message_in_log_files(config_msg_alert, log_fn)
                     # ^^ the function will handle even if `config_msg_alert=None`
                     df_job_updated.at[i_task, 'alert_message'] = alert_message_in_log_files
@@ -1329,7 +1329,7 @@ class BABS:
 
                             if state_code == 'r':
                                 # Check if resubmit is requested:
-                                if if_request_resubmit_this_task & (not reckless):
+                                if request_resubmit_this_task & (not reckless):
                                     # requested resubmit, but without `reckless`: print msg
                                     to_print = 'Although resubmission for job: ' + sub
                                     if self.processing_level == 'session':
@@ -1369,9 +1369,7 @@ class BABS:
                                 # pending so set `is_failed` to False
                                 df_job_updated.at[i_task, 'is_failed'] = False
                                 # resubmit pending
-                                if ('pending' in flags_resubmit) or (
-                                    if_request_resubmit_this_task
-                                ):
+                                if ('pending' in flags_resubmit) or (request_resubmit_this_task):
                                     # Resubmit:
                                     # did_resubmit = True
                                     df_job_updated.at[i_task, 'needs_resubmit'] = True
@@ -1409,7 +1407,7 @@ class BABS:
                             df_job_updated.at[i_task, 'job_state_code'] = np.nan
                             df_job_updated.at[i_task, 'duration'] = np.nan
                             # ROADMAP: ^^ get duration via `qacct`
-                            if if_found_log_files is False:  # bool or np.nan
+                            if found_log_files is False:  # bool or np.nan
                                 # If there is no log files, the alert message would be 'np.nan';
                                 # however this is a failed job, so it should have log files,
                                 #   unless it was killed by the user when pending.
@@ -1423,7 +1421,7 @@ class BABS:
                             # TODO: assign error category in df; also print it out
 
                             # resubmit if requested:
-                            elif ('failed' in flags_resubmit) or (if_request_resubmit_this_task):
+                            elif ('failed' in flags_resubmit) or (request_resubmit_this_task):
                                 # Resubmit:
                                 # did_resubmit = True
                                 df_job_updated.at[i_task, 'needs_resubmit'] = True
@@ -1501,7 +1499,7 @@ class BABS:
                         # e.g., job-00000-sub-01-ses-B
 
                     # Check if resubmission of this job is requested:
-                    if_request_resubmit_this_task = False
+                    request_resubmit_this_task = False
                     if df_resubmit_task_specific is not None:
                         if self.processing_level == 'subject':
                             temp = df_resubmit_task_specific['sub_id'] == sub
@@ -1511,13 +1509,13 @@ class BABS:
                             )
 
                         if any(temp):  # any matched; `temp` is pd.Series of True or False
-                            if_request_resubmit_this_task = True
+                            request_resubmit_this_task = True
                             # print("debugging purpose: request to resubmit job:" + sub + ", "
                             #  + ses)
                             # ^^ only for session
 
                     # if want to resubmit, but `--reckless` is NOT specified: print msg:
-                    if if_request_resubmit_this_task & (not reckless):
+                    if request_resubmit_this_task & (not reckless):
                         to_print = 'Although resubmission for job: ' + sub
                         if self.processing_level == 'session':
                             to_print += ', ' + ses
@@ -1531,7 +1529,7 @@ class BABS:
                     # COMMENT OUT BECAUSE reckless is always False
                     # AND THIS HAS BEEN REMOVE FROM CLI
                     # if resubmit is requested, and `--reckless` is specified:
-                    # if if_request_resubmit_this_task & reckless:
+                    # if request_resubmit_this_task & reckless:
                     #     # Resubmit:
                     #     # did_resubmit = True
                     #     # print a message:
@@ -1568,7 +1566,7 @@ class BABS:
                         df_job_updated.at[i_task, 'last_line_stdout_file'] = get_last_line(o_fn)
                         # Check if any alert message in log files for this job:
                         #   this is to update `alert_message` in case user changes configs in yaml
-                        alert_message_in_log_files, if_no_alert_in_log, _ = (
+                        alert_message_in_log_files, no_alert_in_log, _ = (
                             get_alert_message_in_log_files(config_msg_alert, log_fn)
                         )
                         # ^^ the function will handle even if `config_msg_alert=None`
@@ -1629,7 +1627,7 @@ class BABS:
             Whether to run as a trial run which won't push the merging actions back to output RIA.
             This option should only be used by developers for testing purpose.
         """
-        if_any_warning = False
+        warning_encountered = False
         self.wtf_key_info()  # get `self.analysis_dataset_id`
         # path to `merge_ds`:
         merge_ds_path = op.join(self.project_root, 'merge_ds')
@@ -1736,7 +1734,7 @@ class BABS:
         if len(list_branches_no_results) > 0:  # not empty
             # save to a text file:
             #   note: this file has been removed at the beginning of babs_merge() if it existed)
-            if_any_warning = True
+            warning_encountered = True
             warnings.warn(
                 'There are invalid job branch(es) in output RIA,'
                 ' and these job(s) do not have results.'
@@ -1876,7 +1874,7 @@ class BABS:
             print(proc_datalad_push.stdout.decode('utf-8'))
 
             # Done:
-            if if_any_warning:
+            if warning_encountered:
                 print(
                     '\n`babs merge` has finished but had warning(s)!'
                     ' Please check out the warning message(s) above!'
