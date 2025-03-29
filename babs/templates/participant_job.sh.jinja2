@@ -37,8 +37,10 @@ mkdir -p "${BRANCH}"
 cd "${BRANCH}"
 
 # datalad clone the input ria:
-echo '# Clone the data from input RIA:'
-datalad clone "${dssource}" ds
+if [ -d ds ]; then
+    echo '# Clone the data from input RIA:'
+    datalad clone "${dssource}" ds
+fi
 cd ds
 
 # set up the result deposition:
