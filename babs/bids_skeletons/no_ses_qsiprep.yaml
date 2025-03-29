@@ -1,0 +1,41 @@
+"01":
+  anat:
+    - suffix: "T1w"
+      metadata:
+        EchoTime: 1
+  dwi:
+    - desc: "preproc"
+      suffix: "dwi"
+      space: "ACPC"
+      metadata:
+        RepetitionTime: 0.8
+        TotalReadoutTime: 0.5
+        PhaseEncodingDirection: "j"
+
+ABC:
+  anat:
+    - suffix: "T1w"
+      metadata:
+        EchoTime: 1
+  dwi:
+    - desc: "preproc"
+      suffix: "dwi"
+      space: "ACPC"
+      metadata:
+        RepetitionTime: 0.8
+        TotalReadoutTime: 0.5
+        PhaseEncodingDirection: "j"
+
+03X:
+  anat:
+    - suffix: "T1w"
+      metadata:
+        EchoTime: 1
+  dwi:
+    - desc: "preproc"
+      suffix: "dwi"
+      space: "ACPC"
+      metadata:
+        RepetitionTime: 0.8
+        TotalReadoutTime: 0.5
+        PhaseEncodingDirection: "j"

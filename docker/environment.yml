@@ -15,6 +15,7 @@ dependencies:
       - filelock >= 3.8.0
       - jinja2
       - nibabel
+      - niworkflows
       - numpy
       - pandas
       - pyyaml

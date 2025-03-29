@@ -22,19 +22,19 @@ __location__ = op.dirname(
 #       ref: https://note.nkmk.me/en/python-script-file-path/
 
 # containers:
-LIST_WHICH_BIDSAPP = ['toybidsapp', 'fmriprep', 'qsiprep']
+SUPPORTED_BIDS_APPS = ['toybidsapp', 'fmriprep', 'qsiprep']
 TOYBIDSAPP_VERSION = '0.0.7'  # +++++++++++++++++++++++
 TOYBIDSAPP_VERSION_DASH = TOYBIDSAPP_VERSION.replace('.', '-')
-FN_TOYBIDSAPP_SIF_CIRCLECI = op.join(
+FN_TOYBIDSAPP_Sin_circleci = op.join(
     '/singularity_images', 'toybidsapp_' + TOYBIDSAPP_VERSION + '.sif'
 )
 
 # path of input datasets:
 ORIGIN_INPUT_DATA = read_yaml(op.join(__location__, 'origin_input_dataset.yaml'))
 INFO_2ND_INPUT_DATA = {
-    'which_input': 'fmriprep',
+    'input_data_name': 'fmriprep',
     # "processing_level": this should be consistent with the first dataset
-    'if_input_local': False,
+    'input_is_local': False,
 }
 
 # env variables
@@ -43,18 +43,18 @@ TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'  # $HOME is '/root'
 # ====================================================================
 
 
-def get_input_data(which_input, processing_level, if_input_local, tmp_path_factory):
+def get_input_data(input_data_name, processing_level, input_is_local, tmp_path_factory):
     """
     This is to get the path of input data.
 
     Parameters
     ----------
-    which_input: str
+    input_data_name: str
         'BIDS' - unzipped
         or 'fmriprep' or 'qsiprep' - zipped derivatives
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
-    if_input_local: bool
+    input_is_local: bool
         if the input dataset is local [True] or remote (e.g., on OSF) [False]
     tmp_path_factory: fixture
         see: https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-tmp-path-factory
@@ -67,7 +67,7 @@ def get_input_data(which_input, processing_level, if_input_local, tmp_path_facto
     # Check if we're on CircleCI - always use cached data on CircleCI
     env_circleci = os.getenv('CIRCLECI')
     if env_circleci:
-        cached_path = op.join('/home/circleci/test_data', f'{which_input}_{processing_level}')
+        cached_path = op.join('/home/circleci/test_data', f'{input_data_name}_{processing_level}')
         if op.exists(cached_path):
             return cached_path
         else:
@@ -77,13 +77,13 @@ def get_input_data(which_input, processing_level, if_input_local, tmp_path_facto
             )
 
     # For non-CircleCI environments
-    if not if_input_local:
+    if not input_is_local:
         # directly grab from pre-defined YAML file:
-        path_in = ORIGIN_INPUT_DATA[which_input][processing_level]
+        path_in = ORIGIN_INPUT_DATA[input_data_name][processing_level]
     else:
-        origin_in = ORIGIN_INPUT_DATA[which_input][processing_level]
+        origin_in = ORIGIN_INPUT_DATA[input_data_name][processing_level]
         # create a temporary folder:
-        path_in_pathlib = tmp_path_factory.mktemp(which_input)
+        path_in_pathlib = tmp_path_factory.mktemp(input_data_name)
         # turn into a string of absolute path (but seems not necessary):
         path_in = path_in_pathlib.absolute().as_posix()
 
@@ -94,59 +94,59 @@ def get_input_data(which_input, processing_level, if_input_local, tmp_path_facto
 
 
 @pytest.fixture(scope='session')
-def if_circleci():
+def in_circleci():
     """If it's currently running on CircleCI"""
     env_circleci = os.getenv('CIRCLECI')  # a string 'true' or None
     if env_circleci:
-        if_circleci = True
+        in_circleci = True
     else:
-        if_circleci = False
+        in_circleci = False
 
-    return if_circleci
+    return in_circleci
 
 
 @pytest.fixture(scope='session')
-def where_now(if_circleci):
+def exec_environment(in_circleci):
     """
     Determine where this pytest is running.
     - if is on CircleCI: 'on_circleci';
     - if not on CircleCI, but `singularity` is installed: 'on_cluster'
     - if not either way, `docker` must be installed: 'on_local'
     """
-    where_now = ''
+    exec_environment = ''
     # check if singularity is installed:
-    if_singularity_installed = if_command_installed('singularity')
+    singularity_is_installed = command_available('singularity')
     # check if docker is installed:
-    if_docker_installed = if_command_installed('docker')
+    docker_is_installed = command_available('docker')
 
-    if if_circleci:
-        where_now = 'on_circleci'
-    elif if_singularity_installed:
-        where_now = 'on_cluster'
-    elif if_docker_installed:
-        where_now = 'on_local'
+    if in_circleci:
+        exec_environment = 'on_circleci'
+    elif singularity_is_installed:
+        exec_environment = 'on_cluster'
+    elif docker_is_installed:
+        exec_environment = 'on_local'
     else:
-        where_now = ''
+        exec_environment = ''
         raise Exception(
             'Not on CircleCI, and neither singularity nor docker is installed!'
             ' Pytest cannot proceed.'
         )
-    return where_now
+    return exec_environment
 
 
 @pytest.fixture(scope='session')
-def container_ds_path(where_now, tmp_path_factory):
+def container_ds_path(exec_environment, tmp_path_factory):
     """
     This is to get toy BIDS App container image + create a datalad dataset of it.
         Depending on if pytest is running on CircleCI,
     it will use pre-built sif file (for CircleCI), or pull the Docker image (for other cases).
         Warning: no matter which BIDS App, we'll use toy BIDS App as the image,
-    and name the container as those in `LIST_WHICH_BIDSAPP`. Tested that the same image
+    and name the container as those in `SUPPORTED_BIDS_APPS`. Tested that the same image
     can have different names in one datalad dataset.
 
     Parameters
     ----------
-    where_now: from a fixture; str or empty str ("")
+    exec_environment: from a fixture; str or empty str ("")
         Depending on if on circleci, and singularity or docker is installed:
         - "on_circleci": will use pre-built sif file;
         - "on_cluster": will use `singularity` command to build the sif file
@@ -162,11 +162,11 @@ def container_ds_path(where_now, tmp_path_factory):
     docker_url = 'docker://' + docker_addr
 
     # Pull the container image:
-    if where_now == 'on_circleci':
+    if exec_environment == 'on_circleci':
         # assert the sif file exists:
-        assert op.exists(FN_TOYBIDSAPP_SIF_CIRCLECI)
-        fn_toybidsapp_sif = FN_TOYBIDSAPP_SIF_CIRCLECI
-    elif where_now == 'on_cluster':
+        assert op.exists(FN_TOYBIDSAPP_Sin_circleci)
+        fn_toybidsapp_sif = FN_TOYBIDSAPP_Sin_circleci
+    elif exec_environment == 'on_cluster':
         # build the sif file:
         folder_toybidsapp_sif = tmp_path_factory.mktemp('temp_singularity_images')
         fn_toybidsapp_sif = op.join(
@@ -179,14 +179,14 @@ def container_ds_path(where_now, tmp_path_factory):
             stdout=subprocess.PIPE,
         )
         proc_singularity_build.check_returncode()
-    elif where_now == 'on_local':
+    elif exec_environment == 'on_local':
         # directly pull from docker:
         cmd = 'docker pull ' + docker_addr
         proc_docker_pull = subprocess.run(cmd.split())
         proc_docker_pull.check_returncode()
         fn_toybidsapp_sif = None
     else:
-        raise Exception("Invalid `where_now` = '" + where_now + "'!")
+        raise Exception("Invalid `exec_environment` = '" + exec_environment + "'!")
 
     # Set up container datalad dataset that holds several names of containers
     #   though all of them are toy BIDS App...
@@ -196,40 +196,40 @@ def container_ds_path(where_now, tmp_path_factory):
     # create a new datalad dataset for holding the container:
     container_ds_handle = dlapi.create(path=origin_container_ds)
     # add container image into this datalad dataset:
-    for which_bidsapp in LIST_WHICH_BIDSAPP:
-        if where_now in ['on_circleci', 'on_cluster']:  # add the built sif file:
+    for bids_app in SUPPORTED_BIDS_APPS:
+        if exec_environment in ['on_circleci', 'on_cluster']:  # add the built sif file:
             # datalad containers-add --url ${fn_sif} toybidsapp-${version_tag_dash}
             # API help: in python env: `help(dlapi.containers_add)`
             container_ds_handle.containers_add(
-                name=which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
+                name=bids_app + '-' + TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
                 url=fn_toybidsapp_sif,
             )
             # # can remove the original sif file now:
             # os.remove(fn_toybidsapp_sif)
-        elif where_now == 'on_local':  # add docker image:
+        elif exec_environment == 'on_local':  # add docker image:
             # datalad containers-add --url dhub://pennlinc/toy_bids_app:${version_tag} \
             #   toybidsapp-${version_tag_dash}
             container_ds_handle.containers_add(
-                name=which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
+                name=bids_app + '-' + TOYBIDSAPP_VERSION_DASH,  # e.g., "toybidsapp-0-0-7"
                 url='dhub://' + docker_addr,  # e.g., "dhub://pennlinc/toy_bids_app:0.0.7"
             )
 
     return origin_container_ds
 
 
-def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input, queue):
+def get_container_config_yaml_filename(bids_app, input_data_name, two_inputs, queue):
     """
     This is to get the container's config YAML file name,
     depending on the BIDS App and if there are two inputs (for fMRIPrep)
 
     Parameters
     ----------
-    which_bidsapp: str
+    bids_app: str
         name of the bidsapp
-    which_input: str
+    input_data_name: str
         "BIDS" for raw BIDS
         "fmriprep" for zipped BIDS derivates
-    if_two_input: bool
+    two_inputs: bool
         whether there are two input BIDS datasets
     queue: str
         "slurm"
@@ -249,19 +249,17 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
     }
 
     # bidsapp and its version:
-    container_config_yaml_filename = (
-        'eg_' + which_bidsapp + '-' + dict_bidsapp_version[which_bidsapp]
-    )
+    container_config_yaml_filename = 'eg_' + bids_app + '-' + dict_bidsapp_version[bids_app]
 
     # task:
     container_config_yaml_filename += '_'
-    if (which_bidsapp == 'fmriprep') & if_two_input:
+    if (bids_app == 'fmriprep') & two_inputs:
         container_config_yaml_filename += 'ingressed-fs'
-    elif (which_bidsapp == 'toybidsapp') & (which_input == 'fmriprep'):
+    elif (bids_app == 'toybidsapp') & (input_data_name == 'fmriprep'):
         # the input is zipped BIDS derivatives:
         container_config_yaml_filename += 'zipped'
     else:
-        container_config_yaml_filename += dict_task_name[which_bidsapp]
+        container_config_yaml_filename += dict_task_name[bids_app]
 
     # just add ".yaml", no need to add system names:
     container_config_yaml_filename += '.yaml'
@@ -269,7 +267,7 @@ def get_container_config_yaml_filename(which_bidsapp, which_input, if_two_input,
     return container_config_yaml_filename
 
 
-def if_command_installed(cmd):
+def command_available(cmd):
     """
     This is to check if a command has been installed on the system
 
@@ -280,13 +278,13 @@ def if_command_installed(cmd):
 
     Returns
     -------
-    if_installed: bool
+    is_installed: bool
         True or False
     """
     a = shutil.which(cmd)
     if a is None:  # not exist:
-        if_installed = False
+        is_installed = False
     else:
-        if_installed = True
+        is_installed = True
 
-    return if_installed
+    return is_installed

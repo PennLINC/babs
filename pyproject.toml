@@ -14,10 +14,10 @@ dependencies = [
     "datalad_container >= 1.1.6",
     "filelock >= 3.8.0",
     "nibabel >=2.2.1",
+    "niworkflows",
     "numpy",
     "pandas",
     "pyyaml >= 6.0",
-    "qstat >= 0.0.5",
     "regex",
     "tqdm",
 ]

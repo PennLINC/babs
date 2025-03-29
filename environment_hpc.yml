@@ -16,6 +16,7 @@ dependencies:
       - filelock >= 3.8.0
       - jinja2
       - nibabel
+      - niworkflows
       - numpy
       - pandas
       - pyyaml >= 6.0
@@ -28,4 +29,3 @@ dependencies:
       - pytest-timeout>=2.2.0
       - pytest-xdist
       - datalad-osf
-      - git+https://github.com/pennlinc/babs.git

@@ -54,11 +54,11 @@ git checkout -b "${BRANCH}"
 echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-datalad get -n "{{ input_dataset['path_now_rel'] }}/${subid}"
-(cd {{ input_dataset['path_now_rel'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs rm -rf)
+datalad get -n "{{ input_dataset['relative_path'] }}/${subid}"
+(cd {{ input_dataset['relative_path'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs rm -rf)
 {% else %}
-datalad get -n "{{ input_dataset['path_now_rel'] }}"
-(cd {{ input_dataset['path_now_rel'] }} && find . -type f -name 'sub*.zip' | grep -v "$subid" | xargs rm -f)
+datalad get -n "{{ input_dataset['relative_path'] }}"
+(cd {{ input_dataset['relative_path'] }} && find . -type f -name 'sub*.zip' | grep -v "$subid" | xargs rm -f)
 {% endif %}
 {% endfor %}
 
@@ -69,8 +69,8 @@ datalad run \
 	-i "code/{{ container_name }}_zip.sh" \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-	-i "{{ input_dataset['path_data_rel'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
-	-i "{{ input_dataset['path_data_rel'] }}/*json" \
+	-i "{{ input_dataset['data_parent_dir'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
+	-i "{{ input_dataset['data_parent_dir'] }}/*json" \
 {% else %}
 	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}

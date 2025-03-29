@@ -11,7 +11,7 @@ import pandas as pd
 from filelock import FileLock, Timeout
 
 from babs.babs import BABS
-from babs.dataset import InputDatasets
+from babs.input_datasets import InputDatasets, create_mock_input_dataset
 from babs.system import System
 from babs.utils import (
     ToDict,
@@ -218,7 +218,7 @@ def babs_init_main(
 
     # input dataset:
     input_ds = InputDatasets(datasets)
-    input_ds.get_initial_inclu_df(list_sub_file, processing_level)
+    input_ds.set_inclusion_dataframe(list_sub_file, processing_level)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;
@@ -974,7 +974,7 @@ def get_existing_babs_proj(project_root):
             ' Please rerun `babs init` to finish the setup.'
         )
 
-    babs_proj_config = read_yaml(babs_proj_config_yaml, if_filelock=True)
+    babs_proj_config = read_yaml(babs_proj_config_yaml, use_filelock=True)
 
     # make sure the YAML file has necessary sections:
     list_sections = ['processing_level', 'queue', 'input_ds', 'container']
@@ -1005,27 +1005,29 @@ def get_existing_babs_proj(project_root):
             ' Something was wrong during `babs init`...'
         )
 
-    datasets = {}  # to be a nested list
-    for i_ds in range(0, len(input_ds_yaml)):
-        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-        datasets[input_ds_yaml[ds_index_str]['name']] = input_ds_yaml[ds_index_str]['path_in']
+    datasets = {
+        input_ds_yaml[f'$INPUT_DATASET_#{i + 1}']['name']: input_ds_yaml[
+            f'$INPUT_DATASET_#{i + 1}'
+        ]['path_in']
+        for i in range(len(input_ds_yaml))
+    }
 
     # Get the class `InputDatasets`:
     input_ds = InputDatasets(datasets)
     # update information based on current babs project:
-    # 1. `path_now_abs`:
-    input_ds.assign_path_now_abs(babs_proj.analysis_path)
-    # 2. `path_data_rel` and `is_zipped`:
-    for i_ds in range(0, input_ds.num_ds):
-        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-        # `path_data_rel`:
-        input_ds.df.loc[i_ds, 'path_data_rel'] = babs_proj_config['input_ds'][ds_index_str][
-            'path_data_rel'
+    # 1. `abs_path`:
+    input_ds.update_abs_paths(babs_proj.analysis_path)
+    # 2. `data_parent_dir` and `is_zipped`:
+    for idx, _ in input_ds.df.iterrows():
+        ds_index_str = f'$INPUT_DATASET_#{idx + 1}'
+        # `data_parent_dir`:
+        input_ds.df.loc[idx, 'data_parent_dir'] = babs_proj_config['input_ds'][ds_index_str][
+            'data_parent_dir'
         ]
         # `is_zipped`:
-        input_ds.df.loc[i_ds, 'is_zipped'] = babs_proj_config['input_ds'][ds_index_str][
-            'is_zipped'
-        ]
+        input_ds.df.loc[idx, 'is_zipped'] = bool(
+            babs_proj_config['input_ds'][ds_index_str]['is_zipped']
+        )
 
     return babs_proj, input_ds
 
@@ -1184,6 +1186,44 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     babs_proj.datalad_push(analysis_code_dir, '--to input')
 
 
+def _parse_make_input_dataset():
+    """Create and configure the argument parser for the `babs create-input-dataset` command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        description='Create a BIDS or zipped BIDS derivatives dataset for testing.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        'output_path',
+        nargs=1,
+        help=(
+            "Absolute path to the output directory. For example, '/path/to/fake_bids_dataset/' "
+        ),
+    )
+    parser.add_argument(
+        '--multiple-sessions',
+        help='Create a BIDS dataset with multiple sessions.',
+        action='store_true',
+    )
+    parser.add_argument(
+        '--zip-level',
+        help='The level at which to zip the dataset.',
+        choices=['subject', 'session', 'none'],
+        default='subject',
+    )
+
+    return parser
+
+
+def babs_create_input_dataset_main(output_path: str, multiple_sessions: bool, zip_level: str):
+    """This is the core function of babs create-input-dataset."""
+    create_mock_input_dataset(output_path, multiple_sessions, zip_level)
+
+
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
@@ -1192,6 +1232,7 @@ COMMANDS = [
     ('merge', _parse_merge, babs_merge_main),
     ('unzip', _parse_unzip, babs_unzip_main),
     ('sync-code', _parse_sync_code, babs_sync_code_main),
+    ('create-input-dataset', _parse_make_input_dataset, babs_create_input_dataset_main),
 ]
 
 

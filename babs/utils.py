@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
-from qstat import qstat  # https://github.com/relleums/qstat
 
 
 def get_datalad_version():
@@ -25,56 +24,6 @@ def get_datalad_version():
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
-
-
-def validate_unzipped_datasets(input_ds, processing_level):
-    """Check if each of the unzipped input datasets is valid.
-
-    Here we only check the "unzipped" datasets;
-    the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
-
-    * If subject-wise processing is enabled, there should be "sub" folders.
-      "ses" folders are optional.
-    * If session-wise processing is enabled, there should be both "sub" and "ses" folders.
-
-    Parameters
-    ----------
-    input_ds : :obj:`babs.dataset.InputDatasets`
-        info on input dataset(s)
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-    """
-
-    if processing_level not in ['session', 'subject']:
-        raise ValueError('invalid `processing_level`!')
-
-    if not all(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
-        print('Performing sanity check for any unzipped input dataset...')
-
-    for i_ds in range(input_ds.num_ds):
-        if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
-            input_ds_path = input_ds.df.loc[i_ds, 'path_now_abs']
-            # Check if there is sub-*:
-            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
-
-            # only get the sub's foldername, if it's a directory:
-            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
-            if len(subjects) == 0:  # no folders with `sub-*`:
-                raise FileNotFoundError(
-                    f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
-                    f'"{input_ds.df.loc[i_ds, "name"]}"!'
-                )
-
-            # For session: also check if there is session in each sub-*:
-            if processing_level == 'session':
-                for subject in subjects:  # every sub- folder should contain a session folder
-                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
-                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
-                    if len(sessions) == 0:
-                        raise FileNotFoundError(
-                            f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '
-                            f'there is no `ses-*` folder in subject folder "{subject}"!'
-                        )
 
 
 def validate_processing_level(processing_level):
@@ -89,7 +38,7 @@ def validate_processing_level(processing_level):
     return processing_level
 
 
-def read_yaml(fn, if_filelock=False):
+def read_yaml(fn, use_filelock=False):
     """
     This is to read yaml file.
 
@@ -97,7 +46,7 @@ def read_yaml(fn, if_filelock=False):
     ---------------
     fn: str
         path to the yaml file
-    if_filelock: bool
+    use_filelock: bool
         whether to use filelock
 
     Returns:
@@ -106,7 +55,7 @@ def read_yaml(fn, if_filelock=False):
         content of the yaml file
     """
 
-    if if_filelock:
+    if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
 
@@ -129,7 +78,7 @@ def read_yaml(fn, if_filelock=False):
     return config
 
 
-def write_yaml(config, fn, if_filelock=False):
+def write_yaml(config, fn, use_filelock=False):
     """
     This is to write contents into yaml file.
 
@@ -139,10 +88,31 @@ def write_yaml(config, fn, if_filelock=False):
         the content to write into yaml file
     fn: str
         path to the yaml file
-    if_filelock: bool
+    use_filelock: bool
         whether to use filelock
     """
-    if if_filelock:
+
+    # Convert numpy types to native Python types
+    def convert_numpy(obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return obj
+
+    # Recursively convert numpy types in the config
+    def convert_dict(d):
+        if isinstance(d, dict):
+            return {k: convert_dict(v) for k, v in d.items()}
+        elif isinstance(d, list):
+            return [convert_dict(v) for v in d]
+        return convert_numpy(d)
+
+    config = convert_dict(config)
+
+    if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
 
@@ -337,7 +307,7 @@ def get_list_sub_ses(input_ds, config, babs):
         )
         i_ds = 0
         if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
-            full_paths = sorted(glob.glob(input_ds.df['path_now_abs'][i_ds] + '/sub-*'))
+            full_paths = sorted(glob.glob(input_ds.df['abs_path'][i_ds] + '/sub-*'))
             # no need to check if there is `sub-*` in this dataset
             #   have been checked in `validate_unzipped_datasets()`
             # only get the sub's foldername, if it's a directory:
@@ -346,14 +316,11 @@ def get_list_sub_ses(input_ds, config, babs):
             # full paths to the zip files:
             if babs.processing_level == 'subject':
                 full_paths = glob.glob(
-                    input_ds.df['path_now_abs'][i_ds]
-                    + '/sub-*_'
-                    + input_ds.df['name'][i_ds]
-                    + '*.zip'
+                    input_ds.df['abs_path'][i_ds] + '/sub-*_' + input_ds.df['name'][i_ds] + '*.zip'
                 )
             elif babs.processing_level == 'session':
                 full_paths = glob.glob(
-                    input_ds.df['path_now_abs'][i_ds]
+                    input_ds.df['abs_path'][i_ds]
                     + '/sub-*_ses-*'
                     + input_ds.df['name'][i_ds]
                     + '*.zip'
@@ -374,9 +341,7 @@ def get_list_sub_ses(input_ds, config, babs):
             if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
                 for i_sub, sub in enumerate(subs):
                     # get the list of sess:
-                    full_paths = glob.glob(
-                        op.join(input_ds.df['path_now_abs'][i_ds], sub, 'ses-*')
-                    )
+                    full_paths = glob.glob(op.join(input_ds.df['abs_path'][i_ds], sub, 'ses-*'))
                     full_paths = sorted(full_paths)
                     sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
                     # no need to validate again that session exists
@@ -389,7 +354,7 @@ def get_list_sub_ses(input_ds, config, babs):
                     # get the list of sess:
                     full_paths = glob.glob(
                         op.join(
-                            input_ds.df['path_now_abs'][i_ds],
+                            input_ds.df['abs_path'][i_ds],
                             sub + '_ses-*_' + input_ds.df['name'][i_ds] + '*.zip',
                         )
                     )
@@ -477,11 +442,11 @@ def get_list_sub_ses(input_ds, config, babs):
                     # iter of list of required files:
                     for required_file in list_required_files:
                         temp_files = glob.glob(
-                            op.join(input_ds.df['path_now_abs'][i_ds], sub, required_file)
+                            op.join(input_ds.df['abs_path'][i_ds], sub, required_file)
                         )
                         temp_files_2 = glob.glob(
                             op.join(
-                                input_ds.df['path_now_abs'][i_ds],
+                                input_ds.df['abs_path'][i_ds],
                                 sub,
                                 '**',  # consider potential `ses-*` folder
                                 required_file,
@@ -571,7 +536,7 @@ def get_list_sub_ses(input_ds, config, babs):
                             for required_file in list_required_files:
                                 temp_files = glob.glob(
                                     op.join(
-                                        input_ds.df['path_now_abs'][i_ds],
+                                        input_ds.df['abs_path'][i_ds],
                                         sub,
                                         ses,
                                         required_file,
@@ -1246,32 +1211,6 @@ def request_all_job_status(queue):
         return _request_all_job_status_slurm()
 
 
-def _request_all_job_status_sge():
-    """
-    This is to get all jobs' status for SGE
-    using package [`qstat`](https://github.com/relleums/qstat)
-    """
-    queue_info, job_info = qstat()
-    # ^^ queue_info: dict of jobs that are running
-    # ^^ job_info: dict of jobs that are pending
-
-    # turn all jobs into a dataframe:
-    df = pd.DataFrame(queue_info + job_info)
-
-    # check if there is no job in the queue:
-    if (not queue_info) & (not job_info):  # both are `[]`
-        pass  # don't set the index
-    else:
-        df = df.set_index('JB_job_number')  # set a column as index
-        # index `JB_job_number`: job ID (data type: str)
-        # column `@state`: 'running' or 'pending'
-        # column `state`: 'r', 'qw', etc
-        # column `JAT_start_time`: start time of running
-        #   e.g., '2022-12-06T14:28:43'
-
-    return df
-
-
 def _parsing_squeue_out(squeue_std):
     """
     This is to parse printed messages from `squeue` on Slurm clusters
@@ -1545,12 +1484,12 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
             Examples:
             - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
             - if found: "stdout file: <message>"
-    if_no_alert_in_log: bool
+    no_alert_in_log: bool
         There is no alert message in the log files.
         When `alert_message` is `msg_no_alert`,
-        or is `np.nan` (`if_valid_alert_msg=False`), this is True;
+        or is `np.nan` (`valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
-    if_found_log_files: bool or np.nan
+    found_log_files: bool or np.nan
         np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
         Otherwise, True or False based on if any log files were found
 
@@ -1564,20 +1503,20 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     from .constants import MSG_NO_ALERT_IN_LOGS
 
     msg_no_alert = MSG_NO_ALERT_IN_LOGS
-    if_valid_alert_msg = True  # by default, `alert_message` is valid (i.e., not np.nan)
+    valid_alert_msg = True  # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
-    if_found_log_files = np.nan
+    found_log_files = np.nan
 
     if config_msg_alert is None:
         alert_message = np.nan
-        if_valid_alert_msg = False
-        if_found_log_files = np.nan  # unknown if log files exist or not
+        valid_alert_msg = False
+        found_log_files = np.nan  # unknown if log files exist or not
     else:
         o_fn = log_fn.replace('*', 'o')
         e_fn = log_fn.replace('*', 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):  # either exists:
-            if_found_log_files = True
+            found_log_files = True
             found_message = False
             alert_message = msg_no_alert
 
@@ -1608,17 +1547,17 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                     break  # no need to go to next log file
 
         else:  # neither o_fn nor e_fn exists yet:
-            if_found_log_files = False
+            found_log_files = False
             alert_message = np.nan
-            if_valid_alert_msg = False
+            valid_alert_msg = False
 
-    if (alert_message == msg_no_alert) or (not if_valid_alert_msg):
+    if (alert_message == msg_no_alert) or (not valid_alert_msg):
         # either no alert, or `np.nan`
-        if_no_alert_in_log = True
+        no_alert_in_log = True
     else:  # `alert_message`: np.nan or any other message:
-        if_no_alert_in_log = False
+        no_alert_in_log = False
 
-    return alert_message, if_no_alert_in_log, if_found_log_files
+    return alert_message, no_alert_in_log, found_log_files
 
 
 def get_username():
