@@ -16,6 +16,7 @@ from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
+from babs.input_datasets import validate_unzipped_datasets
 from babs.system import validate_queue
 from babs.utils import (
     calcu_runtime,
@@ -38,7 +39,6 @@ from babs.utils import (
     submit_array,
     submit_one_test_job,
     validate_processing_level,
-    validate_unzipped_datasets,
     write_yaml,
 )
 

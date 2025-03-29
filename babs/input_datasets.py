@@ -103,7 +103,7 @@ class InputDatasets:
             whether processing is done on a subject-wise or session-wise basis
         """
         # Get the initial included sub/ses list from `processing_inclusion_file` CSV:
-        self.initial_inclu_df = validate_processing_inclusion_file(
+        self.initial_inclu_df = validate_sub_ses_processing_inclusion_file(
             processing_inclusion_file, processing_level
         )
 
@@ -331,7 +331,7 @@ def validate_zipped_input_contents(
     dlapi.drop(path=temp_zipfile, dataset=dataset_abs_path)
 
 
-def validate_processing_inclusion_file(processing_inclusion_file, processing_level):
+def validate_sub_ses_processing_inclusion_file(processing_inclusion_file, processing_level):
     """
     Validate the subject inclusion file.
 
@@ -486,10 +486,10 @@ def validate_unzipped_datasets(input_ds, processing_level):
         if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
             input_ds_path = input_ds.df.loc[i_ds, 'abs_path']
             # Check if there is sub-*:
-            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
+            subject_dirs = sorted(glob(os.path.join(input_ds_path, 'sub-*')))
 
             # only get the sub's foldername, if it's a directory:
-            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
+            subjects = [os.path.basename(temp) for temp in subject_dirs if os.path.isdir(temp)]
             if len(subjects) == 0:  # no folders with `sub-*`:
                 raise FileNotFoundError(
                     f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
@@ -499,8 +499,10 @@ def validate_unzipped_datasets(input_ds, processing_level):
             # For session: also check if there is session in each sub-*:
             if processing_level == 'session':
                 for subject in subjects:  # every sub- folder should contain a session folder
-                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
-                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
+                    session_dirs = sorted(glob(os.path.join(input_ds_path, subject, 'ses-*')))
+                    sessions = [
+                        os.path.basename(temp) for temp in session_dirs if os.path.isdir(temp)
+                    ]
                     if len(sessions) == 0:
                         raise FileNotFoundError(
                             f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '

@@ -6,7 +6,6 @@ import datalad.api as dlapi
 import pandas as pd
 import pytest
 
-import babs.utils as utils
 from babs.input_datasets import (
     create_mock_input_dataset,
     validate_unzipped_datasets,
@@ -196,11 +195,11 @@ def test_validate_unzipped_datasets_longitudinal(tmp_path_factory):
     mock_input_ds.num_ds = len(df)
 
     # Test with processing_level = 'subject' (should pass)
-    utils.validate_unzipped_datasets(mock_input_ds, 'subject')
+    validate_unzipped_datasets(mock_input_ds, 'subject')
 
     # Test with processing_level = 'session' (should pass)
-    utils.validate_unzipped_datasets(mock_input_ds, 'session')
+    validate_unzipped_datasets(mock_input_ds, 'session')
 
     # Test with processing_level = 'invalid' (should fail)
     with pytest.raises(ValueError, match='invalid `processing_level`!'):
-        utils.validate_unzipped_datasets(mock_input_ds, 'invalid')
+        validate_unzipped_datasets(mock_input_ds, 'invalid')

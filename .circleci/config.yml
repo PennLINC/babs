@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: pennlinc/slurm-docker-ci:0.10
+    - image: pennlinc/slurm-docker-ci:0.11
 
 jobs:
   download_test_data:
