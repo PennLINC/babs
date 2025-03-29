@@ -1,6 +1,7 @@
 """This module is for input dataset(s)."""
 
 import os
+import re
 import shutil
 import warnings
 import zipfile
@@ -17,7 +18,7 @@ from niworkflows.utils.testing import generate_bids_skeleton
 
 
 class InputDatasets:
-    """This class is for input dataset(s)"""
+    """Represent a collection of input datasets."""
 
     def __init__(self, datasets):
         """Initialize `InputDatasets` class.
@@ -45,7 +46,7 @@ class InputDatasets:
         num_ds: int
             number of input dataset(s)
         initial_inclu_df: pandas DataFrame or None
-            got by method `get_initial_inclu_df()`, based on `processing_inclusion_file`
+            got by method `set_inclusion_dataframe()`, based on `processing_inclusion_file`
             Assign `None` for now, before calling that method
             See that method for more.
         """
@@ -84,7 +85,7 @@ class InputDatasets:
         # Initialize other attributes: ------------------------------
         self.initial_inclu_df = None
 
-    def get_initial_inclu_df(self, processing_inclusion_file, processing_level):
+    def set_inclusion_dataframe(self, processing_inclusion_file, processing_level):
         """
         Define attribute `initial_inclu_df`, a pandas DataFrame or None
             based on `processing_inclusion_file`
@@ -205,6 +206,54 @@ class InputDatasets:
                 continue
 
 
+def get_sub_ses_from_zipped_input(dataset_abs_path, processing_level, root_dir_name):
+    """Find the subjects (and sessions) available as zip files in the input dataset.
+
+    No validation is done on the zip files.
+
+    Parameters
+    ----------
+    dataset_abs_path: str
+        The absolute path to the input dataset
+    processing_level: {'subject', 'session'}
+        The processing level
+    root_dir_name: str
+        The name of the root directory when the zip files are unzipped
+
+    Returns
+    -------
+    sub_ses_df: pandas DataFrame
+        A pandas DataFrame with the subjects and sessions available in the input dataset
+    """
+    zip_pattern = (
+        f'sub-*_ses-*_{root_dir_name}*.zip'
+        if processing_level == 'session'
+        else f'sub-*_{root_dir_name}*.zip'
+    )
+    found_zip_files = sorted(glob(os.path.join(dataset_abs_path, zip_pattern)))
+
+    found_sub_ses = []
+    for zip_file in found_zip_files:
+        zip_filename = os.path.basename(zip_file)
+        # Extract subject ID (required for both processing levels)
+        sub_match = re.search(r'sub-([^_]+)', zip_filename)
+        if not sub_match:
+            raise ValueError(f'Could not find subject ID in zip filename: {zip_filename}')
+        sub_id = sub_match.group(1)
+
+        # Extract session ID if needed
+        ses_id = None
+        if processing_level == 'session':
+            ses_match = re.search(r'ses-([^_]+)', zip_filename)
+            if not ses_match:
+                raise ValueError(f'Could not find session ID in zip filename: {zip_filename}')
+            ses_id = ses_match.group(1)
+
+        found_sub_ses.append({'sub_id': sub_id, 'ses_id': ses_id})
+
+    return pd.DataFrame(found_sub_ses)
+
+
 def validate_zipped_input_contents(
     dataset_abs_path, root_dir_name, processing_level, included_subjects_df=None
 ):
@@ -252,18 +301,13 @@ def validate_zipped_input_contents(
         # if a filter is provided, use the first row of the included_subjects_df
         # to find the zip file
         first_row = included_subjects_df.iloc[0]
-        search = (
-            {'sub_id': first_row['sub_id']}
-            if processing_level == 'subject'
-            else {'sub_id': first_row['sub_id'], 'ses_id': first_row['ses_id']}
-        )
-        temp_zipfile = glob(
-            os.path.join(dataset_abs_path, f'{search["sub_id"]}_{search["ses_id"]}_*.zip')
-        )
+        search_subid = first_row['sub_id']
+        search_sesid = f'_{first_row["ses_id"]}' if processing_level == 'session' else ''
+        query = f'{search_subid}{search_sesid}_*{root_dir_name}*.zip'
+        temp_zipfile = glob(os.path.join(dataset_abs_path, query))
+        # If there were multiple matches we would have found them above
         if not temp_zipfile:
-            raise Exception(f'No zip file found for query {search}')
-        if len(temp_zipfile) > 1:
-            raise Exception(f'Multiple zip files found for query {search}')
+            raise FileNotFoundError(f'No zip file found for inclusion-based query {query}')
         temp_zipfile = temp_zipfile[0]
 
     temp_zipfilename = os.path.basename(temp_zipfile)
@@ -412,3 +456,53 @@ def create_mock_input_dataset(output_dir, multiple_sessions, zip_level):
     dlapi.save(dataset=input_dataset, message='Add zip files')
 
     return input_dataset
+
+
+def validate_unzipped_datasets(input_ds, processing_level):
+    """Check if each of the unzipped input datasets is valid.
+
+    Here we only check the "unzipped" datasets;
+    the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
+
+    * If subject-wise processing is enabled, there should be "sub" folders.
+      "ses" folders are optional.
+    * If session-wise processing is enabled, there should be both "sub" and "ses" folders.
+
+    Parameters
+    ----------
+    input_ds : :obj:`babs.dataset.InputDatasets`
+        info on input dataset(s)
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
+    """
+
+    if processing_level not in ['session', 'subject']:
+        raise ValueError('invalid `processing_level`!')
+
+    if not all(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
+        print('Performing sanity check for any unzipped input dataset...')
+
+    for i_ds in range(input_ds.num_ds):
+        if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
+            input_ds_path = input_ds.df.loc[i_ds, 'abs_path']
+            # Check if there is sub-*:
+            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
+
+            # only get the sub's foldername, if it's a directory:
+            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
+            if len(subjects) == 0:  # no folders with `sub-*`:
+                raise FileNotFoundError(
+                    f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
+                    f'"{input_ds.df.loc[i_ds, "name"]}"!'
+                )
+
+            # For session: also check if there is session in each sub-*:
+            if processing_level == 'session':
+                for subject in subjects:  # every sub- folder should contain a session folder
+                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
+                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
+                    if len(sessions) == 0:
+                        raise FileNotFoundError(
+                            f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '
+                            f'there is no `ses-*` folder in subject folder "{subject}"!'
+                        )

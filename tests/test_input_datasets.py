@@ -7,7 +7,11 @@ import pandas as pd
 import pytest
 
 import babs.utils as utils
-from babs.dataset import create_mock_input_dataset, validate_zipped_input_contents
+from babs.input_datasets import (
+    create_mock_input_dataset,
+    validate_unzipped_datasets,
+    validate_zipped_input_contents,
+)
 
 
 def print_tree(path, prefix='', is_last=True):
@@ -50,7 +54,7 @@ def print_tree(path, prefix='', is_last=True):
         (True, 'session', 'session'),
     ],
 )
-def test_validate_zipped_input_contents_crosssectional(
+def test_validate_zipped_input_contents(
     tmp_path_factory, multiple_sessions, zip_level, processing_level
 ):
     """Clone a mocked input dataset and test the validate_zipped_input_contents function."""
@@ -78,6 +82,43 @@ def test_validate_zipped_input_contents_crosssectional(
             validate_zipped_input_contents(clone_path, 'qsiprep', processing_level)
     else:
         validate_zipped_input_contents(clone_path, 'qsiprep', processing_level)
+
+
+def test_validate_zipped_input_contents_with_session_include_list(tmp_path_factory):
+    # Clone the mocked input dataset
+    remote_input_path = tmp_path_factory.mktemp('remote_input_dataset')
+    clone_path = tmp_path_factory.mktemp('cloned_input_dataset')
+
+    remote_input_dataset = create_mock_input_dataset(
+        remote_input_path, multiple_sessions=True, zip_level='session'
+    )
+
+    # make a clone with no data available locally
+    dlapi.clone(remote_input_dataset, path=clone_path)
+
+    df_has_session_include_list = pd.DataFrame(
+        {
+            'ses_id': ['ses-01', 'ses-02'],
+            'sub_id': ['sub-01', 'sub-01'],
+        }
+    )
+
+    # Check that session-wise inclusion works
+    validate_zipped_input_contents(clone_path, 'qsiprep', 'session', df_has_session_include_list)
+    with pytest.raises(ValueError, match='more than one zip file per subject'):
+        validate_zipped_input_contents(
+            clone_path, 'qsiprep', 'subject', df_has_session_include_list
+        )
+
+    # Check we get an error if the session isn't in the include list
+    df_missing_session = pd.DataFrame(
+        {
+            'ses_id': ['ses-missing', 'ses-missing2'],
+            'sub_id': ['sub-01', 'sub-01'],
+        }
+    )
+    with pytest.raises(FileNotFoundError, match='No zip file found for inclusion-based query'):
+        validate_zipped_input_contents(clone_path, 'qsiprep', 'session', df_missing_session)
 
 
 def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
@@ -110,15 +151,15 @@ def test_validate_unzipped_datasets_crosssectional(tmp_path_factory):
     mock_input_ds.num_ds = df.shape[0]
 
     # Test with processing_level = 'subject' (should pass)
-    utils.validate_unzipped_datasets(mock_input_ds, 'subject')
+    validate_unzipped_datasets(mock_input_ds, 'subject')
 
     # Test with processing_level = 'session' (should fail)
     with pytest.raises(FileNotFoundError, match='there is no'):
-        utils.validate_unzipped_datasets(mock_input_ds, 'session')
+        validate_unzipped_datasets(mock_input_ds, 'session')
 
     # Test with processing_level = 'invalid' (should fail)
     with pytest.raises(ValueError, match='invalid `processing_level`!'):
-        utils.validate_unzipped_datasets(mock_input_ds, 'invalid')
+        validate_unzipped_datasets(mock_input_ds, 'invalid')
 
 
 def test_validate_unzipped_datasets_longitudinal(tmp_path_factory):

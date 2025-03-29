@@ -9,9 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 from filelock import FileLock, Timeout
+from input_datasets import InputDatasets, create_mock_input_dataset
 
 from babs.babs import BABS
-from babs.dataset import InputDatasets, create_mock_input_dataset
 from babs.system import System
 from babs.utils import (
     ToDict,
@@ -218,7 +218,7 @@ def babs_init_main(
 
     # input dataset:
     input_ds = InputDatasets(datasets)
-    input_ds.get_initial_inclu_df(list_sub_file, processing_level)
+    input_ds.set_inclusion_dataframe(list_sub_file, processing_level)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;

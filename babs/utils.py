@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
-from qstat import qstat  # https://github.com/relleums/qstat
 
 
 def get_datalad_version():
@@ -25,56 +24,6 @@ def get_datalad_version():
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
-
-
-def validate_unzipped_datasets(input_ds, processing_level):
-    """Check if each of the unzipped input datasets is valid.
-
-    Here we only check the "unzipped" datasets;
-    the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
-
-    * If subject-wise processing is enabled, there should be "sub" folders.
-      "ses" folders are optional.
-    * If session-wise processing is enabled, there should be both "sub" and "ses" folders.
-
-    Parameters
-    ----------
-    input_ds : :obj:`babs.dataset.InputDatasets`
-        info on input dataset(s)
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-    """
-
-    if processing_level not in ['session', 'subject']:
-        raise ValueError('invalid `processing_level`!')
-
-    if not all(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
-        print('Performing sanity check for any unzipped input dataset...')
-
-    for i_ds in range(input_ds.num_ds):
-        if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
-            input_ds_path = input_ds.df.loc[i_ds, 'abs_path']
-            # Check if there is sub-*:
-            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
-
-            # only get the sub's foldername, if it's a directory:
-            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
-            if len(subjects) == 0:  # no folders with `sub-*`:
-                raise FileNotFoundError(
-                    f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
-                    f'"{input_ds.df.loc[i_ds, "name"]}"!'
-                )
-
-            # For session: also check if there is session in each sub-*:
-            if processing_level == 'session':
-                for subject in subjects:  # every sub- folder should contain a session folder
-                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
-                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
-                    if len(sessions) == 0:
-                        raise FileNotFoundError(
-                            f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '
-                            f'there is no `ses-*` folder in subject folder "{subject}"!'
-                        )
 
 
 def validate_processing_level(processing_level):
@@ -1260,32 +1209,6 @@ def request_all_job_status(queue):
         return _request_all_job_status_sge()
     elif queue == 'slurm':
         return _request_all_job_status_slurm()
-
-
-def _request_all_job_status_sge():
-    """
-    This is to get all jobs' status for SGE
-    using package [`qstat`](https://github.com/relleums/qstat)
-    """
-    queue_info, job_info = qstat()
-    # ^^ queue_info: dict of jobs that are running
-    # ^^ job_info: dict of jobs that are pending
-
-    # turn all jobs into a dataframe:
-    df = pd.DataFrame(queue_info + job_info)
-
-    # check if there is no job in the queue:
-    if (not queue_info) & (not job_info):  # both are `[]`
-        pass  # don't set the index
-    else:
-        df = df.set_index('JB_job_number')  # set a column as index
-        # index `JB_job_number`: job ID (data type: str)
-        # column `@state`: 'running' or 'pending'
-        # column `state`: 'r', 'qw', etc
-        # column `JAT_start_time`: start time of running
-        #   e.g., '2022-12-06T14:28:43'
-
-    return df
 
 
 def _parsing_squeue_out(squeue_std):
