@@ -37,10 +37,10 @@ mkdir -p "${BRANCH}"
 cd "${BRANCH}"
 
 # datalad clone the input ria:
-if [ -d ds ]; then
-    echo '# Clone the data from input RIA:'
-    datalad clone "${dssource}" ds
-fi
+if [ ! -d ds ]; then
+echo '# Clone the data from input RIA:'
+datalad clone "${dssource}" ds
+
 cd ds
 
 # set up the result deposition:
@@ -50,6 +50,10 @@ git remote add outputstore "${pushgitremote}"
 # set up a new branch:
 echo "# Create a new branch for this job's results:"
 git checkout -b "${BRANCH}"
+
+else cd ds; git checkout "${BRANCH}"
+
+fi
 
 # Start of the application-specific code: ------------------------------
 
@@ -87,7 +91,7 @@ datalad run \
 	-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
 	-m "{{ container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
-	"bash ./code/{{ container_name }}_zip.sh ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %}${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP}{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+	"bash ./code/{{ container_name }}_zip.sh ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %}${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 
 # Finish up:
 # push result file content to output RIA storage:
