@@ -42,6 +42,7 @@ doc = [
 ]
 dev = ["ruff ~= 0.4.3", "pre-commit"]
 tests = [
+    "niworkflows",
     "pytest",
     "pytest-xdist", # for running pytest in parallel
     "pytest-order", # for ordering test execution

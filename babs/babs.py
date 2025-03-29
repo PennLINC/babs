@@ -364,32 +364,32 @@ class BABS:
 
         # Register the input dataset(s): -----------------------------
         print('\nRegistering the input dataset(s)...')
-        for i_ds in range(0, input_ds.num_ds):
+        for idx, row in input_ds.df.iterrows():
             # path to cloned dataset:
-            i_ds_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'relative_path'])
-            print(f'Cloning input dataset #{i_ds + 1}: ' + input_ds.df.loc[i_ds, 'name'])
+            dataset_path = op.join(self.analysis_path, row['relative_path'])
+            dataset_name = row['name']
+            dataset_source = row['path_in']
+
+            print(f'Cloning input dataset #{idx + 1}: {dataset_name}')
+
             # clone input dataset(s) as sub-dataset into `analysis` dataset:
             dlapi.clone(
                 dataset=self.analysis_path,
-                source=input_ds.df.loc[i_ds, 'path_in'],  # input dataset(s)
-                path=i_ds_path,
-            )  # path to clone into
+                source=dataset_source,
+                path=dataset_path,
+            )
 
             # amend the previous commit with a nicer commit message:
-            proc_git_commit_amend = subprocess.run(
-                [
-                    'git',
-                    'commit',
-                    '--amend',
-                    '-m',
-                    "Register input data dataset '"
-                    + input_ds.df.loc[i_ds, 'name']
-                    + "' as a subdataset",
-                ],
+            commit_message = f"Register input data dataset '{dataset_name}' as a subdataset"
+            git_cmd = ['git', 'commit', '--amend', '-m', commit_message]
+
+            result = subprocess.run(
+                git_cmd,
                 cwd=self.analysis_path,
                 stdout=subprocess.PIPE,
+                check=True,
             )
-            proc_git_commit_amend.check_returncode()
+            result.check_returncode()
 
         # get the current absolute path to the input dataset:
         input_ds.update_abs_paths(self.analysis_path)
@@ -407,19 +407,13 @@ class BABS:
 
         # Update input ds information in `babs_proj_config.yaml`:
         babs_proj_config = read_yaml(self.config_path, use_filelock=True)
-        for i_ds in range(0, input_ds.num_ds):
-            ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-            # update `data_parent_dir`:
+        for idx, row in input_ds.df.iterrows():
+            ds_index_str = f'$INPUT_DATASET_#{idx + 1}'
             babs_proj_config['input_ds'][ds_index_str]['data_parent_dir'] = str(
-                input_ds.df.loc[i_ds, 'data_parent_dir']
+                row['data_parent_dir']
             )
-            # update `is_zipped`:
-            babs_proj_config['input_ds'][ds_index_str]['is_zipped'] = bool(
-                input_ds.df.loc[i_ds, 'is_zipped']
-            )
-        # dump:
+            babs_proj_config['input_ds'][ds_index_str]['is_zipped'] = bool(row['is_zipped'])
         write_yaml(babs_proj_config, self.config_path, use_filelock=True)
-        # datalad save: update:
         self.datalad_save(
             path='code/babs_proj_config.yaml',
             message='Update configurations of input dataset of this BABS project',
@@ -558,9 +552,9 @@ class BABS:
         # No need to keep the input dataset(s):
         #   old version: datalad uninstall -r --nocheck inputs/data
         print("DataLad dropping input dataset's contents...")
-        for i_ds in range(0, input_ds.num_ds):
+        for _, row in input_ds.df.iterrows():
             _ = self.analysis_datalad_handle.drop(
-                path=input_ds.df.loc[i_ds, 'relative_path'],
+                path=row['relative_path'],
                 recursive=True,  # and potential subdataset
                 reckless='availability',
             )
@@ -624,9 +618,9 @@ class BABS:
                 self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
                 # Remove each input dataset:
                 print('Removing input dataset(s) if cloned...')
-                for i_ds in range(0, input_ds.num_ds):
+                for _, row in input_ds.df.iterrows():
                     # check if it exists yet:
-                    abs_path = op.join(self.analysis_path, input_ds.df.loc[i_ds, 'relative_path'])
+                    abs_path = op.join(self.analysis_path, row['relative_path'])
                     if op.exists(abs_path):  # this input dataset has been cloned:
                         # use `datalad remove` to remove:
                         _ = self.analysis_datalad_handle.remove(
@@ -747,35 +741,22 @@ class BABS:
         )
 
         # check each input ds:
-        for i_ds in range(0, input_ds.num_ds):
-            abs_path = input_ds.df.loc[i_ds, 'abs_path']
+        for idx, row in input_ds.df.iterrows():
+            abs_path = row['abs_path']
+            dataset_name = row['name']
 
             # check if the dir of this input ds exists:
             assert op.exists(abs_path), (
-                'The path to the cloned input dataset #'
-                + str(i_ds + 1)
-                + " '"
-                + input_ds.df.loc[i_ds, 'name']
-                + "' does not exist: "
-                + abs_path
+                f'The path to the cloned input dataset #{idx + 1} '
+                f"'{dataset_name}' does not exist: {abs_path}"
             )
 
             # check if dir of input ds is a datalad dataset:
             assert op.exists(op.join(abs_path, '.datalad/config')), (
-                'The input dataset #'
-                + str(i_ds + 1)
-                + " '"
-                + input_ds.df.loc[i_ds, 'name']
-                + "' is not a valid DataLad dataset:"
-                + " There is no file '.datalad/config' in its directory: "
-                + abs_path
+                f'The input dataset #{idx + 1} '
+                f"'{dataset_name}' is not a valid DataLad dataset:"
+                f" There is no file '.datalad/config' in its directory: {abs_path}"
             )
-
-            # ROADMAP: check if input dataset ID saved in YAML file
-            #           (not saved yet, also need to add to InputDatasets class too)
-            #           = that in `.gitmodules` in cloned ds
-            #   However, It's pretty unlikely that someone changes inputs/data on their own
-            #       if they're using BABS
 
         print(CHECK_MARK + ' All good!')
 

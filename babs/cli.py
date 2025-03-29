@@ -1005,10 +1005,12 @@ def get_existing_babs_proj(project_root):
             ' Something was wrong during `babs init`...'
         )
 
-    datasets = {}  # to be a nested list
-    for i_ds in range(0, len(input_ds_yaml)):
-        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
-        datasets[input_ds_yaml[ds_index_str]['name']] = input_ds_yaml[ds_index_str]['path_in']
+    datasets = {
+        input_ds_yaml[f'$INPUT_DATASET_#{i + 1}']['name']: input_ds_yaml[
+            f'$INPUT_DATASET_#{i + 1}'
+        ]['path_in']
+        for i in range(len(input_ds_yaml))
+    }
 
     # Get the class `InputDatasets`:
     input_ds = InputDatasets(datasets)
@@ -1016,14 +1018,14 @@ def get_existing_babs_proj(project_root):
     # 1. `abs_path`:
     input_ds.update_abs_paths(babs_proj.analysis_path)
     # 2. `data_parent_dir` and `is_zipped`:
-    for i_ds in range(0, input_ds.num_ds):
-        ds_index_str = '$INPUT_DATASET_#' + str(i_ds + 1)
+    for idx, _ in input_ds.df.iterrows():
+        ds_index_str = f'$INPUT_DATASET_#{idx + 1}'
         # `data_parent_dir`:
-        input_ds.df.loc[i_ds, 'data_parent_dir'] = babs_proj_config['input_ds'][ds_index_str][
+        input_ds.df.loc[idx, 'data_parent_dir'] = babs_proj_config['input_ds'][ds_index_str][
             'data_parent_dir'
         ]
         # `is_zipped`:
-        input_ds.df.loc[i_ds, 'is_zipped'] = bool(
+        input_ds.df.loc[idx, 'is_zipped'] = bool(
             babs_proj_config['input_ds'][ds_index_str]['is_zipped']
         )
 
