@@ -33,7 +33,7 @@ BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${subid}-${se
 BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${subid}"
 {% endif %}
 
-mkdir "${BRANCH}"
+mkdir -p "${BRANCH}"
 cd "${BRANCH}"
 
 # datalad clone the input ria:
