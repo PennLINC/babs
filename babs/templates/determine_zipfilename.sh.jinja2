@@ -8,14 +8,14 @@ find_single_zipfile() {% raw %}{{% endraw %}
     local zipfile
 
     # Use find instead of ls for better handling of non-alphanumeric filenames
-    zipfile=$(find "$path" -maxdepth 1 -name "${pattern}" -print -quit || true)
+    zipfile=$(find "$path" -maxdepth 1 -wholename "${pattern}" -print -quit || true)
     if [ -z "$zipfile" ]; then
         echo "ERROR: No zip file found matching pattern: ${pattern}" >&2
         exit 1
     fi
 
     # Check if there's a second match
-    another_zipfile=$(find "$path" -maxdepth 1 -name "${pattern}" -print -quit -skip 1 || true)
+    another_zipfile=$(find "$path" -maxdepth 1 -wholename "${pattern}" -print -quit -skip 1 || true)
     if [ -n "${another_zipfile}" ]; then
         echo "Multiple zip files found matching pattern: $pattern" >&2
         exit 98
