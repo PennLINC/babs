@@ -20,6 +20,7 @@ dependencies = [
     "qstat >= 0.0.5",
     "regex",
     "tqdm",
+    "jinja2",
 ]
 
 dynamic = ["version"]
