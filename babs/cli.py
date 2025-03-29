@@ -11,7 +11,7 @@ import pandas as pd
 from filelock import FileLock, Timeout
 
 from babs.babs import BABS
-from babs.dataset import InputDatasets
+from babs.dataset import InputDatasets, create_mock_input_dataset
 from babs.system import System
 from babs.utils import (
     ToDict,
@@ -1186,6 +1186,44 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     babs_proj.datalad_push(analysis_code_dir, '--to input')
 
 
+def _parse_make_input_dataset():
+    """Create and configure the argument parser for the `babs create-input-dataset` command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        description='Create a BIDS or zipped BIDS derivatives dataset for testing.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        'output_path',
+        nargs=1,
+        help=(
+            "Absolute path to the output directory. For example, '/path/to/fake_bids_dataset/' "
+        ),
+    )
+    parser.add_argument(
+        '--multiple-sessions',
+        help='Create a BIDS dataset with multiple sessions.',
+        action='store_true',
+    )
+    parser.add_argument(
+        '--zip-level',
+        help='The level at which to zip the dataset.',
+        choices=['subject', 'session', 'none'],
+        default='subject',
+    )
+
+    return parser
+
+
+def babs_create_input_dataset_main(output_path: str, multiple_sessions: bool, zip_level: str):
+    """This is the core function of babs create-input-dataset."""
+    create_mock_input_dataset(output_path, multiple_sessions, zip_level)
+
+
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
@@ -1194,6 +1232,7 @@ COMMANDS = [
     ('merge', _parse_merge, babs_merge_main),
     ('unzip', _parse_unzip, babs_unzip_main),
     ('sync-code', _parse_sync_code, babs_sync_code_main),
+    ('create-input-dataset', _parse_make_input_dataset, babs_create_input_dataset_main),
 ]
 
 

@@ -1,14 +1,19 @@
 """This module is for input dataset(s)."""
 
 import os
+import shutil
 import warnings
 import zipfile
 from collections import defaultdict
 from glob import glob
+from importlib import resources
+from pathlib import Path
 
 import datalad.api as dlapi
 import numpy as np
 import pandas as pd
+import yaml
+from niworkflows.utils.testing import generate_bids_skeleton
 
 
 class InputDatasets:
@@ -226,14 +231,13 @@ def validate_zipped_input_contents(
                 ' If so, please use the `--processing-level subject` flag'
                 ' during BABS initialization.'
             )
-        raise Exception(message)
+        raise FileNotFoundError(message)
 
     # Check to see if there is only one zip file per subject if processing on a subject-wise basis
     if processing_level == 'subject':
         zip_files_per_subject = defaultdict(int)
         for zip_file in found_zip_files:
             zip_files_per_subject[os.path.basename(zip_file).split('_')[0]] += 1
-        assert 0
         if any(count > 1 for count in zip_files_per_subject.values()):
             raise ValueError(
                 'There is more than one zip file per subject in the zipped input dataset.'
@@ -339,3 +343,72 @@ def validate_processing_inclusion_file(processing_inclusion_file, processing_lev
             )
 
     return initial_inclu_df
+
+
+def create_mock_input_dataset(output_dir, multiple_sessions, zip_level):
+    """Create a mock zipped input dataset with n_subjects, each with n_sessions.
+
+    Parameters
+    ----------
+    output_dir : Pathlike
+        The path to the output directory.
+    multiple_sessions : bool
+        Whether to create a BIDS dataset with multiple sessions.
+    zip_level : {'subject', 'session', 'none'}
+        The level at which to zip the dataset.
+
+    Returns
+    -------
+    input_dataset : Path
+        The path containing the input dataset. Clone this datasets to
+        simulate what happens in a BABS initialization.
+    """
+    input_dataset = Path(output_dir)
+    qsiprep_dir = input_dataset / 'qsiprep'
+
+    # Get the YAML file from the package
+    bids_skeleton_yaml = 'multi_ses_qsiprep.yaml' if multiple_sessions else 'no_ses_qsiprep.yaml'
+    with resources.files('babs.bids_skeletons').joinpath(bids_skeleton_yaml).open() as f:
+        bids_skeleton = yaml.safe_load(f)
+
+    # Create the qsiprep directory first
+    generate_bids_skeleton(qsiprep_dir, bids_skeleton)
+
+    # Loop over all files in qsiprep_dir and if they are .nii.gz, write random data to them
+    for file_path in qsiprep_dir.rglob('*.nii.gz'):
+        with open(file_path, 'wb') as f:
+            f.write(os.urandom(10 * 1024 * 1024))  # 10MB of random data
+
+    # Zip the dataset
+    if zip_level == 'subject':
+        for subject in qsiprep_dir.glob('sub-*'):
+            zip_path = input_dataset / f'{subject.name}_qsiprep-1-0-1.zip'
+            with zipfile.ZipFile(zip_path, 'w') as zf:
+                for file_path in subject.rglob('*'):
+                    if file_path.is_file():
+                        arcname = f'qsiprep/{subject.name}/{file_path.relative_to(subject)}'
+                        zf.write(file_path, arcname)
+        shutil.rmtree(qsiprep_dir)
+    elif zip_level == 'session':
+        for subject in qsiprep_dir.glob('sub-*'):
+            for session in subject.glob('ses-*'):
+                zip_path = input_dataset / f'{subject.name}_{session.name}_qsiprep-1-0-1.zip'
+                with zipfile.ZipFile(zip_path, 'w') as zf:
+                    for file_path in session.rglob('*'):
+                        if file_path.is_file():
+                            arcname = (
+                                f'qsiprep/{subject.name}/{session.name}/'
+                                f'{file_path.relative_to(session)}'
+                            )
+                            zf.write(file_path, arcname)
+        shutil.rmtree(qsiprep_dir)
+    else:
+        input_dataset = qsiprep_dir
+
+    # initialize a datalad dataset in input_dataset
+    dlapi.create(path=input_dataset, force=True)
+
+    # Datalad save the zip files
+    dlapi.save(dataset=input_dataset, message='Add zip files')
+
+    return input_dataset

@@ -178,7 +178,7 @@ def test_babs_init(
         container_config=container_config,
         processing_level=processing_level,
         queue='slurm',
-        keep_if_failed=True,
+        keep_if_failed=False,
     )
 
     # run `babs init`:
@@ -313,7 +313,3 @@ def test_babs_init(
             + ', '
             + processing_level
         )
-
-    # Note: No need to manually remove temporary dirs; those are created by pytest's fixtures
-    #   and will be automatically removed after 3 runs of pytests. ref below:
-    #   https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory

@@ -14,6 +14,7 @@ dependencies = [
     "datalad_container >= 1.1.6",
     "filelock >= 3.8.0",
     "nibabel >=2.2.1",
+    "niworkflows",
     "numpy",
     "pandas",
     "pyyaml >= 6.0",
@@ -42,7 +43,6 @@ doc = [
 ]
 dev = ["ruff ~= 0.4.3", "pre-commit"]
 tests = [
-    "niworkflows",
     "pytest",
     "pytest-xdist", # for running pytest in parallel
     "pytest-order", # for ordering test execution
