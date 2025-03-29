@@ -21,6 +21,7 @@ sesid=$(echo "$subject_row" | python -c "import sys, re; pattern = r'ses-[a-zA-Z
 {% endif %}
 
 # Change to a temporary directory
+mkdir -p "{{ job_scratch_directory }}"
 cd "{{ job_scratch_directory }}"
 
 # Setup: ---------------------------------------------------------------
