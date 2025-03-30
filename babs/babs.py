@@ -509,7 +509,7 @@ class BABS:
 
         # Determine the list of subjects to analyze: -----------------------------
         print('\nDetermining the list of subjects (and sessions) to analyze...')
-        sub_ses_inclusion_df = input_ds.generate_sub_ses_inclusion_df(self.processing_level)
+        sub_ses_inclusion_df = input_ds.generate_inclusion_dataframe(self.processing_level)
         sub_ses_inclusion_df.to_csv(self.list_sub_path_abs, index=False)
         self.datalad_save(
             path=self.list_sub_path_abs,

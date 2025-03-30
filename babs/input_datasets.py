@@ -192,7 +192,7 @@ class InputDatasets:
             'Getting example zip file(s) to check...'
         )
 
-        for idx, row in self.df.iterrows():
+        for _, row in self.df.iterrows():
             if not row['is_zipped']:
                 continue
 

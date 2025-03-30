@@ -794,7 +794,7 @@ def request_all_job_status(queue):
         (i.e., Columns: [], Index: [])
     """
     if queue == 'sge':
-        return _request_all_job_status_sge()
+        raise NotImplementedError('SGE is not supported anymore.')
     elif queue == 'slurm':
         return _request_all_job_status_slurm()
 
