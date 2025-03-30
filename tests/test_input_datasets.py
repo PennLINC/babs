@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from babs.input_datasets import (
+    InputDatasets,
     create_mock_input_dataset,
     validate_unzipped_datasets,
     validate_zipped_input_contents,
@@ -203,3 +204,87 @@ def test_validate_unzipped_datasets_longitudinal(tmp_path_factory):
     # Test with processing_level = 'invalid' (should fail)
     with pytest.raises(ValueError, match='invalid `processing_level`!'):
         validate_unzipped_datasets(mock_input_ds, 'invalid')
+
+
+@pytest.mark.parametrize(
+    ('multiple_sessions', 'zip_level', 'processing_level'),
+    [
+        (False, 'subject', 'subject'),
+        (True, 'subject', 'subject'),
+        (True, 'session', 'session'),
+    ],
+)
+def test_get_list_sub_ses(tmp_path_factory, multiple_sessions, zip_level, processing_level):
+    """Test the get_list_sub_ses method of InputDatasets class."""
+    # Create a mock input dataset
+    remote_input_path = tmp_path_factory.mktemp('remote_input_dataset')
+    remote_input_dataset = create_mock_input_dataset(
+        remote_input_path, multiple_sessions, zip_level
+    )
+
+    # Create an InputDatasets object
+    input_ds = InputDatasets({'qsiprep': remote_input_dataset})
+    input_ds.df['is_zipped'] = [zip_level != 'none']
+    input_ds.df['abs_path'] = [remote_input_dataset]
+
+    result = input_ds.generate_inclusion_dataframe(processing_level)
+
+    # Verify the result is a DataFrame with the correct columns
+    assert isinstance(result, pd.DataFrame)
+    assert 'sub_id' in result.columns
+    if processing_level == 'session':
+        assert 'ses_id' in result.columns
+    else:
+        assert 'ses_id' not in result.columns
+
+    # Verify the data format
+    assert all(result['sub_id'].str.startswith('sub-'))
+    if processing_level == 'session':
+        assert all(result['ses_id'].str.startswith('ses-'))
+
+
+@pytest.mark.get_list_sub_ses
+def test_get_list_sub_ses_with_inclusion_list(tmp_path_factory):
+    """Test the get_list_sub_ses method with inclusion lists."""
+    # Create a mock input dataset
+    remote_input_path = tmp_path_factory.mktemp('remote_input_dataset')
+    remote_input_dataset = create_mock_input_dataset(
+        remote_input_path, multiple_sessions=True, zip_level='subject'
+    )
+
+    # Create an InputDatasets object
+    input_ds = InputDatasets({'qsiprep': remote_input_dataset})
+    input_ds.df['is_zipped'] = [True]
+    input_ds.df['abs_path'] = [remote_input_dataset]
+
+    # Test with valid subject-level inclusion list
+    input_ds.initial_inclu_df = pd.DataFrame({'sub_id': ['sub-01', 'sub-ABC']})
+    result = input_ds.generate_inclusion_dataframe('subject')
+    assert set(result['sub_id']) == {'sub-01', 'sub-ABC'}
+
+    # Test with valid session-level inclusion list
+    input_ds.initial_inclu_df = pd.DataFrame(
+        {'sub_id': ['sub-01', 'sub-01'], 'ses_id': ['ses-01', 'ses-02']}
+    )
+    result = input_ds.generate_inclusion_dataframe('session')
+    assert set(result['sub_id']) == {'sub-01'}
+    assert set(result['ses_id']) == {'ses-01', 'ses-02'}
+
+    # Test with invalid subject-level inclusion list (duplicate subjects)
+    input_ds.initial_inclu_df = pd.DataFrame({'sub_id': ['sub-01', 'sub-01']})
+    with pytest.raises(Exception, match="There are repeated 'sub_id' in"):
+        input_ds.generate_inclusion_dataframe('subject')
+
+    # Test with invalid session-level inclusion list (missing ses_id column)
+    input_ds.initial_inclu_df = pd.DataFrame({'sub_id': ['sub-01']})
+    with pytest.raises(Exception, match="There is no 'ses_id' column"):
+        input_ds.generate_inclusion_dataframe('session')
+
+    # Test with invalid session-level inclusion list (duplicate subject-session pairs)
+    input_ds.initial_inclu_df = pd.DataFrame(
+        {'sub_id': ['sub-01', 'sub-01'], 'ses_id': ['ses-01', 'ses-01']}
+    )
+    with pytest.raises(
+        Exception, match="There are repeated combinations of 'sub_id' and 'ses_id'"
+    ):
+        input_ds.generate_inclusion_dataframe('session')

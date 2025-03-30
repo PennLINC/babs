@@ -87,10 +87,7 @@ class InputDatasets:
 
     def set_inclusion_dataframe(self, processing_inclusion_file, processing_level):
         """
-        Define attribute `initial_inclu_df`, a pandas DataFrame or None
-            based on `processing_inclusion_file`
-            single-session data: column of 'sub_id';
-            multi-session data: columns of 'sub_id' and 'ses_id'
+        Set the inclusion dataframe, validate it and sort it.
 
         Parameters
         ----------
@@ -103,15 +100,9 @@ class InputDatasets:
             whether processing is done on a subject-wise or session-wise basis
         """
         # Get the initial included sub/ses list from `processing_inclusion_file` CSV:
-        self.initial_inclu_df = validate_sub_ses_processing_inclusion_file(
+        self.initial_inclu_df = validate_sub_ses_processing_inclusion(
             processing_inclusion_file, processing_level
         )
-
-        # Sort the initial included sub/ses list:
-        sorting_indices = ['sub_id'] if processing_level == 'subject' else ['sub_id', 'ses_id']
-        if self.initial_inclu_df is not None:
-            self.initial_inclu_df = self.initial_inclu_df.sort_values(by=sorting_indices)
-            self.initial_inclu_df = self.initial_inclu_df.reset_index(drop=True)
 
     def update_abs_paths(self, analysis_path):
         """
@@ -205,6 +196,42 @@ class InputDatasets:
             if not row['is_zipped']:
                 continue
 
+    def generate_inclusion_dataframe(self, processing_level):
+        """
+        This is to get the list of subjects (and sessions) to analyze.
+
+        Parameters
+        ----------
+        processing_level: {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
+
+        Returns
+        -------
+        inclu_df: pandas DataFrame
+            A pandas DataFrame with the subjects and sessions available in the input dataset
+        """
+
+        if self.initial_inclu_df is not None:
+            print('Using the subjects (sessions) provided in the initial inclusion list.')
+            inclu_df = self.initial_inclu_df
+        else:
+            print(
+                'Did not provide an initial inclusion list.'
+                ' Will look into the first input dataset'
+                ' to get the initial inclusion list.'
+            )
+            first_input_ds = self.df.iloc[0]
+            if first_input_ds['is_zipped']:
+                inclu_df = get_sub_ses_from_zipped_input(
+                    first_input_ds['abs_path'], processing_level, first_input_ds['name']
+                )
+            else:
+                inclu_df = get_sub_ses_from_nonzipped_input(
+                    first_input_ds['abs_path'], processing_level, first_input_ds['name']
+                )
+
+        return validate_sub_ses_processing_inclusion(inclu_df, processing_level)
+
 
 def get_sub_ses_from_zipped_input(dataset_abs_path, processing_level, root_dir_name):
     """Find the subjects (and sessions) available as zip files in the input dataset.
@@ -236,22 +263,78 @@ def get_sub_ses_from_zipped_input(dataset_abs_path, processing_level, root_dir_n
     for zip_file in found_zip_files:
         zip_filename = os.path.basename(zip_file)
         # Extract subject ID (required for both processing levels)
-        sub_match = re.search(r'sub-([^_]+)', zip_filename)
+        sub_match = re.search(r'(sub-[^_]+)', zip_filename)
         if not sub_match:
             raise ValueError(f'Could not find subject ID in zip filename: {zip_filename}')
         sub_id = sub_match.group(1)
 
-        # Extract session ID if needed
-        ses_id = None
         if processing_level == 'session':
-            ses_match = re.search(r'ses-([^_]+)', zip_filename)
+            # Extract session ID if needed
+            ses_match = re.search(r'(ses-[^_]+)', zip_filename)
             if not ses_match:
                 raise ValueError(f'Could not find session ID in zip filename: {zip_filename}')
             ses_id = ses_match.group(1)
+            found_sub_ses.append({'sub_id': sub_id, 'ses_id': ses_id})
+        else:
+            found_sub_ses.append({'sub_id': sub_id})
 
-        found_sub_ses.append({'sub_id': sub_id, 'ses_id': ses_id})
+    return validate_sub_ses_processing_inclusion(pd.DataFrame(found_sub_ses), processing_level)
 
-    return pd.DataFrame(found_sub_ses)
+
+def get_sub_ses_from_nonzipped_input(dataset_abs_path, processing_level, root_dir_name):
+    """Find the subjects (and sessions) available as directories in the input dataset.
+
+    No validation is done on the directories.
+
+    Parameters
+    ----------
+    dataset_abs_path: str
+        The absolute path to the input dataset
+    processing_level: {'subject', 'session'}
+        The processing level
+    root_dir_name: str
+        The name of the root directory when the zip files are unzipped
+
+    Returns
+    -------
+    sub_ses_df: pandas DataFrame
+        A pandas DataFrame with the subjects and sessions available in the input dataset
+    """
+    # Get all subject directories
+    sub_dirs = sorted(glob(os.path.join(dataset_abs_path, 'sub-*')))
+    if not sub_dirs:
+        raise ValueError(f'No subject directories found in {dataset_abs_path}')
+
+    # Initialize lists to store subject and session IDs
+    sub_ids = []
+    ses_ids = []
+
+    # Process each subject directory
+    for sub_dir in sub_dirs:
+        sub_id = os.path.basename(sub_dir)  # e.g., 'sub-01'
+
+        if processing_level == 'session':
+            # Get all session directories under this subject
+            ses_dirs = sorted(glob(os.path.join(sub_dir, 'ses-*')))
+            if not ses_dirs:
+                continue  # Skip subjects with no sessions
+
+            # Add each session for this subject
+            for ses_dir in ses_dirs:
+                ses_id = os.path.basename(ses_dir)  # e.g., 'ses-01'
+                sub_ids.append(sub_id)
+                ses_ids.append(ses_id)
+        else:
+            # For subject-level processing, just add the subject
+            sub_ids.append(sub_id)
+
+    # Create DataFrame
+    if processing_level == 'session':
+        df = pd.DataFrame({'sub_id': sub_ids, 'ses_id': ses_ids})
+    else:
+        df = pd.DataFrame({'sub_id': sub_ids})
+
+    return df
 
 
 def validate_zipped_input_contents(
@@ -331,15 +414,16 @@ def validate_zipped_input_contents(
     dlapi.drop(path=temp_zipfile, dataset=dataset_abs_path)
 
 
-def validate_sub_ses_processing_inclusion_file(processing_inclusion_file, processing_level):
+def validate_sub_ses_processing_inclusion(processing_inclusion_file, processing_level):
     """
     Validate the subject inclusion file.
 
     Parameters
     ----------
-    processing_inclusion_file: str or None
+    processing_inclusion_file: str, None or pd.DataFrame
         Path to the CSV file that lists the subject (and sessions) to analyze;
         or `None` if that CLI flag was not specified.
+        or a pandas DataFrame if the inclusion list is provided inline
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
 
@@ -352,15 +436,18 @@ def validate_sub_ses_processing_inclusion_file(processing_inclusion_file, proces
     if processing_inclusion_file is None:
         return None
 
-    if not os.path.isfile(processing_inclusion_file):
+    if isinstance(processing_inclusion_file, pd.DataFrame):
+        initial_inclu_df = processing_inclusion_file
+    elif not os.path.isfile(processing_inclusion_file):
         raise FileNotFoundError(
             '`processing_inclusion_file` does not exist!\n'
             f'    - Please check: {processing_inclusion_file}'
         )
-    try:
-        initial_inclu_df = pd.read_csv(processing_inclusion_file)
-    except Exception as e:
-        raise Exception(f'Error reading `{processing_inclusion_file}`:\n{e}')
+    else:
+        try:
+            initial_inclu_df = pd.read_csv(processing_inclusion_file)
+        except Exception as e:
+            raise Exception(f'Error reading `{processing_inclusion_file}`:\n{e}')
 
     # Sanity check: there are expected column(s):
     if 'sub_id' not in initial_inclu_df.columns:
@@ -385,7 +472,9 @@ def validate_sub_ses_processing_inclusion_file(processing_inclusion_file, proces
                 "There are repeated combinations of 'sub_id' and 'ses_id' in "
                 f'`{processing_inclusion_file}`!'
             )
-
+    # Sort the initial included sub/ses list:
+    sorting_indices = ['sub_id'] if processing_level == 'subject' else ['sub_id', 'ses_id']
+    initial_inclu_df = initial_inclu_df.sort_values(by=sorting_indices).reset_index(drop=True)
     return initial_inclu_df
 
 

@@ -16,7 +16,9 @@ from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
-from babs.input_datasets import validate_unzipped_datasets
+from babs.input_datasets import (
+    validate_unzipped_datasets,
+)
 from babs.system import validate_queue
 from babs.utils import (
     calcu_runtime,
@@ -29,7 +31,6 @@ from babs.utils import (
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_last_line,
-    get_list_sub_ses,
     prepare_job_array_df,
     print_versions_from_yaml,
     read_job_status_csv,
@@ -48,6 +49,10 @@ class BABS:
 
     def __init__(self, project_root, processing_level, queue):
         """The BABS class is for babs projects of BIDS Apps.
+
+        The constructor only initializes the attributes.
+        The actual initialization (e.g., creating the RIA stores, finding
+        the subjects/sessions to analyze) is done in `babs_bootstrap()`.
 
         Parameters
         ----------
@@ -504,9 +509,11 @@ class BABS:
 
         # Determine the list of subjects to analyze: -----------------------------
         print('\nDetermining the list of subjects (and sessions) to analyze...')
-        _ = get_list_sub_ses(input_ds, container.config, self)
+        sub_ses_inclusion_df = input_ds.generate_sub_ses_inclusion_df(self.processing_level)
+        sub_ses_inclusion_df.to_csv(self.list_sub_path_abs, index=False)
         self.datalad_save(
-            path='code/*.csv', message='Record of inclusion/exclusion of participants'
+            path=self.list_sub_path_abs,
+            message='Record of inclusion/exclusion of participants/sessions',
         )
 
         # Generate the template of job submission: --------------------------------
