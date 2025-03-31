@@ -10,6 +10,23 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Define the input datasets
+input_datasets:
+    BIDS:
+        required_files:
+            - "dwi/*_dwi.nii*"
+            - "anat/*_T1w.nii*"
+        is_zipped: false
+        origin_url: "/path/to/BIDS"
+        path_in_babs: inputs/data/BIDS
+    FreeSurfer:
+        required_files:
+            - "*freesuefer*.zip"
+        is_zipped: true
+        origin_url: "/path/to/FreeSurfer"
+        unzipped_path_containing_subject_dirs: "freesurfer"
+        path_in_babs: inputs/data/freesurfer
+
 # Arguments that are passed directly to singularity/apptainer:
 singularity_args:
     - --containall
@@ -59,10 +76,3 @@ script_preamble: |
 
 # Where to run the jobs:
 job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
-
-# Below is to filter out subjects (or sessions). Only those with required files will be kept.
-required_files:
-    $INPUT_DATASET_#1:
-        - "dwi/*_dwi.nii*"
-        - "anat/*_T1w.nii*"
-# `alert_log_messages`: Here we did not provide examples for section `alert_log_messages`. However feel free to add it!

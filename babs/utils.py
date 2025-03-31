@@ -1334,3 +1334,67 @@ class ToDict(Action):
 
             d[name] = str(loc)
         setattr(namespace, self.dest, d)
+
+
+def validate_sub_ses_processing_inclusion(processing_inclusion_file, processing_level):
+    """
+    Perform a basic sanity check on a subject/session inclusion file.
+
+    Parameters
+    ----------
+    processing_inclusion_file: str, None or pd.DataFrame
+        Path to the CSV file that lists the subject (and sessions) to analyze;
+        or `None` if that CLI flag was not specified.
+        or a pandas DataFrame if the inclusion list is provided inline
+    processing_level : {'subject', 'session'}
+        whether processing is done on a subject-wise or session-wise basis
+
+    Returns
+    -------
+    initial_inclu_df: pandas DataFrame or None
+        pandas DataFrame of the subject inclusion file, or `None` if
+        `processing_inclusion_file` is`None`
+    """
+    if processing_inclusion_file is None:
+        return None
+
+    if isinstance(processing_inclusion_file, pd.DataFrame):
+        initial_inclu_df = processing_inclusion_file
+    elif not os.path.isfile(processing_inclusion_file):
+        raise FileNotFoundError(
+            '`processing_inclusion_file` does not exist!\n'
+            f'    - Please check: {processing_inclusion_file}'
+        )
+    else:
+        try:
+            initial_inclu_df = pd.read_csv(processing_inclusion_file)
+        except Exception as e:
+            raise Exception(f'Error reading `{processing_inclusion_file}`:\n{e}')
+
+    # Sanity check: there are expected column(s):
+    if 'sub_id' not in initial_inclu_df.columns:
+        raise Exception(f"There is no 'sub_id' column in `{processing_inclusion_file}`!")
+
+    if processing_level == 'session' and 'ses_id' not in initial_inclu_df.columns:
+        raise Exception(
+            "There is no 'ses_id' column in `processing_inclusion_file`! "
+            'It is expected as user requested to process data on a session-wise basis.'
+        )
+
+    # Sanity check: no repeated sub (or sessions):
+    if processing_level == 'subject':
+        # there should only be one occurrence per sub:
+        if initial_inclu_df['sub_id'].duplicated().any():
+            raise Exception("There are repeated 'sub_id' in `processing_inclusion_file`!")
+
+    elif processing_level == 'session':
+        # there should not be repeated combinations of `sub_id` and `ses_id`:
+        if initial_inclu_df.duplicated(subset=['sub_id', 'ses_id']).any():
+            raise Exception(
+                "There are repeated combinations of 'sub_id' and 'ses_id' in "
+                f'`{processing_inclusion_file}`!'
+            )
+    # Sort the initial included sub/ses list:
+    sorting_indices = ['sub_id'] if processing_level == 'subject' else ['sub_id', 'ses_id']
+    initial_inclu_df = initial_inclu_df.sort_values(by=sorting_indices).reset_index(drop=True)
+    return initial_inclu_df

@@ -1,5 +1,12 @@
 # Arguments in `singularity run`:
 
+# Define the input datasets
+input_datasets:
+    BIDS:
+        is_zipped: false
+        origin_url: "/path/to/BIDS"
+        path_in_babs: inputs/data/BIDS
+
 imported_files:
     - original_path: "/imported_file.txt"
       analysis_path: "code/imported_file.txt"
