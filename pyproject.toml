@@ -71,14 +71,12 @@ allow-direct-references = true
 
 [tool.hatch.build.targets.sdist]
 exclude = [".git_archival.txt"]       # No longer needed in sdist
-include = ["babs/templates/*.jinja2"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["babs"]
 exclude = [
     "babs/tests/data", # Large test data directory
 ]
-include = ["babs/templates/*.jinja2"]
 
 ##  The following two sections configure setuptools_scm in the hatch way
 
