@@ -1387,7 +1387,7 @@ class BABS:
 
                         else:  # did not find in `df_all_job_status`, i.e., job queue
                             # probably error
-                            df_job_updated.at[i_task, 'is_failed'] = True
+                            df_job_updated.at[i_task, 'is_failed'] = False
                             # reset:
                             df_job_updated.at[i_task, 'job_state_category'] = np.nan
                             df_job_updated.at[i_task, 'job_state_code'] = np.nan
