@@ -12,15 +12,15 @@ import yaml
 sys.path.append('..')
 from get_data import (  # noqa
     INFO_2ND_INPUT_DATA,
-    LIST_WHICH_BIDSAPP,
+    SUPPORTED_BIDS_APPS,
     TEMPLATEFLOW_HOME,
     TOYBIDSAPP_VERSION_DASH,
     __location__,
     container_ds_path,
     get_container_config_yaml_filename,
     get_input_data,
-    if_circleci,
-    where_now,
+    in_circleci,
+    exec_environment,
 )
 
 from babs.cli import _enter_check_setup, _enter_init  # noqa
@@ -30,11 +30,11 @@ from babs.utils import read_yaml, write_yaml  # noqa
 @pytest.mark.order(index=1)
 @pytest.mark.parametrize(
     (
-        'which_bidsapp',
-        'which_input',
+        'bids_app',
+        'input_data_name',
         'processing_level',
-        'if_input_local',
-        'if_two_input',
+        'input_is_local',
+        'two_inputs',
     ),
     #  test toybidsapp: BIDS/zipped x single/session:
     #    the input data will also be remote by default:
@@ -56,64 +56,66 @@ from babs.utils import read_yaml, write_yaml  # noqa
     ],
 )
 def test_babs_init(
-    which_bidsapp,
-    which_input,
+    bids_app,
+    input_data_name,
     processing_level,
-    if_input_local,
-    if_two_input,
+    input_is_local,
+    two_inputs,
     tmp_path,
     tmp_path_factory,
     container_ds_path,
-    if_circleci,
+    in_circleci,
 ):
     """
     This is to test `babs init` in different cases.
 
     Parameters
     ----------
-    which_bidsapp: str
+    bids_app: str
         The name of a BIDS App. However here we only use `toybidsapp` to test, even though you
         specified e.g., fmriprep; we'll make sure the BIDS App to be tested is reflected in
         `container_name` which BABS cares.
-        It must be one of the string in `LIST_WHICH_BIDSAPP`.
-    which_input: str
+        It must be one of the string in `SUPPORTED_BIDS_APPS`.
+    input_data_name: str
         which input dataset. Options see keys in `origin_input_dataset.yaml`
     processing_level : {'subject', 'session'}
         whether processing is done on a subject-wise or session-wise basis
-    if_input_local: bool
+    input_is_local: bool
         whether the input dataset is a local copy (True), or it's remote (False)
-    if_two_input: bool
+    two_inputs: bool
         whether to use two input datasets
     tmp_path: fixture from pytest
     tmp_path_factory: fixture from pytest
     container_ds_path: fixture; str
         Path to the container datalad dataset
-    if_circleci: fixture; bool
+    in_circleci: fixture; bool
         Whether currently in CircleCI
 
     TODO: add `queue` and to test out Slurm version!
     """
     # Sanity checks:
-    assert which_bidsapp in LIST_WHICH_BIDSAPP
+    assert bids_app in SUPPORTED_BIDS_APPS
 
     # Get the path to input dataset:
     path_in = get_input_data(
-        which_input,
+        input_data_name,
         processing_level,
-        if_input_local,
+        input_is_local,
         tmp_path_factory,
     )
-    input_ds_cli = {which_input: path_in}
-    if if_two_input:
+    input_ds_cli = {input_data_name: path_in}
+    if two_inputs:
         # get another input dataset: qsiprep derivatives
-        assert INFO_2ND_INPUT_DATA['which_input'] != which_input  # avoid repeated input ds name
+        assert (
+            INFO_2ND_INPUT_DATA['input_data_name'] != input_data_name
+        )  # avoid repeated input ds name
         path_in_2nd = get_input_data(
-            INFO_2ND_INPUT_DATA['which_input'],
+            INFO_2ND_INPUT_DATA['input_data_name'],
             processing_level,  # should be consistent with the 1st dataset
-            INFO_2ND_INPUT_DATA['if_input_local'],
+            INFO_2ND_INPUT_DATA['input_is_local'],
             tmp_path_factory,
         )
-        input_ds_cli[INFO_2ND_INPUT_DATA['which_input']] = path_in_2nd
+        input_ds_cli[INFO_2ND_INPUT_DATA['input_data_name']] = path_in_2nd
 
     # Container dataset - has been set up by fixture `prep_container_ds_toybidsapp()`
     assert op.exists(container_ds_path)
@@ -122,7 +124,7 @@ def test_babs_init(
     # Preparation of freesurfer: for fmriprep and qsiprep:
     # check if `--fs-license-file` is included in YAML file:
     container_config_yaml_filename = get_container_config_yaml_filename(
-        which_bidsapp, which_input, if_two_input, queue='slurm'
+        bids_app, input_data_name, two_inputs, queue='slurm'
     )
     container_config = op.join(
         op.dirname(__location__), 'notebooks', container_config_yaml_filename
@@ -165,7 +167,7 @@ def test_babs_init(
     project_parent = tmp_path.absolute().as_posix()  # turn into a string
     project_name = 'my_babs_project'
     project_root = Path(op.join(project_parent, project_name))
-    container_name = which_bidsapp + '-' + TOYBIDSAPP_VERSION_DASH
+    container_name = bids_app + '-' + TOYBIDSAPP_VERSION_DASH
 
     babs_init_opts = argparse.Namespace(
         project_root=project_root,
@@ -176,7 +178,7 @@ def test_babs_init(
         container_config=container_config,
         processing_level=processing_level,
         queue='slurm',
-        keep_if_failed=True,
+        keep_if_failed=False,
     )
 
     # run `babs init`:
@@ -206,15 +208,15 @@ def test_babs_init(
     lines_bash_container_zip = file_bash_container_zip.readlines()
     file_bash_container_zip.close()
     # check:
-    # if_bind_templateflow = False  # `singularity run -B` to bind a path to container
-    if_bind_freesurfer = False
+    # needs_binded_templateflow = False  # `singularity run -B` to bind a path to container
+    freesurfer_bound_in_cmd = False
     str_bind_freesurfer = f'-B "{str_fs_license_file}":"/SGLR/FREESURFER_HOME/license.txt"'
     print(str_bind_freesurfer)  # FOR DEBUGGING
 
     # if_set_singu_templateflow = False  # `singularity run --env` to set env var within container
-    if_generate_bidsfilterfile = False
-    if_flag_bidsfilterfile = False
-    if_flag_fs_license = False
+    bids_filterfile_added = False
+    bids_filterfile_in_bids_app_cmd = False
+    fs_license_file_in_bids_app_cmd = False
     flag_fs_license = '--fs-license-file /SGLR/FREESURFER_HOME/license.txt'
     for line in lines_bash_container_zip:
         # if '--env TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME' in line:
@@ -222,18 +224,18 @@ def test_babs_init(
         # if all(ele in line for ele in ['-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME']):
         #     # previously, `-B /test/templateflow_home:/SGLR/TEMPLATEFLOW_HOME \`
         #     # but now change to new bind, `-B ${TEMPLATEFLOW_HOME}:/SGLR/TEMPLATEFLOW_HOME \`
-        #     if_bind_templateflow = True
+        #     needs_binded_templateflow = True
         if str_bind_freesurfer in line:
-            if_bind_freesurfer = True
+            freesurfer_bound_in_cmd = True
         if 'filterfile="${PWD}/${sesid}_filter.json"' in line:
-            if_generate_bidsfilterfile = True
+            bids_filterfile_added = True
         if '--bids-filter-file "${filterfile}"' in line:
-            if_flag_bidsfilterfile = True
+            bids_filterfile_in_bids_app_cmd = True
         if flag_fs_license in line:
-            if_flag_fs_license = True
+            fs_license_file_in_bids_app_cmd = True
     # assert they are found:
     # 1) TemplateFlow: should be found in all cases:
-    # assert if_bind_templateflow, (
+    # assert needs_binded_templateflow, (
     #     "Env variable 'TEMPLATEFLOW_HOME' has been set,"
     #     " but Templateflow home path did not get bound in 'singularity run'"
     #     " with `-B` in '" + container_name + "_zip.sh'."
@@ -244,10 +246,10 @@ def test_babs_init(
     #     " with `--env` in '" + container_name + "_zip.sh'."
     # )
     # 2) BIDS filter file: only when qsiprep/fmriprep & session:
-    if (which_bidsapp in ['qsiprep', 'fmriprep']) & (processing_level == 'session'):
-        assert if_generate_bidsfilterfile, (
+    if (bids_app in ['qsiprep', 'fmriprep']) & (processing_level == 'session'):
+        assert bids_filterfile_added, (
             "This is BIDS App '"
-            + which_bidsapp
+            + bids_app
             + "' and "
             + processing_level
             + ','
@@ -256,9 +258,9 @@ def test_babs_init(
             + container_name
             + "_zip.sh'."
         )
-        assert if_flag_bidsfilterfile, (
+        assert bids_filterfile_in_bids_app_cmd, (
             "This is BIDS App '"
-            + which_bidsapp
+            + bids_app
             + "' and "
             + processing_level
             + ','
@@ -268,9 +270,9 @@ def test_babs_init(
             + "_zip.sh'."
         )
     else:
-        assert (not if_generate_bidsfilterfile) & (not if_flag_bidsfilterfile), (
+        assert (not bids_filterfile_added) & (not bids_filterfile_in_bids_app_cmd), (
             "This is BIDS App '"
-            + which_bidsapp
+            + bids_app
             + "' and "
             + processing_level
             + ','
@@ -281,12 +283,12 @@ def test_babs_init(
         )
     # 3) freesurfer license:
     if flag_requested_fs_license:
-        assert if_bind_freesurfer, (
+        assert freesurfer_bound_in_cmd, (
             "`--fs-license-file` was requested in container's YAML file,"
             " but FreeSurfer license path did not get bound in 'singularity run'"
             " with `-B` in '" + container_name + "_zip.sh'."
         )
-        assert if_flag_fs_license, (
+        assert fs_license_file_in_bids_app_cmd, (
             "`--fs-license-file` was requested in container's YAML file,"
             ' but flag `' + flag_fs_license + '` was not found in the `singularity run`'
             " in '" + container_name + "_zip.sh'."
@@ -295,23 +297,19 @@ def test_babs_init(
 
     # Check `sub_ses_final_inclu.csv`:
     #   if qsiprep + session:  one session without dMRI should not be included
-    if (which_bidsapp == 'qsiprep') & (processing_level == 'session'):
+    if (bids_app == 'qsiprep') & (processing_level == 'session'):
         # load `sub_ses_final_inclu.csv`:
         fn_list_final_inclu = op.join(project_root, 'analysis/code', 'sub_ses_final_inclu.csv')
         file_list_final_inclu = open(fn_list_final_inclu)
         lines_list_final_inclu = file_list_final_inclu.readlines()
         file_list_final_inclu.close()
         for line in lines_list_final_inclu:
-            if_inclu_missing_session = False
+            missing_session_erroneously_included = False
             if 'sub-02,ses-A' in line:
-                if_inclu_missing_session = True
-        assert not if_inclu_missing_session, (
+                missing_session_erroneously_included = True
+        assert not missing_session_erroneously_included, (
             "'sub-02,ses-A' without dMRI was included in the BABS project of "
-            + which_bidsapp
+            + bids_app
             + ', '
             + processing_level
         )
-
-    # Note: No need to manually remove temporary dirs; those are created by pytest's fixtures
-    #   and will be automatically removed after 3 runs of pytests. ref below:
-    #   https://docs.pytest.org/en/7.1.x/how-to/tmp_path.html#the-default-base-temporary-directory

@@ -1,7 +1,6 @@
 """Utils and helper functions"""
 
 import copy
-import glob
 import os
 import os.path as op
 import re
@@ -16,7 +15,6 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
-from qstat import qstat  # https://github.com/relleums/qstat
 
 
 def get_datalad_version():
@@ -25,56 +23,6 @@ def get_datalad_version():
 
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
-
-
-def validate_unzipped_datasets(input_ds, processing_level):
-    """Check if each of the unzipped input datasets is valid.
-
-    Here we only check the "unzipped" datasets;
-    the "zipped" dataset will be checked in `generate_cmd_unzip_inputds()`.
-
-    * If subject-wise processing is enabled, there should be "sub" folders.
-      "ses" folders are optional.
-    * If session-wise processing is enabled, there should be both "sub" and "ses" folders.
-
-    Parameters
-    ----------
-    input_ds : :obj:`babs.dataset.InputDatasets`
-        info on input dataset(s)
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-    """
-
-    if processing_level not in ['session', 'subject']:
-        raise ValueError('invalid `processing_level`!')
-
-    if not all(input_ds.df['is_zipped']):  # there is at least one dataset is unzipped
-        print('Performing sanity check for any unzipped input dataset...')
-
-    for i_ds in range(input_ds.num_ds):
-        if not input_ds.df.loc[i_ds, 'is_zipped']:  # unzipped ds:
-            input_ds_path = input_ds.df.loc[i_ds, 'path_now_abs']
-            # Check if there is sub-*:
-            subject_dirs = sorted(glob.glob(os.path.join(input_ds_path, 'sub-*')))
-
-            # only get the sub's foldername, if it's a directory:
-            subjects = [op.basename(temp) for temp in subject_dirs if op.isdir(temp)]
-            if len(subjects) == 0:  # no folders with `sub-*`:
-                raise FileNotFoundError(
-                    f'There is no `sub-*` folder in input dataset #{i_ds + 1} '
-                    f'"{input_ds.df.loc[i_ds, "name"]}"!'
-                )
-
-            # For session: also check if there is session in each sub-*:
-            if processing_level == 'session':
-                for subject in subjects:  # every sub- folder should contain a session folder
-                    session_dirs = sorted(glob.glob(os.path.join(input_ds_path, subject, 'ses-*')))
-                    sessions = [op.basename(temp) for temp in session_dirs if op.isdir(temp)]
-                    if len(sessions) == 0:
-                        raise FileNotFoundError(
-                            f'In input dataset #{i_ds + 1} "{input_ds.df.loc[i_ds, "name"]}", '
-                            f'there is no `ses-*` folder in subject folder "{subject}"!'
-                        )
 
 
 def validate_processing_level(processing_level):
@@ -89,7 +37,7 @@ def validate_processing_level(processing_level):
     return processing_level
 
 
-def read_yaml(fn, if_filelock=False):
+def read_yaml(fn, use_filelock=False):
     """
     This is to read yaml file.
 
@@ -97,7 +45,7 @@ def read_yaml(fn, if_filelock=False):
     ---------------
     fn: str
         path to the yaml file
-    if_filelock: bool
+    use_filelock: bool
         whether to use filelock
 
     Returns:
@@ -106,7 +54,7 @@ def read_yaml(fn, if_filelock=False):
         content of the yaml file
     """
 
-    if if_filelock:
+    if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
 
@@ -129,7 +77,7 @@ def read_yaml(fn, if_filelock=False):
     return config
 
 
-def write_yaml(config, fn, if_filelock=False):
+def write_yaml(config, fn, use_filelock=False):
     """
     This is to write contents into yaml file.
 
@@ -139,10 +87,31 @@ def write_yaml(config, fn, if_filelock=False):
         the content to write into yaml file
     fn: str
         path to the yaml file
-    if_filelock: bool
+    use_filelock: bool
         whether to use filelock
     """
-    if if_filelock:
+
+    # Convert numpy types to native Python types
+    def convert_numpy(obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return obj
+
+    # Recursively convert numpy types in the config
+    def convert_dict(d):
+        if isinstance(d, dict):
+            return {k: convert_dict(v) for k, v in d.items()}
+        elif isinstance(d, list):
+            return [convert_dict(v) for v in d]
+        return convert_numpy(d)
+
+    config = convert_dict(config)
+
+    if use_filelock:
         lock_path = fn + '.lock'
         lock = FileLock(lock_path)
 
@@ -285,422 +254,6 @@ def app_output_settings_from_config(config):
         bids_app_output_dir += '/' + next(iter(config['zip_foldernames'].keys()))
 
     return config['zip_foldernames'], bids_app_output_dir
-
-
-def get_list_sub_ses(input_ds, config, babs):
-    """
-    This is to get the list of subjects (and sessions) to analyze.
-
-    Parameters
-    ----------
-    input_ds: class `InputDatasets`
-        information about input dataset(s)
-    config: config from class `Container`
-        container's yaml file that's read into python
-    babs: class `BABS`
-        information about the BABS project.
-
-    Returns
-    -------
-    subject project: a list of subjects
-    session project: a dict of subjects and their sessions
-    """
-
-    # Get the initial list of subjects (and sessions): -------------------------------
-    #   This depends on flag `list_sub_file`
-    #       If it is None: get the initial list from input dataset
-    #       If it's a csv file, use it as initial list
-    if input_ds.initial_inclu_df is not None:  # there is initial including list
-        # no need to sort (as already done when validating)
-        print(
-            'Using the subjects (sessions) list provided in `list_sub_file`'
-            ' as the initial inclusion list.'
-        )
-        if babs.processing_level == 'subject':
-            subs = list(input_ds.initial_inclu_df['sub_id'])
-            # ^^ turn into a list
-        elif babs.processing_level == 'session':
-            dict_sub_ses = (
-                input_ds.initial_inclu_df.groupby('sub_id')['ses_id'].apply(list).to_dict()
-            )
-            # ^^ group based on 'sub_id', apply list to every group,
-            #   then turn into a dict.
-            #   above won't change `input_ds.initial_inclu_df`
-
-    else:  # no initial list:
-        # TODO: ROADMAP: for each input dataset, get a list, then get the overlapped list
-        # for now, only check the first dataset
-        print(
-            'Did not provide `list_sub_file`.'
-            ' Will look into the first input dataset'
-            ' to get the initial inclusion list.'
-        )
-        i_ds = 0
-        if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
-            full_paths = sorted(glob.glob(input_ds.df['path_now_abs'][i_ds] + '/sub-*'))
-            # no need to check if there is `sub-*` in this dataset
-            #   have been checked in `validate_unzipped_datasets()`
-            # only get the sub's foldername, if it's a directory:
-            subs = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
-        else:  # zipped:
-            # full paths to the zip files:
-            if babs.processing_level == 'subject':
-                full_paths = glob.glob(
-                    input_ds.df['path_now_abs'][i_ds]
-                    + '/sub-*_'
-                    + input_ds.df['name'][i_ds]
-                    + '*.zip'
-                )
-            elif babs.processing_level == 'session':
-                full_paths = glob.glob(
-                    input_ds.df['path_now_abs'][i_ds]
-                    + '/sub-*_ses-*'
-                    + input_ds.df['name'][i_ds]
-                    + '*.zip'
-                )
-                # ^^ above pattern makes sure only gets subs who have more than one ses
-            full_paths = sorted(full_paths)
-            zipfilenames = [op.basename(temp) for temp in full_paths]
-            subs = [temp.split('_', 3)[0] for temp in zipfilenames]
-            # ^^ str.split("delimiter", <maxsplit>)[i-th_field]
-            # <maxsplit> means max number of "cuts"; # of total fields = <maxsplit> + 1
-            subs = sorted(set(subs))  # `list(set())`: acts like "unique"
-
-        # if it's session, get list of sessions for each subject:
-        if babs.processing_level == 'session':
-            # a nested list of sub and ses:
-            #   first level is sub; second level is sess of a sub
-            list_sub_ses = [None] * len(subs)  # predefine a list
-            if input_ds.df['is_zipped'][i_ds] is False:  # not zipped:
-                for i_sub, sub in enumerate(subs):
-                    # get the list of sess:
-                    full_paths = glob.glob(
-                        op.join(input_ds.df['path_now_abs'][i_ds], sub, 'ses-*')
-                    )
-                    full_paths = sorted(full_paths)
-                    sess = [op.basename(temp) for temp in full_paths if op.isdir(temp)]
-                    # no need to validate again that session exists
-                    # -  have been done in `validate_unzipped_datasets()`
-
-                    list_sub_ses[i_sub] = sess
-
-            else:  # zipped:
-                for i_sub, sub in enumerate(subs):
-                    # get the list of sess:
-                    full_paths = glob.glob(
-                        op.join(
-                            input_ds.df['path_now_abs'][i_ds],
-                            sub + '_ses-*_' + input_ds.df['name'][i_ds] + '*.zip',
-                        )
-                    )
-                    full_paths = sorted(full_paths)
-                    zipfilenames = [op.basename(temp) for temp in full_paths]
-                    sess = [temp.split('_', 3)[1] for temp in zipfilenames]
-                    # ^^ field #1, i.e., 2nd field which is `ses-*`
-                    # no need to validate if sess exists; as it's done when getting `subs`
-
-                    list_sub_ses[i_sub] = sess
-
-            # then turn `subs` and `list_sub_ses` into a dict:
-            dict_sub_ses = dict(zip(subs, list_sub_ses, strict=False))
-
-    # Remove the subjects (or sessions) which does not have the required files:
-    #   ------------------------------------------------------------------------
-    # remove existing csv files first:
-    temp_files = glob.glob(op.join(babs.analysis_path, 'code/sub_*missing_required_file.csv'))
-    # ^^ subject: `sub_missing*`; session: `sub_ses_missing*`
-    if len(temp_files) > 0:
-        for temp_file in temp_files:
-            os.remove(temp_file)
-    temp_files = []  # clear
-    # for session:
-    fn_csv_sub_delete = op.join(babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv')
-    if op.exists(fn_csv_sub_delete):
-        os.remove(fn_csv_sub_delete)
-
-    # read `required_files` section from yaml file, if there is:
-    if 'required_files' in config:
-        print(
-            'Filtering out subjects (and sessions) based on `required files`'
-            ' designated in `container_config`...'
-        )
-
-        # sanity check on the target input dataset(s):
-        if len(config['required_files']) > input_ds.num_ds:
-            raise Exception(
-                'Number of input datasets designated in `required_files`'
-                ' in `container_config`'
-                ' is more than actual number of input datasets!'
-            )
-        for i in range(0, len(config['required_files'])):
-            i_ds_str = list(config['required_files'].keys())[i]  # $INPUT_DATASET_#?
-            i_ds = int(i_ds_str.split('#', 1)[1]) - 1
-            # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
-            if (i_ds + 1) > input_ds.num_ds:  # if '?' > actual # of input ds:
-                raise Exception(
-                    "'"
-                    + i_ds_str
-                    + "' does not exist!"
-                    + ' There is only '
-                    + str(input_ds.num_ds)
-                    + ' input dataset(s)!'
-                )
-
-        # for the designated ds, iterate all subjects (or sessions),
-        #   remove if does not have the required files, and save to a list -> a csv
-        if babs.processing_level == 'subject':
-            subs_missing = []
-            which_dataset_missing = []
-            which_file_missing = []
-            # iter across designated input ds in `required_files`:
-            for i in range(0, len(config['required_files'])):
-                i_ds_str = list(config['required_files'].keys())[i]  # $INPUT_DATASET_#?
-                i_ds = int(i_ds_str.split('#', 1)[1]) - 1
-                # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
-                if input_ds.df['is_zipped'][i_ds] is True:
-                    print(
-                        i_ds_str
-                        + ": '"
-                        + input_ds.df['name'][i_ds]
-                        + "'"
-                        + ' is a zipped input dataset; Currently BABS does not support'
-                        + ' checking if there is missing file in a zipped dataset.'
-                        + ' Skip checking this input dataset...'
-                    )
-                    continue  # skip
-                list_required_files = config['required_files'][i_ds_str]
-
-                # iter across subs:
-                updated_subs = copy.copy(subs)  # not to reference `subs`, but copy!
-                # ^^ only update this list, not `subs` (as it's used in for loop)
-                for sub in subs:
-                    # iter of list of required files:
-                    for required_file in list_required_files:
-                        temp_files = glob.glob(
-                            op.join(input_ds.df['path_now_abs'][i_ds], sub, required_file)
-                        )
-                        temp_files_2 = glob.glob(
-                            op.join(
-                                input_ds.df['path_now_abs'][i_ds],
-                                sub,
-                                '**',  # consider potential `ses-*` folder
-                                required_file,
-                            )
-                        )
-                        #  ^^ "**" means checking "all folders" in a subject
-                        #  ^^ "**" does not work if there is no `ses-*` folder,
-                        #       so also needs to check `temp_files`
-                        if (len(temp_files) == 0) & (len(temp_files_2) == 0):  # didn't find any:
-                            # remove from the `subs` list:
-                            #   it shouldn't be removed by earlier datasets,
-                            #   as we're iter across updated list `sub`
-                            updated_subs.remove(sub)
-                            # add to missing list:
-                            subs_missing.append(sub)
-                            which_dataset_missing.append(input_ds.df['name'][i_ds])
-                            which_file_missing.append(required_file)
-                            # no need to check other required files:
-                            break
-                # after getting out of for loops of `subs`, update `subs`:
-                subs = copy.copy(updated_subs)
-
-            # TODO: when having two unzipped input datasets, test if above works as expected!
-            #   esp: removing missing subs (esp missing lists in two input ds are different)
-            #   for both 1) subject; 2) session data!
-
-            # save `subs_missing` into a csv file:
-            if len(subs_missing) > 0:  # there is missing one
-                df_missing = pd.DataFrame(
-                    list(
-                        zip(subs_missing, which_dataset_missing, which_file_missing, strict=False)
-                    ),
-                    columns=['sub_id', 'input_dataset_name', 'missing_required_file'],
-                )
-                fn_csv_missing = op.join(babs.analysis_path, 'code/sub_missing_required_file.csv')
-                df_missing.to_csv(fn_csv_missing, index=False)
-                print(
-                    'There are '
-                    + str(len(subs_missing))
-                    + ' subject(s)'
-                    + " who don't have required files."
-                    + ' Please refer to this CSV file for full list and information: '
-                    + fn_csv_missing
-                )
-                print("BABS will not run the BIDS App on these subjects' data.")
-                print(
-                    'Note for this file: For each reported subject, only'
-                    ' one missing required file'
-                    ' in one input dataset is recorded,'
-                    ' even if there are multiple.'
-                )
-
-            else:
-                print('All subjects have required files.')
-
-        elif babs.processing_level == 'session':
-            subs_missing = []  # elements can repeat if more than one ses in a sub has missing file
-            sess_missing = []
-            which_dataset_missing = []
-            which_file_missing = []
-            # iter across designated input ds in `required_files`:
-            for i in range(0, len(config['required_files'])):
-                i_ds_str = list(config['required_files'].keys())[i]  # $INPUT_DATASET_#?
-                i_ds = int(i_ds_str.split('#', 1)[1]) - 1
-                # ^^ split the str, get the 2nd field, i.e., '?'; then `-1` to start with 0
-                if input_ds.df['is_zipped'][i_ds] is True:
-                    print(
-                        i_ds_str
-                        + ": '"
-                        + input_ds.df['name'][i_ds]
-                        + "'"
-                        + ' is a zipped input dataset; Currently BABS does not support'
-                        + ' checking if there is missing file in a zipped dataset.'
-                        + ' Skip checking this input dataset...'
-                    )
-                    continue  # skip
-                list_required_files = config['required_files'][i_ds_str]
-
-                # iter across subs: (not to update subs for now)
-                for sub in list(dict_sub_ses.keys()):
-                    # iter across sess:
-                    # make sure there is at least one ses in this sub to loop:
-                    if len(dict_sub_ses[sub]) > 0:  # deal with len=0 later
-                        updated_sess = copy.deepcopy(dict_sub_ses[sub])
-                        for ses in dict_sub_ses[sub]:
-                            # iter across list of required files:
-                            for required_file in list_required_files:
-                                temp_files = glob.glob(
-                                    op.join(
-                                        input_ds.df['path_now_abs'][i_ds],
-                                        sub,
-                                        ses,
-                                        required_file,
-                                    )
-                                )
-                                if len(temp_files) == 0:  # did not find any:
-                                    # remove this ses from dict:
-                                    updated_sess.remove(ses)
-                                    # add to missing list:
-                                    subs_missing.append(sub)
-                                    sess_missing.append(ses)
-                                    which_dataset_missing.append(input_ds.df['name'][i_ds])
-                                    which_file_missing.append(required_file)
-                                    # no need to check other required files:
-                                    break
-
-                        # after getting out of loops of `sess`, update `sess`:
-                        dict_sub_ses[sub] = copy.deepcopy(updated_sess)
-
-            # after getting out of loops of `subs` and list of required files,
-            #   go thru the list of subs, and see if the list of ses is empty:
-            subs_delete = []
-            subs_forloop = copy.deepcopy(list(dict_sub_ses.keys()))
-            for sub in subs_forloop:
-                # if the list of ses is empty:
-                if len(dict_sub_ses[sub]) == 0:
-                    # remove this key from the dict:
-                    dict_sub_ses.pop(sub)
-                    # add to missing sub list:
-                    subs_delete.append(sub)
-
-            # save missing ones into a csv file:
-            if len(subs_missing) > 0:  # there is missing one:
-                df_missing = pd.DataFrame(
-                    list(
-                        zip(
-                            subs_missing,
-                            sess_missing,
-                            which_dataset_missing,
-                            which_file_missing,
-                            strict=False,
-                        )
-                    ),
-                    columns=[
-                        'sub_id',
-                        'ses_id',
-                        'input_dataset_name',
-                        'missing_required_file',
-                    ],
-                )
-                fn_csv_missing = op.join(
-                    babs.analysis_path, 'code/sub_ses_missing_required_file.csv'
-                )
-                df_missing.to_csv(fn_csv_missing, index=False)
-                print(
-                    'There are '
-                    + str(len(sess_missing))
-                    + ' session(s)'
-                    + " which don't have required files."
-                    + ' Please refer to this CSV file for full list and information: '
-                    + fn_csv_missing
-                )
-                print("BABS will not run the BIDS App on these sessions' data.")
-                print(
-                    'Note for this file: For each reported session, only'
-                    ' one missing required file'
-                    ' in one input dataset is recorded,'
-                    ' even if there are multiple.'
-                )
-            else:
-                print('All sessions from all subjects have required files.')
-            # save deleted subjects into a list:
-            if len(subs_delete) > 0:
-                df_sub_delete = pd.DataFrame(
-                    list(zip(subs_delete, strict=False)), columns=['sub_id']
-                )
-                fn_csv_sub_delete = op.join(
-                    babs.analysis_path, 'code/sub_missing_any_ses_required_file.csv'
-                )
-                df_sub_delete.to_csv(fn_csv_sub_delete, index=False)
-                print(
-                    'Regarding subjects, '
-                    + str(len(subs_delete))
-                    + ' subject(s)'
-                    + " don't have any session that includes required files."
-                    + ' Please refer to this CSV file for the full list: '
-                    + fn_csv_sub_delete
-                )
-
-    else:
-        print(
-            'Did not provide `required files` in `container_config`.'
-            ' Not to filter subjects (or sessions)...'
-        )
-
-    # Save the final list of sub/ses in a CSV file:
-    if babs.processing_level == 'subject':
-        fn_csv_final = op.join(
-            babs.analysis_path, babs.list_sub_path_rel
-        )  # "code/sub_final_inclu.csv"
-        df_final = pd.DataFrame(list(zip(subs, strict=False)), columns=['sub_id'])
-        df_final.to_csv(fn_csv_final, index=False)
-        print(
-            'The final list of included subjects has been saved to this CSV file: ' + fn_csv_final
-        )
-    elif babs.processing_level == 'session':
-        fn_csv_final = op.join(
-            babs.analysis_path, babs.list_sub_path_rel
-        )  # "code/sub_ses_final_inclu.csv"
-        subs_final = []
-        sess_final = []
-        for sub in list(dict_sub_ses.keys()):
-            for ses in dict_sub_ses[sub]:
-                subs_final.append(sub)
-                sess_final.append(ses)
-        df_final = pd.DataFrame(
-            list(zip(subs_final, sess_final, strict=False)), columns=['sub_id', 'ses_id']
-        )
-        df_final.to_csv(fn_csv_final, index=False)
-        print(
-            'The final list of included subjects and sessions has been saved to this CSV file: '
-            + fn_csv_final
-        )
-
-    # Return: -------------------------------------------------------
-    if babs.processing_level == 'subject':
-        return subs
-    elif babs.processing_level == 'session':
-        return dict_sub_ses
 
 
 def submit_array(analysis_path, processing_level, queue, maxarray, flag_print_message=True):
@@ -1241,35 +794,9 @@ def request_all_job_status(queue):
         (i.e., Columns: [], Index: [])
     """
     if queue == 'sge':
-        return _request_all_job_status_sge()
+        raise NotImplementedError('SGE is not supported anymore.')
     elif queue == 'slurm':
         return _request_all_job_status_slurm()
-
-
-def _request_all_job_status_sge():
-    """
-    This is to get all jobs' status for SGE
-    using package [`qstat`](https://github.com/relleums/qstat)
-    """
-    queue_info, job_info = qstat()
-    # ^^ queue_info: dict of jobs that are running
-    # ^^ job_info: dict of jobs that are pending
-
-    # turn all jobs into a dataframe:
-    df = pd.DataFrame(queue_info + job_info)
-
-    # check if there is no job in the queue:
-    if (not queue_info) & (not job_info):  # both are `[]`
-        pass  # don't set the index
-    else:
-        df = df.set_index('JB_job_number')  # set a column as index
-        # index `JB_job_number`: job ID (data type: str)
-        # column `@state`: 'running' or 'pending'
-        # column `state`: 'r', 'qw', etc
-        # column `JAT_start_time`: start time of running
-        #   e.g., '2022-12-06T14:28:43'
-
-    return df
 
 
 def _parsing_squeue_out(squeue_std):
@@ -1545,12 +1072,12 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
             Examples:
             - if did not find: see `MSG_NO_ALERT_MESSAGE_IN_LOGS`
             - if found: "stdout file: <message>"
-    if_no_alert_in_log: bool
+    no_alert_in_log: bool
         There is no alert message in the log files.
         When `alert_message` is `msg_no_alert`,
-        or is `np.nan` (`if_valid_alert_msg=False`), this is True;
+        or is `np.nan` (`valid_alert_msg=False`), this is True;
         Otherwise, any other message, this is False
-    if_found_log_files: bool or np.nan
+    found_log_files: bool or np.nan
         np.nan if `config_msg_alert` is None, as it's unknown whether log files exist or not
         Otherwise, True or False based on if any log files were found
 
@@ -1564,20 +1091,20 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
     from .constants import MSG_NO_ALERT_IN_LOGS
 
     msg_no_alert = MSG_NO_ALERT_IN_LOGS
-    if_valid_alert_msg = True  # by default, `alert_message` is valid (i.e., not np.nan)
+    valid_alert_msg = True  # by default, `alert_message` is valid (i.e., not np.nan)
     # this is to avoid check `np.isnan(alert_message)`, as `np.isnan(str)` causes error.
-    if_found_log_files = np.nan
+    found_log_files = np.nan
 
     if config_msg_alert is None:
         alert_message = np.nan
-        if_valid_alert_msg = False
-        if_found_log_files = np.nan  # unknown if log files exist or not
+        valid_alert_msg = False
+        found_log_files = np.nan  # unknown if log files exist or not
     else:
         o_fn = log_fn.replace('*', 'o')
         e_fn = log_fn.replace('*', 'e')
 
         if op.exists(o_fn) or op.exists(e_fn):  # either exists:
-            if_found_log_files = True
+            found_log_files = True
             found_message = False
             alert_message = msg_no_alert
 
@@ -1608,17 +1135,17 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
                     break  # no need to go to next log file
 
         else:  # neither o_fn nor e_fn exists yet:
-            if_found_log_files = False
+            found_log_files = False
             alert_message = np.nan
-            if_valid_alert_msg = False
+            valid_alert_msg = False
 
-    if (alert_message == msg_no_alert) or (not if_valid_alert_msg):
+    if (alert_message == msg_no_alert) or (not valid_alert_msg):
         # either no alert, or `np.nan`
-        if_no_alert_in_log = True
+        no_alert_in_log = True
     else:  # `alert_message`: np.nan or any other message:
-        if_no_alert_in_log = False
+        no_alert_in_log = False
 
-    return alert_message, if_no_alert_in_log, if_found_log_files
+    return alert_message, no_alert_in_log, found_log_files
 
 
 def get_username():

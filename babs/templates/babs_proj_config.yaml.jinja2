@@ -7,7 +7,7 @@ input_ds:
   $INPUT_DATASET_#{{ i + 1 }}:
     name: '{{ input_ds.df.loc[i, "name"] }}'
     path_in: '{{ input_ds.df.loc[i, "path_in"] }}'
-    path_data_rel: 'TO_BE_FILLED'
+    data_parent_dir: 'TO_BE_FILLED'
     is_zipped: 'TO_BE_FILLED'
 {% endfor %}
 

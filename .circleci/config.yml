@@ -4,7 +4,7 @@ version: 2.1
 
 .dockersetup: &dockersetup
   docker:
-    - image: pennlinc/slurm-docker-ci:0.10
+    - image: pennlinc/slurm-docker-ci:0.11
 
 jobs:
   download_test_data:
@@ -73,10 +73,10 @@ jobs:
             -f Dockerfile_testing .
 
             # Make a directory that will hold the test artifacts
-            mkdir -p /home/circleci/testing
+            mkdir -p ${HOME}/e2e-testing
             docker run -it \
                 -v ${PWD}:/tests \
-                -v /home/circleci/testing:/test-temp:rw \
+                -v ${HOME}/e2e-testing:/test-temp:rw \
                 -h slurmctl --cap-add sys_admin \
                 --privileged \
                 pennlinc/slurm-docker-ci:unstable \
@@ -86,7 +86,7 @@ jobs:
           name: clean up test artifacts
           when: always
           command: |
-            TEST_ARTIFACTS_DIR=/home/circleci/testing/test_project/analysis
+            TEST_ARTIFACTS_DIR=${HOME}/e2e-testing/test_project/analysis
             sudo chmod -R 777 $TEST_ARTIFACTS_DIR
             # Find and remove all .git directories recursively
             sudo find $TEST_ARTIFACTS_DIR -type d -name ".git" -exec rm -rf {} +
@@ -99,7 +99,7 @@ jobs:
             sudo find $TEST_ARTIFACTS_DIR/inputs/data -type d -name "sub-*" -exec rm -rf {} +
 
       - store_artifacts:
-          path: /home/circleci/testing/test_project/analysis
+          path: ${HOME}/e2e-testing/test_project/analysis
           destination: test-artifacts
 
   deployable: # checkpoint of deployable: requires all success
