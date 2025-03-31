@@ -27,9 +27,9 @@ cd "{{ job_scratch_directory }}"
 # set up the branch:
 echo '# Branch name (also used as temporary directory):'
 {% if processing_level == 'session' %}
-BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${subid}-${sesid}"
+BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%endraw%}{{varname_taskid}}{%raw%}}{%endraw%}-${subid}-${sesid}"
 {% else %}
-BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${subid}"
+BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%endraw%}{{varname_taskid}}{%raw%}}{%endraw%}-${subid}"
 {% endif %}
 
 mkdir "${BRANCH}"
