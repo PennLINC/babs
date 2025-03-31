@@ -14,7 +14,7 @@ dssource="$1"	# i.e., `input_ria`
 pushgitremote="$2"	# i.e., `output_ria`
 SUBJECT_CSV="$3"
 
-subject_row=$(head -n $(({{varname_jobid}} + 1)) "${SUBJECT_CSV}" | tail -n 1)
+subject_row=$(head -n $(({{varname_taskid}} + 1)) "${SUBJECT_CSV}" | tail -n 1)
 subid=$(echo "$subject_row" | python -c "import sys, re; pattern = r'sub-[a-zA-Z0-9]+(?=,|$)'; matches = re.findall(pattern, sys.stdin.read()); print(matches[0] if len(matches) == 1 else 'ERROR')")
 {% if processing_level == 'session' %}
 sesid=$(echo "$subject_row" | python -c "import sys, re; pattern = r'ses-[a-zA-Z0-9]+(?=,|$)'; matches = re.findall(pattern, sys.stdin.read()); print(matches[0] if len(matches) == 1 else 'ERROR')")
@@ -27,9 +27,9 @@ cd "{{ job_scratch_directory }}"
 # set up the branch:
 echo '# Branch name (also used as temporary directory):'
 {% if processing_level == 'session' %}
-BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${subid}-${sesid}"
+BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%endraw%}{{varname_taskid}}{%raw%}}{%endraw%}-${subid}-${sesid}"
 {% else %}
-BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${subid}"
+BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%endraw%}{{varname_taskid}}{%raw%}}{%endraw%}-${subid}"
 {% endif %}
 
 mkdir "${BRANCH}"

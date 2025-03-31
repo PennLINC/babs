@@ -1250,12 +1250,14 @@ class BABS:
                     if self.processing_level == 'subject':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = None
-                        branchname = 'job-' + job_id_str + '-' + sub
+                        branchname = 'job-' + job_id_str + '-' + task_id_str + '-' + sub
                         # e.g., job-00000-sub-01
                     elif self.processing_level == 'session':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = df_job.at[i_task, 'ses_id']
-                        branchname = 'job-' + job_id_str + '-' + sub + '-' + ses
+                        branchname = (
+                            'job-' + job_id_str + '-' + task_id_str + '-' + sub + '-' + ses
+                        )
                         # e.g., job-00000-sub-01-ses-B
 
                     # Check if resubmission of this task is requested:
@@ -1476,12 +1478,14 @@ class BABS:
                     if self.processing_level == 'subject':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = None
-                        branchname = 'job-' + job_id_str + '-' + sub
+                        branchname = 'job-' + job_id_str + '-' + task_id_str + '-' + sub
                         # e.g., job-00000-sub-01
                     elif self.processing_level == 'session':
                         sub = df_job.at[i_task, 'sub_id']
                         ses = df_job.at[i_task, 'ses_id']
-                        branchname = 'job-' + job_id_str + '-' + sub + '-' + ses
+                        branchname = (
+                            'job-' + job_id_str + '-' + task_id_str + '-' + sub + '-' + ses
+                        )
                         # e.g., job-00000-sub-01-ses-B
 
                     # Check if resubmission of this job is requested:
