@@ -490,8 +490,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
         return df_job_submit
 
     # See if user has specified list of jobs to submit:
-    # NEED TO WORK ON THIS
-    if df_job_specified is not None:  # NEED TO WORK ON THIS
+    if df_job_specified is not None:
         print('Will only submit specified jobs...')
         job_ind_list = []
         for j_job in range(0, df_job_specified.shape[0]):
