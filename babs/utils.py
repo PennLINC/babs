@@ -490,8 +490,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
         return df_job_submit
 
     # See if user has specified list of jobs to submit:
-    # NEED TO WORK ON THIS
-    if df_job_specified is not None:  # NEED TO WORK ON THIS
+    if df_job_specified is not None:
         print('Will only submit specified jobs...')
         job_ind_list = []
         for j_job in range(0, df_job_specified.shape[0]):
@@ -525,6 +524,10 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
                     ' please use `babs status --resubmit`'
                 )
                 print(to_print)
+
+        # Create df_job_submit from the collected job indices
+        if job_ind_list:
+            df_job_submit = df_job.iloc[job_ind_list].copy().reset_index(drop=True)
     else:  # taking into account the `count` argument
         df_remain = df_job[~df_job.has_submitted]
         if count > 0:
