@@ -10,6 +10,16 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Define the input datasets
+input_datasets:
+    qsiprep:
+        required_files:
+            - "*_qsiprep*.zip"
+        is_zipped: true
+        origin_url: "/path/to/qsiprep"
+        path_in_babs: inputs/data/qsiprep
+        unzipped_path_containing_subject_dirs: "qsiprep"
+
 # Files to be copied into the datalad dataset:
 imported_files:
     # Change original_path to the path to the file on your local machine

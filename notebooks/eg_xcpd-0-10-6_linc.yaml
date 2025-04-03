@@ -10,6 +10,16 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Define the input datasets
+input_datasets:
+    fmriprep:
+        required_files:
+            - "*_fmriprep*.zip"
+        is_zipped: true
+        origin_url: "/path/to/fmriprep"
+        unzipped_path_containing_subject_dirs: "fmriprep"
+        path_in_babs: inputs/data/fmriprep
+
 # Arguments in `singularity run`:
 bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
@@ -71,5 +81,3 @@ script_preamble: |
 
 # Where to run the jobs:
 job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
-
-# `required_files` and `alert_log_messages` sections are not provided in this example.
