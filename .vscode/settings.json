@@ -27,5 +27,7 @@
     "[jinja-html]": {
         "editor.formatOnSave": false,
         "editor.wordWrap": "off"
-    }
+    },
+    "terminal.explorerKind": "integrated",
+    "terminal.integrated.defaultProfile.osx": "zsh"
 }

@@ -123,9 +123,9 @@ class InputDataset:
                 ' to get an initial inclusion list.'
             )
             if self.is_zipped:
-                inclu_df = self._get_sub_ses_from_zipped_input(processing_level)
+                inclu_df = self._get_sub_ses_from_zipped_input()
             else:
-                inclu_df = self._get_sub_ses_from_nonzipped_input(processing_level)
+                inclu_df = self._get_sub_ses_from_nonzipped_input()
 
         return inclu_df
 
@@ -313,19 +313,21 @@ def validate_nonzipped_input_contents(
     # only get the sub's foldername, if it's a directory:
     if included_subjects_df is not None:
         subjects = included_subjects_df['sub_id'].tolist()
-        if len(subjects) == 0:  # no folders with `sub-*`:
-            raise FileNotFoundError(
-                f'There is no `sub-*` folder in input dataset {dataset_name},'
-                f'located at {dataset_abs_path}.'
-            )
-    else:
-        subjects = [os.path.basename(temp) for temp in subject_dirs if os.path.isdir(temp)]
+
+        # Perform a quick check that the subjects exist
         for subject in subjects:
             if not os.path.exists(os.path.join(dataset_abs_path, subject)):
                 raise FileNotFoundError(
-                    f'There is no `{subject}` folder in input dataset {dataset_name},'
-                    f'located at {dataset_abs_path}.'
+                    f'There is no `{subject}` folder in input dataset {dataset_name}, '
+                    f'located at {dataset_abs_path}. Check the inclusion dataframe.'
                 )
+    else:
+        subjects = [os.path.basename(temp) for temp in subject_dirs if os.path.isdir(temp)]
+    if not subjects:
+        raise FileNotFoundError(
+            f'In input dataset {dataset_name}, located at {dataset_abs_path}. '
+            'There are no `sub-*` folders!'
+        )
 
     # For session: also check if there is session in each sub-*:
     if processing_level == 'session':

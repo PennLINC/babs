@@ -7,33 +7,6 @@ version: 2.1
     - image: pennlinc/slurm-docker-ci:0.14
 
 jobs:
-  download_test_data:
-    <<: *dockersetup
-    resource_class: medium
-    working_directory: /home/circleci/src/babs
-    steps:
-      - checkout:
-          path: /home/circleci/src/babs
-      - restore_cache:
-          keys:
-            - test-data-v2
-      - run:
-          name: Download test datasets
-          command: |
-            mkdir -p /home/circleci/test_data
-            cd /home/circleci/test_data
-            # Install datalad if not already in the image
-            pip install datalad-osf
-            # Download each dataset from origin_input_dataset.yaml
-            python3 /home/circleci/src/babs/tests/download_datasets.py
-            # Debug output
-            echo "Contents of test_data directory:"
-            ls -la /home/circleci/test_data/
-      - save_cache:
-          key: test-data-v2
-          paths:
-            - /home/circleci/test_data
-
   pytest: # run pytest
     <<: *dockersetup
     resource_class: xlarge
@@ -128,19 +101,11 @@ workflows:
   # version: 2
   build_test_deploy:
     jobs:
-      - download_test_data:
-          filters:
-            tags:
-              only: /.*/
       - pytest:
-          requires:
-            - download_test_data
           filters:
             tags:
               only: /.*/
       - e2e-slurm:
-          requires:
-            - download_test_data
           filters:
             tags:
               only: /.*/

@@ -1,9 +1,0 @@
-BIDS:
-  subject: "https://osf.io/t8urc/"
-  session: "https://osf.io/w2nu3/"
-qsiprep: # zipped derivatives
-  subject: "https://osf.io/8t9sf/"
-  session: "https://osf.io/d3js6/"
-fmriprep: # zippped derivatives
-  subject: "https://osf.io/2jvub/"
-  session: "https://osf.io/k9zw2/"

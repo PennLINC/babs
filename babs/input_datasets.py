@@ -202,10 +202,10 @@ def create_mock_input_dataset(output_dir, multiple_sessions, zip_level):
         input_dataset = qsiprep_dir
 
     # initialize a datalad dataset in input_dataset
-    dlapi.create(path=input_dataset, force=True)
+    datalad_handle = dlapi.create(path=input_dataset, force=True)
 
     # Datalad save the zip files
-    dlapi.save(dataset=input_dataset, message='Add zip files')
+    datalad_handle.save(dataset=input_dataset, message='Add zip files')
 
     return input_dataset
 
