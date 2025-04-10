@@ -30,7 +30,7 @@ jobs:
                 pytest -n 4 -sv --durations=0 --timeout=300 --junitxml=/test-temp/junit.xml
 
       - store_test_results:
-          path: ${HOME}/e2e-testing/junit.xml
+          path: /home/circleci/e2e-testing/junit.xml
 
   e2e-slurm:
     machine:
