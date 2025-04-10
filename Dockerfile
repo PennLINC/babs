@@ -36,8 +36,9 @@ RUN git config --global user.name "CircleCI" \
 # Create toy bids app
 RUN mkdir -p /singularity_images \
     && apptainer build \
-    /singularity_images/toybidsapp_0.0.7.sif \
-    docker://pennlinc/toy_bids_app:0.0.7
+    /singularity_images/simbids_0.0.1.sif \
+    docker://pennlinc/simbids:0.0.1
+
 
 # # install BABS
 # COPY . $HOME/babs

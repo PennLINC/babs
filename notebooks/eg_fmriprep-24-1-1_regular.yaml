@@ -10,6 +10,15 @@
 #   or be compatible to the BIDS App version you're using.
 #   Therefore, please change and tailor it for your case before use it!!!
 
+# Define the input datasets
+input_datasets:
+    BIDS:
+        required_files:
+            - "func/*_bold.nii*"
+            - "anat/*_T1w.nii*"
+        is_zipped: false
+        origin_url: "/path/to/BIDS"
+        path_in_babs: inputs/data/BIDS
 # Arguments in `singularity run`:
 bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
@@ -57,12 +66,6 @@ script_preamble: |
 
 # Where to run the jobs:
 job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
-
-# Below is to filter out subjects (or sessions). Only those with required files will be kept.
-required_files:
-    $INPUT_DATASET_#1:
-        - "func/*_bold.nii*"
-        - "anat/*_T1w.nii*"
 
 # Alert messages that might be found in log files of failed jobs:
 #   These messages may be helpful for debugging errors in failed jobs.

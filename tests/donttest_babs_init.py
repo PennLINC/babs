@@ -6,17 +6,65 @@ import sys
 from pathlib import Path
 from unittest import mock
 
+import pytest
 import yaml
 
 sys.path.append('..')
+from get_data import (  # noqa
+    INFO_2ND_INPUT_DATA,
+    SUPPORTED_BIDS_APPS,
+    TEMPLATEFLOW_HOME,
+    TOYBIDSAPP_VERSION_DASH,
+    __location__,
+    get_container_config_yaml_filename,
+    get_input_data,
+)
 
 from babs.cli import _enter_check_setup, _enter_init  # noqa
 from babs.utils import read_yaml, write_yaml  # noqa
 
 
-def test_babs_init_raw_bids(tmp_path_factory, simbids_container_ds, session_type):
+@pytest.mark.order(index=1)
+@pytest.mark.parametrize(
+    (
+        'bids_app',
+        'input_data_name',
+        'processing_level',
+        'input_is_local',
+        'two_inputs',
+    ),
+    #  test toybidsapp: BIDS/zipped x single/session:
+    #    the input data will also be remote by default:
+    [
+        ('toybidsapp', 'BIDS', 'subject', False, False),
+        ('toybidsapp', 'BIDS', 'session', False, False),
+        ('toybidsapp', 'fmriprep', 'subject', False, False),
+        ('toybidsapp', 'fmriprep', 'session', False, False),
+        # test if input is local:
+        ('toybidsapp', 'BIDS', 'subject', True, False),
+        # test fmriprep: single/session
+        ('fmriprep', 'BIDS', 'subject', False, False),
+        ('fmriprep', 'BIDS', 'session', False, False),
+        # test qsiprep session: remove sessions without dMRI
+        ('qsiprep', 'BIDS', 'session', False, False),
+        # test 2 input datasets (2nd one will be zipped fmriprep derivatives):
+        ('fmriprep', 'BIDS', 'subject', False, True),
+        ('fmriprep', 'BIDS', 'session', False, True),
+    ],
+)
+def test_babs_init(
+    bids_app,
+    input_data_name,
+    processing_level,
+    input_is_local,
+    two_inputs,
+    tmp_path,
+    tmp_path_factory,
+    container_ds_path,
+    in_circleci,
+):
     """
-    This is to test `babs init` on raw BIDS data.
+    This is to test `babs init` in different cases.
 
     Parameters
     ----------
@@ -38,6 +86,9 @@ def test_babs_init_raw_bids(tmp_path_factory, simbids_container_ds, session_type
 
     TODO: add `queue` and to test out Slurm version!
     """
+    # Sanity checks:
+    assert bids_app in SUPPORTED_BIDS_APPS
+
     # Get the path to input dataset:
     path_in = get_input_data(
         input_data_name,

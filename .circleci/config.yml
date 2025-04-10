@@ -2,55 +2,35 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-.dockersetup: &dockersetup
-  docker:
-    - image: pennlinc/slurm-docker-ci:0.11
-
 jobs:
-  download_test_data:
-    <<: *dockersetup
-    resource_class: medium
+  pytest:
+    machine:
+      image: ubuntu-2204:current  
+    resource_class: large
     working_directory: /home/circleci/src/babs
     steps:
       - checkout:
           path: /home/circleci/src/babs
-      - restore_cache:
-          keys:
-            - test-data-v2
-      - run:
-          name: Download test datasets
-          command: |
-            mkdir -p /home/circleci/test_data
-            cd /home/circleci/test_data
-            # Install datalad if not already in the image
-            pip install datalad-osf
-            # Download each dataset from origin_input_dataset.yaml
-            python3 /home/circleci/src/babs/tests/download_datasets.py
-            # Debug output
-            echo "Contents of test_data directory:"
-            ls -la /home/circleci/test_data/
-      - save_cache:
-          key: test-data-v2
-          paths:
-            - /home/circleci/test_data
-
-  pytest: # run pytest
-    <<: *dockersetup
-    resource_class: xlarge
-    working_directory: /home/circleci/src/babs
-    steps:
-      - checkout:
-          path: /home/circleci/src/babs
-      - restore_cache:
-          keys:
-            - test-data-v2
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
           command: |
-            micromamba install -y -c conda-forge shellcheck
-            pip install .[tests]
-            pytest -n 4 -sv --durations=0 --timeout=300
+            docker build \
+            -t pennlinc/slurm-docker-ci:unstable \
+            -f Dockerfile_testing .
+
+            # Make a directory that will hold the test artifacts
+            mkdir -p ${HOME}/e2e-testing
+            docker run -it \
+                -v ${PWD}:/tests \
+                -v ${HOME}/e2e-testing:/test-temp:rw \
+                -h slurmctl --cap-add sys_admin \
+                --privileged \
+                pennlinc/slurm-docker-ci:unstable \
+                pytest -n 4 -sv --durations=0 --timeout=300 --junitxml=/test-temp/junit.xml
+
+      - store_test_results:
+          path: /home/circleci/e2e-testing/junit.xml
 
   e2e-slurm:
     machine:
@@ -61,9 +41,6 @@ jobs:
     steps:
       - checkout:
           path: /home/circleci/src/babs
-      - restore_cache:
-          keys:
-            - test-data-v2
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
@@ -103,7 +80,9 @@ jobs:
           destination: test-artifacts
 
   deployable: # checkpoint of deployable: requires all success
-    <<: *dockersetup
+    resource_class: small
+    docker:
+      - image: busybox:latest
     steps:
       - run: echo Deploying!
 
@@ -128,19 +107,11 @@ workflows:
   # version: 2
   build_test_deploy:
     jobs:
-      - download_test_data:
-          filters:
-            tags:
-              only: /.*/
       - pytest:
-          requires:
-            - download_test_data
           filters:
             tags:
               only: /.*/
       - e2e-slurm:
-          requires:
-            - download_test_data
           filters:
             tags:
               only: /.*/

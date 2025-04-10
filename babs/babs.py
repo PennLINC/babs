@@ -16,9 +16,6 @@ from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
-from babs.input_datasets import (
-    validate_unzipped_datasets,
-)
 from babs.system import validate_queue
 from babs.utils import (
     calcu_runtime,
@@ -408,7 +405,7 @@ class BABS:
 
         # Check validity of unzipped ds:
         #   if session, has `ses-*` in each `sub-*`; if subject, has a `sub-*`
-        validate_unzipped_datasets(input_ds, self.processing_level)
+        # validate_unzipped_datasets(input_ds, self.processing_level)
 
         # Update input ds information in `babs_proj_config.yaml`:
         babs_proj_config = read_yaml(self.config_path, use_filelock=True)
