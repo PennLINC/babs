@@ -26,7 +26,7 @@ find_single_zipfile() {% raw %}{{% endraw %}
 
 {% for input_dataset in input_datasets %}
 {% if input_dataset['is_zipped'] %}
-{{ input_dataset['name'].upper() }}_ZIP="$(find_single_zipfile {{ input_dataset['relative_path'] }} {{ input_dataset['name'] }})"
+{{ input_dataset['name'].upper() }}_ZIP="$(find_single_zipfile {{ input_dataset['path_in_babs'] }} {{ input_dataset['name'] }})"
 echo 'found {{ input_dataset['name'] }} zipfile:'
 echo "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}"
 {% endif %}

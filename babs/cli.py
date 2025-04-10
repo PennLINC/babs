@@ -2,19 +2,18 @@
 
 import argparse
 import os
-import traceback
 import warnings
 from functools import partial
 from pathlib import Path
 
 import pandas as pd
+import yaml
 from filelock import FileLock, Timeout
 
 from babs.babs import BABS
-from babs.input_datasets import InputDatasets, create_mock_input_dataset
+from babs.input_datasets import InputDatasets
 from babs.system import System
 from babs.utils import (
-    ToDict,
     _path_does_not_exist,
     _path_exists,
     create_job_status_csv,
@@ -48,19 +47,6 @@ def _parse_init():
             'Absolute path to the directory where the BABS project will be located. '
             'This folder will be automatically created.'
         ),
-    )
-    parser.add_argument(
-        '--datasets',
-        action=ToDict,
-        metavar='NAME=PATH',
-        type=str,
-        nargs='+',
-        help=(
-            'Input BIDS datasets. '
-            'These must be provided as named folders '
-            '(e.g., `--datasets smriprep=/path/to/smriprep`).'
-        ),
-        required=True,
     )
     parser.add_argument(
         '--list_sub_file',
@@ -147,7 +133,6 @@ def _enter_init(argv=None):
 
 def babs_init_main(
     project_root: Path,
-    datasets: dict,
     list_sub_file: str,
     container_ds: str,
     container_name: str,
@@ -163,9 +148,6 @@ def babs_init_main(
     project_root : pathlib.Path
         The path to the directory where the BABS project will be located.
         This folder will be automatically created.
-    datasets : dictionary
-        Keys are the names of the input BIDS datasets, and values are the paths to the input BIDS
-        datasets.
     list_sub_file: str or None
         Path to the CSV file that lists the subject (and sessions) to analyze;
         or `None` if CLI's flag isn't specified
@@ -216,13 +198,18 @@ def babs_init_main(
     # validate `processing_level`:
     processing_level = validate_processing_level(processing_level)
 
-    # input dataset:
-    input_ds = InputDatasets(datasets)
+    # Read the config yaml to get the datasets:
+    with open(container_config) as f:
+        babs_config = yaml.safe_load(f)
+    datasets = babs_config.get('input_datasets')
+    if not datasets:
+        raise ValueError('No input datasets found in the container config file.')
+    input_ds = InputDatasets(processing_level, datasets)
     input_ds.set_inclusion_dataframe(list_sub_file, processing_level)
 
     # Note: not to perform sanity check on the input dataset re: if it exists
     #   as: 1) robust way is to clone it, which will take longer time;
-    #           so better to just leave to the real cloning when `babs init`;
+    #           so better tob just leave to the real cloning when `babs init`;
     #       2) otherwise, if using "if `.datalad/config` exists" to check, then need to check
     #           if input dataset is local or not, and it's very tricky to check that...
     #       3) otherwise, if using "dlapi.status(dataset=the_input_ds)": will take long time
@@ -242,9 +229,6 @@ def babs_init_main(
     print('job scheduling system of this BABS project: ' + babs_proj.queue)
     print('')
 
-    # Call method `babs_bootstrap()`:
-    #   if success, good!
-    #   if failed, and if not `keep_if_failed`: delete the BABS project `babs init` creates!
     try:
         babs_proj.babs_bootstrap(
             input_ds,
@@ -253,24 +237,14 @@ def babs_init_main(
             container_config,
             system,
         )
-    except Exception:
+    except Exception as exc:
         print('\n`babs init` failed! Below is the error message:')
-        traceback.print_exc()  # print out the traceback error messages
         if not keep_if_failed:
-            # clean up:
             print('\nCleaning up created BABS project...')
             babs_proj.clean_up(input_ds)
-            print(
-                'Please check the error messages above!'
-                ' Then fix the problem, and rerun `babs init`.'
-            )
         else:
             print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
-            print(
-                'Please check the error messages above!'
-                ' Then fix the problem, delete this failed BABS project,'
-                ' and rerun `babs init`.'
-            )
+        raise exc
 
 
 def _parse_check_setup():
@@ -977,7 +951,7 @@ def get_existing_babs_proj(project_root):
     babs_proj_config = read_yaml(babs_proj_config_yaml, use_filelock=True)
 
     # make sure the YAML file has necessary sections:
-    list_sections = ['processing_level', 'queue', 'input_ds', 'container']
+    list_sections = ['processing_level', 'queue', 'input_datasets', 'container']
     for i in range(0, len(list_sections)):
         the_section = list_sections[i]
         if the_section not in babs_proj_config:
@@ -1005,29 +979,8 @@ def get_existing_babs_proj(project_root):
             ' Something was wrong during `babs init`...'
         )
 
-    datasets = {
-        input_ds_yaml[f'$INPUT_DATASET_#{i + 1}']['name']: input_ds_yaml[
-            f'$INPUT_DATASET_#{i + 1}'
-        ]['path_in']
-        for i in range(len(input_ds_yaml))
-    }
-
     # Get the class `InputDatasets`:
-    input_ds = InputDatasets(datasets)
-    # update information based on current babs project:
-    # 1. `abs_path`:
-    input_ds.update_abs_paths(babs_proj.analysis_path)
-    # 2. `data_parent_dir` and `is_zipped`:
-    for idx, _ in input_ds.df.iterrows():
-        ds_index_str = f'$INPUT_DATASET_#{idx + 1}'
-        # `data_parent_dir`:
-        input_ds.df.loc[idx, 'data_parent_dir'] = babs_proj_config['input_ds'][ds_index_str][
-            'data_parent_dir'
-        ]
-        # `is_zipped`:
-        input_ds.df.loc[idx, 'is_zipped'] = bool(
-            babs_proj_config['input_ds'][ds_index_str]['is_zipped']
-        )
+    input_ds = InputDatasets(babs_proj_config['input_datasets'])
 
     return babs_proj, input_ds
 

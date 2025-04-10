@@ -3,25 +3,10 @@
 import argparse
 import os
 import os.path as op
-import sys
 from pathlib import Path
 from unittest import mock
 
 import pytest
-
-sys.path.append('..')
-
-from get_data import (  # noqa
-    SUPPORTED_BIDS_APPS,
-    TEMPLATEFLOW_HOME,
-    TOYBIDSAPP_VERSION_DASH,
-    __location__,
-    container_ds_path,
-    get_container_config_yaml_filename,
-    get_input_data,
-    in_circleci,
-    exec_environment,
-)
 
 from babs.cli import _enter_check_setup, _enter_init  # noqa
 

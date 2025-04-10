@@ -335,7 +335,7 @@ Advanced - Manual of writing section ``bids_app_args``
       restrictions in naming each dataset when calling ``babs init``!
 
 .. Note to developers: It's probably not a good idea to use information from ``babs_proj_config.yaml``,
-   e.g., ``data_parent_dir`` to determine the path, as for zipped folder it will be ``inputs/data/freesurfer``,
+   e.g., ``unzipped_path_containing_subject_dirs`` to determine the path, as for zipped folder it will be ``inputs/data/freesurfer``,
    instead of ``inputs/data/freesurfer/freesurfer`` that user needs to specify here.
 
 * ``--bids-filter-file``: When will BABS automatically add it?

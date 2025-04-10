@@ -212,6 +212,19 @@ class InputDataset:
 
         return df
 
+    def as_dict(self):
+        """Return the input dataset as a dictionary."""
+        return {
+            'name': self.name,
+            'origin_url': self.origin_url,
+            'path_in_babs': self.path_in_babs,
+            'is_zipped': self.is_zipped,
+            'unzipped_path_containing_subject_dirs': self.unzipped_path_containing_subject_dirs,
+            'required_files': self.required_files,
+            'processing_level': self.processing_level,
+            'babs_project_analysis_path': self.babs_project_analysis_path,
+        }
+
 
 def validate_zipped_input_contents(
     dataset_abs_path, root_dir_name, processing_level, included_subjects_df=None

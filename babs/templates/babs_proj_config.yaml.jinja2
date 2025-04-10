@@ -5,9 +5,9 @@ queue: '{{ queue }}'
 input_ds:
 {% for i in range(input_ds.num_ds) %}
   $INPUT_DATASET_#{{ i + 1 }}:
-    name: '{{ input_ds.df.loc[i, "name"] }}'
-    path_in: '{{ input_ds.df.loc[i, "path_in"] }}'
-    data_parent_dir: 'TO_BE_FILLED'
+    name: '{{ input_ds._datasets[i].name }}'
+    path_in: '{{ input_ds._datasets[i].origin_url }}'
+    unzipped_path_containing_subject_dirs: 'TO_BE_FILLED'
     is_zipped: 'TO_BE_FILLED'
 {% endfor %}
 

@@ -8,7 +8,7 @@ input_ds:
   $INPUT_DATASET_#1:
     name: BIDS
     path_in: https://osf.io/w2nu3/
-    data_parent_dir: inputs/data/BIDS
+    unzipped_path_containing_subject_dirs: inputs/data/BIDS
     is_zipped: false
 container:
   name: toybidsapp-0-0-7
