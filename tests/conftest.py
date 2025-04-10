@@ -63,6 +63,7 @@ def get_simbids_raw_bids_data(simbids_apptainer_image_path, bids_dir, session_ty
         [
             'apptainer',
             'exec',
+            '--fakeroot',
             '-B',
             str(bids_dir),
             simbids_apptainer_image_path,
@@ -117,6 +118,7 @@ def run_simbids_app_simulation(
         str(bids_dir),
         '-B',
         str(output_dir),
+        '--fakeroot',
         simbids_apptainer_image_path,
         str(bids_dir),
         str(app_output_dir),
