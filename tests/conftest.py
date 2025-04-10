@@ -1,7 +1,6 @@
 """This is to get data for pytests"""
 
 import os.path as op
-import shutil
 
 # import tempfile
 import subprocess
@@ -107,16 +106,20 @@ def bids_data_multisession(simbids_apptainer_image, tmp_path_factory):
 def run_simbids_app_simulation(
     simbids_apptainer_image_path, bids_dir, output_dir, app_name, extra_args=None
 ):
+    """
+    Run simbids to get fmriprep derivatives where multiple sessions are present
+    """
+    app_output_dir = output_dir / app_name
     args = [
         'apptainer',
         'run',
         '-B',
         str(bids_dir),
+        '-B',
         str(output_dir),
         simbids_apptainer_image_path,
-        'simbids-raw-mri',
         str(bids_dir),
-        str(output_dir),
+        str(app_output_dir),
         'participant',
         '--bids-app',
         app_name,
@@ -127,24 +130,26 @@ def run_simbids_app_simulation(
         args.extend(extra_args)
     proc = subprocess.run(args, stdout=subprocess.PIPE)
     proc.check_returncode()
+    return app_output_dir
 
 
 def zip_derivatives(data_dir, output_dir, zip_root, zip_level):
     """
     Zip the derivatives at the specified level.
     """
+    content_dir = data_dir / zip_root
     # Zip the dataset
     if zip_level == 'subject':
-        for subject in data_dir.glob('sub-*'):
+        for subject in content_dir.glob('sub-*'):
             zip_path = output_dir / f'{subject.name}_{zip_root}-1-0-1.zip'
             with zipfile.ZipFile(zip_path, 'w') as zf:
                 for file_path in subject.rglob('*'):
                     if file_path.is_file():
                         arcname = f'{zip_root}/{subject.name}/{file_path.relative_to(subject)}'
                         zf.write(file_path, arcname)
-        shutil.rmtree(data_dir)
+
     elif zip_level == 'session':
-        for subject in data_dir.glob('sub-*'):
+        for subject in content_dir.glob('sub-*'):
             for session in subject.glob('ses-*'):
                 zip_path = output_dir / f'{subject.name}_{session.name}_{zip_root}-1-0-1.zip'
                 with zipfile.ZipFile(zip_path, 'w') as zf:
@@ -155,21 +160,8 @@ def zip_derivatives(data_dir, output_dir, zip_root, zip_level):
                                 f'{file_path.relative_to(session)}'
                             )
                             zf.write(file_path, arcname)
-        shutil.rmtree(data_dir)
-
-
-@pytest.fixture(scope='session')
-def fmriprep_multises_derivative_files(
-    simbids_apptainer_image, tmp_path_factory, bids_data_multisession
-):
-    """
-    run simbids to get fmriprep derivatives where sessions are present
-    """
-    output_dir = tmp_path_factory.mktemp('outputs')
-    run_simbids_app_simulation(
-        simbids_apptainer_image, bids_data_multisession, output_dir, 'fmriprep'
-    )
-    return output_dir
+    else:
+        raise ValueError(f'Invalid zip level: {zip_level}')
 
 
 @pytest.fixture(scope='session')
@@ -177,11 +169,25 @@ def fmriprep_noses_derivative_files(
     simbids_apptainer_image, tmp_path_factory, bids_data_singlesession
 ):
     """
-    run simbids to get fmriprep derivatives where no sessions are present
+    Run simbids to get fmriprep derivatives where no sessions are present
     """
     output_dir = tmp_path_factory.mktemp('outputs')
     run_simbids_app_simulation(
         simbids_apptainer_image, bids_data_singlesession, output_dir, 'fmriprep'
+    )
+    return output_dir
+
+
+@pytest.fixture(scope='session')
+def fmriprep_multises_derivative_files(
+    simbids_apptainer_image, bids_data_multisession, tmp_path_factory
+):
+    """
+    Run simbids to get fmriprep derivatives where multiple sessions are present
+    """
+    output_dir = tmp_path_factory.mktemp('outputs')
+    run_simbids_app_simulation(
+        simbids_apptainer_image, bids_data_multisession, output_dir, 'fmriprep'
     )
     return output_dir
 
