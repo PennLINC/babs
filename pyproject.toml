@@ -160,6 +160,7 @@ exclude = ["docs/conf.py"]
 addopts = '-m "not integration"'
 markers = []
 env = ["RUNNING_PYTEST = 1"]
+basetemp = "/var/tmp/babs-test-tmp"
 
 [tool.coverage.run]
 branch = true
