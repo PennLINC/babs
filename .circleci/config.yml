@@ -22,7 +22,8 @@ jobs:
           no_output_timeout: 1h
           command: |
             pip install .[tests]
-            pytest -n 4 -sv --durations=0 --timeout=300
+            mkdir -p /var/tmp/babs-test-tmp
+            pytest -n 4 -sv --durations=0 --timeout=300 --basetemp=/var/tmp/babs-test-tmp
 
   e2e-slurm:
     machine:
