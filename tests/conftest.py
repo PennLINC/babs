@@ -63,8 +63,6 @@ def get_simbids_raw_bids_data(simbids_apptainer_image_path, bids_dir, session_ty
         [
             'apptainer',
             'exec',
-            '--no-mount',
-            'home,tmp',
             '-B',
             str(bids_dir),
             simbids_apptainer_image_path,
@@ -115,8 +113,6 @@ def run_simbids_app_simulation(
     args = [
         'apptainer',
         'run',
-        '--no-mount',
-        'home,tmp',
         '-B',
         str(bids_dir),
         '-B',
