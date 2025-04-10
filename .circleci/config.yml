@@ -9,6 +9,8 @@ jobs:
     resource_class: large
     working_directory: /home/circleci/src/babs
     steps:
+      - checkout:
+          path: /home/circleci/src/babs
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
