@@ -2,28 +2,30 @@
 # See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-.dockersetup: &dockersetup
-  docker:
-    - image: pennlinc/slurm-docker-ci:0.14
-
 jobs:
-  pytest: # run pytest
-    <<: *dockersetup
-    resource_class: xlarge
+  pytest:
+    machine:
+      image: ubuntu-2204:current  
+    resource_class: large
     working_directory: /home/circleci/src/babs
     steps:
-      - checkout:
-          path: /home/circleci/src/babs
-      - restore_cache:
-          keys:
-            - test-data-v2
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
           command: |
-            pip install .[tests]
-            mkdir -p /home/circleci/babs-test-tmp
-            pytest -n 4 -sv --durations=0 --timeout=300 --basetemp=/home/circleci/babs-test-tmp
+            docker build \
+            -t pennlinc/slurm-docker-ci:unstable \
+            -f Dockerfile_testing .
+
+            # Make a directory that will hold the test artifacts
+            mkdir -p ${HOME}/e2e-testing
+            docker run -it \
+                -v ${PWD}:/tests \
+                -v ${HOME}/e2e-testing:/test-temp:rw \
+                -h slurmctl --cap-add sys_admin \
+                --privileged \
+                pennlinc/slurm-docker-ci:unstable \
+                pytest -n 4 -sv --durations=0 --timeout=300
 
   e2e-slurm:
     machine:
@@ -34,9 +36,6 @@ jobs:
     steps:
       - checkout:
           path: /home/circleci/src/babs
-      - restore_cache:
-          keys:
-            - test-data-v2
       - run:
           name: pytest of BABS
           no_output_timeout: 1h
@@ -76,7 +75,9 @@ jobs:
           destination: test-artifacts
 
   deployable: # checkpoint of deployable: requires all success
-    <<: *dockersetup
+    resource_class: small
+    docker:
+      - image: busybox:latest
     steps:
       - run: echo Deploying!
 
