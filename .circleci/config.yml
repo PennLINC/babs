@@ -43,8 +43,9 @@ jobs:
                   --cov=babs \
                   --cov-config=.coveragerc \
                   --cov-report=term \
-                  --cov-report=xml:/tests/coverage.xml \
                   --junitxml=/test-temp/junit.xml && \
+                  ls -la /tests/ && \
+                  python -m coverage xml && \
                   ls -la /tests/ && \
                   cp /tests/coverage.xml /test-temp/ || echo 'No coverage file generated - tests may not be exercising code'"
 
