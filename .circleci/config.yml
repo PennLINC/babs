@@ -38,7 +38,7 @@ jobs:
           path: /home/circleci/e2e-testing/coverage.xml
           destination: coverage.xml
       - codecov/upload:
-          file: /home/circleci/e2e-testing/coverage.xml
+          path: /home/circleci/e2e-testing/coverage.xml
 
   e2e-slurm:
     machine:
