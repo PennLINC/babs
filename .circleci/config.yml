@@ -30,13 +30,24 @@ jobs:
                 -h slurmctl --cap-add sys_admin \
                 --privileged \
                 pennlinc/slurm-docker-ci:unstable \
-                /bin/bash -c "cd /tests && python -m pytest -n 4 -sv --durations=0 --timeout=300 --cov=babs --cov-report=xml:/test-temp/coverage.xml --junitxml=/test-temp/junit.xml"
+                /bin/bash -c "cd /tests && python -m pytest -n 4 -sv --durations=0 --timeout=300 --cov=babs --cov-report=xml:/tests/coverage.xml --junitxml=/test-temp/junit.xml && cp /tests/coverage.xml /test-temp/"
 
       - store_test_results:
           path: /home/circleci/e2e-testing/junit.xml
       - store_artifacts:
           path: /home/circleci/e2e-testing/coverage.xml
           destination: coverage.xml
+      - run:
+          name: Copy coverage file to workspace
+          command: |
+            cp ${HOME}/e2e-testing/coverage.xml ${PWD}/
+            ls -la ${PWD}/coverage.xml  # Debug output to verify file exists
+      - run:
+          name: Install coverage package for Codecov
+          command: |
+            pip install coverage
+            python --version
+            coverage --version
       - codecov/upload
 
   e2e-slurm:
