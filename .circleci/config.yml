@@ -37,8 +37,7 @@ jobs:
       - store_artifacts:
           path: /home/circleci/e2e-testing/coverage.xml
           destination: coverage.xml
-      - codecov/upload:
-          path: /home/circleci/e2e-testing/coverage.xml
+      - codecov/upload
 
   e2e-slurm:
     machine:
