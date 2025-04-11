@@ -8,8 +8,6 @@ export SUBPROJECT_NAME=test_project
 echo "Git user: $(git config user.name)"
 echo "Git email: $(git config user.email)"
 
-DATA_DIR=/home/circleci/test_data
-
 if [ ! -f "/singularity_images/simbids_0.0.3.sif" ]; then
     mkdir -p /singularity_images
     apptainer build /singularity_images/simbids_0.0.3.sif docker://pennlinc/simbids:0.0.3
