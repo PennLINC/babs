@@ -39,7 +39,7 @@ jobs:
                   echo '[report]' >> .coveragerc && \
                   echo 'exclude_lines = pragma: no cover' >> .coveragerc && \
                   python -m pytest -n 4 -sv --durations=0 --timeout=300 \
-                  --cov=babs --cov-source=/tests/babs \
+                  --cov=babs \
                   --cov-config=.coveragerc \
                   --cov-report=xml:/tests/coverage.xml \
                   --junitxml=/test-temp/junit.xml && \
