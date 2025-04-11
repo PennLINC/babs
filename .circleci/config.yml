@@ -57,13 +57,12 @@ jobs:
             cp ${HOME}/e2e-testing/coverage.xml ${PWD}/coverage_reports/
             ls -la ${PWD}/coverage_reports/  # Debug output to verify directory contents
       - run:
-          name: Install coverage package for Codecov
+          name: Upload to Codecov
           command: |
             pip install coverage codecov
             python --version
             coverage --version
-      - codecov/upload:
-          file_glob: "coverage_reports/*.xml"
+            codecov -f ${PWD}/coverage_reports/coverage.xml
 
   e2e-slurm:
     machine:
