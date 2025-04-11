@@ -8,7 +8,7 @@ input_datasets:
     origin_url: '{{ in_ds['origin_url'] }}'
     path_in_babs: '{{ in_ds['path_in_babs'] }}'
     unzipped_path_containing_subject_dirs: '{{ in_ds['unzipped_path_containing_subject_dirs'] }}'
-    is_zipped: '{{ in_ds['is_zipped'] }}'
+    is_zipped: {{ 'false' if not in_ds['is_zipped'] else 'true' }}
 {% endfor %}
 
 # container ds:

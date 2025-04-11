@@ -35,8 +35,8 @@ class InputDataset:
             origin URL of the input dataset
         path_in_babs: str
             relative path to the input dataset in the BABS directory
-        is_zipped: bool
-            whether the input dataset is zipped
+        is_zipped: bool or str
+            whether the input dataset is zipped. Can be a boolean or string ('true'/'false')
         unzipped_path_containing_subject_dirs: str or None
             when unzipped, this string precedes the subject directories
         required_files: list of str or None
@@ -49,13 +49,25 @@ class InputDataset:
         self.name = name
         self.origin_url = origin_url
         self.path_in_babs = path_in_babs
-        self.is_zipped = is_zipped
-        self.unzipped_path_containing_subject_dirs = unzipped_path_containing_subject_dirs
+        # Convert string 'true'/'false' to boolean if needed
+        if isinstance(is_zipped, str):
+            self.is_zipped = is_zipped.lower() == 'true'
+        else:
+            self.is_zipped = bool(is_zipped)
         self.required_files = required_files
         if processing_level not in ['subject', 'session']:
             raise ValueError('invalid `processing_level`!')
         self.processing_level = processing_level
         self._babs_project_analysis_path = babs_project_analysis_path
+
+        # If not specified, set this based on whether the inputs are zipped
+        if unzipped_path_containing_subject_dirs in (None, 'None'):
+            if self.is_zipped:
+                unzipped_path_containing_subject_dirs = f'{self.path_in_babs}/{self.name}'
+            else:
+                unzipped_path_containing_subject_dirs = self.path_in_babs
+
+        self.unzipped_path_containing_subject_dirs = unzipped_path_containing_subject_dirs
 
     def set_babs_project_analysis_path(self, babs_project_analysis_path):
         """Set the BABS project analysis path."""
@@ -214,12 +226,18 @@ class InputDataset:
 
     def as_dict(self):
         """Return the input dataset as a dictionary."""
+        # Ensure unzipped_path_containing_subject_dirs is set correctly
+        if self.is_zipped:
+            unzipped_path = f'{self.path_in_babs}/{self.name}'
+        else:
+            unzipped_path = self.path_in_babs
+
         return {
             'name': self.name,
             'origin_url': self.origin_url,
             'path_in_babs': self.path_in_babs,
             'is_zipped': self.is_zipped,
-            'unzipped_path_containing_subject_dirs': self.unzipped_path_containing_subject_dirs,
+            'unzipped_path_containing_subject_dirs': unzipped_path,
             'required_files': self.required_files,
             'processing_level': self.processing_level,
             'babs_project_analysis_path': self.babs_project_analysis_path,
