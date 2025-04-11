@@ -48,9 +48,6 @@ jobs:
             - .coverage.main
       - store_test_results:
           path: /home/circleci/e2e-testing/junit.xml
-      - store_artifacts:
-          path: /tmp/src/coverage
-          destination: .coverage.main
 
   e2e-slurm:
     machine:
