@@ -45,6 +45,7 @@ tests = [
     "pytest",
     "pytest-xdist", # for running pytest in parallel
     "pytest-order", # for ordering test execution
+    "pytest-cov",   # for code coverage
     "datalad-osf",
 ]
 maint = ["fuzzywuzzy", "python-Levenshtein"]
