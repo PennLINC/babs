@@ -26,7 +26,8 @@ class InputDatasets:
             - path_in_babs: the path to where the input ds is cloned,
                 relative to `analysis` folder
             - abs_path: the absolute path to the input ds
-            - unzipped_path_containing_subject_dirs: the path to where the input data (for a sub or a ses) is,
+            - unzipped_path_containing_subject_dirs: the path to where the input data
+                (for a sub or a ses) is,
                 relative to `analysis` folder.
                 If it's zipped ds, `unzipped_path_containing_subject_dirs` = `path_in_babs`/`name`,
                 i.e., extra layer of folder got from unzipping

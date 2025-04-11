@@ -451,9 +451,10 @@ class BABS:
         imported_files = []
         for imported_file in container.config.get('imported_files', []):
             # Check that the file exists:
-            assert op.exists(imported_file['original_path']), (
-                f'Requested imported file {imported_file["original_path"]} does not exist.'
-            )
+            if not op.exists(imported_file['original_path']):
+                raise FileNotFoundError(
+                    f'Requested imported file {imported_file["original_path"]} does not exist.'
+                )
             imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
             # Copy the file using pure Python:
             with (
@@ -753,9 +754,8 @@ class BABS:
         # Check `analysis/code`: ---------------------------------
         print('\nChecking `analysis/code/` folder...')
         # folder `analysis/code` should exist:
-        assert op.exists(op.join(self.analysis_path, 'code')), (
-            "Folder 'code' does not exist in 'analysis' folder!"
-        )
+        if not op.exists(op.join(self.analysis_path, 'code')):
+            raise FileNotFoundError("Folder 'code' does not exist in 'analysis' folder!")
 
         # assert the list of files in the `code` folder,
         #   and bash files should be executable:

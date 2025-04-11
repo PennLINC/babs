@@ -225,7 +225,8 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
         # INPUT_PATH is a placeholder for the path to the input dataset
         if key == '$INPUT_PATH':
             value = value.rstrip('/')
-            # sanity check that `value` should match with one of input ds's `unzipped_path_containing_subject_dirs`
+            # sanity check that `value` should match with one of input ds's
+            # `unzipped_path_containing_subject_dirs`
             if value not in [ds['unzipped_path_containing_subject_dirs'] for ds in input_datasets]:
                 warnings.warn(
                     "'" + value + "' specified after $INPUT_PATH"
