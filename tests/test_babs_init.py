@@ -53,6 +53,10 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     yaml_data = babs_config.copy()
     for imported_file in yaml_data.get('imported_files', []):
         imported_file['original_path'] = str(imported_file['original_path'])
+    yaml_data['script_preamble'] = 'PATH=/opt/conda/envs/babs/bin:$PATH'
+    # How much cluster resources it needs:
+    yaml_data['cluster_resources'] = {'interpreting_shell': '/bin/bash'}
+    yaml_data['job_compute_space'] = '/tmp'
     with open(new_yaml_path, 'w') as f:
         yaml.dump(yaml_data, f)
 
@@ -68,9 +72,6 @@ def test_babs_init_raw_bids(
     """
     This is to test `babs init` on raw BIDS data.
     """
-
-    if not op.exists(NOTEBOOKS_DIR):
-        raise FileNotFoundError(f'Notebooks directory not found at {NOTEBOOKS_DIR}')
 
     # Check the container dataset
     assert op.exists(simbids_container_ds)
@@ -108,11 +109,10 @@ def test_babs_init_raw_bids(
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
         _enter_init()
 
-    # # ================== ASSERT ============================
-    # # Assert by running `babs check-setup`
-    # babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=False)
-    # # Run `babs check-setup`:
-    # with mock.patch.object(
-    #     argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
-    # ):
-    #     _enter_check_setup()
+    # PART 2: Check the setup
+    babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=True)
+    # Run `babs check-setup`:
+    with mock.patch.object(
+        argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
+    ):
+        _enter_check_setup()

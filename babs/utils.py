@@ -310,7 +310,7 @@ def submit_array(analysis_path, processing_level, queue, maxarray, flag_print_me
     proc_cmd = subprocess.run(
         cmd.split(),
         cwd=analysis_path,
-        stdout=subprocess.PIPE,  # separate by space
+        capture_output=True,
     )
     proc_cmd.check_returncode()
     msg = proc_cmd.stdout.decode('utf-8')
@@ -584,7 +584,7 @@ def submit_one_test_job(analysis_path, queue, flag_print_message=True):
     proc_cmd = subprocess.run(
         cmd.split(),
         cwd=analysis_path,
-        stdout=subprocess.PIPE,  # separate by space
+        capture_output=True,
     )
 
     proc_cmd.check_returncode()

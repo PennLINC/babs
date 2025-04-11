@@ -4,12 +4,11 @@ Below is the configuration information saved during `babs init` in file 'analysi
 
 processing_level: session
 queue: sge
-input_ds:
-  $INPUT_DATASET_#1:
-    name: BIDS
-    path_in: https://osf.io/w2nu3/
-    unzipped_path_containing_subject_dirs: inputs/data/BIDS
-    is_zipped: false
+input_datasets:
+  BIDS:
+      is_zipped: false
+      origin_url: "/path/to/BIDS"
+      path_in_babs: inputs/data/BIDS
 container:
   name: toybidsapp-0-0-7
   path_in: /cbica/projects/BABS/babs_demo/toybidsapp-container

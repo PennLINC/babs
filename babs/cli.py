@@ -970,18 +970,18 @@ def get_existing_babs_proj(project_root):
     babs_proj.wtf_key_info(flag_output_ria_only=True)
 
     # Get information for input dataset:
-    input_ds_yaml = babs_proj_config['input_ds']
+    input_ds_yaml = babs_proj_config['input_datasets']
     # sanity check:
     if len(input_ds_yaml) == 0:  # there was no input ds:
         raise Exception(
-            "Section 'input_ds' in `analysis/code/babs_proj_config.yaml`"
+            "Section 'input_datasets' in `analysis/code/babs_proj_config.yaml`"
             'does not include any input dataset!'
             ' Something was wrong during `babs init`...'
         )
 
     # Get the class `InputDatasets`:
-    input_ds = InputDatasets(babs_proj_config['input_datasets'])
-
+    input_ds = InputDatasets(babs_proj_config['processing_level'], input_ds_yaml)
+    input_ds.update_abs_paths(project_root / 'analysis')
     return babs_proj, input_ds
 
 
@@ -1172,11 +1172,6 @@ def _parse_make_input_dataset():
     return parser
 
 
-def babs_create_input_dataset_main(output_path: str, multiple_sessions: bool, zip_level: str):
-    """This is the core function of babs create-input-dataset."""
-    create_mock_input_dataset(output_path, multiple_sessions, zip_level)
-
-
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
@@ -1185,7 +1180,6 @@ COMMANDS = [
     ('merge', _parse_merge, babs_merge_main),
     ('unzip', _parse_unzip, babs_unzip_main),
     ('sync-code', _parse_sync_code, babs_sync_code_main),
-    ('create-input-dataset', _parse_make_input_dataset, babs_create_input_dataset_main),
 ]
 
 
