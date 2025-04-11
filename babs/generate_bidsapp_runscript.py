@@ -60,7 +60,7 @@ def generate_bidsapp_runscript(
         bids_app_args = ''  # should be empty
         flag_fs_license = False
         path_fs_license = None
-        singuRun_input_dir = input_datasets[0]['data_parent_dir']
+        singuRun_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
     else:
         # read config from the yaml file:
         (
@@ -225,8 +225,9 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
         # INPUT_PATH is a placeholder for the path to the input dataset
         if key == '$INPUT_PATH':
             value = value.rstrip('/')
-            # sanity check that `value` should match with one of input ds's `data_parent_dir`
-            if value not in [ds['data_parent_dir'] for ds in input_datasets]:
+            # sanity check that `value` should match with one of input ds's
+            # `unzipped_path_containing_subject_dirs`
+            if value not in [ds['unzipped_path_containing_subject_dirs'] for ds in input_datasets]:
                 warnings.warn(
                     "'" + value + "' specified after $INPUT_PATH"
                     ' (in section `bids_app_args`'
@@ -285,7 +286,7 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
                 'There must be only one input dataset, but there are'
                 f' {len(input_datasets)} input datasets.'
             )
-        singuRun_input_dir = input_datasets[0]['data_parent_dir']
+        singuRun_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
 
     return (
         cmds,

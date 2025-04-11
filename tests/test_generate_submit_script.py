@@ -11,8 +11,8 @@ from babs.utils import (
 input_datasets_prep = [
     {
         'name': 'bids',
-        'relative_path': 'inputs/data/BIDS',
-        'data_parent_dir': 'inputs/data/BIDS',
+        'path_in_babs': 'inputs/data/BIDS',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/BIDS',
         'is_zipped': False,
     },
 ]
@@ -20,14 +20,14 @@ input_datasets_prep = [
 input_datasets_fmriprep_ingressed_anat = [
     {
         'name': 'freesurfer',
-        'relative_path': 'inputs/data',
-        'data_parent_dir': 'inputs/data/freesurfer',
+        'path_in_babs': 'inputs/data',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/freesurfer',
         'is_zipped': True,
     },
     {
         'name': 'bids',
-        'relative_path': 'inputs/data/BIDS',
-        'data_parent_dir': 'inputs/data/BIDS',
+        'path_in_babs': 'inputs/data/BIDS',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/BIDS',
         'is_zipped': False,
     },
 ]
@@ -35,8 +35,8 @@ input_datasets_fmriprep_ingressed_anat = [
 input_datasets_xcpd = [
     {
         'name': 'fmriprep',
-        'relative_path': 'inputs/data',
-        'data_parent_dir': 'inputs/data/fmriprep',
+        'path_in_babs': 'inputs/data',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/fmriprep',
         'is_zipped': True,
     },
 ]
@@ -44,8 +44,8 @@ input_datasets_xcpd = [
 input_datasets_qsirecon = [
     {
         'name': 'qsiprep',
-        'relative_path': 'inputs/data',
-        'data_parent_dir': 'inputs/data/qsiprep',
+        'path_in_babs': 'inputs/data',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/qsiprep',
         'is_zipped': True,
     },
 ]
@@ -53,14 +53,14 @@ input_datasets_qsirecon = [
 input_datasets_qsirecon_ingressed_anat_zipped = [
     {
         'name': 'freesurfer',
-        'relative_path': 'inputs/data',
-        'data_parent_dir': 'inputs/data/freesurfer',
+        'path_in_babs': 'inputs/data',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/freesurfer',
         'is_zipped': True,
     },
     {
         'name': 'qsiprep',
-        'relative_path': 'inputs/data',
-        'data_parent_dir': 'inputs/data/qsiprep',
+        'path_in_babs': 'inputs/data',
+        'unzipped_path_containing_subject_dirs': 'inputs/data/qsiprep',
         'is_zipped': True,
     },
 ]

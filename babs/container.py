@@ -120,7 +120,7 @@ class Container:
         if not op.exists(bash_dir):
             os.makedirs(bash_dir)
 
-        input_datasets = input_ds.df.to_dict(orient='records')
+        input_datasets = input_ds.as_records()
         templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
 
         # What should the outputs look like?
@@ -165,7 +165,7 @@ class Container:
             cluster_resources_config=self.config['cluster_resources'],
             script_preamble=self.config['script_preamble'],
             job_scratch_directory=self.config['job_compute_space'],
-            input_datasets=input_ds.df.to_dict(orient='records'),
+            input_datasets=input_ds.as_records(),
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],

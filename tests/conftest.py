@@ -223,3 +223,12 @@ def fmriprep_multises_derivative_files_zipped_at_subject(
     zip_ds_handle = dlapi.create(path=zipped_dir, force=True)
     zip_ds_handle.save(path=zipped_dir, message='Add zipped derivatives')
     return zipped_dir
+
+
+@pytest.fixture(scope='session')
+def templateflow_home(tmp_path_factory):
+    """
+    Create a temporary directory for TemplateFlow home
+    """
+    templateflow_home = tmp_path_factory.mktemp('TEMPLATEFLOW_HOME')
+    return templateflow_home

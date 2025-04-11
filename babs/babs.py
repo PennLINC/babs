@@ -37,7 +37,6 @@ from babs.utils import (
     submit_array,
     submit_one_test_job,
     validate_processing_level,
-    write_yaml,
 )
 
 
@@ -266,11 +265,6 @@ class BABS:
         system: class `System`
             information about the cluster management system
         """
-
-        # ==============================================================
-        # Initialize:
-        # ==============================================================
-
         # Make a directory of project_root:
         os.makedirs(self.project_root)  # we don't allow creation if folder exists
 
@@ -279,6 +273,7 @@ class BABS:
         self.analysis_datalad_handle = dlapi.create(
             self.analysis_path, cfg_proc='yoda', annex=True
         )
+        input_ds.update_abs_paths(self.analysis_path)
 
         # Prepare `.gitignore` ------------------------------
         # write into .gitignore so won't be tracked by git:
@@ -366,11 +361,10 @@ class BABS:
 
         # Register the input dataset(s): -----------------------------
         print('\nRegistering the input dataset(s)...')
-        for idx, row in input_ds.df.iterrows():
+        for idx, in_ds in enumerate(input_ds):
             # path to cloned dataset:
-            dataset_path = op.join(self.analysis_path, row['relative_path'])
-            dataset_name = row['name']
-            dataset_source = row['path_in']
+            dataset_name = in_ds.name
+            dataset_source = in_ds.origin_url
 
             print(f'Cloning input dataset #{idx + 1}: {dataset_name}')
 
@@ -378,7 +372,7 @@ class BABS:
             dlapi.clone(
                 dataset=self.analysis_path,
                 source=dataset_source,
-                path=dataset_path,
+                path=in_ds.babs_project_analysis_path,
             )
 
             # amend the previous commit with a nicer commit message:
@@ -396,33 +390,8 @@ class BABS:
         # get the current absolute path to the input dataset:
         input_ds.update_abs_paths(self.analysis_path)
 
-        # Check the type of each input dataset: (zipped? unzipped?)
-        #   this also gets `is_zipped`
-        print('\nChecking whether each input dataset is a zipped or unzipped dataset...')
-        input_ds.determine_input_zipped_status()
-        # sanity checks:
-        input_ds.validate_zipped_input_contents(self.processing_level)
-
-        # Check validity of unzipped ds:
-        #   if session, has `ses-*` in each `sub-*`; if subject, has a `sub-*`
-        # validate_unzipped_datasets(input_ds, self.processing_level)
-
-        # Update input ds information in `babs_proj_config.yaml`:
-        babs_proj_config = read_yaml(self.config_path, use_filelock=True)
-        for idx, row in input_ds.df.iterrows():
-            ds_index_str = f'$INPUT_DATASET_#{idx + 1}'
-            babs_proj_config['input_ds'][ds_index_str]['data_parent_dir'] = str(
-                row['data_parent_dir']
-            )
-            babs_proj_config['input_ds'][ds_index_str]['is_zipped'] = bool(row['is_zipped'])
-        write_yaml(babs_proj_config, self.config_path, use_filelock=True)
-        self.datalad_save(
-            path='code/babs_proj_config.yaml',
-            message='Update configurations of input dataset of this BABS project',
-        )
-
-        # Add container as sub-dataset of `analysis`: -----------------------------
-        # XXX: WHY DO WE NEED TO CLONE IT FIRST INTO `project_root`???
+        # Perform checks on the inputs:
+        input_ds.validate_input_contents()
 
         # directly add container as sub-dataset of `analysis`:
         print('\nAdding the container as a sub-dataset of `analysis` dataset...')
@@ -482,9 +451,10 @@ class BABS:
         imported_files = []
         for imported_file in container.config.get('imported_files', []):
             # Check that the file exists:
-            assert op.exists(imported_file['original_path']), (
-                f'Requested imported file {imported_file["original_path"]} does not exist.'
-            )
+            if not op.exists(imported_file['original_path']):
+                raise FileNotFoundError(
+                    f'Requested imported file {imported_file["original_path"]} does not exist.'
+                )
             imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
             # Copy the file using pure Python:
             with (
@@ -506,7 +476,7 @@ class BABS:
 
         # Determine the list of subjects to analyze: -----------------------------
         print('\nDetermining the list of subjects (and sessions) to analyze...')
-        sub_ses_inclusion_df = input_ds.generate_inclusion_dataframe(self.processing_level)
+        sub_ses_inclusion_df = input_ds.generate_inclusion_dataframe()
         sub_ses_inclusion_df.to_csv(self.list_sub_path_abs, index=False)
         self.datalad_save(
             path=self.list_sub_path_abs,
@@ -556,9 +526,9 @@ class BABS:
         # No need to keep the input dataset(s):
         #   old version: datalad uninstall -r --nocheck inputs/data
         print("DataLad dropping input dataset's contents...")
-        for _, row in input_ds.df.iterrows():
+        for in_ds in input_ds:
             _ = self.analysis_datalad_handle.drop(
-                path=row['relative_path'],
+                path=in_ds.babs_project_analysis_path,
                 recursive=True,  # and potential subdataset
                 reckless='availability',
             )
@@ -620,15 +590,13 @@ class BABS:
         if op.exists(self.project_root):  # if BABS project root folder has been created:
             if op.exists(self.analysis_path):  # analysis folder is created by datalad
                 self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
-                # Remove each input dataset:
+
                 print('Removing input dataset(s) if cloned...')
-                for _, row in input_ds.df.iterrows():
-                    # check if it exists yet:
-                    abs_path = op.join(self.analysis_path, row['relative_path'])
-                    if op.exists(abs_path):  # this input dataset has been cloned:
+                for in_ds in input_ds:
+                    if op.exists(in_ds.babs_project_analysis_path):
                         # use `datalad remove` to remove:
                         _ = self.analysis_datalad_handle.remove(
-                            path=abs_path, reckless='modification'
+                            path=in_ds.babs_project_analysis_path, reckless='modification'
                         )
 
                 # `git annex dead here`:
@@ -745,9 +713,9 @@ class BABS:
         )
 
         # check each input ds:
-        for idx, row in input_ds.df.iterrows():
-            abs_path = row['abs_path']
-            dataset_name = row['name']
+        for idx, in_ds in enumerate(input_ds):
+            abs_path = in_ds.babs_project_analysis_path
+            dataset_name = in_ds.name
 
             # check if the dir of this input ds exists:
             assert op.exists(abs_path), (
@@ -786,9 +754,8 @@ class BABS:
         # Check `analysis/code`: ---------------------------------
         print('\nChecking `analysis/code/` folder...')
         # folder `analysis/code` should exist:
-        assert op.exists(op.join(self.analysis_path, 'code')), (
-            "Folder 'code' does not exist in 'analysis' folder!"
-        )
+        if not op.exists(op.join(self.analysis_path, 'code')):
+            raise FileNotFoundError("Folder 'code' does not exist in 'analysis' folder!")
 
         # assert the list of files in the `code` folder,
         #   and bash files should be executable:

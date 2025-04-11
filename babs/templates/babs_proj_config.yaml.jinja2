@@ -2,13 +2,13 @@ processing_level: '{{ processing_level }}'
 queue: '{{ queue }}'
 
 # input dataset's name(s)
-input_ds:
-{% for i in range(input_ds.num_ds) %}
-  $INPUT_DATASET_#{{ i + 1 }}:
-    name: '{{ input_ds.df.loc[i, "name"] }}'
-    path_in: '{{ input_ds.df.loc[i, "path_in"] }}'
-    data_parent_dir: 'TO_BE_FILLED'
-    is_zipped: 'TO_BE_FILLED'
+input_datasets:
+{% for in_ds in input_ds %}
+  {{ in_ds['name'] }}:
+    origin_url: '{{ in_ds['origin_url'] }}'
+    path_in_babs: '{{ in_ds['path_in_babs'] }}'
+    unzipped_path_containing_subject_dirs: '{{ in_ds['unzipped_path_containing_subject_dirs'] }}'
+    is_zipped: '{{ in_ds['is_zipped'] }}'
 {% endfor %}
 
 # container ds:

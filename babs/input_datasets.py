@@ -23,14 +23,15 @@ class InputDatasets:
             includes necessary information:
             - name: str: a name the user gives
             - path_in: str: the path to the input ds
-            - relative_path: the path to where the input ds is cloned,
+            - path_in_babs: the path to where the input ds is cloned,
                 relative to `analysis` folder
             - abs_path: the absolute path to the input ds
-            - data_parent_dir: the path to where the input data (for a sub or a ses) is,
+            - unzipped_path_containing_subject_dirs: the path to where the input data
+                (for a sub or a ses) is,
                 relative to `analysis` folder.
-                If it's zipped ds, `data_parent_dir` = `relative_path`/`name`,
+                If it's zipped ds, `unzipped_path_containing_subject_dirs` = `path_in_babs`/`name`,
                 i.e., extra layer of folder got from unzipping
-                If it's an unzipped ds, `data_parent_dir` = `relative_path`
+                If it's an unzipped ds, `unzipped_path_containing_subject_dirs` = `path_in_babs`
             - is_zipped: True or False, is the input data zipped or not
         num_ds: int
             number of input dataset(s)
@@ -53,6 +54,10 @@ class InputDatasets:
     def num_ds(self):
         """Get the number of input datasets."""
         return len(self._datasets)
+
+    def __iter__(self):
+        """Make InputDatasets iterable over its datasets."""
+        return iter(self._datasets)
 
     def set_inclusion_dataframe(self, processing_inclusion_file, processing_level):
         """
@@ -120,6 +125,10 @@ class InputDatasets:
             inclu_df = combine_inclusion_dataframes(initial_inclusion_dfs)
 
         return validate_sub_ses_processing_inclusion(inclu_df, self.processing_level)
+
+    def as_records(self):
+        """Return the input datasets as a list of dictionaries."""
+        return [in_ds.as_dict() for in_ds in self._datasets]
 
 
 def combine_inclusion_dataframes(initial_inclusion_dfs):
