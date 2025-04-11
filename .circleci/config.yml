@@ -39,15 +39,24 @@ jobs:
                   echo 'source = /tests/babs' >> .coveragerc && \
                   echo '[report]' >> .coveragerc && \
                   echo 'exclude_lines = pragma: no cover' >> .coveragerc && \
+                  echo '[xml]' >> .coveragerc && \
+                  echo 'output = coverage.xml' >> .coveragerc && \
                   python -m pytest -n 4 -sv --durations=0 --timeout=300 \
                   --cov=babs \
                   --cov-config=.coveragerc \
                   --cov-report=term \
                   --junitxml=/test-temp/junit.xml && \
                   ls -la /tests/ && \
-                  python -m coverage xml && \
+                  echo 'Attempting to generate XML report...' && \
+                  python -c 'import coverage; cov = coverage.Coverage(config_file=\".coveragerc\"); cov.load(); cov.xml_report()' && \
                   ls -la /tests/ && \
-                  cp /tests/coverage.xml /test-temp/ || echo 'No coverage file generated - tests may not be exercising code'"
+                  if [ -f 'coverage.xml' ]; then \
+                    echo 'Successfully generated coverage.xml' && \
+                    cp coverage.xml /test-temp/; \
+                  else \
+                    echo 'Creating fallback minimal coverage.xml' && \
+                    echo '<?xml version=\"1.0\" ?><coverage version=\"5.5\" timestamp=\"1619712311386\" lines-valid=\"0\" lines-covered=\"0\" line-rate=\"0\" branches-valid=\"0\" branches-covered=\"0\" branch-rate=\"0\" complexity=\"0\"><sources><source>/tests/babs</source></sources><packages></packages></coverage>' > /test-temp/coverage.xml; \
+                  fi"
 
       - store_test_results:
           path: /home/circleci/e2e-testing/junit.xml
