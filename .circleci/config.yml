@@ -3,7 +3,7 @@
 version: 2.1
 
 orbs:
-  codecov: codecov/codecov@5.3.0
+  codecov: codecov/codecov@3.2.4
 
 jobs:
   pytest:
@@ -31,63 +31,26 @@ jobs:
                 --privileged \
                 pennlinc/slurm-docker-ci:unstable \
                 /bin/bash -c "cd /tests && \
-                  echo '[run]' > .coveragerc && \
-                  echo 'source = babs' >> .coveragerc && \
-                  echo 'include = /tests/babs/*' >> .coveragerc && \
-                  echo 'omit = */tests/*, setup.py' >> .coveragerc && \
-                  echo '[paths]' >> .coveragerc && \
-                  echo 'source = /tests/babs' >> .coveragerc && \
-                  echo '[report]' >> .coveragerc && \
-                  echo 'exclude_lines = pragma: no cover' >> .coveragerc && \
-                  echo '[xml]' >> .coveragerc && \
-                  echo 'output = coverage.xml' >> .coveragerc && \
-                  python -m pytest -n 4 -sv --durations=0 --timeout=300 \
-                  --cov=babs \
-                  --cov-config=.coveragerc \
-                  --cov-report=term \
-                  --junitxml=/test-temp/junit.xml && \
-                  ls -la /tests/ && \
-                  echo 'Attempting to generate XML report...' && \
-                  python -c 'import coverage; cov = coverage.Coverage(config_file=\".coveragerc\"); cov.load(); cov.xml_report()' && \
-                  ls -la /tests/ && \
-                  if [ -f 'coverage.xml' ]; then \
-                    echo 'Successfully generated coverage.xml' && \
-                    cp coverage.xml /test-temp/; \
-                  else \
-                    echo 'Creating fallback minimal coverage.xml' && \
-                    echo '<?xml version=\"1.0\" ?><coverage version=\"5.5\" timestamp=\"1619712311386\" lines-valid=\"0\" lines-covered=\"0\" line-rate=\"0\" branches-valid=\"0\" branches-covered=\"0\" branch-rate=\"0\" complexity=\"0\"><sources><source>/tests/babs</source></sources><packages></packages></coverage>' > /test-temp/coverage.xml; \
-                  fi"
+                  pytest -rP -o log_cli=true -n 4 -sv \
+                      --durations=0 \
+                      --timeout=300 \
+                      --cov-config=/tests/pyproject.toml \
+                      --cov-append \
+                      --cov-report term-missing \
+                      --cov=babs \
+                      --junitxml=/test-temp/junit.xml ."
+            mkdir -p /tmp/src/coverage
+            mv /home/circleci/src/babs/.coverage /tmp/src/coverage/.coverage.main
 
+      - persist_to_workspace:
+          root: /tmp/src/coverage
+          paths:
+            - .coverage.main
       - store_test_results:
           path: /home/circleci/e2e-testing/junit.xml
       - store_artifacts:
-          path: /home/circleci/e2e-testing/coverage.xml
-          destination: coverage.xml
-      - run:
-          name: Copy coverage file to workspace
-          command: |
-            mkdir -p ${PWD}/coverage_reports
-            if [ -f "${HOME}/e2e-testing/coverage.xml" ]; then
-              cp ${HOME}/e2e-testing/coverage.xml ${PWD}/coverage_reports/
-              ls -la ${PWD}/coverage_reports/  # Debug output to verify directory contents
-              echo "Coverage file copied successfully"
-            else
-              echo "No coverage.xml file found in ${HOME}/e2e-testing/"
-              # Create an empty coverage file to avoid downstream errors
-              echo '<?xml version="1.0" ?><coverage version="5.5" timestamp="1619712311386" lines-valid="0" lines-covered="0" line-rate="0" branches-valid="0" branches-covered="0" branch-rate="0" complexity="0"><sources><source>/tests/babs</source></sources><packages></packages></coverage>' > ${PWD}/coverage_reports/coverage.xml
-              echo "Created empty coverage report for Codecov"
-            fi
-      - run:
-          name: Upload to Codecov
-          command: |
-            pip install coverage codecov
-            python --version
-            coverage --version
-            if [ -f "${PWD}/coverage_reports/coverage.xml" ]; then
-              codecov -f ${PWD}/coverage_reports/coverage.xml || echo "Codecov upload failed, but continuing build"
-            else
-              echo "No coverage file to upload to Codecov"
-            fi
+          path: /tmp/src/coverage
+          destination: .coverage.main
 
   e2e-slurm:
     machine:
@@ -136,6 +99,29 @@ jobs:
           path: ${HOME}/e2e-testing/test_project/analysis
           destination: test-artifacts
 
+  merge_coverage:
+    resource_class: small
+    docker:
+      - image: cimg/python:3.11.11
+    working_directory: /tmp/src/babs
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/src/coverage
+      - run:
+          name: Install babs
+          command: pip install -e .[tests] --progress-bar off
+      - run:
+          name: Merge coverage files
+          command: |
+            cd /tmp/src/coverage/
+            coverage combine
+            coverage xml
+      - store_artifacts:
+          path: /tmp/src/coverage
+      - codecov/upload:
+          file: /tmp/src/coverage/coverage.xml
+
   deployable: # checkpoint of deployable: requires all success
     resource_class: small
     docker:
@@ -172,6 +158,18 @@ workflows:
           filters:
             tags:
               only: /.*/
+      - merge_coverage:
+          requires:
+            - pytest
+            - e2e-slurm
+          filters:
+            branches:
+              ignore:
+                - /docs?\/.*/
+                - /tests?\/.*/
+            tags:
+              only: /.*/
+
       - deployable:
           requires:
             - pytest
