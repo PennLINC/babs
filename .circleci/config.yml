@@ -161,7 +161,6 @@ workflows:
       - merge_coverage:
           requires:
             - pytest
-            - e2e-slurm
           filters:
             branches:
               ignore:
