@@ -30,7 +30,20 @@ jobs:
                 -h slurmctl --cap-add sys_admin \
                 --privileged \
                 pennlinc/slurm-docker-ci:unstable \
-                /bin/bash -c "cd /tests && python -m pytest -n 4 -sv --durations=0 --timeout=300 --cov=babs --cov-report=xml:/tests/coverage.xml --junitxml=/test-temp/junit.xml && cp /tests/coverage.xml /test-temp/"
+                /bin/bash -c "cd /tests && \
+                  echo '[run]' > .coveragerc && \
+                  echo 'source = babs' >> .coveragerc && \
+                  echo 'omit = */tests/*, setup.py' >> .coveragerc && \
+                  echo '[paths]' >> .coveragerc && \
+                  echo 'source = /tests/babs' >> .coveragerc && \
+                  echo '[report]' >> .coveragerc && \
+                  echo 'exclude_lines = pragma: no cover' >> .coveragerc && \
+                  python -m pytest -n 4 -sv --durations=0 --timeout=300 \
+                  --cov=babs --cov-source=/tests/babs \
+                  --cov-config=.coveragerc \
+                  --cov-report=xml:/tests/coverage.xml \
+                  --junitxml=/test-temp/junit.xml && \
+                  cp /tests/coverage.xml /test-temp/"
 
       - store_test_results:
           path: /home/circleci/e2e-testing/junit.xml
@@ -40,15 +53,17 @@ jobs:
       - run:
           name: Copy coverage file to workspace
           command: |
-            cp ${HOME}/e2e-testing/coverage.xml ${PWD}/
-            ls -la ${PWD}/coverage.xml  # Debug output to verify file exists
+            mkdir -p ${PWD}/coverage_reports
+            cp ${HOME}/e2e-testing/coverage.xml ${PWD}/coverage_reports/
+            ls -la ${PWD}/coverage_reports/  # Debug output to verify directory contents
       - run:
           name: Install coverage package for Codecov
           command: |
-            pip install coverage
+            pip install coverage codecov
             python --version
             coverage --version
-      - codecov/upload
+      - codecov/upload:
+          file_glob: "coverage_reports/*.xml"
 
   e2e-slurm:
     machine:
