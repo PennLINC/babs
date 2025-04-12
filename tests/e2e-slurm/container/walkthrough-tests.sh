@@ -104,5 +104,14 @@ pushd "${PWD}/${TEST2_NAME}"
 babs status
 
 babs submit --all
+# # Wait for all running jobs to finish
+while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
+    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
+    squeue -u "$USER" -t RUNNING,PENDING
+    echo "Waiting for running jobs to finish..."
+    sleep 5 # Wait for 60 seconds before checking again
+done
+
+babs status
 
 babs merge
