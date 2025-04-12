@@ -14,14 +14,30 @@ from babs.babs import BABS
 from babs.input_datasets import InputDatasets
 from babs.system import System
 from babs.utils import (
-    _path_does_not_exist,
-    _path_exists,
     create_job_status_csv,
     get_datalad_version,
     read_job_status_csv,
     read_yaml,
     validate_processing_level,
 )
+
+
+def _path_exists(path, parser):
+    """Ensure a given path exists."""
+    if path is None or not Path(path).exists():
+        raise parser.error(f'The path <{path}> does not exist.')
+
+    return Path(path).absolute()
+
+
+def _path_does_not_exist(path, parser):
+    """Ensure a given path does not exist."""
+    if path is None:
+        raise parser.error('The path is required.')
+    elif Path(path).exists():
+        raise parser.error(f'The path <{path}> already exists.')
+
+    return Path(path).absolute()
 
 
 def _parse_init():

@@ -16,26 +16,27 @@ from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
-from babs.system import validate_queue
-from babs.utils import (
+from babs.scheduler import (
     calcu_runtime,
-    ceildiv,
     df_status_update,
     df_submit_update,
-    get_alert_message_in_log_files,
     get_cmd_cancel_job,
-    get_config_msg_alert,
-    get_git_show_ref_shasum,
-    get_immediate_subdirectories,
-    get_last_line,
     prepare_job_array_df,
-    print_versions_from_yaml,
     read_job_status_csv,
-    read_yaml,
     report_job_status,
     request_all_job_status,
     submit_array,
     submit_one_test_job,
+)
+from babs.system import validate_queue
+from babs.utils import (
+    get_alert_message_in_log_files,
+    get_config_msg_alert,
+    get_git_show_ref_shasum,
+    get_immediate_subdirectories,
+    get_last_line,
+    print_versions_from_yaml,
+    read_yaml,
     validate_processing_level,
 )
 
@@ -1875,3 +1876,12 @@ class BABS:
         # ====================================================
         # Merge all branches of unzipping
         # ====================================================
+
+
+def ceildiv(a, b):
+    """
+    This is to calculate the ceiling of division of a/b.
+    ref: https://stackoverflow.com/questions/14822184/...
+      ...is-there-a-ceiling-equivalent-of-operator-in-python
+    """
+    return -(a // -b)
