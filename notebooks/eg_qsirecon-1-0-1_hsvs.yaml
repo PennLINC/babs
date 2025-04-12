@@ -26,6 +26,7 @@ input_datasets:
         origin_url: "/path/to/FreeSurfer"
         unzipped_path_containing_subject_dirs: "freesurfer"
         path_in_babs: inputs/data/freesurfer
+
 # Arguments in `singularity run`:
 bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
@@ -37,7 +38,6 @@ bids_app_args:
     --recon-spec: "/code/recon_spec.yaml" # [FIX ME] you will need to 1) bind this file in the singularity run yourself (in the qsirecon_zip.sh and participant_job.sh in analysis/code) and 2) add this file in your analysis/code, then babs sync-code
     --nthreads: "8"
     --omp-nthreads: "8"
-    $INPUT_PATH: "inputs/data/qsiprep"
 
 # Arguments that are passed directly to singularity/apptainer:
 singularity_args:
