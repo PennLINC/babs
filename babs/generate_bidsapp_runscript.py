@@ -197,50 +197,10 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
     flag_fs_license = False
     path_fs_license = None
     singuRun_input_dir = None
-
-    # re: positional argu `$INPUT_PATH`:
-    if len(input_datasets) > 1:  # more than 1 input dataset:
-        # check if `$INPUT_PATH` is one of the keys (must):
-        if '$INPUT_PATH' not in bids_app_args:
-            raise Exception(
-                "The key '$INPUT_PATH' is expected in section `bids_app_args`"
-                ' in `container_config`, because there are more than'
-                ' one input dataset!'
-            )
-    else:  # only 1 input dataset:
-        # check if the path is consistent with the name of the only input ds's name:
-        if '$INPUT_PATH' in bids_app_args:
-            expected_temp = 'inputs/data/' + input_datasets[0]['name']
-            if bids_app_args['$INPUT_PATH'] != expected_temp:
-                raise Exception(
-                    "As there is only one input dataset, the value of '$INPUT_PATH'"
-                    ' in section `bids_app_args`'
-                    ' in `container_config` should be'
-                    " '" + expected_temp + "'; You can also choose"
-                    " not to specify '$INPUT_PATH'."
-                )
-
     subject_selection_flag = None
     for key, value in bids_app_args.items():
-        # INPUT_PATH is a placeholder for the path to the input dataset
-        if key == '$INPUT_PATH':
-            value = value.rstrip('/')
-            # sanity check that `value` should match with one of input ds's
-            # `unzipped_path_containing_subject_dirs`
-            if value not in [ds['unzipped_path_containing_subject_dirs'] for ds in input_datasets]:
-                warnings.warn(
-                    "'" + value + "' specified after $INPUT_PATH"
-                    ' (in section `bids_app_args`'
-                    ' in `container_config`), does not'
-                    " match with any dataset's current path."
-                    ' This may cause error when running the BIDS App.',
-                    stacklevel=2,
-                )
-
-            singuRun_input_dir = value
-
         # Check if FreeSurfer license will be used:
-        elif key == '--fs-license-file':
+        if key == '--fs-license-file':
             flag_fs_license = True
             path_fs_license = value
             if not op.exists(path_fs_license):
@@ -278,15 +238,8 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
             'Using `--participant-label` as the default subject selection flag.'
         )
 
-    # Finalize `singuRun_input_dir`:
-    if singuRun_input_dir is None:
-        # now, it must be only one input dataset, and user did not provide `$INPUT_PATH` key:
-        if not len(input_datasets) == 1:
-            raise Exception(
-                'There must be only one input dataset, but there are'
-                f' {len(input_datasets)} input datasets.'
-            )
-        singuRun_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
+    # The input dataset is the first one in the list
+    singuRun_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
 
     return (
         cmds,

@@ -91,11 +91,10 @@ class InputDataset:
             pandas DataFrame of the subject/session inclusion file, or `None`.
             If `None`, a random subject/session will be used to check the input dataset.
         """
-
         if self.is_zipped:
             validate_zipped_input_contents(
                 self.babs_project_analysis_path,
-                self.unzipped_path_containing_subject_dirs,
+                self.name,
                 self.processing_level,
                 inclusion_df,
             )
@@ -151,9 +150,9 @@ class InputDataset:
             A pandas DataFrame with the subjects and sessions available in the input dataset
         """
         zip_pattern = (
-            f'sub-*_ses-*_{self.unzipped_path_containing_subject_dirs}*.zip'
+            f'sub-*_ses-*_{self.name}*.zip'
             if self.processing_level == 'session'
-            else f'sub-*_{self.unzipped_path_containing_subject_dirs}*.zip'
+            else f'sub-*_{self.name}*.zip'
         )
         found_zip_files = sorted(glob(os.path.join(self.babs_project_analysis_path, zip_pattern)))
 

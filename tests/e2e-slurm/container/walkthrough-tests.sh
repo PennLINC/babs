@@ -86,3 +86,23 @@ fi
 
 babs merge
 echo "PASSED: e2e walkthrough successful!"
+
+popd
+# Create a second BABS project with raw and zipped inputs
+TEST2_NAME=multiinput_test
+babs init \
+    --container_ds "${PWD}"/simbids-container \
+    --container_name simbids-0-0-3 \
+    --container_config "/tests/tests/e2e-slurm/container/config_simbids_multiinput.yaml" \
+    --processing_level subject \
+    --queue slurm \
+    --keep-if-failed \
+    "${PWD}/${TEST2_NAME}"
+
+pushd "${PWD}/${TEST2_NAME}"
+
+babs status
+
+babs submit --all
+
+babs merge
