@@ -35,7 +35,6 @@ input_datasets:
 #     fmriprep_anat=<path/to/cloned_fmriprep_anat_output_ria>    # 2nd input dataset \
 bids_app_args:
     $SUBJECT_SELECTION_FLAG: "--participant-label"
-    $INPUT_PATH: inputs/data/BIDS # the key `$INPUT_PATH` is a placeholder, which must be included first as there are two input datasets
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file

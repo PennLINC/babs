@@ -5,10 +5,8 @@ subid="$1"
 {% if processing_level == 'session' %}
 sesid="$2"
 {% endif %}
-{% for input_ds in input_datasets %}
-{% if input_ds['is_zipped'] %}
+{% for input_ds in input_datasets|selectattr('is_zipped') %}
 {{ input_ds['name'].upper() }}_ZIP="${{ loop.index + (2 if processing_level == 'session' else 1) }}"
-{% endif %}
 {% endfor %}
 
 {% if flag_filterfile %}

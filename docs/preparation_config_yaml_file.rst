@@ -188,9 +188,9 @@ Basics - Manual of writing section ``bids_app_args``
               ``--bids-filter-file`` for explanations.
             * See :doc:`babs-init` for examples of ``--list_sub_file``/``--list-sub-file`` to filter subjects and sessions.
 
-    * :octicon:`alert-fill` :bdg-warning:`warning` Exception for positional arguments: if you have more than one input datasets,
-      you must use ``$INPUT_PATH`` to specify which dataset to use for the positional argument input BIDS dataset.
-      See :ref:`advanced_manual_singularity_run` --> bullet point "When more than one input dataset" for more.
+    * :octicon:`alert-fill` :bdg-warning:`warning` If you have more than one input for a BABS project, the
+      first listed input will be used for the positional input argument. We removed ``$INPUT_PATH`` from the
+      configuration YAML file.
 
 * What's the format I should follow when providing an argument?
 
