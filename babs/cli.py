@@ -12,14 +12,9 @@ from filelock import FileLock, Timeout
 
 from babs.babs import BABS
 from babs.input_datasets import InputDatasets
+from babs.scheduler import create_job_status_csv, read_job_status_csv
 from babs.system import System
-from babs.utils import (
-    create_job_status_csv,
-    get_datalad_version,
-    read_job_status_csv,
-    read_yaml,
-    validate_processing_level,
-)
+from babs.utils import get_datalad_version, read_yaml, validate_processing_level
 
 
 def _path_exists(path, parser):
