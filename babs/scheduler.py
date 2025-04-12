@@ -1,5 +1,5 @@
 import datetime
-import os as op
+import os.path as op
 import subprocess
 from io import StringIO
 
