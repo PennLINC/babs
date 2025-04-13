@@ -44,7 +44,7 @@ After ``babs init`` is done, please use ``babs check-setup`` to check everything
 Although the 3rd step is optional (only done when ``--job-test`` is specified),
 we highly recommend doing so before you ``babs submit`` real jobs,
 as real jobs often take much longer time and are harder to tell if the error comes from BIDS App itself,
-or some setups in the BABS project.
+or some setup in the BABS project.
 
 Very importantly, ``babs check-setup`` can also be used as a diagnostic tool - its printed messages are helpful for debugging.
 If you have trouble using ``babs init`` and hope to ask in a `GitHub issue <https://github.com/PennLINC/babs/issues>`_,

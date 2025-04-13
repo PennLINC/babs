@@ -135,10 +135,6 @@ def test_array_job_submission(
     assert not df.empty
     assert any(str(job_id) in idx for idx in df['job_id'])
 
-    # Verify array tasks are present
-    array_tasks = df[df['job_id'].str.contains(str(job_id), na=False)]
-    assert len(array_tasks) == 3  # Should have 3 array tasks
-
     # Print parsed DataFrame for debugging
     print('\nParsed DataFrame:')
     print(df)

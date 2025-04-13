@@ -17,7 +17,7 @@ Source code: ``babs/babs.py`` -> ``class BABS()`` --> ``def babs_status()``
     * get original ``df_job``
     * make new one ``df_job_updated`` (copy of original one)
     * request ``qstat`` for **all** jobs: ``df_all_job_status``
-    * for each job that has been submitted but not ``is_done``:
+    * for each job that has been submitted but not ``has_results``:
 
         * get basic information about this job
         * get the last line of ``stdout`` file
@@ -45,12 +45,12 @@ Source code: ``babs/babs.py`` -> ``class BABS()`` --> ``def babs_status()``
                 * update ``df_job_updated``
                 * resubmit if 'failed' in ``flags_resubmit``, or request specifically: resubmit and update ``df_job_updated``
 
-    * for each job that marked as "is_done" in previous round:
+    * for each job that marked as "has_results" in previous round:
 
         * if ``--resubmit-job`` for this job & ``--reckless``: resubmit
         * else:
 
-            * get last line of ``stdout`` file. Purpose: when marked as 'is_done' (has a branch in output RIA), the job hasn't been finished yet, and needs to complete cleanup steps such as datalad dropping the input data before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_stdout_file' for 'is_done' jobs.
+            * get last line of ``stdout`` file. Purpose: when marked as 'has_results' (has a branch in output RIA), the job hasn't been finished yet, and needs to complete cleanup steps such as datalad dropping the input data before echoing 'SUCCESS'. This is to make sure that we can get 'SUCCESS' for 'last_line_stdout_file' for 'has_results' jobs.
             * check if any alert message in the log files (based on 'alert_log_messages'); Purpose: update it for successful jobs too in case user updates the configs in yaml file
 
     * for jobs that haven't been submitted yet:
@@ -61,7 +61,7 @@ Source code: ``babs/babs.py`` -> ``class BABS()`` --> ``def babs_status()``
     * summarize the job status and report
 
 Summary:
-- 'alert_log_messages' is detected in all submitted jobs, no matter 'is_done' in previous round or not
+- 'alert_log_messages' is detected in all submitted jobs, no matter 'has_results' in previous round or not
 
 
 ===================================
@@ -99,7 +99,7 @@ Note: currently, ``babs status`` CLI does not support ``--reckless``.
      - resubmit
      - added
      - tested with session data
-   * - submitted, is_done
+   * - submitted, has_results
      - 1. CLI does not allow ``--reckless``;
        2. if ``--resubmit-job`` of a finished job, warning, not to resubmit
      - added, one TODO
@@ -114,16 +114,16 @@ Example ``job_status.csv``
 
 When this CSV was just initialized::
 
-    sub_id,ses_id,has_submitted,job_id,job_state_category,job_state_code,duration,is_done,is_failed,log_filename,last_line_stdout_file,alert_message
+    sub_id,ses_id,submitted,job_id,state,state,time_used,has_results,is_failed,log_filename,last_line_stdout_file,alert_message
     sub-01,ses-A,False,-1,,,,False,,,,
 
 
 when ``print(df)`` by python::
 
-        sub_id ses_id  has_submitted  job_id  job_state_category  job_state_code  \
+        sub_id ses_id  submitted  job_id  state  state  \
     0  sub-01  ses-A          False      -1                 NaN             NaN
 
-        duration  is_done  is_failed  log_filename  last_line_stdout_file  alert_message
+        time_used  has_results  is_failed  log_filename  last_line_stdout_file  alert_message
     0       NaN    False        NaN           NaN               NaN            NaN
 
 Note: ``0`` at the beginning: index of pd.DataFrame

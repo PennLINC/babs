@@ -1,6 +1,7 @@
 """Utils and helper functions"""
 
 import copy
+import getpass
 import os
 import os.path as op
 import subprocess
@@ -8,6 +9,7 @@ import warnings
 from importlib.metadata import version
 
 import numpy as np
+import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
 
@@ -274,9 +276,9 @@ def get_last_line(fn):
                 # remove spaces at the beginning or the end; remove '\n':
                 last_line = last_line.strip().replace('\n', '')
             else:
-                last_line = np.nan
+                last_line = ''
     else:  # e.g., `qw` pending
-        last_line = np.nan
+        last_line = ''
 
     return last_line
 
@@ -440,21 +442,14 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
 
 def get_username():
     """
-    This is to get the current username.
-    This will be used for job accounting, e.g., `qacct`.
+    Get the current username.
 
     Returns:
-    -----------
-    username_lowercase: str
-
-    NOTE: only support SGE now.
+    --------
+    str
+        Current username
     """
-    proc_username = subprocess.run(['whoami'], stdout=subprocess.PIPE)
-    proc_username.check_returncode()
-    username_lowercase = proc_username.stdout.decode('utf-8')
-    username_lowercase = username_lowercase.replace('\n', '')  # remove \n
-
-    return username_lowercase
+    return getpass.getuser()
 
 
 def print_versions_from_yaml(fn_yaml):
@@ -541,3 +536,114 @@ def get_git_show_ref_shasum(branch_name, the_path):
     git_ref = msg.split()[0]  # take the first element
 
     return git_ref, msg
+
+
+def get_results_branches(ria_directory):
+    """
+    Get branch list from git repository
+
+    Parameters:
+    --------------
+    ria_directory: str
+        path to the git (or datalad) repository
+
+    """
+    branch_output = subprocess.run(
+        ['git', 'branch', '--list'],
+        cwd=ria_directory,
+        capture_output=True,
+        text=True,
+    )
+
+    # Filter to just branches starting with 'job-'
+    branches = [
+        # Remove leading and trailing asterisks and spaces
+        b.strip().replace('* ', '')
+        for b in branch_output.stdout.strip().split('\n')
+        if b.strip().replace('* ', '').startswith('job-')
+    ]
+    if not branches:
+        raise ValueError('No branches found in the repository')
+    return branches
+
+
+def results_branch_dataframe(branches):
+    """
+    Create a dataframe from a list of branches.
+
+    Parameters:
+    --------------
+    branches: list
+        list of branches
+
+    Returns:
+    -------------
+    df: pd.DataFrame
+        dataframe with the following columns:
+        job_id: int
+        task_id: int
+        sub_id: str
+        ses_id: str
+        has_results: bool
+
+    Examples:
+    ---------
+    For sessionwise processing, the returned dataframe will look like:
+    job_id  task_id  sub_id  ses_id  has_results
+    123     1      sub-0000    ses-0000    True
+    123     2      sub-0001    ses-0001    True
+
+    for subjectwise processing, the returned dataframe will look like:
+
+    job_id  task_id  sub_id  has_results
+    123     1      sub-0000    True
+    123     2      sub-0001    True
+
+    """
+    import re
+
+    # Create a pattern with named groups - ses_id is optional
+    pattern = (
+        r'job-(?P<job_id>\d+)-?(?P<task_id>\d+)?[-_]'
+        r'(?P<sub_id>sub-[^_]+)(?:_(?P<ses_id>ses-[^_]+))?'
+    )
+
+    result_data = []
+    for branch in branches:
+        match = re.match(pattern, branch)
+        if match:
+            # Convert match to dictionary and add has_results
+            result = match.groupdict()
+            result['has_results'] = True
+            result_data.append(result)
+
+    df = pd.DataFrame(result_data)
+
+    return df
+
+
+def update_job_status(previous_df, results_df, currently_running_df):
+    """
+    Update the job status dataframe with the results from a results branch dataframe
+    and the currently running dataframe.
+
+    Parameters:
+    --------------
+    previous_df: pd.DataFrame
+        previous job status dataframe
+    results_df: pd.DataFrame
+        results branch dataframe
+    currently_running_df: pd.DataFrame
+        currently running dataframe
+
+    Returns:
+    -------------
+    df: pd.DataFrame
+        updated job status dataframe
+
+    """
+
+    # Some jobs were finished and some are newly finished.
+    # Update the previous dataframe with the results from the results branch dataframe.
+
+    pass

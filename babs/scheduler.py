@@ -1,4 +1,3 @@
-import datetime
 import os.path as op
 import subprocess
 from io import StringIO
@@ -7,6 +6,34 @@ import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
+
+from babs.utils import get_username
+
+scheduler_status_dtype = {
+    'job_id': 'Int64',
+    'task_id': 'Int64',
+    'log_filename': 'str',
+    'submitted': 'boolean',
+    'has_results': 'boolean',
+    'is_failed': 'boolean',
+    'needs_resubmit': 'boolean',
+    'last_line_stdout_file': 'str',
+    'state': 'str',
+    'time_used': 'str',
+    'alert_message': 'str',
+}
+
+status_columns = [
+    'job_id',
+    'task_id',
+    'state',
+    'time_used',
+    'time_limit',
+    'nodes',
+    'cpus',
+    'partition',
+    'name',
+]
 
 
 def check_slurm_available() -> bool:
@@ -36,8 +63,9 @@ def squeue_to_pandas() -> pd.DataFrame:
     -------
     pd.DataFrame
         DataFrame containing job information with columns:
-        - job_id: Job ID (with array task if applicable)
-        - state: Job state (single character)
+        - job_id: Job ID
+        - task_id: Task ID
+        - state: Job state
         - time_used: Time used by the job
         - time_limit: Time limit for the job
         - nodes: Number of nodes allocated
@@ -50,11 +78,19 @@ def squeue_to_pandas() -> pd.DataFrame:
     RuntimeError
         If squeue command fails or returns unexpected output.
     """
+    squeue_columns = [
+        # job_id is {array_id}_{task_id}: it will be split later
+        'job_id',
+        'state',
+        'time_used',
+        'time_limit',
+        'nodes',
+        'cpus',
+        'partition',
+        'name',
+    ]
     # Get current username
-    username_result = subprocess.run(['whoami'], capture_output=True, text=True)
-    if username_result.returncode != 0:
-        raise RuntimeError(f'Failed to get username: {username_result.stderr}')
-    username = username_result.stdout.strip()
+    username = get_username()
 
     # Get job status with custom format for easy parsing
     result = subprocess.run(
@@ -84,58 +120,32 @@ def squeue_to_pandas() -> pd.DataFrame:
     if not result.stdout.strip():
         print('Warning: squeue returned empty output')
         # Return empty DataFrame with correct columns
-        return pd.DataFrame(
-            columns=[
-                'job_id',
-                'state',
-                'time_used',
-                'time_limit',
-                'nodes',
-                'cpus',
-                'partition',
-                'name',
-            ]
-        )
+        return pd.DataFrame(columns=status_columns)
 
     try:
         # Parse the output into a DataFrame
         df = pd.read_csv(
             StringIO(result.stdout),
             sep='|',
-            names=[
-                'job_id',
-                'state',
-                'time_used',
-                'time_limit',
-                'nodes',
-                'cpus',
-                'partition',
-                'name',
-            ],
+            names=squeue_columns,
             skipinitialspace=True,
         )
-
-        # Validate DataFrame structure
-        expected_columns = [
-            'job_id',
-            'state',
-            'time_used',
-            'time_limit',
-            'nodes',
-            'cpus',
-            'partition',
-            'name',
-        ]
-        if not all(col in df.columns for col in expected_columns):
-            raise RuntimeError(
-                f'Unexpected DataFrame columns. Expected: {expected_columns}, '
-                f'got: {df.columns.tolist()}'
-            )
-
-        return df
-
     except Exception as e:
         raise RuntimeError(f'Failed to parse squeue output: {str(e)}\nOutput was: {result.stdout}')
+
+    # separate job_id into job_id and task_id
+    df['task_id'] = df['job_id'].str.split('_').str[1]
+    df['job_id'] = df['job_id'].str.split('_').str[0]
+
+    # Validate DataFrame structure
+    if not all(col in df.columns for col in status_columns):
+        raise RuntimeError(
+            f'Unexpected DataFrame columns. Expected: {status_columns}, got: {df.columns.tolist()}'
+        )
+    # reorder the columns to be standard
+    df = df[status_columns]
+
+    return df
 
 
 def get_cmd_cancel_job(queue):
@@ -278,9 +288,9 @@ def df_submit_update(
     log_filename_list: list
         list log filename (dtype str) of the submitted job
     submitted: bool or None
-        whether the has_submitted field has to be updated
+        whether the submitted field has to be updated
     done: bool or None
-        whether the is_done field has to be updated
+        whether the has_results field has to be updated
     debug: bool
         whether the job auditing fields need to be reset to np.nan
         (fields include last_line_stdout_file, and alert_message).
@@ -299,15 +309,15 @@ def df_submit_update(
         # reset fields:
         df_job_submit.loc[ind, 'needs_resubmit'] = False
         df_job_submit.loc[ind, 'is_failed'] = np.nan
-        df_job_submit.loc[ind, 'job_state_category'] = np.nan
-        df_job_submit.loc[ind, 'job_state_code'] = np.nan
-        df_job_submit.loc[ind, 'duration'] = np.nan
+        df_job_submit.loc[ind, 'state'] = np.nan
+        df_job_submit.loc[ind, 'state'] = np.nan
+        df_job_submit.loc[ind, 'time_used'] = np.nan
         if submitted is not None:
             # update the status:
-            df_job_submit.loc[ind, 'has_submitted'] = submitted
+            df_job_submit.loc[ind, 'submitted'] = submitted
         if done is not None:
             # update the status:
-            df_job_submit.loc[ind, 'is_done'] = done
+            df_job_submit.loc[ind, 'has_results'] = done
         if debug:
             df_job_submit.loc[ind, 'last_line_stdout_file'] = np.nan
             df_job_submit.loc[ind, 'alert_message'] = np.nan
@@ -331,9 +341,9 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
     df_job_submit: pd.DataFrame
         dataframe of the to-be-submitted job
     submitted: bool or None
-        whether the has_submitted field has to be updated
+        whether the submitted field has to be updated
     done: bool or None
-        whether the is_done field has to be updated
+        whether the has_results field has to be updated
     debug: bool
         whether the job auditing fields need to be reset to np.nan
         (fields include last_line_stdout_file, and alert_message).
@@ -361,15 +371,15 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
         # reset fields:
         df_jobs.loc[mask, 'needs_resubmit'] = row['needs_resubmit']
         df_jobs.loc[mask, 'is_failed'] = row['is_failed']
-        df_jobs.loc[mask, 'job_state_category'] = row['job_state_category']
-        df_jobs.loc[mask, 'job_state_code'] = row['job_state_code']
-        df_jobs.loc[mask, 'duration'] = row['duration']
+        df_jobs.loc[mask, 'state'] = row['state']
+        df_jobs.loc[mask, 'state'] = row['state']
+        df_jobs.loc[mask, 'time_used'] = row['time_used']
         if submitted is not None:
             # update the status:
-            df_jobs.loc[mask, 'has_submitted'] = row['has_submitted']
+            df_jobs.loc[mask, 'submitted'] = row['submitted']
         if done is not None:
             # update the status:
-            df_jobs.loc[mask, 'is_done'] = row['is_done']
+            df_jobs.loc[mask, 'has_results'] = row['has_results']
         if debug:
             df_jobs.loc[mask, 'last_line_stdout_file'] = row['last_line_stdout_file']
             df_jobs.loc[mask, 'alert_message'] = row['alert_message']
@@ -399,8 +409,8 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
     """
     df_job_submit = pd.DataFrame()
     # Check if there is still jobs to submit:
-    total_has_submitted = int(df_job['has_submitted'].sum())
-    if total_has_submitted == df_job.shape[0]:  # all submitted
+    total_submitted = int(df_job['submitted'].sum())
+    if total_submitted == df_job.shape[0]:  # all submitted
         print('All jobs have already been submitted. ' + 'Use `babs status` to check job status.')
         return df_job_submit
 
@@ -426,7 +436,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
             i_job = i_job[0]  # take the element out of the list
 
             # check if the job has already been submitted:
-            if not df_job['has_submitted'][i_job]:  # to run
+            if not df_job['submitted'][i_job]:  # to run
                 job_ind_list.append(i_job)
             else:
                 to_print = 'The job for ' + sub
@@ -444,7 +454,7 @@ def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
         if job_ind_list:
             df_job_submit = df_job.iloc[job_ind_list].copy().reset_index(drop=True)
     else:  # taking into account the `count` argument
-        df_remain = df_job[~df_job.has_submitted]
+        df_remain = df_job[~df_job.submitted]
         if count > 0:
             df_job_submit = df_remain[:count].reset_index(drop=True)
         else:  # if count is None or negative, run all
@@ -544,42 +554,40 @@ def create_job_status_csv(babs):
     babs: class `BABS`
         information about a BABS project.
     """
+    if op.exists(babs.job_status_path_abs):
+        return
 
-    if op.exists(babs.job_status_path_abs) is False:
-        # Generate the table:
-        # read the subject list as a panda df:
-        df_sub = pd.read_csv(babs.list_sub_path_abs)
-        df_job = df_sub.copy()  # deep copy of pandas df
+    # Load the complete list of subjects and optionally sessions
+    df_sub = pd.read_csv(babs.list_sub_path_abs)
+    df_job = df_sub.copy()  # deep copy of pandas df
 
-        # add columns:
-        df_job['has_submitted'] = False
-        df_job['job_id'] = -1  # int
-        df_job['job_state_category'] = np.nan
-        df_job['job_state_code'] = np.nan
-        df_job['duration'] = np.nan
-        df_job['is_done'] = False  # = has branch in output_ria
-        df_job['needs_resubmit'] = False
-        df_job['is_failed'] = np.nan
-        df_job['log_filename'] = np.nan
-        df_job['last_line_stdout_file'] = np.nan
-        df_job['alert_message'] = np.nan
+    df_job['job_id'] = -1  # int
+    df_job['task_id'] = -1  # int
+    df_job['submitted'] = False
+    df_job['state'] = np.nan
+    df_job['time_used'] = np.nan
+    df_job['time_limit'] = np.nan
+    df_job['nodes'] = np.nan
+    df_job['cpus'] = np.nan
+    df_job['partition'] = np.nan
+    df_job['name'] = np.nan
+    df_job['has_results'] = False  # = has branch in output_ria
+    # Fields for tracking:
+    df_job['needs_resubmit'] = False
+    df_job['is_failed'] = np.nan
+    df_job['log_filename'] = np.nan
+    df_job['last_line_stdout_file'] = np.nan
+    df_job['alert_message'] = np.nan
 
-        # TODO: add different kinds of error
-
-        # These `NaN` will be saved as empty strings (i.e., nothing between two ",")
-        #   but when pandas read this csv, the NaN will show up in the df
-
-        # Save the df as csv file, using lock:
-        lock_path = babs.job_status_path_abs + '.lock'
-        lock = FileLock(lock_path)
-
-        try:
-            with lock.acquire(timeout=5):
-                df_job.to_csv(babs.job_status_path_abs, index=False)
-        except Timeout:  # after waiting for time defined in `timeout`:
-            # if another instance also uses locks, and is currently running,
-            #   there will be a timeout error
-            print('Another instance of this application currently holds the lock.')
+    # Save the df as csv file, using lock:
+    lock = FileLock(f'{babs.job_status_path_abs}.lock')
+    try:
+        with lock.acquire(timeout=5):
+            df_job.to_csv(babs.job_status_path_abs, index=False)
+    except Timeout:  # after waiting for time defined in `timeout`:
+        # if another instance also uses locks, and is currently running,
+        #   there will be a timeout error
+        print('Another instance of this application currently holds the lock.')
 
 
 def read_job_status_csv(csv_path):
@@ -598,20 +606,7 @@ def read_job_status_csv(csv_path):
     """
     df = pd.read_csv(
         csv_path,
-        dtype={
-            'job_id': 'Int64',
-            'task_id': 'Int64',
-            'log_filename': 'str',
-            'has_submitted': 'boolean',
-            'is_done': 'boolean',
-            'is_failed': 'boolean',
-            'needs_resubmit': 'boolean',
-            'last_line_stdout_file': 'str',
-            'job_state_category': 'str',
-            'job_state_code': 'str',
-            'duration': 'str',
-            'alert_message': 'str',
-        },
+        dtype=scheduler_status_dtype,
     )
     return df
 
@@ -637,26 +632,26 @@ def report_job_status(df, analysis_path, config_msg_alert):
     total_jobs = df.shape[0]
     print('There are in total of ' + str(total_jobs) + ' jobs to complete.')
 
-    total_has_submitted = int(df['has_submitted'].sum())
+    total_submitted = int(df['submitted'].sum())
     print(
-        str(total_has_submitted)
+        str(total_submitted)
         + ' job(s) have been submitted; '
-        + str(total_jobs - total_has_submitted)
+        + str(total_jobs - total_submitted)
         + " job(s) haven't been submitted."
     )
 
-    if total_has_submitted > 0:  # there is at least one job submitted
-        total_is_done = int(df['is_done'].sum())
+    if total_submitted > 0:  # there is at least one job submitted
+        total_is_done = int(df['has_results'].sum())
         print('Among submitted jobs,')
         print(str(total_is_done) + ' job(s) successfully finished;')
 
         if total_is_done == total_jobs:
             print('All jobs are completed!')
         else:
-            total_pending = int((df['job_state_code'] == 'qw').sum())
+            total_pending = int((df['state'] == 'qw').sum())
             print(str(total_pending) + ' job(s) are pending;')
 
-            total_pending = int((df['job_state_code'] == 'r').sum())
+            total_pending = int((df['state'] == 'r').sum())
             print(str(total_pending) + ' job(s) are running;')
 
             # TODO: add stalled one
@@ -724,47 +719,3 @@ def _request_all_job_status_slurm():
     if not check_slurm_available():
         raise RuntimeError('Slurm commands are not available on this system.')
     return squeue_to_pandas()
-
-
-def calcu_runtime(start_time_str):
-    """
-    This is to calculate the duration time of running.
-
-    Parameters:
-    -----------------
-    start_time_str: str
-        The value in column 'JAT_start_time' for a specific job.
-        Can be got via `df.at['2820901', 'JAT_start_time']`
-        Example on CUBIC: ''
-
-    Returns:
-    -----------------
-    duration_time_str: str
-        Duration time of running.
-        Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
-
-    Notes
-    -----
-    TODO: add queue if needed
-    Currently we don't need to add `queue`. Whether 'duration' has been returned
-    is checked before current function is called.
-    However the format of the duration that got from Slurm cluster might be a bit different from
-    what we get here. See examples in function `_parsing_squeue_out()` for Slurm clusters.
-
-    This duration time may be slightly longer than actual
-    time, as this is using current time, instead of
-    the time when `qstat`/requesting job queue.
-    """
-    # format of time in the job status requested:
-    format_job_status = '%Y-%m-%dT%H:%M:%S'  # format in `qstat`
-    # # format of returned duration time:
-    # format_duration_time = "%Hh%Mm%Ss"  # '0h0m0s'
-
-    d_now = datetime.now()
-    duration_time = d_now - datetime.strptime(start_time_str, format_job_status)
-    # ^^ str(duration_time): format: '0:08:40.158985'  # first is hour
-    duration_time_str = str(duration_time)
-    # ^^ 'datetime.timedelta' object (`duration_time`) has no attribute 'strftime'
-    #   so cannot be directly printed into desired format...
-
-    return duration_time_str

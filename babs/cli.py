@@ -269,7 +269,7 @@ def _parse_check_setup():
     """
 
     parser = argparse.ArgumentParser(
-        description='Validate setups created by ``babs init``.',
+        description='Validate setup created by ``babs init``.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     PathExists = partial(_path_exists, parser=parser)
@@ -318,7 +318,7 @@ def babs_check_setup_main(
 ):
     """
     This is the core function of babs check-setup,
-    which validates the setups by `babs init`.
+    which validates the setup by `babs init`.
 
     project_root: str
         Absolute path to the root of BABS project.

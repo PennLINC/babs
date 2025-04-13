@@ -207,8 +207,8 @@ Below is an example python script of reading ``job_status.csv``::
     fn_csv = "/path/to/my_BABS_project/analysis/code/job_status.csv"  # change this path
     df = pd.read_csv(csv_path,
                      dtype={"job_id": 'int',
-                            'has_submitted': 'bool',
-                            'is_done': 'bool'
+                            'submitted': 'bool',
+                            'has_results': 'bool'
                             })
 
     # print:
@@ -234,17 +234,17 @@ Note: ``np.nan`` means numpy's NaN if loading the CSV file into Python.
 
 * ``sub_id`` (and ``ses_id`` in multiple-session dataset): string, the subject ID (and session ID)
   for a job.
-* ``has_submitted``: bool (True or False), whether a job has been submitted.
+* ``submitted``: bool (True or False), whether a job has been submitted.
 * ``job_id``: integer (usually positive), ID of a job. Before a job is submitted, ``job_id = -1``.
-* ``job_state_category``: string or ``np.nan``, the category of a job's state,
+* ``state``: string or ``np.nan``, the category of a job's state,
   e.g., "pending", "running", etc. Before a job is submitted,
-  ``job_state_category = np.nan``.
-* ``job_state_code``: string or ``np.nan``, the code of a job's state,
-  e.g., "qw",  "r", etc. Before a job is submitted, ``job_state_code = np.nan``.
-* ``duration``: string or ``np.nan``, the runtime of a running job since it starts running,
+  ``state = np.nan``.
+* ``state``: string or ``np.nan``, the code of a job's state,
+  e.g., "qw",  "r", etc. Before a job is submitted, ``state = np.nan``.
+* ``time_used``: string or ``np.nan``, the runtime of a running job since it starts running,
   e.g., ``0:00:14.733701`` (i.e., 14.733701 sec). If a job is not running
-  (not submitted, pending, finished, etc), ``duration = np.nan``.
-* ``is_done``: bool (True or False), whether a job has been successfully finished,
+  (not submitted, pending, finished, etc), ``time_used = np.nan``.
+* ``has_results``: bool (True or False), whether a job has been successfully finished,
   i.e., there is a result branch of this job in the output RIA.
 * ``is_failed``: bool (True or False) or ``np.nan``, whether a job is failed.
   If a job has been submitted and it's out of job queues,
@@ -289,7 +289,7 @@ that BABS does not recognize. Please wait for a bit moment, and rerun ``babs sta
 ..  you may see this. This is because jobs are in atypical states `CF` (configuring).
 ..  Just wait several sec and rerun `babs status`.
 
-Q: A job is done (i.e., ``is_done = True`` in ``job_status.csv``),
+Q: A job is done (i.e., ``has_results = True`` in ``job_status.csv``),
 but column ``last_line_stdout_file`` is not ``SUCCESS``?
 
 A: This should be an edge case. Simply run ``babs status`` again,
