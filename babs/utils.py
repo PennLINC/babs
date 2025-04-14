@@ -622,19 +622,44 @@ def results_branch_dataframe(branches):
     return df
 
 
-def update_job_status(previous_df, results_df, currently_running_df):
+def identify_running_jobs(last_submitted_jobs_df, currently_running_df):
     """
-    Update the job status dataframe with the results from a results branch dataframe
-    and the currently running dataframe.
+    The currently-running jobs do not have the subject/session information.
+    This function is to identify the jobs that are running.
+
+    Parameters
+    ----------
+    currently_running_df: pd.DataFrame
+        dataframe of currently running jobs (from request_all_job_status())
+    last_submitted_jobs_df: pd.DataFrame
+        dataframe of last submitted jobs
+
+    Returns
+    -------
+    pd.DataFrame
+        dataframe of identified running jobs with subject/session information
+    """
+
+    try:
+        return pd.merge(currently_running_df, last_submitted_jobs_df, on=['job_id', 'task_id'])
+    except Exception as e:
+        raise ValueError(
+            f'Error merging currently_running_df and last_submitted_jobs_df: {e}'
+            f'Currently running df:\n\n{currently_running_df}\n\n'
+            f'Last submitted jobs df:\n\n{last_submitted_jobs_df}\n\n'
+        )
+
+
+def update_results_status(status_df, has_results_df):
+    """
+    Update a status dataframe with a results branch dataframe.
 
     Parameters:
     --------------
-    previous_df: pd.DataFrame
-        previous job status dataframe
-    results_df: pd.DataFrame
+    status_df: pd.DataFrame
+        status dataframe
+    has_results_df: pd.DataFrame
         results branch dataframe
-    currently_running_df: pd.DataFrame
-        currently running dataframe
 
     Returns:
     -------------
@@ -642,8 +667,23 @@ def update_job_status(previous_df, results_df, currently_running_df):
         updated job status dataframe
 
     """
+    use_sesid = 'ses_id' in status_df and 'ses_id' in has_results_df
+    merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
 
-    # Some jobs were finished and some are newly finished.
-    # Update the previous dataframe with the results from the results branch dataframe.
+    # First merge to get the most recent results information
+    updated_results_df = pd.merge(
+        status_df, has_results_df, on=merge_on, how='left', suffixes=('', '_results')
+    )
+    # Update job_id and task_id only where there's a new result
+    has_results_mask = (
+        updated_results_df['has_results'].notna() & updated_results_df['has_results']
+    )
+    updated_results_df.loc[has_results_mask, 'job_id'] = updated_results_df.loc[
+        has_results_mask, 'job_id_results'
+    ]
+    updated_results_df.loc[has_results_mask, 'task_id'] = updated_results_df.loc[
+        has_results_mask, 'task_id_results'
+    ]
+    updated_results_df = updated_results_df.drop(columns=['job_id_results', 'task_id_results'])
 
-    pass
+    return updated_results_df

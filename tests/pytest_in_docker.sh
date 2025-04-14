@@ -4,4 +4,4 @@ docker run -it \
     --platform linux/amd64 \
     -h slurmctl --cap-add sys_admin \
     --privileged \
-    pennlinc/slurm-docker-ci:unstable pytest -svx --pdb /babs/tests/test_slurm.py
+    pennlinc/slurm-docker-ci:unstable pytest -svx --pdb /babs/tests/test_utils.py

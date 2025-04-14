@@ -1,9 +1,15 @@
 import subprocess
 
 import datalad.api as dlapi
+import pandas as pd
 import pytest
 
-from babs.utils import get_results_branches, results_branch_dataframe
+from babs.utils import (
+    get_results_branches,
+    identify_running_jobs,
+    results_branch_dataframe,
+    update_results_status,
+)
 
 
 def datalad_dataset_with_branches(ds_path, branch_list):
@@ -40,36 +46,19 @@ def test_results_branch_dataframe(tmp_path_factory, branch_list):
 
 
 def test_update_job_status():
-    import pandas as pd
-
-    # Currently 3 jobs are submitted
-    currently_running_df = pd.DataFrame(
-        {
-            'job_id': [2, 2, 2],
-            'task_id': [2, 3, 1],
-            'state': ['R', 'PD', 'PD'],
-            'time_used': ['0:00', '0:00', '0:01'],
-            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00'],
-            'nodes': [1, 1, 1],
-            'cpus': [1, 1, 1],
-            'partition': ['normal', 'normal', 'normal'],
-            'name': ['test_array_job', 'test_array_job', 'test_array_job'],
-        }
-    )
-
     # One session has results in the results branch
-    results_df = pd.DataFrame(
+    has_results_df = pd.DataFrame(
         {
-            'sub_id': ['sub-0002'],
-            'ses_id': ['ses-02'],
-            'job_id': [1],
-            'task_id': [1],
-            'has_results': [True],
+            'sub_id': ['sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02'],
+            'job_id': [2, 1],
+            'task_id': [1, 1],
+            'has_results': [True, True],
         }
     )
 
     # The previous status was checked before submitting the new jobs
-    previous_df = pd.DataFrame(
+    previous_status_df = pd.DataFrame(
         {
             'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
             'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
@@ -92,3 +81,42 @@ def test_update_job_status():
             'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
         }
     )
+
+    current_status_df = update_results_status(previous_status_df, has_results_df)
+
+    assert current_status_df.shape[0] == previous_status_df.shape[0]
+
+
+def test_update_currently_running_jobs_df():
+    # This is the list of the most recently submitted jobs
+    last_submitted_jobs_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
+            'task_id': [1, 2, 3, 4],
+            'job_id': [1, 1, 1, 1],
+        }
+    )
+
+    # Currently 3 jobs are submitted
+    currently_running_df = pd.DataFrame(
+        {
+            'job_id': [1, 1, 1],
+            'task_id': [2, 3, 1],
+            'state': ['R', 'PD', 'PD'],
+            'time_used': ['0:00', '0:00', '0:01'],
+            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00'],
+            'nodes': [1, 1, 1],
+            'cpus': [1, 1, 1],
+            'partition': ['normal', 'normal', 'normal'],
+            'name': ['test_array_job', 'test_array_job', 'test_array_job'],
+        }
+    )
+
+    identified_running_df = identify_running_jobs(last_submitted_jobs_df, currently_running_df)
+
+    assert set(identified_running_df.columns) == set(currently_running_df.columns) | {
+        'sub_id',
+        'ses_id',
+    }
+    assert identified_running_df.shape[0] == 3

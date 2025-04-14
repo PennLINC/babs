@@ -12,15 +12,11 @@ from urllib.parse import urlparse
 import datalad.api as dlapi
 import numpy as np
 import pandas as pd
-from filelock import FileLock, Timeout
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
 from babs.scheduler import (
-    df_status_update,
     df_submit_update,
-    prepare_job_array_df,
-    read_job_status_csv,
     report_job_status,
     request_all_job_status,
     submit_array,
@@ -28,8 +24,6 @@ from babs.scheduler import (
 )
 from babs.system import validate_queue
 from babs.utils import (
-    get_alert_message_in_log_files,
-    get_config_msg_alert,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_last_line,
@@ -37,8 +31,8 @@ from babs.utils import (
     print_versions_from_yaml,
     read_yaml,
     results_branch_dataframe,
+    update_results_status,
     validate_processing_level,
-    update_job_status,
 )
 
 
@@ -1051,77 +1045,69 @@ class BABS:
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
 
-        lock = FileLock(f'{self.job_submit_path_abs}.lock')
-        try:
-            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
-                df_job = read_job_status_csv(self.job_status_path_abs)
+        currently_running_df = self.get_currently_running_jobs_df()
+        if currently_running_df.shape[0] > 0:
+            raise Exception(
+                'There are still jobs running. Please wait for them to finish or cancel them.'
+                f' Current running jobs:\n{currently_running_df}'
+            )
 
-                # create and save a job array df to submit
-                # (based either on df_job_specified or count):
-                df_job_submit = prepare_job_array_df(
-                    df_job, df_job_specified, count, self.processing_level
-                )
-                # only run `babs submit` when there are subjects/sessions not yet submitted
-                if df_job_submit.shape[0] > 0:
-                    maxarray = str(df_job_submit.shape[0])
-                    # run array submission
-                    job_id, _, task_id_list, log_filename_list = submit_array(
-                        self.analysis_path,
-                        self.processing_level,
-                        self.queue,
-                        maxarray,
-                    )
-                    # Update `analysis/code/job_submit.csv` with new status
-                    df_job_submit_updated = df_submit_update(
-                        df_job_submit,
-                        job_id,
-                        task_id_list,
-                        log_filename_list,
-                        submitted=True,
-                    )
-                    # Update `analysis/code/job_status.csv` with new status
-                    df_job_updated = df_job.copy()
-                    df_job_updated = df_status_update(
-                        df_job_updated,
-                        df_job_submit_updated,
-                        submitted=True,
-                    )
+        # Find the rows that don't have results yet
+        status_df = self.get_results_status_df()
+        df_needs_submit = status_df[~status_df['has_results']]
 
-                    num_rows_to_print = 6
-                    print(
-                        '\nFirst '
-                        + str(num_rows_to_print)
-                        + " rows of 'analysis/code/job_status.csv':"
-                    )
-                    with pd.option_context(
-                        'display.max_rows',
-                        None,
-                        'display.max_columns',
-                        None,
-                        'display.width',
-                        120,
-                    ):  # default is 80 characters...
-                        # ^^ print all the columns and rows (with returns)
-                        print(df_job_updated.head(num_rows_to_print))  # only first several rows
+        if count > 0:
+            df_needs_submit = df_needs_submit.head(count)
 
-                    # save updated df:
-                    df_job_updated.to_csv(self.job_status_path_abs, index=False)
-                    df_job_submit_updated.to_csv(self.job_submit_path_abs, index=False)
-                # here, the job status was not checked, so message from `report_job_status()`
-                #   based on current df is not trustable:
-                # # Report the job status:
-                # report_job_status(df_job_updated)
+        # only run `babs submit` when there are subjects/sessions not yet submitted
+        if df_needs_submit.shape[0] > 0:
+            maxarray = str(df_needs_submit.shape[0])
+            # run array submission
+            job_id, _, task_id_list, log_filename_list = submit_array(
+                self.analysis_path,
+                self.processing_level,
+                self.queue,
+                maxarray,
+            )
+            # Update `analysis/code/job_submit.csv` with new status
+            df_job_submit_updated = df_submit_update(
+                df_job_submit,
+                job_id,
+                task_id_list,
+                log_filename_list,
+                submitted=True,
+            )
 
-        except Timeout:  # after waiting for time defined in `timeout`:
-            # if another instance also uses locks, and is currently running,
-            #   there will be a timeout error
-            print('Another instance of this application currently holds the lock.')
+    def _update_results_status(self):
+        """
+        Update the status of jobs based on results in the output RIA.
+        """
+
+        # Get the list of branches in output RIA
+        list_branches = get_results_branches(self.output_ria_data_dir)
+        # This has columns job_id, task_id, sub_id, ses_id, has_results
+        job_completion_df = results_branch_dataframe(list_branches)
+        # Get the previous df of job statuses
+        previous_job_completion_df = self.get_results_status_df()
+
+        current_status_df = update_results_status(
+            previous_job_completion_df, job_completion_df, self.current_results_df()
+        )
+
+        current_status_df.to_csv(self.job_status_path_abs, index=False)
+
+    def _update_currently_running_jobs_df(self):
+        """
+        Update the currently running jobs df based on squeue.
+        """
+
+        previously_running_df = self.get_currently_running_jobs_df()
+
+        currently_running_df.to_csv(self.job_submit_path_abs, index=False)
 
     def babs_status(
         self,
         flags_resubmit=['failed', 'pending'],
-        df_resubmit_task_specific=None,
-        container_config=None,
     ):
         """
         This function checks job status and resubmit jobs if requested.
@@ -1132,131 +1118,31 @@ class BABS:
             Under what condition to perform job resubmit.
             Element choices are: 'failed', 'pending'.
             CLI does not support 'stalled' right now, as it's not tested.
-        df_resubmit_task_specific: pd.DataFrame or None
-            list of specified job(s) to resubmit, requested by `--resubmit-job`
-            columns: 'sub_id' (and 'ses_id', if session)
-            if `--resubmit-job` was not specified in `babs status`, it will be None.
-        container_config: str or None
-            Path to a YAML file that contains the configurations
-            of how to run the BIDS App container.
-            It may include 'alert_log_messages' section
-            to be used by babs status.
         """
 
-        # `create_job_status_csv(self)` has been called in `babs_status()`
-        #   in `cli.py`
+        self._update_results_status()
 
-        from .constants import MSG_NO_ALERT_IN_LOGS
+        current_results_df = self.get_results_status_df()
+        currently_running_df = self.get_currently_running_jobs_df()
+        report_job_status(current_results_df, currently_running_df, self.analysis_path)
 
-        # Prepare for checking alert messages in log files:
-        #   get the pre-defined alert messages:
-        config_msg_alert = get_config_msg_alert(container_config)
+    def get_lasest_submitted_jobs_df(self):
+        """
+        Get the latest submitted jobs.
+        """
+        return pd.read_csv(self.job_submit_path_abs)
 
-        # Get the list of branches in output RIA
-        list_branches = get_results_branches(self.output_ria_data_dir)
-        # This has columns job_id, task_id, sub_id, ses_id, has_results
-        job_completion_df = results_branch_dataframe(list_branches)
+    def get_currently_running_jobs_df(self):
+        """
+        Get the currently running jobs.
+        """
+        return request_all_job_status(self.queue)
 
-        # Get the previous df of job statuses
-        previous_job_completion_df = read_job_status_csv(self.job_status_path_abs)
-
-        # Check the current job statuses
-        currently_running_df = request_all_job_status(self.queue)
-
-        current_status_df = update_job_status(previous_job_completion_df, job_completion_df, currently_running_df)
-
-
-
-
-                # Collect all to-be-resubmitted tasks into a single DataFrame
-                df_job_resubmit = df_job_updated[df_job_updated['needs_resubmit']].copy()
-                df_job_resubmit.reset_index(drop=True, inplace=True)
-                if df_job_resubmit.shape[0] > 0:
-                    maxarray = str(df_job_resubmit.shape[0])
-                    # run array submission
-                    job_id, _, task_id_list, log_filename_list = submit_array(
-                        self.analysis_path,
-                        self.processing_level,
-                        self.queue,
-                        maxarray,
-                    )
-                    # Update `analysis/code/job_submit.csv` with new status
-                    df_job_resubmit_updated = df_submit_update(
-                        df_job_resubmit,
-                        job_id,
-                        task_id_list,
-                        log_filename_list,
-                        submitted=True,
-                    )
-                    # Update `analysis/code/job_status.csv` with new status
-                    df_job_updated = df_status_update(
-                        df_job_updated,
-                        df_job_resubmit_updated,
-                        submitted=True,
-                    )
-                    df_job_resubmit_updated.to_csv(self.job_submit_path_abs, index=False)
-                # Done: submitted jobs that not 'has_results'
-
-                # For 'has_results' jobs in previous round:
-                temp = (df_job['submitted']) & (df_job['has_results'])
-                list_index_task_is_done = df_job.index[temp].tolist()
-                for i_task in list_index_task_is_done:
-                    # Get basic information for this job:
-                    job_id = df_job.at[i_task, 'job_id']
-                    job_id_str = str(job_id)
-                    task_id = df_job.at[i_task, 'task_id']
-                    task_id_str = str(task_id)
-                    job_task_id_str = job_id_str + '_' + task_id_str  # eg: 3536406_1
-                    log_filename = df_job.at[i_task, 'log_filename']  # with "*"
-                    log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
-                    o_fn = log_fn.replace('.*', '.o')
-
-                    if self.processing_level == 'subject':
-                        sub = df_job.at[i_task, 'sub_id']
-                        ses = None
-                        branchname = 'job-' + job_id_str + '-' + task_id_str + '-' + sub
-                        # e.g., job-00000-sub-01
-                    elif self.processing_level == 'session':
-                        sub = df_job.at[i_task, 'sub_id']
-                        ses = df_job.at[i_task, 'ses_id']
-                        branchname = (
-                            'job-' + job_id_str + '-' + task_id_str + '-' + sub + '-' + ses
-                        )
-                        # e.g., job-00000-sub-01-ses-B
-
-                    # Check if resubmission of this job is requested:
-                    request_resubmit_this_task = False
-                    if df_resubmit_task_specific is not None:
-                        if self.processing_level == 'subject':
-                            temp = df_resubmit_task_specific['sub_id'] == sub
-                        elif self.processing_level == 'session':
-                            temp = (df_resubmit_task_specific['sub_id'] == sub) & (
-                                df_resubmit_task_specific['ses_id'] == ses
-                            )
-
-
-
-
-                    else:  # did not request resubmit, or `--reckless` is None:
-                        # just perform normal stuff for a successful job:
-                        # Update the "last_line_stdout_file":
-                        df_job_updated.at[i_task, 'last_line_stdout_file'] = get_last_line(o_fn)
-                        # Check if any alert message in log files for this job:
-                        #   this is to update `alert_message` in case user changes configs in yaml
-                        alert_message_in_log_files, no_alert_in_log, _ = (
-                            get_alert_message_in_log_files(config_msg_alert, log_fn)
-                        )
-                        # ^^ the function will handle even if `config_msg_alert=None`
-                        df_job_updated.at[i_task, 'alert_message'] = alert_message_in_log_files
-                # Done: 'has_results' jobs.
-
-
-        # save updated df:
-        df_job_updated.to_csv(self.job_status_path_abs, index=False)
-
-        # Report the job status:
-        report_job_status(df_job_updated, self.analysis_path, config_msg_alert)
-
+    def get_results_status_df(self):
+        """
+        Get the results status dataframe.
+        """
+        return pd.read_csv(self.job_status_path_abs)
 
     def babs_merge(self, chunk_size, trial_run):
         """

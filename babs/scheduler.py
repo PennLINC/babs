@@ -181,7 +181,7 @@ def get_cmd_cancel_job(queue):
     return cmd
 
 
-def submit_array(analysis_path, processing_level, queue, maxarray, flag_print_message=True):
+def submit_array(analysis_path, queue, maxarray, flag_print_message=True):
     """
     This is to submit a job array based on template yaml file.
 
@@ -189,8 +189,6 @@ def submit_array(analysis_path, processing_level, queue, maxarray, flag_print_me
     ----------
     analysis_path: str
         path to the `analysis` folder. One attribute in class `BABS`
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
     queue: str
         the type of job scheduling system, "sge" or "slurm"
     maxarray: str
@@ -236,9 +234,10 @@ def submit_array(analysis_path, processing_level, queue, maxarray, flag_print_me
         cmd.split(),
         cwd=analysis_path,
         capture_output=True,
+        text=True,
     )
     proc_cmd.check_returncode()
-    msg = proc_cmd.stdout.decode('utf-8')
+    msg = proc_cmd.stdout
 
     if queue == 'sge':
         job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
@@ -386,82 +385,6 @@ def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=Fa
     return df_jobs
 
 
-def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
-    """
-    This is to prepare the df_job_submit to be submitted.
-
-    Parameters:
-    ----------------
-    df_job: pd.DataFrame
-        dataframe of jobs and their status
-    df_job_specified: pd.DataFrame
-        dataframe of jobs to be submitted (specified by user)
-    count: int
-        number of jobs to be submitted
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-
-    Returns:
-    ------------------
-    df_job_submit: pd.DataFrame
-        list of job indices to be submitted,
-        these are indices from the full job status dataframe `df_job`
-    """
-    df_job_submit = pd.DataFrame()
-    # Check if there is still jobs to submit:
-    total_submitted = int(df_job['submitted'].sum())
-    if total_submitted == df_job.shape[0]:  # all submitted
-        print('All jobs have already been submitted. ' + 'Use `babs status` to check job status.')
-        return df_job_submit
-
-    # See if user has specified list of jobs to submit:
-    if df_job_specified is not None:
-        print('Will only submit specified jobs...')
-        job_ind_list = []
-        for j_job in range(0, df_job_specified.shape[0]):
-            # find the index in the full `df_job`:
-            if processing_level == 'subject':
-                sub = df_job_specified.at[j_job, 'sub_id']
-                ses = None
-                temp = df_job['sub_id'] == sub
-            elif processing_level == 'session':
-                sub = df_job_specified.at[j_job, 'sub_id']
-                ses = df_job_specified.at[j_job, 'ses_id']
-                temp = (df_job['sub_id'] == sub) & (df_job['ses_id'] == ses)
-
-            # dj: should we keep this part?
-            i_job = df_job.index[temp].to_list()
-            # # sanity check: there should only be one `i_job`:
-            # #   ^^ can be removed as done in `core_functions.py`
-            i_job = i_job[0]  # take the element out of the list
-
-            # check if the job has already been submitted:
-            if not df_job['submitted'][i_job]:  # to run
-                job_ind_list.append(i_job)
-            else:
-                to_print = 'The job for ' + sub
-                if processing_level == 'session':
-                    to_print += ', ' + ses
-                to_print += (
-                    ' has already been submitted,'
-                    " so it won't be submitted again."
-                    ' If you want to resubmit it,'
-                    ' please use `babs status --resubmit`'
-                )
-                print(to_print)
-
-        # Create df_job_submit from the collected job indices
-        if job_ind_list:
-            df_job_submit = df_job.iloc[job_ind_list].copy().reset_index(drop=True)
-    else:  # taking into account the `count` argument
-        df_remain = df_job[~df_job.submitted]
-        if count > 0:
-            df_job_submit = df_remain[:count].reset_index(drop=True)
-        else:  # if count is None or negative, run all
-            df_job_submit = df_remain.copy().reset_index(drop=True)
-    return df_job_submit
-
-
 def submit_one_test_job(analysis_path, queue, flag_print_message=True):
     """
     This is to submit one *test* job.
@@ -590,102 +513,50 @@ def create_job_status_csv(babs):
         print('Another instance of this application currently holds the lock.')
 
 
-def read_job_status_csv(csv_path):
+def report_job_status(current_results_df, currently_running_df, analysis_path):
     """
-    This is to read the CSV file of `job_status`.
+    Print a report that summarizes the overall status of a BABS project.
 
-    Parameters:
-    ------------
-    csv_path: str
-        path to the `job_status.csv`
-
-    Returns:
-    -----------
-    df: pandas dataframe
-        loaded dataframe
-    """
-    df = pd.read_csv(
-        csv_path,
-        dtype=scheduler_status_dtype,
-    )
-    return df
-
-
-def report_job_status(df, analysis_path, config_msg_alert):
-    """
-    This is to report the job status
-    based on the dataframe loaded from `job_status.csv`.
+    This will show how many of the jobs have been completed,
+    how many are still running, and how many have failed.
 
     Parameters:
     -------------
-    df: pandas dataframe
-        loaded dataframe from `job_status.csv`
+    current_results_df: pd.DataFrame
+        dataframe the accurately reflects which tasks have finished
+    currently_running_df: pd.DataFrame
+        dataframe of currently running tasks
     analysis_path: str
-        Path to the analysis folder.
-        This is used to generate the folder of log files
-    config_msg_alert: dict or None
-        From `get_config_msg_alert()`
-        This is used to determine if to report `alert_message` column
+        path to the `analysis` folder of a `BABS` project
     """
+    from jinja2 import Environment, PackageLoader, select_autoescape
 
-    print('\nJob status:')
-    total_jobs = df.shape[0]
-    print('There are in total of ' + str(total_jobs) + ' jobs to complete.')
+    env = Environment(
+        loader=PackageLoader('babs', 'templates'),
+        autoescape=select_autoescape(),
+    )
+    template = env.get_template('job_status_report.jinja')
 
-    total_submitted = int(df['submitted'].sum())
-    print(
-        str(total_submitted)
-        + ' job(s) have been submitted; '
-        + str(total_jobs - total_submitted)
-        + " job(s) haven't been submitted."
+    total_jobs = current_results_df.shape[0]
+    total_submitted = currently_running_df.shape[0]
+    total_is_done = current_results_df['has_results'].sum()
+    total_pending = (currently_running_df['state'] == 'PD').sum()
+    total_running = (currently_running_df['state'] == 'R').sum()
+    total_failed = (
+        current_results_df['is_failed'].sum() if 'is_failed' in current_results_df else 0
     )
 
-    if total_submitted > 0:  # there is at least one job submitted
-        total_is_done = int(df['has_results'].sum())
-        print('Among submitted jobs,')
-        print(str(total_is_done) + ' job(s) successfully finished;')
-
-        if total_is_done == total_jobs:
-            print('All jobs are completed!')
-        else:
-            total_pending = int((df['state'] == 'qw').sum())
-            print(str(total_pending) + ' job(s) are pending;')
-
-            total_pending = int((df['state'] == 'r').sum())
-            print(str(total_pending) + ' job(s) are running;')
-
-            # TODO: add stalled one
-
-            total_is_failed = int(df['is_failed'].sum())
-            print(str(total_is_failed) + ' job(s) failed.')
-
-            # if there is job failed: print more info by categorizing msg:
-            if total_is_failed > 0:
-                if config_msg_alert is not None:
-                    print('\nAmong all failed job(s):')
-                # get the list of jobs that 'is_failed=True':
-                list_index_job_failed = df.index[df['is_failed']].tolist()
-                # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
-
-                # summarize based on `alert_message` column:
-
-                all_alert_message = df['alert_message'][list_index_job_failed].tolist()
-                unique_list_alert_message = list(set(all_alert_message))
-                # unique_list_alert_message.sort()   # sort and update the list itself
-                # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
-
-                if config_msg_alert is not None:
-                    for unique_alert_msg in unique_list_alert_message:
-                        # count:
-                        temp_count = all_alert_message.count(unique_alert_msg)
-                        print(
-                            str(temp_count)
-                            + " job(s) have alert message: '"
-                            + str(unique_alert_msg)
-                            + "';"
-                        )
-
-        print('\nAll log files are located in folder: ' + op.join(analysis_path, 'logs'))
+    print(
+        template.render(
+            total_jobs=total_jobs,
+            total_submitted=total_submitted,
+            total_is_done=total_is_done,
+            total_pending=total_pending,
+            total_running=total_running,
+            total_failed=total_failed,
+            log_path=op.join(analysis_path, 'logs'),
+        )
+    )
 
 
 def request_all_job_status(queue):
