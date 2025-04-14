@@ -750,3 +750,51 @@ def update_job_batch_status(status_df, job_submit_df):
     )
 
     return updated_status_df
+
+
+def get_repo_hash(repo_path):
+    """
+    Get the hash of the current commit of a git repository.
+
+    Parameters:
+    --------------
+    repo_path: str
+        path to the git repository
+
+    Returns:
+    -------------
+    hash: str
+        the hash of the current commit
+    """
+    proc_hash = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'], cwd=repo_path, capture_output=True, text=True
+    )
+    if proc_hash.returncode != 0:
+        raise ValueError(
+            f'Error getting the hash of the current commit in {repo_path}: {proc_hash.stderr}'
+        )
+    return proc_hash.stdout.strip()
+
+
+def compare_repo_commit_hashes(repo1, repo2, repo1_name, repo2_name, raise_error=True):
+    """
+    Compare the commit hashes of two git repositories.
+    """
+    hash1 = get_repo_hash(repo1)
+    hash2 = get_repo_hash(repo2)
+    message = (
+        f'The hash of current commit of `{repo1_name}` datalad dataset does not match'
+        f' with that of `{repo2_name}`.'
+        f' {repo1_name} = {hash1};'
+        f' {repo2_name} = {hash2}.'
+        'It might be because that latest commits in'
+        f'  {repo1_name} were not pushed to {repo2_name}.'
+        f" Try running this command in directory '{repo1}': \n"
+        '$ datalad push --to input'
+    )
+    if hash1 != hash2:
+        if raise_error:
+            raise ValueError(message)
+        else:
+            warnings.warn(message, stacklevel=2)
+    return hash1 == hash2

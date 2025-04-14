@@ -158,6 +158,41 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
     return df
 
 
+def sbatch_get_job_id(sbatch_cmd_list, working_dir):
+    """
+    Robustly submit a SLURM sbatch command and get the job id
+
+    Parameters
+    ----------
+    sbatch_cmd_list: list
+        the command to submit the job
+    working_dir: str
+        the working directory to run the command from
+
+    Returns
+    -------
+    int
+        the job id
+    """
+    # run the command, get the job id:
+    proc_cmd = subprocess.run(
+        sbatch_cmd_list,
+        cwd=working_dir,
+        capture_output=True,
+        text=True,
+    )
+    if proc_cmd.returncode != 0:
+        raise RuntimeError(f'Failed to submit array job: {proc_cmd.stderr}')
+
+    # Get the job id from the output
+    msg = proc_cmd.stdout
+    # Extract job ID using regex
+    job_id_match = re.search(r'Submitted batch job (\d+)', msg)
+    if not job_id_match:
+        raise RuntimeError(f'Could not find job ID in message: {msg}')
+    return int(job_id_match.group(1))
+
+
 def get_cmd_cancel_job(queue):
     """
     This is to get the command used for canceling a job
@@ -228,30 +263,11 @@ def submit_array(analysis_path, queue, maxarray):
     cmd_template = templates['cmd_template']
     cmd = cmd_template.replace('${max_array}', maxarray)
 
-    # run the command, get the job id:
-    proc_cmd = subprocess.run(
-        cmd.split(),
-        cwd=analysis_path,
-        capture_output=True,
-        text=True,
-    )
-    if proc_cmd.returncode != 0:
-        raise RuntimeError(f'Failed to submit array job: {proc_cmd.stderr}')
-
-    # Get the job id from the output
-    msg = proc_cmd.stdout
-    if queue == 'sge':
-        job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
-        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    elif queue == 'slurm':
-        # Extract job ID using regex
-        job_id_match = re.search(r'Submitted batch job (\d+)', msg)
-        if not job_id_match:
-            raise RuntimeError(f'Could not find job ID in message: {msg}')
-        job_id_str = job_id_match.group(1)
+    if queue == 'slurm':
+        job_id = sbatch_get_job_id(cmd.split(), analysis_path)
     else:
-        raise Exception('type system can be slurm or sge')
-    job_id = int(job_id_str)
+        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
+
     return job_id
 
 
@@ -356,51 +372,14 @@ def submit_one_test_job(analysis_path, queue, flag_print_message=True):
     f.close()
     # sections in this template yaml file:
     cmd = templates['cmd_template']
-    job_name = templates['job_name_template']
 
-    to_print = 'Test job'
-
-    # run the command, get the job id:
-    proc_cmd = subprocess.run(
-        cmd.split(),
-        cwd=analysis_path,
-        capture_output=True,
-    )
-
-    proc_cmd.check_returncode()
-    msg = proc_cmd.stdout.decode('utf-8')
-
-    if queue == 'sge':
-        job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
-        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    elif queue == 'slurm':
-        # Extract job ID using regex
-        job_id_match = re.search(r'Submitted batch job (\d+)', msg)
-        if not job_id_match:
-            raise RuntimeError(f'Could not find job ID in message: {msg}')
-        job_id_str = job_id_match.group(1)
-        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
-        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
+    if queue == 'slurm':
+        job_id = sbatch_get_job_id(cmd.split(), analysis_path)
     else:
-        raise Exception('type system can be slurm or sge')
+        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
+    print(f'Test job has been submitted (job ID: {job_id}).')
 
-    # This is necessary SLURM commands can fail but have return code 0
-    try:
-        job_id = int(job_id_str)
-    except ValueError as e:
-        raise ValueError(
-            f'Cannot convert {job_id_str!r} into an int: {e}. '
-            f'That output is a result of running command {cmd} which produced output {msg}.'
-        )
-
-    # log filename:
-    log_filename = job_name + '.*' + job_id_str
-
-    to_print += ' has been submitted (job ID: ' + job_id_str + ').'
-    if flag_print_message:
-        print(to_print)
-
-    return job_id, job_id_str, log_filename
+    return job_id
 
 
 def create_job_status_csv(babs):

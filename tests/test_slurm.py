@@ -121,7 +121,7 @@ def test_array_job_submission(
     test_dir = tmp_path_factory.mktemp('test_array_job')
 
     # Submit array job with 3 tasks
-    job_dir, job_id = submit_array_job(test_dir, array_size=3)
+    job_id = submit_array_job(test_dir, array_size=3)
 
     # Wait a moment for job to be registered
     import time
@@ -133,7 +133,7 @@ def test_array_job_submission(
 
     # Verify job appears in status
     assert not df.empty
-    assert any(str(job_id) in idx for idx in df['job_id'])
+    assert any(job_id == idx for idx in df['job_id'])
 
     # Print parsed DataFrame for debugging
     print('\nParsed DataFrame:')

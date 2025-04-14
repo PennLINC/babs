@@ -6,7 +6,6 @@ import re
 import subprocess
 import time
 import warnings
-from datetime import datetime
 from urllib.parse import urlparse
 
 import datalad.api as dlapi
@@ -14,6 +13,7 @@ import numpy as np
 import pandas as pd
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from babs.constants import CHECK_MARK
 from babs.container import Container
 from babs.scheduler import (
     report_job_status,
@@ -23,9 +23,9 @@ from babs.scheduler import (
 )
 from babs.system import validate_queue
 from babs.utils import (
+    compare_repo_commit_hashes,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
-    get_last_line,
     get_results_branches,
     identify_running_jobs,
     print_versions_from_yaml,
@@ -629,7 +629,7 @@ class BABS:
 
         print('\nCreated BABS project has been cleaned up.')
 
-    def babs_check_setup(self, input_ds, flag_job_test):
+    def babs_check_setup(self, input_ds, submit_a_test_job):
         """
         This function validates the setup by babs init.
 
@@ -637,15 +637,13 @@ class BABS:
         ----------
         input_ds: class `InputDatasets`
             information of input dataset(s)
-        flag_job_test: bool
+        submit_a_test_job: bool
             Whether to submit and run a test job.
         """
-        from .constants import CHECK_MARK
-
         babs_proj_config = read_yaml(self.config_path, use_filelock=True)
 
         print('Checking setup of BABS project located at: ' + self.project_root)
-        if flag_job_test:
+        if submit_a_test_job:
             print('Will submit a test job for testing; will take longer time.')
         else:
             print('Did not request `--job-test`; will not submit a test job.')
@@ -655,20 +653,17 @@ class BABS:
             'Below is the configuration information saved during `babs init`'
             " in file 'analysis/code/babs_proj_config.yaml':\n"
         )
-        f = open(op.join(self.analysis_path, 'code/babs_proj_config.yaml'))
-        file_contents = f.read()
+        with open(op.join(self.analysis_path, 'code/babs_proj_config.yaml')) as f:
+            file_contents = f.read()
         print(file_contents)
-        f.close()
 
         # Check the project itself: ---------------------------
         print('Checking the BABS project itself...')
-        # check if `analysis_path` exists
-        #   (^^ though should be checked in `get_existing_babs_proj()` in cli.py)
-        assert op.exists(self.analysis_path), (
-            "Folder 'analysis' does not exist in this BABS project!"
-            ' Current path to analysis folder: ' + self.analysis_path
-        )
-        # if there is `analysis`:
+        if not op.exists(self.analysis_path):
+            raise FileNotFoundError(
+                "Folder 'analysis' does not exist in this BABS project!"
+                ' Current path to analysis folder: ' + self.analysis_path
+            )
         # update `analysis_datalad_handle`:
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
@@ -693,7 +688,7 @@ class BABS:
                 for status in self.analysis_datalad_handle.status(eval_subdataset_state='commit')
                 if status['state'] != 'clean'
             ]
-            raise Exception(
+            raise ValueError(
                 "Analysis DataLad dataset's status is not clean. "
                 'There are the following issues:' + str(problem_statuses)
             )
@@ -704,10 +699,11 @@ class BABS:
         print('\nChecking input dataset(s)...')
         # check if there is at least one folder in the `inputs/data` dir:
         temp_list = get_immediate_subdirectories(op.join(self.analysis_path, 'inputs/data'))
-        assert len(temp_list) > 0, (
-            "There is no sub-directory (i.e., no input dataset) in 'inputs/data'!"
-            " Full path to folder 'inputs/data': " + op.join(self.analysis_path, 'inputs/data')
-        )
+        if not temp_list:
+            raise ValueError(
+                "There is no sub-directory (i.e., no input dataset) in 'inputs/data'!"
+                " Full path to folder 'inputs/data': " + op.join(self.analysis_path, 'inputs/data')
+            )
 
         # check each input ds:
         for idx, in_ds in enumerate(input_ds):
@@ -715,18 +711,19 @@ class BABS:
             dataset_name = in_ds.name
 
             # check if the dir of this input ds exists:
-            assert op.exists(abs_path), (
-                f'The path to the cloned input dataset #{idx + 1} '
-                f"'{dataset_name}' does not exist: {abs_path}"
-            )
+            if not op.exists(abs_path):
+                raise FileNotFoundError(
+                    f'The path to the cloned input dataset #{idx + 1} '
+                    f"'{dataset_name}' does not exist: {abs_path}"
+                )
 
             # check if dir of input ds is a datalad dataset:
-            assert op.exists(op.join(abs_path, '.datalad/config')), (
-                f'The input dataset #{idx + 1} '
-                f"'{dataset_name}' is not a valid DataLad dataset:"
-                f" There is no file '.datalad/config' in its directory: {abs_path}"
-            )
-
+            if not op.exists(op.join(abs_path, '.datalad/config')):
+                raise ValueError(
+                    f'The input dataset #{idx + 1} '
+                    f"'{dataset_name}' is not a valid DataLad dataset:"
+                    f" There is no file '.datalad/config' in its directory: {abs_path}"
+                )
         print(CHECK_MARK + ' All good!')
 
         # Check container datalad dataset: ---------------------------
@@ -734,18 +731,10 @@ class BABS:
         folder_container = op.join(self.analysis_path, 'containers')
         container_name = babs_proj_config['container']['name']
         # assert it's a datalad ds in `containers` folder:
-        assert op.exists(op.join(folder_container, '.datalad/config')), (
-            'There is no containers DataLad dataset in folder: ' + folder_container
-        )
-
-        # ROADMAP: check if container dataset ID saved in YAML file (not saved yet)
-        #           (not saved yet, probably better to add to Container class?)
-        #           = that in `.gitmodules` in cloned ds
-        #   However, It's pretty unlikely that someone changes it on their own
-        #       if they're using BABS
-
-        # no action now; when `babs init`, has done `Container.sanity_check()`
-        #               to make sure the container named `container_name` exists.
+        if not op.exists(op.join(folder_container, '.datalad/config')):
+            raise FileNotFoundError(
+                'There is no containers DataLad dataset in folder: ' + folder_container
+            )
         print(CHECK_MARK + ' All good!')
 
         # Check `analysis/code`: ---------------------------------
@@ -770,33 +759,30 @@ class BABS:
         for temp_filename in list_files_code:
             temp_fn = op.join(self.analysis_path, 'code', temp_filename)
             # the file should exist:
-            assert op.isfile(temp_fn), (
-                "Required file '"
-                + temp_filename
-                + "' does not exist"
-                + " in 'analysis/code' folder in this BABS project!"
-            )
+            if not op.isfile(temp_fn):
+                raise FileNotFoundError(
+                    "Required file '"
+                    + temp_filename
+                    + "' does not exist"
+                    + " in 'analysis/code' folder in this BABS project!"
+                )
             # check if bash files are executable:
             if op.splitext(temp_fn)[1] == '.sh':  # extension is '.sh':
-                assert os.access(temp_fn, os.X_OK), (
-                    'This code file should be executable: ' + temp_fn
-                )
+                if not os.access(temp_fn, os.X_OK):
+                    raise PermissionError('This code file should be executable: ' + temp_fn)
         print(CHECK_MARK + ' All good!')
 
         # Check input and output RIA: ----------------------
         print('\nChecking input and output RIA...')
 
         # check if they are siblings of `analysis`:
-        print("\tDatalad dataset `analysis`'s siblings:")
-        analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
-        # get the actual `output_ria_data_dir`;
-        #   the one in `self` attr is directly got from `analysis` remote,
-        #   so should not use that here.
-        # output_ria:
         actual_output_ria_data_dir = urlparse(
             os.readlink(op.join(self.output_ria_path, 'alias/data'))
         ).path  # get the symlink of `alias/data` then change to path
-        assert op.exists(actual_output_ria_data_dir)  # make sure this exists
+        if not op.exists(actual_output_ria_data_dir):
+            raise FileNotFoundError(
+                'The output RIA data directory does not exist: ' + actual_output_ria_data_dir
+            )
         # get '000/0000-0000-0000-0000':
         data_foldername = op.join(
             op.basename(op.dirname(actual_output_ria_data_dir)),
@@ -804,106 +790,60 @@ class BABS:
         )
         # input_ria:
         actual_input_ria_data_dir = op.join(self.input_ria_path, data_foldername)
-        assert op.exists(actual_input_ria_data_dir)  # make sure this exists
+        if not op.exists(actual_input_ria_data_dir):
+            raise FileNotFoundError(
+                'The input RIA data directory does not exist: ' + actual_input_ria_data_dir
+            )
 
+        print("\tDatalad dataset `analysis`'s siblings:")
+        analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
         has_sibling_input = False
         has_sibling_output = False
         for i_sibling in range(0, len(analysis_siblings)):
             the_sibling = analysis_siblings[i_sibling]
             if the_sibling['name'] == 'output':  # output ria:
                 has_sibling_output = True
-                assert the_sibling['url'] == actual_output_ria_data_dir, (
-                    "The `analysis` datalad dataset's sibling 'output' url does not match"
-                    ' the path to the output RIA.'
-                    ' Former = ' + the_sibling['url'] + ';'
-                    ' Latter = ' + actual_output_ria_data_dir
-                )
+                if the_sibling['url'] != actual_output_ria_data_dir:
+                    raise ValueError(
+                        "The `analysis` datalad dataset's sibling 'output' url does not match"
+                        ' the path to the output RIA.'
+                        ' Former = ' + the_sibling['url'] + ';'
+                        ' Latter = ' + actual_output_ria_data_dir
+                    )
             if the_sibling['name'] == 'input':  # input ria:
                 has_sibling_input = True
 
         if not has_sibling_input:
-            raise Exception(
+            raise ValueError(
                 "Did not find a sibling of 'analysis' DataLad dataset"
                 " that's called 'input'. There may be something wrong when"
                 ' setting up input RIA!'
             )
         if not has_sibling_output:
-            raise Exception(
+            raise ValueError(
                 "Did not find a sibling of 'analysis' DataLad dataset"
                 " that's called 'output'. There may be something wrong when"
                 ' setting up output RIA!'
             )
 
-        # output_ria_datalad_handle = dlapi.Dataset(self.output_ria_data_dir)
-
-        # check if the current commit in `analysis` has been pushed to RIA:
-        #   i.e., if commit hash are matched:
-        # analysis' commit hash:
-        proc_hash_analysis = subprocess.run(
-            ['git', 'rev-parse', 'HEAD'], cwd=self.analysis_path, stdout=subprocess.PIPE
-        )
-        proc_hash_analysis.check_returncode()
-        hash_analysis = proc_hash_analysis.stdout.decode('utf-8').replace('\n', '')
-
-        # input ria's commit hash:
-        proc_hash_input_ria = subprocess.run(
-            ['git', 'rev-parse', 'HEAD'],
-            cwd=actual_input_ria_data_dir,  # using the actual one we just got
-            stdout=subprocess.PIPE,
-        )
-        proc_hash_input_ria.check_returncode()
-        hash_input_ria = proc_hash_input_ria.stdout.decode('utf-8').replace('\n', '')
-        assert hash_analysis == hash_input_ria, (
-            'The hash of current commit of `analysis` datalad dataset does not match'
-            ' with that of input RIA.'
-            ' Former = ' + hash_analysis + ';'
-            ' Latter = ' + hash_input_ria + '.'
-            '\n'
-            'It might be because that latest commits in'
-            ' `analysis` were not pushed to input RIA.'
-            " Try running this command at directory '" + self.analysis_path + "': \n"
-            '$ datalad push --to input'
+        # check that our RIAs are in sync:
+        compare_repo_commit_hashes(
+            self.analysis_path,
+            actual_input_ria_data_dir,
+            'analysis',
+            'input RIA',
         )
 
-        # output ria's commit hash:
-        proc_hash_output_ria = subprocess.run(
-            ['git', 'rev-parse', 'HEAD'],
-            cwd=actual_output_ria_data_dir,  # using the actual one we just got
-            stdout=subprocess.PIPE,
+        compare_repo_commit_hashes(
+            self.analysis_path,
+            actual_output_ria_data_dir,
+            'analysis',
+            'output RIA',
         )
-        proc_hash_output_ria.check_returncode()
-        hash_output_ria = proc_hash_output_ria.stdout.decode('utf-8').replace('\n', '')
-        # only throw out a warning if not matched, as after there is branch in output RIA,
-        #   not recommend to push updates from analysis to output RIA:
-        if hash_analysis != hash_output_ria:
-            flag_warning_output_ria = True
-            warnings.warn(
-                'The hash of current commit of `analysis` datalad dataset does not match'
-                ' with that of output RIA.'
-                ' Former = ' + hash_analysis + ';'
-                ' Latter = ' + hash_output_ria + '.\n'
-                'It might be because that latest commits in'
-                ' `analysis` were not pushed to output RIA.\n'
-                'If there are already successful job(s) finished, please do NOT push updates'
-                ' from `analysis` to output RIA.\n'
-                "If you're sure there is no successful job finished, you may try running"
-                " this command at directory '" + self.analysis_path + "': \n"
-                '$ datalad push --to output',
-                stacklevel=2,
-            )
-        else:
-            flag_warning_output_ria = False
-
-        if flag_warning_output_ria:
-            print(
-                'There is warning for output RIA - Please check it out!'
-                ' Else in input and output RIA is good.'
-            )
-        else:
-            print(CHECK_MARK + ' All good!')
+        print(CHECK_MARK + ' All good!')
 
         # Submit a test job (if requested) --------------------------------
-        if not flag_job_test:
+        if not submit_a_test_job:
             print(
                 '\n'
                 " We recommend running a test job with `--job-test` if you haven't done so;"
@@ -913,119 +853,80 @@ class BABS:
             )
             print('\n`babs check-setup` was successful! ')
         else:
-            print('\nSubmitting a test job, will take a while to finish...')
-            print(
-                'Although the script will be submitted to a compute node,'
-                ' this test job will not run the BIDS App;'
-                ' instead, this test job will gather setup information'
-                ' in the designated environment'
-                ' and make sure future BABS jobs with current setup'
-                ' will be able to finish successfully.'
+            self._submit_test_job()
+
+    def _submit_test_job(self):
+        print('\nSubmitting a test job, will take a while to finish...')
+        print(
+            'Although the script will be submitted to a compute node,'
+            ' this test job will not run the BIDS App;'
+            ' instead, this test job will gather setup information'
+            ' in the designated environment'
+            ' and make sure future BABS jobs with the current setup'
+            ' will be able to finish successfully.'
+        )
+
+        job_id = submit_one_test_job(self.analysis_path, self.queue)
+        job_status = new_job_status = request_all_job_status(self.queue, job_id)
+
+        # Check until the job is out of the queue:
+        sleeptime = 0
+        while not new_job_status.empty:
+            sleeptime += 1
+            time.sleep(sleeptime)
+            job_status = new_job_status.copy()
+            new_job_status = request_all_job_status(self.queue, job_id)
+
+        if not job_status.shape[0] == 1:
+            raise Exception(f'Expected 1 job, got {job_status.shape[0]}')
+
+        test_info = job_status.iloc[0].to_dict()
+
+        stdout_path = op.join(
+            self.analysis_path,
+            'logs',
+            f'{test_info["name"]}.o{test_info["job_id"]}_{test_info["task_id"]}',
+        )
+
+        # test_job_info_file = open(log_path, 'w')
+        # test_job_info_file.write('# Information of submitted test job:\n')
+        # test_job_info_file.write("job_id: '" + job_id_str + "'\n")
+        # test_job_info_file.write("log_filename: '" + log_filename + "'\n")
+
+        # test_job_info_file.close()
+
+        if not op.exists(stdout_path):
+            raise FileNotFoundError('The test job failed to produce an output log.')
+
+        # go thru `code/check_setup/check_env.yaml`: check if anything wrong:
+        fn_check_env_yaml = op.join(self.analysis_path, 'code/check_setup', 'check_env.yaml')
+        flag_writable, flag_all_installed = print_versions_from_yaml(fn_check_env_yaml)
+        if not flag_writable:
+            raise Exception(
+                'The designated workspace is not writable!'
+                ' Please change it in the YAML file'
+                ' used in `babs init --container-config`,'
+                ' then rerun `babs init` with updated YAML file.'
+            )
+            # NOTE: ^^ currently this is not aligned with YAML file sections;
+            # this will make more sense after adding section of workspace path in YAML file
+        if not flag_all_installed:
+            raise Exception(
+                'Some required package(s) were not installed'
+                ' in the designated environment!'
+                ' Please install them in the designated environment,'
+                ' or change the designated environment you hope to use'
+                ' in `--container-config` and rerun `babs init`!'
             )
 
-            _, job_id_str, log_filename = submit_one_test_job(self.analysis_path, self.queue)
-            log_fn = op.join(self.analysis_path, 'logs', log_filename)  # abs path
-            o_fn = log_fn.replace('.*', '.o') + '_1'  # add task_id of test job "_1"
-            # write this information in a YAML file:
-            fn_test_job_info = op.join(
-                self.analysis_path, 'code/check_setup', 'test_job_info.yaml'
-            )
-            if op.exists(fn_test_job_info):
-                os.remove(fn_test_job_info)  # remove it
-
-            test_job_info_file = open(fn_test_job_info, 'w')
-            test_job_info_file.write('# Information of submitted test job:\n')
-            test_job_info_file.write("job_id: '" + job_id_str + "'\n")
-            test_job_info_file.write("log_filename: '" + log_filename + "'\n")
-
-            test_job_info_file.close()
-
-            # check job status every 1 min:
-            flag_done = False  # whether job is out of queue (True)
-            flag_success_test_job = False  # whether job was successfully finished (True)
-            print("Will check the test job's status using backoff strategy")
-            sleeptime = 1
-            while not flag_done:
-                time.sleep(sleeptime)
-                # check the job status
-                df_all_job_status = request_all_job_status(self.queue)
-                d_now_str = str(datetime.now())
-                to_print = d_now_str + ': '
-                if job_id_str + '_1' in df_all_job_status.index.to_list():  # Add task_id
-                    # ^^ if `df` is empty, `.index.to_list()` will return []
-                    # if the job is still in the queue:
-                    # state_category = df_all_job_status.at[job_id_str, '@state']
-                    state_code = df_all_job_status.at[job_id_str + '_1', 'state']  # Add task_id
-                    # ^^ column `@state`: 'running' or 'pending'
-
-                    # print some information:
-                    if state_code == 'r':
-                        to_print += 'Test job is running (`r`)...'
-                    elif state_code == 'qw':
-                        to_print += 'Test job is pending (`qw`)...'
-                    elif state_code == 'eqw':
-                        to_print += 'Test job is stalled (`eqw`)...'
-                    sleeptime = sleeptime * 2
-                    print(f'Waiting {sleeptime} seconds before retry')
-
-                else:  # the job is not in queue:
-                    flag_done = True
-                    # get the last line of the log file:
-                    last_line = get_last_line(o_fn)
-                    # check if it's "SUCCESS":
-                    if last_line == 'SUCCESS':
-                        flag_success_test_job = True
-                        to_print += 'Test job is successfully finished!'
-                    else:  # failed:
-                        flag_success_test_job = False
-                        to_print += 'Test job was not successfully finished'
-                        to_print += ' and is currently out of queue.'
-                        to_print += " Last line of stdout log file: '" + last_line + "'."
-                        to_print += ' Path to the log file: ' + log_fn
-                print(to_print)
-
-            if not flag_success_test_job:  # failed
-                raise Exception(
-                    '\nThere is something wrong probably in the setup.'
-                    ' Please check the log files'
-                    ' and the `--container_config`'
-                    ' provided in `babs init`!'
-                )
-            else:  # flag_success_test_job == True:
-                # go thru `code/check_setup/check_env.yaml`: check if anything wrong:
-                fn_check_env_yaml = op.join(
-                    self.analysis_path, 'code/check_setup', 'check_env.yaml'
-                )
-                flag_writable, flag_all_installed = print_versions_from_yaml(fn_check_env_yaml)
-                if not flag_writable:
-                    raise Exception(
-                        'The designated workspace is not writable!'
-                        ' Please change it in the YAML file'
-                        ' used in `babs init --container-config`,'
-                        ' then rerun `babs init` with updated YAML file.'
-                    )
-                    # NOTE: ^^ currently this is not aligned with YAML file sections;
-                    # this will make more sense after adding section of workspace path in YAML file
-                if not flag_all_installed:
-                    raise Exception(
-                        'Some required package(s) were not installed'
-                        ' in the designated environment!'
-                        ' Please install them in the designated environment,'
-                        ' or change the designated environment you hope to use'
-                        ' in `--container-config` and rerun `babs init`!'
-                    )
-
-                print(
-                    'Please check if above versions are the ones you hope to use!'
-                    ' If not, please change the version in the designated environment,'
-                    ' or change the designated environment you hope to use'
-                    ' in `--container-config` and rerun `babs init`.'
-                )
-                print(CHECK_MARK + ' All good in test job!')
-                print('\n`babs check-setup` was successful! ')
-
-        if flag_warning_output_ria:
-            print('\nPlease check out the warning for output RIA!')
+        print(
+            'Please check if above versions are the ones you hope to use!'
+            ' If not, please change the version in the designated environment,'
+            ' or change the designated environment you hope to use'
+            ' in `--container-config` and rerun `babs init`.'
+        )
+        print(f'{CHECK_MARK} All good in test job!')
+        print('\n`babs check-setup` was successful! ')
 
     def babs_submit(self, count=1):
         """
