@@ -16,7 +16,6 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.container import Container
 from babs.scheduler import (
-    df_submit_update,
     report_job_status,
     request_all_job_status,
     submit_array,
@@ -28,9 +27,11 @@ from babs.utils import (
     get_immediate_subdirectories,
     get_last_line,
     get_results_branches,
+    identify_running_jobs,
     print_versions_from_yaml,
     read_yaml,
     results_branch_dataframe,
+    update_job_batch_status,
     update_results_status,
     validate_processing_level,
 )
@@ -1026,7 +1027,7 @@ class BABS:
         if flag_warning_output_ria:
             print('\nPlease check out the warning for output RIA!')
 
-    def babs_submit(self, count=1, df_job_specified=None):
+    def babs_submit(self, count=1):
         """
         This function submits jobs and prints out job status.
 
@@ -1036,10 +1037,6 @@ class BABS:
             number of jobs to be submitted
             default: 1
             negative value: to submit all jobs
-        df_job_specified: pd.DataFrame or None
-            list of specified job(s) to submit.
-            columns: 'sub_id' (and 'ses_id', if session)
-            If `--job` was not specified in `babs submit`, it will be None.
         """
         # update `analysis_datalad_handle`:
         if self.analysis_datalad_handle is None:
@@ -1054,29 +1051,37 @@ class BABS:
 
         # Find the rows that don't have results yet
         status_df = self.get_results_status_df()
-        df_needs_submit = status_df[~status_df['has_results']]
-
-        if count > 0:
-            df_needs_submit = df_needs_submit.head(count)
+        df_needs_submit = status_df[~status_df['has_results']].reset_index(drop=True)
 
         # only run `babs submit` when there are subjects/sessions not yet submitted
-        if df_needs_submit.shape[0] > 0:
-            maxarray = str(df_needs_submit.shape[0])
-            # run array submission
-            job_id, _, task_id_list, log_filename_list = submit_array(
-                self.analysis_path,
-                self.processing_level,
-                self.queue,
-                maxarray,
-            )
-            # Update `analysis/code/job_submit.csv` with new status
-            df_job_submit_updated = df_submit_update(
-                df_job_submit,
-                job_id,
-                task_id_list,
-                log_filename_list,
-                submitted=True,
-            )
+        if df_needs_submit.empty:
+            print('No jobs to submit')
+            return
+
+        # If count is positive, submit the first `count` jobs
+        if count > 0:
+            df_needs_submit = df_needs_submit.head(min(count, df_needs_submit.shape[0]))
+
+        # We know task_id ahead of time, so we can add it to the dataframe
+        df_needs_submit['task_id'] = np.arange(1, df_needs_submit.shape[0] + 1)
+        submit_cols = (
+            ['sub_id', 'ses_id', 'task_id']
+            if self.processing_level == 'session'
+            else ['sub_id', 'task_id']
+        )
+        # Write the job submission dataframe to a csv file
+        df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
+
+        job_id = submit_array(
+            self.analysis_path,
+            self.processing_level,
+            self.queue,
+            df_needs_submit.shape[0],
+        )
+
+        df_needs_submit['job_id'] = job_id
+        # Update the job submission dataframe with the new job id
+        df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
 
     def _update_results_status(self):
         """
@@ -1090,38 +1095,18 @@ class BABS:
         # Get the previous df of job statuses
         previous_job_completion_df = self.get_results_status_df()
 
-        current_status_df = update_results_status(
-            previous_job_completion_df, job_completion_df, self.current_results_df()
+        current_status_df = update_results_status(previous_job_completion_df, job_completion_df)
+        job_batch_status_df = update_job_batch_status(
+            current_status_df, self.get_lasest_submitted_jobs_df()
         )
+        job_batch_status_df.to_csv(self.job_status_path_abs, index=False)
 
-        current_status_df.to_csv(self.job_status_path_abs, index=False)
-
-    def _update_currently_running_jobs_df(self):
-        """
-        Update the currently running jobs df based on squeue.
-        """
-
-        previously_running_df = self.get_currently_running_jobs_df()
-
-        currently_running_df.to_csv(self.job_submit_path_abs, index=False)
-
-    def babs_status(
-        self,
-        flags_resubmit=['failed', 'pending'],
-    ):
+    def babs_status(self):
         """
         This function checks job status and resubmit jobs if requested.
-
-        Parameters
-        ----------
-        flags_resubmit: list
-            Under what condition to perform job resubmit.
-            Element choices are: 'failed', 'pending'.
-            CLI does not support 'stalled' right now, as it's not tested.
         """
 
         self._update_results_status()
-
         current_results_df = self.get_results_status_df()
         currently_running_df = self.get_currently_running_jobs_df()
         report_job_status(current_results_df, currently_running_df, self.analysis_path)
@@ -1134,9 +1119,15 @@ class BABS:
 
     def get_currently_running_jobs_df(self):
         """
-        Get the currently running jobs.
+        Get the currently running jobs. Subject/session information is added.
         """
-        return request_all_job_status(self.queue)
+        last_submitted_jobs_df = self.get_lasest_submitted_jobs_df()
+        job_ids = last_submitted_jobs_df['job_id'].unique()
+        if not len(job_ids) == 1:
+            raise Exception(f'Expected 1 job id, got {len(job_ids)}')
+        job_id = job_ids[0]
+        currently_running_df = request_all_job_status(self.queue, job_id)
+        return identify_running_jobs(last_submitted_jobs_df, currently_running_df)
 
     def get_results_status_df(self):
         """

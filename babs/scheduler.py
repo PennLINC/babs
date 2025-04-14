@@ -1,4 +1,5 @@
 import os.path as op
+import re
 import subprocess
 from io import StringIO
 
@@ -56,8 +57,13 @@ def check_slurm_available() -> bool:
         return False
 
 
-def squeue_to_pandas() -> pd.DataFrame:
+def squeue_to_pandas(job_id=None) -> pd.DataFrame:
     """Get Slurm queue status and parse it into a pandas DataFrame.
+
+    Parameters
+    ----------
+    job_id: int or None
+        the job id to request status for
 
     Returns
     -------
@@ -92,8 +98,7 @@ def squeue_to_pandas() -> pd.DataFrame:
     # Get current username
     username = get_username()
 
-    # Get job status with custom format for easy parsing
-    result = subprocess.run(
+    commandlist = (
         [
             'squeue',
             '-u',
@@ -102,6 +107,12 @@ def squeue_to_pandas() -> pd.DataFrame:
             '--noheader',  # Skip header line
             '--format=%i|%t|%M|%l|%D|%C|%P|%j',  # Custom format with pipe delimiter
         ],
+    )
+    if job_id is not None:
+        commandlist.append(f'-j{job_id}')
+
+    # Get job status with custom format for easy parsing
+    result = subprocess.run(
         capture_output=True,
         text=True,
     )
@@ -181,7 +192,7 @@ def get_cmd_cancel_job(queue):
     return cmd
 
 
-def submit_array(analysis_path, queue, maxarray, flag_print_message=True):
+def submit_array(analysis_path, queue, maxarray):
     """
     This is to submit a job array based on template yaml file.
 
@@ -200,14 +211,7 @@ def submit_array(analysis_path, queue, maxarray, flag_print_message=True):
     ------------------
     job_id: int
         the int version of ID of the submitted job.
-    job_id_str: str
-        the string version of ID of the submitted job.
-    task_id_list: list
-        the list of task ID (dtype int) from the submitted job, starting from 1.
-    log_filename_list: list
-        the list of log filenames (dtype str) of this job.
-        Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>';
-        user needs to replace '*' with 'o', 'e', etc
+
 
     Notes:
     -----------------
@@ -223,11 +227,7 @@ def submit_array(analysis_path, queue, maxarray, flag_print_message=True):
     f.close()
     # sections in this template yaml file:
     cmd_template = templates['cmd_template']
-    job_name_template = templates['job_name_template']
-
     cmd = cmd_template.replace('${max_array}', maxarray)
-    to_print = 'Job for an array of ' + maxarray
-    job_name = job_name_template.replace('${max_array}', str(int(maxarray) - 1))
 
     # run the command, get the job id:
     proc_cmd = subprocess.run(
@@ -236,91 +236,24 @@ def submit_array(analysis_path, queue, maxarray, flag_print_message=True):
         capture_output=True,
         text=True,
     )
-    proc_cmd.check_returncode()
-    msg = proc_cmd.stdout
+    if proc_cmd.returncode != 0:
+        raise RuntimeError(f'Failed to submit array job: {proc_cmd.stderr}')
 
+    # Get the job id from the output
+    msg = proc_cmd.stdout
     if queue == 'sge':
         job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
         # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
     elif queue == 'slurm':
-        job_id_str = msg.split()[-1]
-        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
-        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
+        # Extract job ID using regex
+        job_id_match = re.search(r'Submitted batch job (\d+)', msg)
+        if not job_id_match:
+            raise RuntimeError(f'Could not find job ID in message: {msg}')
+        job_id_str = job_id_match.group(1)
     else:
         raise Exception('type system can be slurm or sge')
     job_id = int(job_id_str)
-
-    task_id_list = []
-    log_filename_list = []
-
-    for i_array in range(int(maxarray)):
-        task_id_list.append(i_array + 1)  # minarray starts from 1
-        # log filename:
-        log_filename_list.append(job_name + '.*' + job_id_str + '_' + str(i_array + 1))
-
-    to_print += ' has been submitted (job ID: ' + job_id_str + ').'
-    if flag_print_message:
-        print(to_print)
-
-    return job_id, job_id_str, task_id_list, log_filename_list
-
-
-def df_submit_update(
-    df_job_submit, job_id, task_id_list, log_filename_list, submitted=None, done=None, debug=False
-):
-    """
-    This is to update the status of one array task in the dataframe df_job_submit
-    (file: code/job_status.csv). This
-    function is mostly used after job submission or resubmission. Therefore,
-    a lot of fields will be reset. For other cases (e.g., to update job status
-    to running state / successfully finished state, etc.), you may directly
-    update df_jobs without using this function.
-
-    Parameters
-    ----------
-    df_job_submit: pd.DataFrame
-        dataframe of the submitted job
-    job_id: int
-        the int version of ID of the submitted job.
-    task_id_list: list
-        list of task id (dtype int), starts from 1
-    log_filename_list: list
-        list log filename (dtype str) of the submitted job
-    submitted: bool or None
-        whether the submitted field has to be updated
-    done: bool or None
-        whether the has_results field has to be updated
-    debug: bool
-        whether the job auditing fields need to be reset to np.nan
-        (fields include last_line_stdout_file, and alert_message).
-
-    Returns:
-    -------
-    df_job_submit: pd.DataFrame
-        dataframe of the submitted job, updated
-    """
-    # Updating df_job_submit:
-    # looping through each array task id in `task_id_list`
-    for ind in range(len(task_id_list)):  # `task_id_list` starts from 1
-        df_job_submit.loc[ind, 'job_id'] = job_id
-        df_job_submit.loc[ind, 'task_id'] = int(task_id_list[ind])
-        df_job_submit.at[ind, 'log_filename'] = log_filename_list[ind]
-        # reset fields:
-        df_job_submit.loc[ind, 'needs_resubmit'] = False
-        df_job_submit.loc[ind, 'is_failed'] = np.nan
-        df_job_submit.loc[ind, 'state'] = np.nan
-        df_job_submit.loc[ind, 'state'] = np.nan
-        df_job_submit.loc[ind, 'time_used'] = np.nan
-        if submitted is not None:
-            # update the status:
-            df_job_submit.loc[ind, 'submitted'] = submitted
-        if done is not None:
-            # update the status:
-            df_job_submit.loc[ind, 'has_results'] = done
-        if debug:
-            df_job_submit.loc[ind, 'last_line_stdout_file'] = np.nan
-            df_job_submit.loc[ind, 'alert_message'] = np.nan
-    return df_job_submit
+    return job_id
 
 
 def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
@@ -442,7 +375,11 @@ def submit_one_test_job(analysis_path, queue, flag_print_message=True):
         job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
         # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
     elif queue == 'slurm':
-        job_id_str = msg.split()[-1]
+        # Extract job ID using regex
+        job_id_match = re.search(r'Submitted batch job (\d+)', msg)
+        if not job_id_match:
+            raise RuntimeError(f'Could not find job ID in message: {msg}')
+        job_id_str = job_id_match.group(1)
         # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
         # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
     else:
@@ -559,7 +496,7 @@ def report_job_status(current_results_df, currently_running_df, analysis_path):
     )
 
 
-def request_all_job_status(queue):
+def request_all_job_status(queue, job_id=None):
     """
     This is to get all jobs' status
     using `qstat` for SGE clusters and `squeue` for Slurm
@@ -568,6 +505,8 @@ def request_all_job_status(queue):
     ----------
     queue: str
         the type of job scheduling system, "sge" or "slurm"
+    job_id: int or None
+        the job id to request status for
 
     Returns:
     --------------
@@ -579,14 +518,19 @@ def request_all_job_status(queue):
     if queue == 'sge':
         raise NotImplementedError('SGE is not supported anymore.')
     elif queue == 'slurm':
-        return _request_all_job_status_slurm()
+        return _request_all_job_status_slurm(job_id)
 
 
-def _request_all_job_status_slurm():
+def _request_all_job_status_slurm(job_id=None):
     """
     This is to get all jobs' status for Slurm
     by calling `squeue`.
+
+    Parameters
+    ----------
+    job_id: int or None
+        the job id to request status for
     """
     if not check_slurm_available():
         raise RuntimeError('Slurm commands are not available on this system.')
-    return squeue_to_pandas()
+    return squeue_to_pandas(job_id)

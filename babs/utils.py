@@ -687,3 +687,66 @@ def update_results_status(status_df, has_results_df):
     updated_results_df = updated_results_df.drop(columns=['job_id_results', 'task_id_results'])
 
     return updated_results_df
+
+
+def update_job_batch_status(status_df, job_submit_df):
+    """
+    Update the status dataframe with the job submission information.
+
+    Parameters:
+    -----------
+    status_df: pd.DataFrame
+        status dataframe. Be sure has_results is up to date.
+    job_submit_df: pd.DataFrame
+        the current status of job submission.
+
+    Returns:
+    --------
+    pd.DataFrame
+        updated status dataframe
+
+    """
+
+    if 'sub_id' not in job_submit_df:
+        raise ValueError('job_submit_df must have a sub_id column')
+
+    use_sesid = 'ses_id' in status_df and 'ses_id' in job_submit_df
+    merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
+
+    # First merge to get the most recent results information
+    updated_status_df = pd.merge(
+        status_df, job_submit_df, on=merge_on, how='left', suffixes=('', '_batch')
+    )
+
+    # Updated which jobs have failed. If they have been submitted, do not have results,
+    # and are not currently running, they have failed.
+    currently_running = updated_status_df['state_batch'].isin(['PD', 'R'])
+    submitted_no_results = updated_status_df['submitted'] & ~updated_status_df['has_results']
+    updated_status_df['is_failed'] = submitted_no_results & ~currently_running
+
+    update_mask = (
+        updated_status_df['job_id'] != updated_status_df['job_id_batch']
+    ) & updated_status_df['job_id_batch'].notna()
+
+    for update_col in [
+        'job_id',
+        'task_id',
+        'state',
+        'time_used',
+        'time_limit',
+        'nodes',
+        'cpus',
+        'partition',
+        'name',
+    ]:
+        # Update job_id where update_mask is True
+        updated_status_df.loc[update_mask, update_col] = updated_status_df.loc[
+            update_mask, f'{update_col}_batch'
+        ]
+
+    # Drop the batch columns
+    updated_status_df = updated_status_df.drop(
+        columns=[col for col in updated_status_df.columns if col.endswith('_batch')]
+    )
+
+    return updated_status_df

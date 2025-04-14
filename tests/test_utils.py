@@ -120,3 +120,46 @@ def test_update_currently_running_jobs_df():
         'ses_id',
     }
     assert identified_running_df.shape[0] == 3
+
+
+def test_update_job_batch_status():
+    job_submit_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0001'],
+            'ses_id': ['ses-01', 'ses-02'],
+            'job_id': [3, 3],
+            'task_id': [1, 2],
+            'state': ['R', 'PD'],
+            'time_used': ['0:30', '0:00'],
+            'time_limit': ['5-00:00:00', '5-00:00:00'],
+            'nodes': [1, 1],
+            'cpus': [1, 1],
+            'partition': ['normal', 'normal'],
+            'name': ['third_run', 'third_run'],
+        }
+    )
+
+    # The previous status was checked before submitting the new jobs
+    status_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
+            'job_id': [-1, -1, 2, 1],
+            'task_id': [-1, -1, 1, 1],
+            'submitted': [False, False, True, True],
+            'state': [pd.NA, pd.NA, 'R', 'R'],
+            'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
+            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
+            'nodes': [pd.NA, pd.NA, 1, 1],
+            'cpus': [pd.NA, pd.NA, 1, 1],
+            'partition': [pd.NA, pd.NA, 'normal', 'normal'],
+            'name': [pd.NA, pd.NA, 'second_run', 'first_run'],
+            'has_results': [False, False, False, True],
+            # Fields for tracking:
+            'needs_resubmit': [False, False, False, False],
+            'is_failed': [pd.NA, pd.NA, pd.NA, False],
+            'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
+            'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
+            'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
+        }
+    )
