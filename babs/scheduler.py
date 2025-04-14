@@ -113,6 +113,7 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
 
     # Get job status with custom format for easy parsing
     result = subprocess.run(
+        commandlist,
         capture_output=True,
         text=True,
     )
