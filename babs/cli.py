@@ -8,11 +8,10 @@ from pathlib import Path
 
 import pandas as pd
 import yaml
-from filelock import FileLock, Timeout
 
 from babs.babs import BABS
 from babs.input_datasets import InputDatasets
-from babs.scheduler import create_job_status_csv, read_job_status_csv
+from babs.scheduler import create_job_status_csv
 from babs.system import System
 from babs.utils import get_datalad_version, read_yaml, validate_processing_level
 
@@ -437,7 +436,6 @@ def babs_submit_main(
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
-    # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Actions on `count`:
     if submit_all:  # if True:
@@ -496,13 +494,6 @@ def babs_submit_main(
             if babs_proj.processing_level == 'session':
                 df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
 
-        # sanity check:
-        df_job_specified = check_df_job_specific(
-            df_job_specified,
-            babs_proj.job_status_path_abs,
-            babs_proj.processing_level,
-            'babs submit',
-        )
     else:  # `job` is None:
         df_job_specified = None
 
@@ -643,7 +634,6 @@ def babs_status_main(
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
-    # ^^ this is required by the sanity check `check_df_job_specific`
 
     # Get the list of resubmit conditions:
     if resubmit is not None:  # user specified --resubmit
@@ -709,14 +699,6 @@ def babs_status_main(
             df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
             if babs_proj.processing_level == 'session':
                 df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
-
-        # sanity check:
-        df_resubmit_job_specific = check_df_job_specific(
-            df_resubmit_job_specific,
-            babs_proj.job_status_path_abs,
-            babs_proj.processing_level,
-            'babs status',
-        )
 
         if len(df_resubmit_job_specific) > 0:
             if reckless:  # if `--reckless`:
@@ -994,93 +976,6 @@ def get_existing_babs_proj(project_root):
     input_ds = InputDatasets(babs_proj_config['processing_level'], input_ds_yaml)
     input_ds.update_abs_paths(project_root / 'analysis')
     return babs_proj, input_ds
-
-
-def check_df_job_specific(df, job_status_path_abs, processing_level, which_function):
-    """
-    This is to perform sanity check on the pd.DataFrame `df`
-    which is used by `babs submit --job` and `babs status --resubmit-job`.
-    Sanity checks include:
-    1. Remove any duplicated jobs in requests
-    2. Check if requested jobs are part of the inclusion jobs to run
-
-    Parameters
-    ----------
-    df: pd.DataFrame
-        i.e., `df_job_specific`
-        list of sub_id (and ses_id, if session) that the user requests to submit or resubmit
-    job_status_path_abs: str
-        absolute path to the `job_status.csv`
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-    which_function: str
-        'babs status' or 'babs submit'
-        The warning message will be tailored based on this.
-
-    Returns
-    -------
-    df: pd.DataFrame
-        after removing duplications, if there is
-
-    Notes
-    -----
-    The `job_status.csv` file must present before running this function!
-    Please use `create_job_status_csv()` from `utils.py` to create
-
-    TODO
-    ----
-    if `--job-csv` is added in `babs submit`, update the `which_function`
-    so that warnings/error messages are up-to-date (using `--job or --job-csv`)
-    """
-
-    # 1. Sanity check: there should not be duplications in `df`:
-    df_unique = df.drop_duplicates(keep='first')  # default: keep='first'
-    if df_unique.shape[0] != df.shape[0]:
-        to_print = 'There are duplications in requested '
-        if which_function == 'babs submit':
-            to_print += '`--job`'
-        elif which_function == 'babs status':
-            to_print += '`--resubmit-job`'
-        else:
-            raise Exception('Invalid `which_function`: ' + which_function)
-        to_print += ' . Only the first occuration(s) will be kept...'
-        warnings.warn(to_print, stacklevel=2)
-
-        df = df_unique  # update with the unique one
-
-    # 2. Sanity check: `df` should be a sub-set of all jobs:
-    # read the `job_status.csv`:
-    lock_path = job_status_path_abs + '.lock'
-    lock = FileLock(lock_path)
-    try:
-        with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
-            df_job = read_job_status_csv(job_status_path_abs)
-
-            # check if `df` is sub-set of `df_job`:
-            df_intersection = df.merge(df_job).drop_duplicates()
-            # `df_job` should not contain duplications, but just in case..
-            # ^^ ref: https://stackoverflow.com/questions/49530918/
-            #           check-if-pandas-dataframe-is-subset-of-other-dataframe
-            if len(df_intersection) != len(df):
-                to_print = 'Some of the subjects (and sessions) requested in '
-                if which_function == 'babs submit':
-                    to_print += '`--job`'
-                elif which_function == 'babs status':
-                    to_print += '`--resubmit-job`'
-                else:
-                    raise Exception('Invalid `which_function`: ' + which_function)
-                to_print += (
-                    ' are not in the final list of included subjects (and sessions).'
-                    ' Path to this final inclusion list is at: ' + job_status_path_abs
-                )
-                raise Exception(to_print)
-
-    except Timeout:  # after waiting for time defined in `timeout`:
-        # if another instance also uses locks, and is currently running,
-        #   there will be a timeout error
-        print('Another instance of this application currently holds the lock.')
-
-    return df
 
 
 def _parse_sync_code():

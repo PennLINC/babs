@@ -8,7 +8,7 @@ from unittest import mock
 import yaml
 
 from babs.cli import _enter_check_setup, _enter_init  # noqa
-from babs.utils import read_yaml, write_yaml  # noqa
+from babs.utils import read_yaml  # noqa
 
 # Get the path to the notebooks directory
 NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
