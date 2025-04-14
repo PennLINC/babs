@@ -98,16 +98,14 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
     # Get current username
     username = get_username()
 
-    commandlist = (
-        [
-            'squeue',
-            '-u',
-            username,
-            '-r',  # Show all array tasks
-            '--noheader',  # Skip header line
-            '--format=%i|%t|%M|%l|%D|%C|%P|%j',  # Custom format with pipe delimiter
-        ],
-    )
+    commandlist = [
+        'squeue',
+        '-u',
+        username,
+        '-r',  # Show all array tasks
+        '--noheader',  # Skip header line
+        '--format=%i|%t|%M|%l|%D|%C|%P|%j',  # Custom format with pipe delimiter
+    ]
     if job_id is not None:
         commandlist.append(f'-j{job_id}')
 

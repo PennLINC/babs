@@ -8,6 +8,7 @@ from babs.utils import (
     get_results_branches,
     identify_running_jobs,
     results_branch_dataframe,
+    update_job_batch_status,
     update_results_status,
 )
 
@@ -163,3 +164,7 @@ def test_update_job_batch_status():
             'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
         }
     )
+
+    new_status_df = update_job_batch_status(status_df, job_submit_df)
+
+    assert new_status_df.shape[0] == status_df.shape[0]
