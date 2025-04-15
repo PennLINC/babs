@@ -15,6 +15,8 @@ from babs.scheduler import create_job_status_csv
 from babs.system import System
 from babs.utils import get_datalad_version, read_yaml, validate_processing_level
 
+RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
+
 
 def _path_exists(path, parser):
     """Ensure a given path exists."""
@@ -131,11 +133,12 @@ def _enter_init(argv=None):
     This function is deprecated and will be removed in a future release.
     Please use `babs init` instead.
     """
-    warnings.warn(
-        'babs-init is deprecated and will be removed in the future. Please use babs init.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    if not RUNNING_PYTEST:
+        warnings.warn(
+            'babs-init is deprecated and will be removed in the future. Please use babs init.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
     options = _parse_init().parse_args(argv)
     args = vars(options).copy()
     babs_init_main(**args)
@@ -301,12 +304,13 @@ def _enter_check_setup(argv=None):
     This function is deprecated and will be removed in a future release.
     Please use `babs check-setup` instead.
     """
-    warnings.warn(
-        'babs-check-setup is deprecated and will be removed in the future. '
-        'Please use babs check-setup.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    if not RUNNING_PYTEST:
+        warnings.warn(
+            'babs-check-setup is deprecated and will be removed in the future. '
+            'Please use babs check-setup.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
     options = _parse_check_setup().parse_args(argv)
     babs_check_setup_main(**vars(options))
 
@@ -338,9 +342,9 @@ def _parse_submit():
     It includes a description and formatter class, and adds arguments for the command.
 
     Can choose one of these flags:
-    --count <number of jobs to submit>  # should be larger than # of `--job`
-    --all   # if specified, will submit all remaining jobs that haven't been submitted.
-    --job sub-id ses-id   # can repeat
+    --count <number of jobs to submit>
+    --select sub-id ses-id   # can repeat
+    --inclusion-file <path to inclusion file>
 
     If none of these flags are specified, will only submit one job array task.
 
@@ -366,28 +370,29 @@ def _parse_submit():
         type=PathExists,
     )
 
-    # --count, --job: can only request one of them and none of them are required.
     group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument(
         '--count',
         type=int,
-        help='Number of jobs to submit. It should be a positive integer.',
+        help='Submit this many jobs instead of submitting all remaining jobs.',
     )
+
     group.add_argument(
-        '--all',
-        action='store_true',
-        dest='submit_all',
-        # ^^ if `--all` is specified, args.all = True; otherwise, False
-        help="Request to run all jobs that haven't been submitted.",
-    )
-    group.add_argument(
-        '--job',
+        '--select',
         action='append',  # append each `--job` as a list;
         nargs='+',
         help='The subject ID (and session ID) whose job to be submitted.'
         ' Can repeat to submit more than one job.'
         ' Format would be `--job sub-xx` for single-session dataset,'
         ' and `--job sub-xx ses-yy` for multiple-session dataset.',
+    )
+
+    group.add_argument(
+        '--inclusion-file',
+        help='Path to a CSV file that lists the subjects (and sessions) to analyze.'
+        ' The file should columns: `sub_id` and, if session-level processing, `ses_id`.'
+        ' If this flag is specified, it will override the `--select` flag.',
+        type=PathExists,
     )
 
     return parser
@@ -399,11 +404,12 @@ def _enter_submit(argv=None):
     This function is deprecated and will be removed in a future release.
     Please use `babs submit` instead.
     """
-    warnings.warn(
-        'babs-submit is deprecated and will be removed in the future. Please use babs submit.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    if not RUNNING_PYTEST:
+        warnings.warn(
+            'babs-submit is deprecated and will be removed in the future. Please use babs submit.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
     options = _parse_submit().parse_args(argv)
     babs_submit_main(**vars(options))
 
@@ -411,8 +417,8 @@ def _enter_submit(argv=None):
 def babs_submit_main(
     project_root: str,
     count: int,
-    submit_all: bool,
     job: list,
+    inclusion_file: Path,
 ):
     """This is the core function of ``babs submit``.
 
@@ -527,52 +533,6 @@ def _parse_status():
         default=Path.cwd(),
         type=PathExists,
     )
-    parser.add_argument(
-        '--resubmit',
-        action='append',  # append each `--resubmit` as a list;
-        # ref: https://docs.python.org/3/library/argparse.html
-        nargs=1,  # expect 1 argument per `--resubmit` from the command line;
-        choices=['failed', 'pending'],
-        # NOTE: ^^ not to include 'stalled' as it has not been tested yet.
-        metavar=('condition to resubmit'),
-        help='Resubmit jobs with what kind of status.'
-        ' ``failed``: Jobs that failed, i.e.,'
-        ' jobs that are out of queue but do not have results pushed to output RIA.'
-        ' The list of failed jobs can also be found by filtering jobs with'
-        " ``'is_failed' = True`` in ``job_status.csv``;"
-        ' ``pending``: Jobs that are pending (without error) in the queue.'
-        " Example job status code of pending: 'qw' on SGE, or 'PD' on Slurm.",
-    )
-    # "'stalled': the previous submitted job is pending with error in the queue "
-    # "(example qstat code: 'eqw')."
-
-    parser.add_argument(
-        '--resubmit-job',
-        action='append',  # append each `--resubmit-job` as a list;
-        nargs='+',
-        help='The subject ID (and session ID) whose job to be resubmitted.'
-        ' You can repeat this argument many times to request resubmissions of more than one job.'
-        ' Currently, only pending or failed jobs in the request will be resubmitted.',
-    )
-    # ^^ NOTE: not to include 'stalled' jobs here;
-    # ROADMAP: improve the strategy to deal with `eqw` (stalled) is not to resubmit,
-    #                   but fix the issue - Bergman 12/20/22 email
-    # NOTE: not to add `--reckless` (below), as it has not been tested yet.
-    # parser.add_argument(
-    #     '--reckless',
-    #     action='store_true',
-    #     # ^^ if `--reckless` is specified, args.reckless = True; otherwise, False
-    #     help="Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running."
-    #     " WARNING: This hasn't been tested yet!!!")
-    parser.add_argument(
-        '--container_config',
-        '--container-config',
-        help='Path to a YAML file that contains the configurations'
-        ' of how to run the BIDS App container. It may include ``alert_log_messages`` section.'
-        ' ``babs status`` will use this section for failed job auditing,'
-        ' by checking if any defined alert messages'
-        " can be found in failed jobs' log files.",
-    )
 
     return parser
 
@@ -583,18 +543,19 @@ def _enter_status(argv=None):
     This function is deprecated and will be removed in a future release.
     Please use `babs status` instead.
     """
-    warnings.warn(
-        'babs-status is deprecated and will be removed in the future. Please use babs status.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    if not RUNNING_PYTEST:
+        warnings.warn(
+            'babs-status is deprecated and will be removed in the future. Please use babs status.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
     options = _parse_status().parse_args(argv)
     babs_status_main(**vars(options))
 
 
 def babs_status_main(
     project_root: str,
-    resubmit: list,
+    resubmit: bool,
     resubmit_job: list,
     container_config: str,
     reckless: bool = False,
@@ -606,8 +567,8 @@ def babs_status_main(
     ----------
     project_root: str
         absolute path to the directory of BABS project
-    resubmit: nested list or None
-        each sub-list: one of 'failed', 'pending'. Not to include 'stalled' now until tested.
+    resubmit: bool
+        resubmit jobs that have failed
     resubmit_job: nested list or None
         For each sub-list, the length should be 1 (for subject) or 2 (for session)
     container_config : str or None
@@ -635,25 +596,11 @@ def babs_status_main(
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
 
+    babs_proj.babs_status()
+
     # Get the list of resubmit conditions:
-    if resubmit is not None:  # user specified --resubmit
-        # e.g., [['pending'], ['failed']]
-        # change nested list to a simple list:
-        flags_resubmit = []
-        for i in range(0, len(resubmit)):
-            flags_resubmit.append(resubmit[i][0])
-
-        # remove duplicated elements:
-        flags_resubmit = list(set(flags_resubmit))  # `list(set())`: acts like "unique"
-
-        # print message:
-        print(
-            'Will resubmit jobs if ' + ' or '.join(flags_resubmit) + '.'
-        )  # e.g., `failed`; `failed or pending`
-
-    else:  # `resubmit` is None:
-        print('Did not request resubmit based on job states (no `--resubmit`).')
-        flags_resubmit = []  # empty list
+    if resubmit is None:
+        return
 
     # If `resubmit-job` is requested:
     if resubmit_job is not None:
@@ -717,14 +664,6 @@ def babs_status_main(
     else:  # `--resubmit-job` is None:
         df_resubmit_job_specific = None
 
-    # Call method `babs_status()`:
-    babs_proj.babs_status(
-        flags_resubmit,
-        df_resubmit_job_specific,
-        reckless,
-        container_config,
-    )
-
 
 def _parse_merge():
     """Create and configure the argument parser for the `babs merge` command.
@@ -785,11 +724,12 @@ def _enter_merge(argv=None):
     This function is deprecated and will be removed in a future release.
     Please use `babs merge` instead.
     """
-    warnings.warn(
-        'babs-merge is deprecated and will be removed in the future. Please use babs merge.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    if not RUNNING_PYTEST:
+        warnings.warn(
+            'babs-merge is deprecated and will be removed in the future. Please use babs merge.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
     options = _parse_merge().parse_args(argv)
     babs_merge_main(**vars(options))
 
@@ -861,11 +801,12 @@ def _enter_unzip(argv=None):
     This function is deprecated and will be removed in a future release.
     Please use `babs unzip` instead.
     """
-    warnings.warn(
-        'babs-unzip is deprecated and will be removed in the future. Please use babs unzip.',
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    if not RUNNING_PYTEST:
+        warnings.warn(
+            'babs-unzip is deprecated and will be removed in the future. Please use babs unzip.',
+            DeprecationWarning,
+            stacklevel=2,
+        )
     options = _parse_unzip().parse_args(argv)
     babs_unzip_main(**vars(options))
 

@@ -928,16 +928,19 @@ class BABS:
         print(f'{CHECK_MARK} All good in test job!')
         print('\n`babs check-setup` was successful! ')
 
-    def babs_submit(self, count=1):
+    def babs_submit(self, count=None, submit_df=None):
         """
-        This function submits jobs and prints out job status.
+        This function submits jobs that don't have results yet and prints out job status.
 
         Parameters
         ----------
-        count: int
+        count: int or None
             number of jobs to be submitted
             default: 1
             negative value: to submit all jobs
+        submit_df: pd.DataFrame
+            dataframe of jobs to be submitted
+            default: None
         """
         # update `analysis_datalad_handle`:
         if self.analysis_datalad_handle is None:
@@ -954,13 +957,16 @@ class BABS:
         status_df = self.get_results_status_df()
         df_needs_submit = status_df[~status_df['has_results']].reset_index(drop=True)
 
+        if submit_df is not None:
+            df_needs_submit = submit_df
+
         # only run `babs submit` when there are subjects/sessions not yet submitted
         if df_needs_submit.empty:
             print('No jobs to submit')
             return
 
         # If count is positive, submit the first `count` jobs
-        if count > 0:
+        if count is not None:
             df_needs_submit = df_needs_submit.head(min(count, df_needs_submit.shape[0]))
 
         # We know task_id ahead of time, so we can add it to the dataframe

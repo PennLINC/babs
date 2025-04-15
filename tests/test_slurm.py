@@ -4,12 +4,11 @@ This module contains tests for Slurm job submission and monitoring functionality
 Tests are skipped if Slurm commands (squeue, sbatch) are not available on the system.
 """
 
-import subprocess
 from pathlib import Path
 
 import pytest
 
-from babs.scheduler import check_slurm_available, squeue_to_pandas
+from babs.scheduler import check_slurm_available, sbatch_get_job_id, squeue_to_pandas
 
 
 @pytest.fixture(scope='session')
@@ -91,10 +90,7 @@ def submit_array_job(working_directory: Path, array_size: int) -> tuple[Path, st
     script_path.chmod(0o755)  # Make script executable
 
     # Submit the job with sbatch
-    result = subprocess.run(['sbatch', script_path], capture_output=True, text=True, check=True)
-
-    # Extract job ID from sbatch output
-    job_id = result.stdout.strip().split()[-1]
+    job_id = sbatch_get_job_id(['sbatch', script_path], job_scratch_directory)
 
     return job_scratch_directory, job_id
 
@@ -121,7 +117,7 @@ def test_array_job_submission(
     test_dir = tmp_path_factory.mktemp('test_array_job')
 
     # Submit array job with 3 tasks
-    job_id = submit_array_job(test_dir, array_size=3)
+    working_directory, job_id = submit_array_job(test_dir, array_size=3)
 
     # Wait a moment for job to be registered
     import time
@@ -133,7 +129,7 @@ def test_array_job_submission(
 
     # Verify job appears in status
     assert not df.empty
-    assert any(job_id == idx for idx in df['job_id'])
+    assert job_id in df['job_id']
 
     # Print parsed DataFrame for debugging
     print('\nParsed DataFrame:')
