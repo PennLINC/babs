@@ -3,12 +3,12 @@
 version: 2.1
 
 orbs:
-  codecov: codecov/codecov@3.2.4
+  codecov: codecov/codecov@5.2.1
 
 jobs:
   pytest:
     machine:
-      image: ubuntu-2204:current  
+      image: ubuntu-2204:current
     resource_class: large
     working_directory: /home/circleci/src/babs
     steps:
@@ -41,7 +41,6 @@ jobs:
                       --junitxml=/test-temp/junit.xml ."
             mkdir -p /tmp/src/coverage
             mv /home/circleci/src/babs/.coverage /tmp/src/coverage/.coverage.main
-
       - persist_to_workspace:
           root: /tmp/src/coverage
           paths:
