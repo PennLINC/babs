@@ -831,5 +831,14 @@ def parse_select_arg(select_arg):
             ' the subject ID must come first'
         )
 
-    if all(item.startswith('sub-') for item in select_arg):
-        return pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})
+    selection_df = pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})
+
+    # Check all items in the sub_id column start with sub-
+    if not all(selection_df['sub_id'].str.startswith('sub-')):
+        raise ValueError('All subject IDs must start with "sub-"')
+
+    # Check all items in the ses_id column start with ses-
+    if not all(selection_df['ses_id'].str.startswith('ses-')):
+        raise ValueError('All session IDs must start with "ses-"')
+
+    return selection_df

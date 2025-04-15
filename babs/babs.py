@@ -967,6 +967,7 @@ class BABS:
 
         # If count is positive, submit the first `count` jobs
         if count is not None:
+            print(f'Submitting the first {count} jobs')
             df_needs_submit = df_needs_submit.head(min(count, df_needs_submit.shape[0]))
 
         # We know task_id ahead of time, so we can add it to the dataframe

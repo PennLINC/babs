@@ -7,6 +7,7 @@ import pytest
 from babs.utils import (
     get_results_branches,
     identify_running_jobs,
+    parse_select_arg,
     results_branch_dataframe,
     update_job_batch_status,
     update_results_status,
@@ -168,3 +169,22 @@ def test_update_job_batch_status():
     new_status_df = update_job_batch_status(status_df, job_submit_df)
 
     assert new_status_df.shape[0] == status_df.shape[0]
+
+
+def test_parse_select_arg():
+    select_arg = ['sub-0001', 'sub-0002']
+    assert parse_select_arg(select_arg) == pd.DataFrame({'sub_id': select_arg})
+
+    select_arg = ['sub-0001', 'ses-01', 'sub-0002', 'ses-02']
+    assert parse_select_arg(select_arg) == pd.DataFrame(
+        {'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]}
+    )
+
+    with pytest.raises(ValueError, match='When selecting specific sessions'):
+        parse_select_arg(['sub-0001', 'ses-01', 'sub-0002'])
+
+    with pytest.raises(ValueError, match='All subject IDs must start with "sub-"'):
+        parse_select_arg(['notasub-0001', 'ses-01', 'notasub-0002', 'ses-02'])
+
+    with pytest.raises(ValueError, match='All session IDs must start with "ses-"'):
+        parse_select_arg(['sub-0001', 'notases-01', 'sub-0002', 'notases-02'])

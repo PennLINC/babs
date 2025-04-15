@@ -6,7 +6,6 @@ import warnings
 from functools import partial
 from pathlib import Path
 
-import pandas as pd
 import yaml
 
 from babs.babs import BABS
@@ -414,9 +413,9 @@ def _enter_submit(argv=None):
 
 def babs_submit_main(
     project_root: str,
-    count: int,
-    job: list,
-    inclusion_file: Path,
+    count: int | None,
+    select: list | None,
+    inclusion_file: Path | None,
 ):
     """This is the core function of ``babs submit``.
 
@@ -424,85 +423,33 @@ def babs_submit_main(
     ----------
     project_root: str
         absolute path to the directory of BABS project
-    submit_all : bool
-        whether to submit all remaining jobs
     count: int or None
-        number of jobs to be submitted
-        default: None (did not specify in cli)
-            if `--job` is not requested, it will be changed to `1` before going
-            into `babs_submit()`
-        any negative int will be treated as submitting all jobs that haven't been submitted.
-    job: nested list or None
-        For each sub-list, the length should be 1 (for subject) or 2 (for session)
+        number of jobs to be submitted. If not set, all remaining jobs will be submitted.
+    select: list
+        list of subject IDs and session IDs to be submitted.
+    inclusion_file: Path
+        path to a CSV file that lists the subjects (and sessions) to analyze.
     """
+    import pandas as pd
+
+    from babs.utils import parse_select_arg
+
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
     # Check if this csv file has been created, if not, create it:
     create_job_status_csv(babs_proj)
 
-    # Actions on `count`:
-    if submit_all:  # if True:
-        count = -1  # so that to submit all remaining jobs
-
-    if count is None:
-        count = 1  # if not to specify `--count`, change to 1
-
-    # sanity check:
-    if count == 0:
-        raise Exception(
-            '`--count 0` is not valid! Please specify a positive integer. '
-            'To submit all jobs, please do not specify `--count`.'
-        )
-
-    # Actions on `job`:
-    if job is not None:
-        count = -1  # just in case; make sure all specified jobs will be submitted
-
-        # sanity check:
-        if babs_proj.processing_level == 'subject':
-            expected_len = 1
-        elif babs_proj.processing_level == 'session':
-            expected_len = 2
-        for i_job in range(0, len(job)):
-            # expected length in each sub-list:
-            assert len(job[i_job]) == expected_len, (
-                'There should be '
-                + str(expected_len)
-                + ' arguments in `--job`,'
-                + ' as processing level is '
-                + babs_proj.processing_level
-                + '!'
-            )
-            # 1st argument:
-            assert job[i_job][0][0:4] == 'sub-', (
-                'The 1st argument of `--job`' + " should be 'sub-*'!"
-            )
-            if babs_proj.processing_level == 'session':
-                # 2nd argument:
-                assert job[i_job][1][0:4] == 'ses-', (
-                    'The 2nd argument of `--job`' + " should be 'ses-*'!"
-                )
-
-        # turn into a pandas DataFrame:
-        if babs_proj.processing_level == 'subject':
-            df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=['sub_id']
-            )
-        elif babs_proj.processing_level == 'session':
-            df_job_specified = pd.DataFrame(
-                None, index=list(range(0, len(job))), columns=['sub_id', 'ses_id']
-            )
-        for i_job in range(0, len(job)):
-            df_job_specified.at[i_job, 'sub_id'] = job[i_job][0]
-            if babs_proj.processing_level == 'session':
-                df_job_specified.at[i_job, 'ses_id'] = job[i_job][1]
-
-    else:  # `job` is None:
+    # Get a selection dataframe in order of preference
+    if inclusion_file is not None:
+        df_job_specified = pd.read_csv(inclusion_file)
+    elif select is not None:
+        df_job_specified = parse_select_arg(select)
+    else:
         df_job_specified = None
 
     # Call method `babs_submit()`:
-    babs_proj.babs_submit(count, df_job_specified)
+    babs_proj.babs_submit(count=count, df_job_specified=df_job_specified)
 
 
 def _parse_status():
