@@ -30,7 +30,7 @@ jobs:
                 -h slurmctl --cap-add sys_admin \
                 --privileged \
                 pennlinc/slurm-docker-ci:unstable \
-                /bin/bash -c "cd /tests && \
+                /bin/bash -c "cd /tests/babs && \
                   pytest -rP -o log_cli=true -n 4 -sv \
                       --durations=0 \
                       --timeout=300 \
@@ -38,7 +38,7 @@ jobs:
                       --cov-append \
                       --cov-report term-missing \
                       --cov=babs \
-                      --junitxml=/test-temp/junit.xml ."
+                      --junitxml=/test-temp/junit.xml ../tests"
             mkdir -p /tmp/src/coverage
             mv /home/circleci/src/babs/.coverage /tmp/src/coverage/.coverage.main
       - persist_to_workspace:
