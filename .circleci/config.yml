@@ -115,8 +115,7 @@ jobs:
             coverage xml
       - store_artifacts:
           path: /tmp/src/coverage
-      - codecov/upload:
-          file: /tmp/src/coverage/coverage.xml
+      - codecov/upload
 
   deployable: # checkpoint of deployable: requires all success
     resource_class: small
