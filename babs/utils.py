@@ -13,6 +13,8 @@ import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
 
+RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
+
 
 def get_datalad_version():
     return version('datalad')
@@ -798,3 +800,36 @@ def compare_repo_commit_hashes(repo1, repo2, repo1_name, repo2_name, raise_error
         else:
             warnings.warn(message, stacklevel=2)
     return hash1 == hash2
+
+
+def parse_select_arg(select_arg):
+    """
+    Parse the --select argument.
+
+    Parameters:
+    -----------
+    select_arg: list
+        list of select arguments
+
+    Returns:
+    --------
+    select_arg: pd.DataFrame
+        dataframe of the inclusion list
+
+
+    """
+
+    all_subjects = all(item.startswith('sub-') for item in select_arg)
+
+    if all_subjects:
+        return pd.DataFrame({'sub_id': select_arg})
+
+    if len(select_arg) % 2 == 1:
+        raise ValueError(
+            'When selecting specific sessions, include the subject ID and session ID'
+            ' separated by a space. Even if selecting multiple sessions per subject '
+            ' the subject ID must come first'
+        )
+
+    if all(item.startswith('sub-') for item in select_arg):
+        return pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})

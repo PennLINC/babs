@@ -13,9 +13,7 @@ from babs.babs import BABS
 from babs.input_datasets import InputDatasets
 from babs.scheduler import create_job_status_csv
 from babs.system import System
-from babs.utils import get_datalad_version, read_yaml, validate_processing_level
-
-RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
+from babs.utils import RUNNING_PYTEST, get_datalad_version, read_yaml, validate_processing_level
 
 
 def _path_exists(path, parser):
@@ -555,10 +553,6 @@ def _enter_status(argv=None):
 
 def babs_status_main(
     project_root: str,
-    resubmit: bool,
-    resubmit_job: list,
-    container_config: str,
-    reckless: bool = False,
 ):
     """
     This is the core function of `babs status`.
@@ -567,28 +561,6 @@ def babs_status_main(
     ----------
     project_root: str
         absolute path to the directory of BABS project
-    resubmit: bool
-        resubmit jobs that have failed
-    resubmit_job: nested list or None
-        For each sub-list, the length should be 1 (for subject) or 2 (for session)
-    container_config : str or None
-        Path to a YAML file that contains the configurations
-        of how to run the BIDS App container.
-        It may include 'alert_log_messages' section
-        to be used by babs status.
-    reckless: bool
-        Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running.
-        This is hardcoded as False for now.
-
-    Notes
-    -----
-    NOTE: Not to include `reckless` in `babs status` CLI for now.
-    If `reckless` is added in the future,
-        please make sure you remove command `args.reckless = False` below!
-    Below are commented:
-    reckless: bool
-            Whether to resubmit jobs listed in `--resubmit-job`, even they're done or running
-            This is used when `--resubmit-job`
     """
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
@@ -597,72 +569,6 @@ def babs_status_main(
     create_job_status_csv(babs_proj)
 
     babs_proj.babs_status()
-
-    # Get the list of resubmit conditions:
-    if resubmit is None:
-        return
-
-    # If `resubmit-job` is requested:
-    if resubmit_job is not None:
-        # sanity check:
-        if babs_proj.processing_level == 'subject':
-            expected_len = 1
-        elif babs_proj.processing_level == 'session':
-            expected_len = 2
-
-        for i_job in range(0, len(resubmit_job)):
-            # expected length in each sub-list:
-            assert len(resubmit_job[i_job]) == expected_len, (
-                'There should be '
-                + str(expected_len)
-                + ' arguments in `--resubmit-job`,'
-                + ' as processing level is '
-                + babs_proj.processing_level
-                + '!'
-            )
-            # 1st argument:
-            assert resubmit_job[i_job][0][0:4] == 'sub-', (
-                'The 1st argument of `--resubmit-job`' + " should be 'sub-*'!"
-            )
-            if babs_proj.processing_level == 'session':
-                # 2nd argument:
-                assert resubmit_job[i_job][1][0:4] == 'ses-', (
-                    'The 2nd argument of `--resubmit-job`' + " should be 'ses-*'!"
-                )
-
-        # turn into a pandas DataFrame:
-        if babs_proj.processing_level == 'subject':
-            df_resubmit_job_specific = pd.DataFrame(
-                None, index=list(range(0, len(resubmit_job))), columns=['sub_id']
-            )
-        elif babs_proj.processing_level == 'session':
-            df_resubmit_job_specific = pd.DataFrame(
-                None,
-                index=list(range(0, len(resubmit_job))),
-                columns=['sub_id', 'ses_id'],
-            )
-
-        for i_job in range(0, len(resubmit_job)):
-            df_resubmit_job_specific.at[i_job, 'sub_id'] = resubmit_job[i_job][0]
-            if babs_proj.processing_level == 'session':
-                df_resubmit_job_specific.at[i_job, 'ses_id'] = resubmit_job[i_job][1]
-
-        if len(df_resubmit_job_specific) > 0:
-            if reckless:  # if `--reckless`:
-                print(
-                    'Will resubmit all the job(s) listed in `--resubmit-job`,'
-                    " even if they're done or running."
-                )
-            else:
-                print(
-                    'Will resubmit the job(s) listed in `--resubmit-job`,'
-                    " if they're pending or failed."
-                )  # not to include 'stalled'
-        else:  # in theory should not happen, but just in case:
-            raise Exception('There is no valid job in --resubmit-job!')
-
-    else:  # `--resubmit-job` is None:
-        df_resubmit_job_specific = None
 
 
 def _parse_merge():
