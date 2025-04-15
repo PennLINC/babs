@@ -38,7 +38,7 @@ jobs:
                       --cov-append \
                       --cov-report term-missing \
                       --cov=babs \
-                      --junitxml=/test-temp/junit.xml tests/"
+                      --junitxml=/test-temp/junit.xml babs"
             mkdir -p /tmp/src/coverage
             mv /home/circleci/src/babs/.coverage /tmp/src/coverage/.coverage.main
       - persist_to_workspace:
