@@ -40,7 +40,7 @@ jobs:
                       --cov=babs \
                       --junitxml=/test-temp/junit.xml ../tests"
             mkdir -p /tmp/src/coverage
-            mv /home/circleci/src/babs/.coverage /tmp/src/coverage/.coverage.main
+            mv /home/circleci/src/babs/babs/.coverage /tmp/src/coverage/.coverage.main
       - persist_to_workspace:
           root: /tmp/src/coverage
           paths:
