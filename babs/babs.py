@@ -1017,9 +1017,9 @@ class BABS:
         # We know task_id ahead of time, so we can add it to the dataframe
         df_needs_submit['task_id'] = np.arange(1, df_needs_submit.shape[0] + 1)
         submit_cols = (
-            ['sub_id', 'ses_id', 'task_id']
+            ['sub_id', 'ses_id', 'job_id', 'task_id']
             if self.processing_level == 'session'
-            else ['sub_id', 'task_id']
+            else ['sub_id', 'job_id', 'task_id']
         )
         # Write the job submission dataframe to a csv file
         df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
@@ -1048,7 +1048,7 @@ class BABS:
 
         current_status_df = update_results_status(previous_job_completion_df, job_completion_df)
         job_batch_status_df = update_job_batch_status(
-            current_status_df, self.get_lasest_submitted_jobs_df()
+            current_status_df, self.get_latest_submitted_jobs_df()
         )
         job_batch_status_df.to_csv(self.job_status_path_abs, index=False)
 
@@ -1065,7 +1065,7 @@ class BABS:
         currently_running_df = self.get_currently_running_jobs_df()
         report_job_status(current_results_df, currently_running_df, self.analysis_path)
 
-    def get_lasest_submitted_jobs_df(self):
+    def get_latest_submitted_jobs_df(self):
         """
         Get the latest submitted jobs.
         """
@@ -1077,7 +1077,7 @@ class BABS:
         """
         Get the currently running jobs. Subject/session information is added.
         """
-        last_submitted_jobs_df = self.get_lasest_submitted_jobs_df()
+        last_submitted_jobs_df = self.get_latest_submitted_jobs_df()
         if last_submitted_jobs_df.empty:
             return EMPTY_JOB_SUBMIT_DF
         job_ids = last_submitted_jobs_df['job_id'].unique()

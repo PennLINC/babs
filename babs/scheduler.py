@@ -144,8 +144,8 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
         raise RuntimeError(f'Failed to parse squeue output: {str(e)}\nOutput was: {result.stdout}')
 
     # separate job_id into job_id and task_id
-    df['task_id'] = df['job_id'].str.split('_').str[1]
-    df['job_id'] = df['job_id'].str.split('_').str[0]
+    df['task_id'] = df['job_id'].str.split('_').str[1].astype(int)
+    df['job_id'] = df['job_id'].str.split('_').str[0].astype(int)
 
     # Validate DataFrame structure
     if not all(col in df.columns for col in status_columns):

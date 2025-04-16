@@ -2,13 +2,15 @@
 import argparse
 import os
 import os.path as op
+import time
 from pathlib import Path
 from unittest import mock
 
 import pytest
 import yaml
 
-from babs.cli import _enter_check_setup, _enter_init, _enter_status, _enter_submit
+from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
+from babs.scheduler import squeue_to_pandas
 from babs.utils import read_yaml
 
 # Get the path to the notebooks directory
@@ -131,3 +133,42 @@ def test_babs_init_raw_bids(
     )
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
         _enter_submit()
+
+    # babs status:
+    babs_status_opts = argparse.Namespace(project_root=project_root)
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
+        _enter_status()
+
+    finished = False
+    for waitnum in [5, 8, 10, 15, 30]:
+        time.sleep(waitnum)
+        print(f'Waiting {waitnum} seconds...')
+        df = squeue_to_pandas()
+        print(df)
+        if df.empty:
+            finished = True
+            break
+
+    if not finished:
+        raise RuntimeError('Jobs did not finish in time')
+
+    # Submit the last job:
+    babs_submit_opts = argparse.Namespace(
+        project_root=project_root, select=None, inclusion_file=None, count=None
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
+        _enter_submit()
+
+    # run babs merge (trial run):
+    babs_merge_opts = argparse.Namespace(
+        project_root=project_root, chunk_size=2000, trial_run=True
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
+        _enter_merge()
+
+    # run babs merge (non-trial run):
+    babs_merge_opts = argparse.Namespace(
+        project_root=project_root, chunk_size=2000, trial_run=False
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
+        _enter_merge()
