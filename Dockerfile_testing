@@ -3,4 +3,4 @@ FROM pennlinc/slurm-docker-ci:0.14
 # install BABS in development mode for proper coverage tracking
 COPY . /babs
 WORKDIR /babs
-RUN pip install .[tests]
+RUN pip install -e .[tests]
