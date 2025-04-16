@@ -57,9 +57,7 @@ echo "PASSED: Check setup, without job"
 babs check-setup --job-test
 echo "Job submitted: Check setup, with job"
 
-babs status
-
-babs submit --all
+babs submit
 
 # # Wait for all running jobs to finish
 while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
@@ -103,9 +101,9 @@ babs init \
 
 pushd "${PWD}/${TEST2_NAME}"
 
-babs status
+babs check-setup
 
-babs submit --all
+babs submit
 # # Wait for all running jobs to finish
 while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
     echo "squeue -u \"$USER\" -t RUNNING,PENDING"
