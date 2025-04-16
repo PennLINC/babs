@@ -37,6 +37,7 @@ jobs:
                     --cov-report term-missing \
                     --cov-report xml:/test-temp/coverage.xml \
                     --cov=babs \
+                    /babs
 
       - store_test_results:
           path: /home/circleci/e2e-testing/junit.xml
