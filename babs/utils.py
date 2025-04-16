@@ -695,6 +695,22 @@ def update_results_status(status_df, has_results_df):
     return updated_results_df
 
 
+def update_submitted_job_ids(results_df, submitted_df):
+    """Update the most revent job and task ids in the status df"""
+    if 'sub_id' not in submitted_df:
+        raise ValueError('job_submit_df must have a sub_id column')
+
+    use_sesid = 'ses_id' in results_df and 'ses_id' in submitted_df
+    merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
+
+    merged = pd.merge(results_df, submitted_df, on=merge_on, how='left', suffixes=('', '_batch'))
+    merged['job_id'] = merged['job_id_batch']
+    merged['task_id'] = merged['task_id_batch']
+    merged.drop(['job_id_batch', 'task_id_batch'], axis=1, inplace=True)
+    merged['submitted'] = merged['job_id'] > -1
+    return merged
+
+
 def update_job_batch_status(status_df, job_submit_df):
     """
     Update the status dataframe with the job submission information.
@@ -704,7 +720,7 @@ def update_job_batch_status(status_df, job_submit_df):
     status_df: pd.DataFrame
         status dataframe. Be sure has_results is up to date.
     job_submit_df: pd.DataFrame
-        the current status of job submission.
+        the current status of job submission: must have
 
     Returns:
     --------

@@ -34,6 +34,7 @@ from babs.utils import (
     results_branch_dataframe,
     update_job_batch_status,
     update_results_status,
+    update_submitted_job_ids,
     validate_processing_level,
 )
 
@@ -1034,19 +1035,32 @@ class BABS:
         # Update the job submission dataframe with the new job id
         df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
 
+        # Update the results df
+        updated_results_df = update_submitted_job_ids(
+            self.get_results_status_df(), df_needs_submit[submit_cols]
+        )
+        updated_results_df.to_csv(self.job_status_path_abs, index=False)
+
     def _update_results_status(self):
         """
         Update the status of jobs based on results in the output RIA.
         """
 
+        # Step 1: get a list of branches in the output ria to update the status
         # Get the list of branches in output RIA
         list_branches = get_results_branches(self.output_ria_data_dir)
-        # This has columns job_id, task_id, sub_id, ses_id, has_results
-        job_completion_df = results_branch_dataframe(list_branches)
-        # Get the previous df of job statuses
         previous_job_completion_df = self.get_results_status_df()
 
-        current_status_df = update_results_status(previous_job_completion_df, job_completion_df)
+        if not list_branches:
+            current_status_df = previous_job_completion_df
+        else:
+            print('New results found!')
+            # This has columns job_id, task_id, sub_id, ses_id, has_results
+            job_completion_df = results_branch_dataframe(list_branches)
+            current_status_df = update_results_status(
+                previous_job_completion_df, job_completion_df
+            )
+
         job_batch_status_df = update_job_batch_status(
             current_status_df, self.get_latest_submitted_jobs_df()
         )

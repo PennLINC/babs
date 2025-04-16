@@ -447,11 +447,14 @@ def report_job_status(current_results_df, currently_running_df, analysis_path):
     analysis_path: str
         path to the `analysis` folder of a `BABS` project
     """
-    from jinja2 import Environment, PackageLoader, select_autoescape
+    from jinja2 import Environment, PackageLoader, StrictUndefined
 
     env = Environment(
         loader=PackageLoader('babs', 'templates'),
-        autoescape=select_autoescape(),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+        undefined=StrictUndefined,
     )
     template = env.get_template('job_status_report.jinja')
 
