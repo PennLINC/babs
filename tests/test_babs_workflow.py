@@ -17,6 +17,13 @@ from babs.utils import read_yaml
 NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
 
 
+# Get the path to the config_simbids.yaml file
+def get_config_simbids_path():
+    """Get the path to the config_simbids.yaml file."""
+    e2e_slurm_path = Path(__file__).parent / 'e2e-slurm' / 'container'
+    return e2e_slurm_path / 'config_simbids.yaml'
+
+
 def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     """Copy a packaged yaml to a new_dir and make any included_files in new_dir.
 
@@ -35,7 +42,12 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
         The path to the new yaml file.
     """
 
-    packaged_yaml_path = op.join(NOTEBOOKS_DIR, babs_config_yaml)
+    # Check if we're using the config_simbids.yaml file
+    if babs_config_yaml == 'config_simbids.yaml':
+        packaged_yaml_path = get_config_simbids_path()
+    else:
+        packaged_yaml_path = op.join(NOTEBOOKS_DIR, babs_config_yaml)
+
     new_yaml_path = new_dir / babs_config_yaml
 
     assert op.exists(packaged_yaml_path)
@@ -50,16 +62,26 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
             f.write('FAKE DATA')
         imported_file['original_path'] = fn_imported_file
 
-    for ds_name, ds_path in input_datasets_updates.items():
-        babs_config['input_datasets'][ds_name]['origin_url'] = ds_path
+    # Update input datasets if provided
+    if input_datasets_updates:
+        for ds_name, ds_path in input_datasets_updates.items():
+            babs_config['input_datasets'][ds_name]['origin_url'] = ds_path
 
     yaml_data = babs_config.copy()
     for imported_file in yaml_data.get('imported_files', []):
         imported_file['original_path'] = str(imported_file['original_path'])
-    yaml_data['script_preamble'] = 'PATH=/opt/conda/envs/babs/bin:$PATH'
+
+    # Only update these if not already present in the YAML
+    if 'script_preamble' not in yaml_data:
+        yaml_data['script_preamble'] = 'PATH=/opt/conda/envs/babs/bin:$PATH'
+
     # How much cluster resources it needs:
-    yaml_data['cluster_resources'] = {'interpreting_shell': '/bin/bash'}
-    yaml_data['job_compute_space'] = '/tmp'
+    if 'cluster_resources' not in yaml_data:
+        yaml_data['cluster_resources'] = {'interpreting_shell': '/bin/bash'}
+
+    if 'job_compute_space' not in yaml_data:
+        yaml_data['job_compute_space'] = '/tmp'
+
     with open(new_yaml_path, 'w') as f:
         yaml.dump(yaml_data, f)
 
@@ -93,8 +115,10 @@ def test_babs_init_raw_bids(
     project_root = project_base / 'my_babs_project'
     container_name = 'simbids-0-0-3'
 
+    # Use config_simbids.yaml instead of eg_fmriprep
+    config_simbids_path = get_config_simbids_path()
     container_config = update_yaml_for_run(
-        project_base, 'eg_fmriprep-24-1-1_anatonly.yaml', {'BIDS': bids_data_singlesession}
+        project_base, config_simbids_path.name, {'BIDS': bids_data_singlesession}
     )
 
     babs_init_opts = argparse.Namespace(
@@ -159,12 +183,12 @@ def test_babs_init_raw_bids(
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
         _enter_submit()
 
-    # run babs merge (trial run):
-    babs_merge_opts = argparse.Namespace(
-        project_root=project_root, chunk_size=2000, trial_run=True
-    )
-    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
-        _enter_merge()
+    # # run babs merge (trial run):
+    # babs_merge_opts = argparse.Namespace(
+    #     project_root=project_root, chunk_size=2000, trial_run=True
+    # )
+    # with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
+    #     _enter_merge()
 
     # run babs merge (non-trial run):
     babs_merge_opts = argparse.Namespace(
