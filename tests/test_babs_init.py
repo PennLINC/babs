@@ -5,10 +5,11 @@ import os.path as op
 from pathlib import Path
 from unittest import mock
 
+import pytest
 import yaml
 
-from babs.cli import _enter_check_setup, _enter_init  # noqa
-from babs.utils import read_yaml  # noqa
+from babs.cli import _enter_check_setup, _enter_init, _enter_status, _enter_submit
+from babs.utils import read_yaml
 
 # Get the path to the notebooks directory
 NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
@@ -105,14 +106,28 @@ def test_babs_init_raw_bids(
         keep_if_failed=False,
     )
 
-    # run `babs init`:
+    # babs init:
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
         _enter_init()
 
-    # PART 2: Check the setup
+    # babs check-setup:
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=True)
-    # Run `babs check-setup`:
     with mock.patch.object(
         argparse.ArgumentParser, 'parse_args', return_value=babs_check_setup_opts
     ):
         _enter_check_setup()
+
+    # babs status: shouldn't work until we submit jobs
+    babs_status_opts = argparse.Namespace(project_root=project_root)
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
+        with pytest.raises(
+            FileNotFoundError, match='Try launching jobs with `babs submit` first.'
+        ):
+            _enter_status()
+
+    # babs submit:
+    babs_submit_opts = argparse.Namespace(
+        project_root=project_root, select=None, inclusion_file=None, count=1
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
+        _enter_submit()

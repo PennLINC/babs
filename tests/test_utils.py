@@ -173,11 +173,11 @@ def test_update_job_batch_status():
 
 def test_parse_select_arg():
     select_arg = ['sub-0001', 'sub-0002']
-    assert parse_select_arg(select_arg) == pd.DataFrame({'sub_id': select_arg})
+    assert parse_select_arg(select_arg).equals(pd.DataFrame({'sub_id': select_arg}))
 
     select_arg = ['sub-0001', 'ses-01', 'sub-0002', 'ses-02']
-    assert parse_select_arg(select_arg) == pd.DataFrame(
-        {'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]}
+    assert parse_select_arg(select_arg).equals(
+        pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})
     )
 
     with pytest.raises(ValueError, match='When selecting specific sessions'):

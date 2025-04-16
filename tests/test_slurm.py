@@ -129,7 +129,7 @@ def test_array_job_submission(
 
     # Verify job appears in status
     assert not df.empty
-    assert job_id in df['job_id']
+    assert job_id in df['job_id'].values.astype(int)
 
     # Print parsed DataFrame for debugging
     print('\nParsed DataFrame:')

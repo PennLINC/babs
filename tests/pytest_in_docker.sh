@@ -4,4 +4,10 @@ docker run -it \
     --platform linux/amd64 \
     -h slurmctl --cap-add sys_admin \
     --privileged \
-    pennlinc/slurm-docker-ci:unstable pytest -svx --pdb /babs/tests
+    pennlinc/slurm-docker-ci:unstable \
+        pytest -svx \
+        --cov-report=term-missing \
+        --cov-report=xml \
+        --cov=babs \
+        --pdb /babs
+    

@@ -261,7 +261,7 @@ def submit_array(analysis_path, queue, maxarray):
     f.close()
     # sections in this template yaml file:
     cmd_template = templates['cmd_template']
-    cmd = cmd_template.replace('${max_array}', maxarray)
+    cmd = cmd_template.replace('${max_array}', f'{maxarray}')
 
     if queue == 'slurm':
         job_id = sbatch_get_job_id(cmd.split(), analysis_path)

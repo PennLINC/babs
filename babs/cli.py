@@ -12,7 +12,13 @@ from babs.babs import BABS
 from babs.input_datasets import InputDatasets
 from babs.scheduler import create_job_status_csv
 from babs.system import System
-from babs.utils import RUNNING_PYTEST, get_datalad_version, read_yaml, validate_processing_level
+from babs.utils import (
+    RUNNING_PYTEST,
+    get_datalad_version,
+    read_yaml,
+    validate_processing_level,
+    validate_sub_ses_processing_inclusion,
+)
 
 
 def _path_exists(path, parser):
@@ -443,13 +449,14 @@ def babs_submit_main(
     # Get a selection dataframe in order of preference
     if inclusion_file is not None:
         df_job_specified = pd.read_csv(inclusion_file)
+        validate_sub_ses_processing_inclusion(df_job_specified, babs_proj.processing_level)
     elif select is not None:
         df_job_specified = parse_select_arg(select)
     else:
         df_job_specified = None
 
     # Call method `babs_submit()`:
-    babs_proj.babs_submit(count=count, df_job_specified=df_job_specified)
+    babs_proj.babs_submit(count=count, submit_df=df_job_specified)
 
 
 def _parse_status():
