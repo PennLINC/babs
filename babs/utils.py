@@ -1,20 +1,19 @@
 """Utils and helper functions"""
 
 import copy
+import getpass
 import os
 import os.path as op
-import re
 import subprocess
 import warnings
-from argparse import Action
-from datetime import datetime
 from importlib.metadata import version
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import yaml
 from filelock import FileLock, Timeout
+
+RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
 
 
 def get_datalad_version():
@@ -256,714 +255,6 @@ def app_output_settings_from_config(config):
     return config['zip_foldernames'], bids_app_output_dir
 
 
-def submit_array(analysis_path, processing_level, queue, maxarray, flag_print_message=True):
-    """
-    This is to submit a job array based on template yaml file.
-
-    Parameters
-    ----------
-    analysis_path: str
-        path to the `analysis` folder. One attribute in class `BABS`
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-    queue: str
-        the type of job scheduling system, "sge" or "slurm"
-    maxarray: str
-        max index of the array (first index is always 1)
-    flag_print_message: bool
-        to print a message (True) or not (False)
-
-    Returns:
-    ------------------
-    job_id: int
-        the int version of ID of the submitted job.
-    job_id_str: str
-        the string version of ID of the submitted job.
-    task_id_list: list
-        the list of task ID (dtype int) from the submitted job, starting from 1.
-    log_filename: list
-        the list of log filenames (dtype str) of this job.
-        Example: 'qsi_sub-01_ses-A.*<jobid>_<arrayid>';
-        user needs to replace '*' with 'o', 'e', etc
-
-    Notes:
-    -----------------
-    see `Container.generate_job_submit_template()`
-    for details about template yaml file.
-    """
-
-    # Load the job submission template:
-    #   details of this template yaml file: see `Container.generate_job_submit_template()`
-    template_yaml_path = op.join(analysis_path, 'code', 'submit_job_template.yaml')
-    with open(template_yaml_path) as f:
-        templates = yaml.safe_load(f)
-    f.close()
-    # sections in this template yaml file:
-    cmd_template = templates['cmd_template']
-    job_name_template = templates['job_name_template']
-
-    cmd = cmd_template.replace('${max_array}', maxarray)
-    to_print = 'Job for an array of ' + maxarray
-    job_name = job_name_template.replace('${max_array}', str(int(maxarray) - 1))
-
-    # run the command, get the job id:
-    proc_cmd = subprocess.run(
-        cmd.split(),
-        cwd=analysis_path,
-        capture_output=True,
-    )
-    proc_cmd.check_returncode()
-    msg = proc_cmd.stdout.decode('utf-8')
-
-    if queue == 'sge':
-        job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
-        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    elif queue == 'slurm':
-        job_id_str = msg.split()[-1]
-        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
-        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
-    else:
-        raise Exception('type system can be slurm or sge')
-    job_id = int(job_id_str)
-
-    task_id_list = []
-    log_filename_list = []
-
-    for i_array in range(int(maxarray)):
-        task_id_list.append(i_array + 1)  # minarray starts from 1
-        # log filename:
-        log_filename_list.append(job_name + '.*' + job_id_str + '_' + str(i_array + 1))
-
-    to_print += ' has been submitted (job ID: ' + job_id_str + ').'
-    if flag_print_message:
-        print(to_print)
-
-    return job_id, job_id_str, task_id_list, log_filename_list
-
-
-def df_submit_update(
-    df_job_submit, job_id, task_id_list, log_filename_list, submitted=None, done=None, debug=False
-):
-    """
-    This is to update the status of one array task in the dataframe df_job_submit
-    (file: code/job_status.csv). This
-    function is mostly used after job submission or resubmission. Therefore,
-    a lot of fields will be reset. For other cases (e.g., to update job status
-    to running state / successfully finished state, etc.), you may directly
-    update df_jobs without using this function.
-
-    Parameters
-    ----------
-    df_job_submit: pd.DataFrame
-        dataframe of the submitted job
-    job_id: int
-        the int version of ID of the submitted job.
-    task_id_list: list
-        list of task id (dtype int), starts from 1
-    log_filename_list: list
-        list log filename (dtype str) of the submitted job
-    submitted: bool or None
-        whether the has_submitted field has to be updated
-    done: bool or None
-        whether the is_done field has to be updated
-    debug: bool
-        whether the job auditing fields need to be reset to np.nan
-        (fields include last_line_stdout_file, and alert_message).
-
-    Returns:
-    -------
-    df_job_submit: pd.DataFrame
-        dataframe of the submitted job, updated
-    """
-    # Updating df_job_submit:
-    # looping through each array task id in `task_id_list`
-    for ind in range(len(task_id_list)):  # `task_id_list` starts from 1
-        df_job_submit.loc[ind, 'job_id'] = job_id
-        df_job_submit.loc[ind, 'task_id'] = int(task_id_list[ind])
-        df_job_submit.at[ind, 'log_filename'] = log_filename_list[ind]
-        # reset fields:
-        df_job_submit.loc[ind, 'needs_resubmit'] = False
-        df_job_submit.loc[ind, 'is_failed'] = np.nan
-        df_job_submit.loc[ind, 'job_state_category'] = np.nan
-        df_job_submit.loc[ind, 'job_state_code'] = np.nan
-        df_job_submit.loc[ind, 'duration'] = np.nan
-        if submitted is not None:
-            # update the status:
-            df_job_submit.loc[ind, 'has_submitted'] = submitted
-        if done is not None:
-            # update the status:
-            df_job_submit.loc[ind, 'is_done'] = done
-        if debug:
-            df_job_submit.loc[ind, 'last_line_stdout_file'] = np.nan
-            df_job_submit.loc[ind, 'alert_message'] = np.nan
-    return df_job_submit
-
-
-def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
-    """
-    This is to update the status of one array task in the dataframe df_jobs
-    (file: code/job_status.csv). This is done by inserting information from
-    the updated dataframe df_job_submit (file: code/job_submit.csv). This
-    function is mostly used after job submission or resubmission. Therefore,
-    a lot of fields will be reset. For other cases (e.g., to update job status
-    to running state / successfully finished state, etc.), you may directly
-    update df_jobs without using this function.
-
-    Parameters:
-    ----------------
-    df_jobs: pd.DataFrame
-        dataframe of jobs and their status
-    df_job_submit: pd.DataFrame
-        dataframe of the to-be-submitted job
-    submitted: bool or None
-        whether the has_submitted field has to be updated
-    done: bool or None
-        whether the is_done field has to be updated
-    debug: bool
-        whether the job auditing fields need to be reset to np.nan
-        (fields include last_line_stdout_file, and alert_message).
-
-    Returns:
-    ------------------
-    df_jobs: pd.DataFrame
-        dataframe of jobs and their status, updated
-    """
-    # Updating df_jobs
-    for _, row in df_job_submit.iterrows():
-        sub_id = row['sub_id']
-
-        if 'ses_id' in df_jobs.columns:
-            ses_id = row['ses_id']
-            # Locate the corresponding rows in df_jobs
-            mask = (df_jobs['sub_id'] == sub_id) & (df_jobs['ses_id'] == ses_id)
-        elif 'ses_id' not in df_jobs.columns:
-            mask = df_jobs['sub_id'] == sub_id
-
-        # Update df_jobs fields based on the latest info in df_job_submit
-        df_jobs.loc[mask, 'job_id'] = row['job_id']
-        df_jobs.loc[mask, 'task_id'] = row['task_id']
-        df_jobs.loc[mask, 'log_filename'] = row['log_filename']
-        # reset fields:
-        df_jobs.loc[mask, 'needs_resubmit'] = row['needs_resubmit']
-        df_jobs.loc[mask, 'is_failed'] = row['is_failed']
-        df_jobs.loc[mask, 'job_state_category'] = row['job_state_category']
-        df_jobs.loc[mask, 'job_state_code'] = row['job_state_code']
-        df_jobs.loc[mask, 'duration'] = row['duration']
-        if submitted is not None:
-            # update the status:
-            df_jobs.loc[mask, 'has_submitted'] = row['has_submitted']
-        if done is not None:
-            # update the status:
-            df_jobs.loc[mask, 'is_done'] = row['is_done']
-        if debug:
-            df_jobs.loc[mask, 'last_line_stdout_file'] = row['last_line_stdout_file']
-            df_jobs.loc[mask, 'alert_message'] = row['alert_message']
-    return df_jobs
-
-
-def prepare_job_array_df(df_job, df_job_specified, count, processing_level):
-    """
-    This is to prepare the df_job_submit to be submitted.
-
-    Parameters:
-    ----------------
-    df_job: pd.DataFrame
-        dataframe of jobs and their status
-    df_job_specified: pd.DataFrame
-        dataframe of jobs to be submitted (specified by user)
-    count: int
-        number of jobs to be submitted
-    processing_level : {'subject', 'session'}
-        whether processing is done on a subject-wise or session-wise basis
-
-    Returns:
-    ------------------
-    df_job_submit: pd.DataFrame
-        list of job indices to be submitted,
-        these are indices from the full job status dataframe `df_job`
-    """
-    df_job_submit = pd.DataFrame()
-    # Check if there is still jobs to submit:
-    total_has_submitted = int(df_job['has_submitted'].sum())
-    if total_has_submitted == df_job.shape[0]:  # all submitted
-        print('All jobs have already been submitted. ' + 'Use `babs status` to check job status.')
-        return df_job_submit
-
-    # See if user has specified list of jobs to submit:
-    if df_job_specified is not None:
-        print('Will only submit specified jobs...')
-        job_ind_list = []
-        for j_job in range(0, df_job_specified.shape[0]):
-            # find the index in the full `df_job`:
-            if processing_level == 'subject':
-                sub = df_job_specified.at[j_job, 'sub_id']
-                ses = None
-                temp = df_job['sub_id'] == sub
-            elif processing_level == 'session':
-                sub = df_job_specified.at[j_job, 'sub_id']
-                ses = df_job_specified.at[j_job, 'ses_id']
-                temp = (df_job['sub_id'] == sub) & (df_job['ses_id'] == ses)
-
-            # dj: should we keep this part?
-            i_job = df_job.index[temp].to_list()
-            # # sanity check: there should only be one `i_job`:
-            # #   ^^ can be removed as done in `core_functions.py`
-            i_job = i_job[0]  # take the element out of the list
-
-            # check if the job has already been submitted:
-            if not df_job['has_submitted'][i_job]:  # to run
-                job_ind_list.append(i_job)
-            else:
-                to_print = 'The job for ' + sub
-                if processing_level == 'session':
-                    to_print += ', ' + ses
-                to_print += (
-                    ' has already been submitted,'
-                    " so it won't be submitted again."
-                    ' If you want to resubmit it,'
-                    ' please use `babs status --resubmit`'
-                )
-                print(to_print)
-
-        # Create df_job_submit from the collected job indices
-        if job_ind_list:
-            df_job_submit = df_job.iloc[job_ind_list].copy().reset_index(drop=True)
-    else:  # taking into account the `count` argument
-        df_remain = df_job[~df_job.has_submitted]
-        if count > 0:
-            df_job_submit = df_remain[:count].reset_index(drop=True)
-        else:  # if count is None or negative, run all
-            df_job_submit = df_remain.copy().reset_index(drop=True)
-    return df_job_submit
-
-
-def submit_one_test_job(analysis_path, queue, flag_print_message=True):
-    """
-    This is to submit one *test* job.
-    This is used by `babs check-setup`.
-
-    Parameters:
-    ----------------
-    analysis_path: str
-        path to the `analysis` folder. One attribute in class `BABS`
-    queue: str
-        the type of job scheduling system, "sge" or "slurm"
-    flag_print_message: bool
-        to print a message (True) or not (False)
-
-    Returns:
-    -----------
-    job_id: int
-        the int version of ID of the submitted job.
-    job_id_str: str
-        the string version of ID of the submitted job.
-    log_filename: str
-        log filename of this job.
-        Example: 'qsi_sub-01_ses-A.*<jobid>'; user needs to replace '*' with 'o', 'e', etc
-
-    Notes:
-    -----------------
-    see `Container.generate_test_job_submit_template()`
-    for details about template yaml file.
-    """
-    # Load the job submission template:
-    #   details of this template yaml file: see `Container.generate_test_job_submit_template()`
-    template_yaml_path = op.join(
-        analysis_path, 'code/check_setup', 'submit_test_job_template.yaml'
-    )
-    with open(template_yaml_path) as f:
-        templates = yaml.safe_load(f)
-    f.close()
-    # sections in this template yaml file:
-    cmd = templates['cmd_template']
-    job_name = templates['job_name_template']
-
-    to_print = 'Test job'
-
-    # run the command, get the job id:
-    proc_cmd = subprocess.run(
-        cmd.split(),
-        cwd=analysis_path,
-        capture_output=True,
-    )
-
-    proc_cmd.check_returncode()
-    msg = proc_cmd.stdout.decode('utf-8')
-
-    if queue == 'sge':
-        job_id_str = msg.split()[2]  # <- NOTE: this is HARD-CODED!
-        # e.g., on cubic: Your job 2275903 ("test.sh") has been submitted
-    elif queue == 'slurm':
-        job_id_str = msg.split()[-1]
-        # e.g., on MSI: 1st line is about the group; 2nd line: 'Submitted batch job 30723107'
-        # e.g., on MIT OpenMind: no 1st line from MSI; only 2nd line.
-    else:
-        raise Exception('type system can be slurm or sge')
-
-    # This is necessary SLURM commands can fail but have return code 0
-    try:
-        job_id = int(job_id_str)
-    except ValueError as e:
-        raise ValueError(
-            f'Cannot convert {job_id_str!r} into an int: {e}. '
-            f'That output is a result of running command {cmd} which produced output {msg}.'
-        )
-
-    # log filename:
-    log_filename = job_name + '.*' + job_id_str
-
-    to_print += ' has been submitted (job ID: ' + job_id_str + ').'
-    if flag_print_message:
-        print(to_print)
-
-    return job_id, job_id_str, log_filename
-
-
-def create_job_status_csv(babs):
-    """
-    This is to create a CSV file of `job_status`.
-    This should be used by `babs submit` and `babs status`.
-
-    Parameters:
-    ------------
-    babs: class `BABS`
-        information about a BABS project.
-    """
-
-    if op.exists(babs.job_status_path_abs) is False:
-        # Generate the table:
-        # read the subject list as a panda df:
-        df_sub = pd.read_csv(babs.list_sub_path_abs)
-        df_job = df_sub.copy()  # deep copy of pandas df
-
-        # add columns:
-        df_job['has_submitted'] = False
-        df_job['job_id'] = -1  # int
-        df_job['job_state_category'] = np.nan
-        df_job['job_state_code'] = np.nan
-        df_job['duration'] = np.nan
-        df_job['is_done'] = False  # = has branch in output_ria
-        df_job['needs_resubmit'] = False
-        df_job['is_failed'] = np.nan
-        df_job['log_filename'] = np.nan
-        df_job['last_line_stdout_file'] = np.nan
-        df_job['alert_message'] = np.nan
-
-        # TODO: add different kinds of error
-
-        # These `NaN` will be saved as empty strings (i.e., nothing between two ",")
-        #   but when pandas read this csv, the NaN will show up in the df
-
-        # Save the df as csv file, using lock:
-        lock_path = babs.job_status_path_abs + '.lock'
-        lock = FileLock(lock_path)
-
-        try:
-            with lock.acquire(timeout=5):
-                df_job.to_csv(babs.job_status_path_abs, index=False)
-        except Timeout:  # after waiting for time defined in `timeout`:
-            # if another instance also uses locks, and is currently running,
-            #   there will be a timeout error
-            print('Another instance of this application currently holds the lock.')
-
-
-def read_job_status_csv(csv_path):
-    """
-    This is to read the CSV file of `job_status`.
-
-    Parameters:
-    ------------
-    csv_path: str
-        path to the `job_status.csv`
-
-    Returns:
-    -----------
-    df: pandas dataframe
-        loaded dataframe
-    """
-    df = pd.read_csv(
-        csv_path,
-        dtype={
-            'job_id': 'Int64',
-            'task_id': 'Int64',
-            'log_filename': 'str',
-            'has_submitted': 'boolean',
-            'is_done': 'boolean',
-            'is_failed': 'boolean',
-            'needs_resubmit': 'boolean',
-            'last_line_stdout_file': 'str',
-            'job_state_category': 'str',
-            'job_state_code': 'str',
-            'duration': 'str',
-            'alert_message': 'str',
-        },
-    )
-    return df
-
-
-def report_job_status(df, analysis_path, config_msg_alert):
-    """
-    This is to report the job status
-    based on the dataframe loaded from `job_status.csv`.
-
-    Parameters:
-    -------------
-    df: pandas dataframe
-        loaded dataframe from `job_status.csv`
-    analysis_path: str
-        Path to the analysis folder.
-        This is used to generate the folder of log files
-    config_msg_alert: dict or None
-        From `get_config_msg_alert()`
-        This is used to determine if to report `alert_message` column
-    """
-
-    print('\nJob status:')
-
-    total_jobs = df.shape[0]
-    print('There are in total of ' + str(total_jobs) + ' jobs to complete.')
-
-    total_has_submitted = int(df['has_submitted'].sum())
-    print(
-        str(total_has_submitted)
-        + ' job(s) have been submitted; '
-        + str(total_jobs - total_has_submitted)
-        + " job(s) haven't been submitted."
-    )
-
-    if total_has_submitted > 0:  # there is at least one job submitted
-        total_is_done = int(df['is_done'].sum())
-        print('Among submitted jobs,')
-        print(str(total_is_done) + ' job(s) successfully finished;')
-
-        if total_is_done == total_jobs:
-            print('All jobs are completed!')
-        else:
-            total_pending = int((df['job_state_code'] == 'qw').sum())
-            print(str(total_pending) + ' job(s) are pending;')
-
-            total_pending = int((df['job_state_code'] == 'r').sum())
-            print(str(total_pending) + ' job(s) are running;')
-
-            # TODO: add stalled one
-
-            total_is_failed = int(df['is_failed'].sum())
-            print(str(total_is_failed) + ' job(s) failed.')
-
-            # if there is job failed: print more info by categorizing msg:
-            if total_is_failed > 0:
-                if config_msg_alert is not None:
-                    print('\nAmong all failed job(s):')
-                # get the list of jobs that 'is_failed=True':
-                list_index_job_failed = df.index[df['is_failed']].tolist()
-                # ^^ notice that df["is_failed"] contains np.nan, so can only get in this way
-
-                # summarize based on `alert_message` column:
-
-                all_alert_message = df['alert_message'][list_index_job_failed].tolist()
-                unique_list_alert_message = list(set(all_alert_message))
-                # unique_list_alert_message.sort()   # sort and update the list itself
-                # TODO: before `.sort()` ^^, change `np.nan` to string 'nan'!
-
-                if config_msg_alert is not None:
-                    for unique_alert_msg in unique_list_alert_message:
-                        # count:
-                        temp_count = all_alert_message.count(unique_alert_msg)
-                        print(
-                            str(temp_count)
-                            + " job(s) have alert message: '"
-                            + str(unique_alert_msg)
-                            + "';"
-                        )
-
-        print('\nAll log files are located in folder: ' + op.join(analysis_path, 'logs'))
-
-
-def request_all_job_status(queue):
-    """
-    This is to get all jobs' status
-    using `qstat` for SGE clusters and `squeue` for Slurm
-
-    Parameters
-    ----------
-    queue: str
-        the type of job scheduling system, "sge" or "slurm"
-
-    Returns:
-    --------------
-    df: pd.DataFrame
-        All jobs' status, including running and pending (waiting) jobs'.
-        If there is no job in the queue, df will be an empty DataFrame
-        (i.e., Columns: [], Index: [])
-    """
-    if queue == 'sge':
-        raise NotImplementedError('SGE is not supported anymore.')
-    elif queue == 'slurm':
-        return _request_all_job_status_slurm()
-
-
-def _parsing_squeue_out(squeue_std):
-    """
-    This is to parse printed messages from `squeue` on Slurm clusters
-    and to convert Slurm codes to SGE codes
-
-    Parameters
-    -------------
-    squeue_std: str
-        Standard output from running command `squeue` in terminal
-
-    Returns
-    -----------
-    df: pd.DataFrame
-        Job status based on `squeue` printed messages.
-        If there is no job in the queue, df will be an empty DataFrame
-        (i.e., Columns: [], Index: [])
-    """
-    # Sanity check: if there is no job in queue:
-    if len(squeue_std.splitlines()) <= 1:
-        # there is only a header, no job is in queue:
-        df = pd.DataFrame(data=[])  # empty dataframe
-    else:  # there are job(s) in queue (e.g., pending or running)
-        header_l = squeue_std.splitlines()[0].split()
-        datarows = squeue_std.splitlines()[1:]
-
-        # column index of these column names:
-        # NOTE: this is hard coded! Please check out `_request_all_job_status_slurm()`
-        #   for the format of printed messages from `squeue`
-        dict_ind = {'jobid': 0, 'st': 4, 'state': 5, 'time': 6}
-        # initialize a dict for holding the values from all jobs:
-        # ROADMAP: pd.DataFrame is probably more memory efficient than dicts
-        dict_val = {key: [] for key in dict_ind}
-
-        # sanity check: these fields show up in the header we got:
-        for fld in ['jobid', 'st', 'state', 'time']:
-            if header_l[dict_ind[fld]].lower() != fld:
-                raise Exception(
-                    'error in the `squeue` output,'
-                    f' expected {fld} and got {header_l[dict_ind[fld]].lower()}'
-                )
-
-        for row in datarows:
-            if '.' not in row.split()[0]:
-                for key, ind in dict_ind.items():
-                    dict_val[key].append(row.split()[ind])
-        # e.g.: dict_val: {'jobid': ['157414586', '157414584'],
-        #   'st': ['PD', 'R'], 'state': ['PENDING', 'RUNNING'], 'time': ['0:00', '0:52']}
-
-        # Renaming the keys, to be consistent with results got from SGE clusters:
-        dict_val['JB_job_number'] = dict_val.pop('jobid')
-        # change to lowercase, and rename the key:
-        dict_val['@state'] = [x.lower() for x in dict_val.pop('state')]
-        dict_val['duration'] = dict_val.pop('time')
-        # e.g.,: dict_val: {'st': ['PD', 'R'], 'JB_job_number': ['157414586', '157414584'],
-        #   '@state': ['pending', 'running'], 'duration': ['0:00', '0:52']}
-        # NOTE: the 'duration' format might be slightly different from results from
-        #   function `calcu_runtime()` used by SGE clusters.
-
-        # job state mapping from slurm to sge:
-        state_slurm2sge = {'R': 'r', 'PD': 'qw'}
-        dict_val['state'] = [state_slurm2sge.get(sl_st, 'NA') for sl_st in dict_val.pop('st')]
-        # e.g.,: dict_val: {'JB_job_number': ['157414586', '157414584'],
-        #   '@state': ['pending', 'running'], 'duration': ['0:00', '0:52'], 'state': ['qw', 'r']}
-
-        df = pd.DataFrame(data=dict_val)
-        df = df.set_index('JB_job_number')
-
-        # df for array submission looked different
-        # Need to expand rows like 3556872_[98-1570] to 3556872_98, 3556872_99, etc
-        # This code only expects the first line to be pending array tasks, 3556872_[98-1570]
-        if '[' in df.index[0]:
-            first_row = df.iloc[0]
-            range_parts = re.search(r'\[(\d+-\d+)', df.index[0]).group(1)  # get the array range
-            start, end = map(int, range_parts.split('-'))  # get min and max pending array
-            job_id = df.index[0].split('_')[0]
-
-            expanded_rows = []
-            for task_id in range(start, end + 1):
-                expanded_rows.append(
-                    {
-                        'JB_job_number': f'{job_id}_{task_id}',
-                        '@state': first_row['@state'],
-                        'duration': first_row['duration'],
-                        'state': first_row['state'],
-                        'job_id': job_id,
-                        'task_id': task_id,
-                    }
-                )
-            # Convert expanded rows to DataFrame
-            expanded_df = pd.DataFrame(expanded_rows).set_index('JB_job_number')
-            # Process the rest of the DataFrame
-            remaining_df = df.iloc[1:].copy()
-            remaining_df['job_id'] = remaining_df.index.str.split('_').str[0]
-            remaining_df['task_id'] = remaining_df.index.str.split('_').str[1].astype(int)
-            # Combine and sort
-            final_df = pd.concat([expanded_df, remaining_df])
-            final_df = final_df.sort_values(by=['job_id', 'task_id'])
-            return final_df
-
-    return df
-
-
-def _request_all_job_status_slurm():
-    """
-    This is to get all jobs' status for Slurm
-    by calling `squeue`.
-    """
-    username = get_username()
-    squeue_proc = subprocess.run(
-        ['squeue', '-u', username, '-o', '%.18i %.9P %.8j %.8u %.2t %T %.10M'],
-        stdout=subprocess.PIPE,
-    )
-    std = squeue_proc.stdout.decode('utf-8')
-
-    squeue_out_df = _parsing_squeue_out(std)
-    return squeue_out_df
-
-
-def calcu_runtime(start_time_str):
-    """
-    This is to calculate the duration time of running.
-
-    Parameters:
-    -----------------
-    start_time_str: str
-        The value in column 'JAT_start_time' for a specific job.
-        Can be got via `df.at['2820901', 'JAT_start_time']`
-        Example on CUBIC: ''
-
-    Returns:
-    -----------------
-    duration_time_str: str
-        Duration time of running.
-        Format: '0:00:05.050744' (i.e., ~5sec), '2 days, 0:00:00'
-
-    Notes
-    -----
-    TODO: add queue if needed
-    Currently we don't need to add `queue`. Whether 'duration' has been returned
-    is checked before current function is called.
-    However the format of the duration that got from Slurm cluster might be a bit different from
-    what we get here. See examples in function `_parsing_squeue_out()` for Slurm clusters.
-
-    This duration time may be slightly longer than actual
-    time, as this is using current time, instead of
-    the time when `qstat`/requesting job queue.
-    """
-    # format of time in the job status requested:
-    format_job_status = '%Y-%m-%dT%H:%M:%S'  # format in `qstat`
-    # # format of returned duration time:
-    # format_duration_time = "%Hh%Mm%Ss"  # '0h0m0s'
-
-    d_now = datetime.now()
-    duration_time = d_now - datetime.strptime(start_time_str, format_job_status)
-    # ^^ str(duration_time): format: '0:08:40.158985'  # first is hour
-    duration_time_str = str(duration_time)
-    # ^^ 'datetime.timedelta' object (`duration_time`) has no attribute 'strftime'
-    #   so cannot be directly printed into desired format...
-
-    return duration_time_str
-
-
 def get_last_line(fn):
     """
     This is to get the last line of a text file, e.g., `stdout` file
@@ -987,9 +278,9 @@ def get_last_line(fn):
                 # remove spaces at the beginning or the end; remove '\n':
                 last_line = last_line.strip().replace('\n', '')
             else:
-                last_line = np.nan
+                last_line = ''
     else:  # e.g., `qw` pending
-        last_line = np.nan
+        last_line = ''
 
     return last_line
 
@@ -1153,54 +444,14 @@ def get_alert_message_in_log_files(config_msg_alert, log_fn):
 
 def get_username():
     """
-    This is to get the current username.
-    This will be used for job accounting, e.g., `qacct`.
+    Get the current username.
 
     Returns:
-    -----------
-    username_lowercase: str
-
-    NOTE: only support SGE now.
+    --------
+    str
+        Current username
     """
-    proc_username = subprocess.run(['whoami'], stdout=subprocess.PIPE)
-    proc_username.check_returncode()
-    username_lowercase = proc_username.stdout.decode('utf-8')
-    username_lowercase = username_lowercase.replace('\n', '')  # remove \n
-
-    return username_lowercase
-
-
-def get_cmd_cancel_job(queue):
-    """
-    This is to get the command used for canceling a job
-    (i.e., deleting a job from the queue).
-    This is dependent on cluster system.
-
-    Parameters
-    ----------
-    queue: str
-        the type of job scheduling system, "sge" or "slurm"
-
-    Returns:
-    --------------
-    cmd: str
-        the command for canceling a job
-
-    Notes:
-    ----------------
-    On SGE clusters, we use `qdel <job_id>` to cancel a job;
-    On Slurm clusters, we use `scancel <job_id>` to cancel a job.
-    """
-
-    if queue == 'sge':
-        cmd = 'qdel'
-    elif queue == 'slurm':
-        cmd = 'scancel'
-    else:
-        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
-
-    # print("the command for cancelling the job: " + cmd)   # NOTE: for testing only
-    return cmd
+    return getpass.getuser()
 
 
 def print_versions_from_yaml(fn_yaml):
@@ -1289,54 +540,312 @@ def get_git_show_ref_shasum(branch_name, the_path):
     return git_ref, msg
 
 
-def ceildiv(a, b):
+def get_results_branches(ria_directory):
     """
-    This is to calculate the ceiling of division of a/b.
-    ref: https://stackoverflow.com/questions/14822184/...
-      ...is-there-a-ceiling-equivalent-of-operator-in-python
+    Get branch list from git repository.
+
+    If no branches are found, an empty list is returned.
+
+    Parameters:
+    --------------
+    ria_directory: str
+        path to the git (or datalad) repository
+
     """
-    return -(a // -b)
+    branch_output = subprocess.run(
+        ['git', 'branch', '--list'],
+        cwd=ria_directory,
+        capture_output=True,
+        text=True,
+    )
+
+    # Filter to just branches starting with 'job-'
+    branches = [
+        # Remove leading and trailing asterisks and spaces
+        b.strip().replace('* ', '')
+        for b in branch_output.stdout.strip().split('\n')
+        if b.strip().replace('* ', '').startswith('job-')
+    ]
+
+    return branches
 
 
-def _path_does_not_exist(path, parser):
-    """Ensure a given path does not exist."""
-    if path is None:
-        raise parser.error('The path is required.')
-    elif Path(path).exists():
-        raise parser.error(f'The path <{path}> already exists.')
+def results_branch_dataframe(branches):
+    """
+    Create a dataframe from a list of branches.
 
-    return Path(path).absolute()
+    Parameters:
+    --------------
+    branches: list
+        list of branches
+
+    Returns:
+    -------------
+    df: pd.DataFrame
+        dataframe with the following columns:
+        job_id: int
+        task_id: int
+        sub_id: str
+        ses_id: str
+        has_results: bool
+
+    Examples:
+    ---------
+    For sessionwise processing, the returned dataframe will look like:
+    job_id  task_id  sub_id  ses_id  has_results
+    123     1      sub-0000    ses-0000    True
+    123     2      sub-0001    ses-0001    True
+
+    for subjectwise processing, the returned dataframe will look like:
+
+    job_id  task_id  sub_id  has_results
+    123     1      sub-0000    True
+    123     2      sub-0001    True
+
+    """
+    import re
+
+    # Create a pattern with named groups - ses_id is optional
+    pattern = (
+        r'job-(?P<job_id>\d+)-?(?P<task_id>\d+)?[-_]'
+        r'(?P<sub_id>sub-[^_]+)(?:_(?P<ses_id>ses-[^_]+))?'
+    )
+
+    result_data = []
+    for branch in branches:
+        match = re.match(pattern, branch)
+        if match:
+            # Convert match to dictionary and add has_results
+            result = match.groupdict()
+            result['has_results'] = True
+            result_data.append(result)
+
+    df = pd.DataFrame(result_data)
+
+    if df.empty:
+        return pd.DataFrame(columns=['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results'])
+
+    return df
 
 
-def _path_exists(path, parser):
-    """Ensure a given path exists."""
-    if path is None or not Path(path).exists():
-        raise parser.error(f'The path <{path}> does not exist.')
+def identify_running_jobs(last_submitted_jobs_df, currently_running_df):
+    """
+    The currently-running jobs do not have the subject/session information.
+    This function is to identify the jobs that are running.
 
-    return Path(path).absolute()
+    Parameters
+    ----------
+    currently_running_df: pd.DataFrame
+        dataframe of currently running jobs (from request_all_job_status())
+    last_submitted_jobs_df: pd.DataFrame
+        dataframe of last submitted jobs
+
+    Returns
+    -------
+    pd.DataFrame
+        dataframe of identified running jobs with subject/session information
+    """
+
+    try:
+        return pd.merge(currently_running_df, last_submitted_jobs_df, on=['job_id', 'task_id'])
+    except Exception as e:
+        raise ValueError(
+            f'Error merging currently_running_df and last_submitted_jobs_df: {e}'
+            f'Currently running df:\n\n{currently_running_df}\n\n'
+            f'Last submitted jobs df:\n\n{last_submitted_jobs_df}\n\n'
+        )
 
 
-class ToDict(Action):
-    """A custom argparse "store" action to handle a list of key=value pairs."""
+def update_results_status(status_df, has_results_df):
+    """
+    Update a status dataframe with a results branch dataframe.
 
-    def __call__(self, parser, namespace, values, option_string=None):
-        """Call the argument."""
-        d = {}
-        for spec in values:
-            try:
-                name, loc = spec.split('=')
-                loc = Path(loc)
-            except ValueError:
-                loc = Path(spec)
-                name = loc.name
+    Parameters:
+    --------------
+    status_df: pd.DataFrame
+        status dataframe
+    has_results_df: pd.DataFrame
+        results branch dataframe
 
-            if name in d:
-                raise parser.error(f'Received duplicate derivative name: {name}')
-            elif name == 'preprocessed':
-                raise parser.error("The 'preprocessed' derivative is reserved for internal use.")
+    Returns:
+    -------------
+    df: pd.DataFrame
+        updated job status dataframe
 
-            d[name] = str(loc)
-        setattr(namespace, self.dest, d)
+    """
+    use_sesid = 'ses_id' in status_df and 'ses_id' in has_results_df
+    merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
+
+    # First merge to get the most recent results information
+    updated_results_df = pd.merge(
+        status_df, has_results_df, on=merge_on, how='left', suffixes=('', '_results')
+    )
+    # Update job_id and task_id only where there's a new result
+    has_results_mask = (
+        updated_results_df['has_results'].notna() & updated_results_df['has_results']
+    )
+    updated_results_df.loc[has_results_mask, 'job_id'] = updated_results_df.loc[
+        has_results_mask, 'job_id_results'
+    ]
+    updated_results_df.loc[has_results_mask, 'task_id'] = updated_results_df.loc[
+        has_results_mask, 'task_id_results'
+    ]
+    updated_results_df = updated_results_df.drop(columns=['job_id_results', 'task_id_results'])
+
+    return updated_results_df
+
+
+def update_job_batch_status(status_df, job_submit_df):
+    """
+    Update the status dataframe with the job submission information.
+
+    Parameters:
+    -----------
+    status_df: pd.DataFrame
+        status dataframe. Be sure has_results is up to date.
+    job_submit_df: pd.DataFrame
+        the current status of job submission.
+
+    Returns:
+    --------
+    pd.DataFrame
+        updated status dataframe
+
+    """
+
+    if 'sub_id' not in job_submit_df:
+        raise ValueError('job_submit_df must have a sub_id column')
+
+    use_sesid = 'ses_id' in status_df and 'ses_id' in job_submit_df
+    merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
+
+    # First merge to get the most recent results information
+    updated_status_df = pd.merge(
+        status_df, job_submit_df, on=merge_on, how='left', suffixes=('', '_batch')
+    )
+
+    # Updated which jobs have failed. If they have been submitted, do not have results,
+    # and are not currently running, they have failed.
+    currently_running = updated_status_df['state_batch'].isin(['PD', 'R'])
+    submitted_no_results = updated_status_df['submitted'] & ~updated_status_df['has_results']
+    updated_status_df['is_failed'] = submitted_no_results & ~currently_running
+
+    update_mask = (
+        updated_status_df['job_id'] != updated_status_df['job_id_batch']
+    ) & updated_status_df['job_id_batch'].notna()
+
+    for update_col in [
+        'job_id',
+        'task_id',
+        'state',
+        'time_used',
+        'time_limit',
+        'nodes',
+        'cpus',
+        'partition',
+        'name',
+    ]:
+        # Update job_id where update_mask is True
+        updated_status_df.loc[update_mask, update_col] = updated_status_df.loc[
+            update_mask, f'{update_col}_batch'
+        ]
+
+    # Drop the batch columns
+    updated_status_df = updated_status_df.drop(
+        columns=[col for col in updated_status_df.columns if col.endswith('_batch')]
+    )
+
+    return updated_status_df
+
+
+def get_repo_hash(repo_path):
+    """
+    Get the hash of the current commit of a git repository.
+
+    Parameters:
+    --------------
+    repo_path: str
+        path to the git repository
+
+    Returns:
+    -------------
+    hash: str
+        the hash of the current commit
+    """
+    proc_hash = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'], cwd=repo_path, capture_output=True, text=True
+    )
+    if proc_hash.returncode != 0:
+        raise ValueError(
+            f'Error getting the hash of the current commit in {repo_path}: {proc_hash.stderr}'
+        )
+    return proc_hash.stdout.strip()
+
+
+def compare_repo_commit_hashes(repo1, repo2, repo1_name, repo2_name, raise_error=True):
+    """
+    Compare the commit hashes of two git repositories.
+    """
+    hash1 = get_repo_hash(repo1)
+    hash2 = get_repo_hash(repo2)
+    message = (
+        f'The hash of current commit of `{repo1_name}` datalad dataset does not match'
+        f' with that of `{repo2_name}`.'
+        f' {repo1_name} = {hash1};'
+        f' {repo2_name} = {hash2}.'
+        'It might be because that latest commits in'
+        f'  {repo1_name} were not pushed to {repo2_name}.'
+        f" Try running this command in directory '{repo1}': \n"
+        '$ datalad push --to input'
+    )
+    if hash1 != hash2:
+        if raise_error:
+            raise ValueError(message)
+        else:
+            warnings.warn(message, stacklevel=2)
+    return hash1 == hash2
+
+
+def parse_select_arg(select_arg):
+    """
+    Parse the --select argument.
+
+    Parameters:
+    -----------
+    select_arg: list
+        list of select arguments
+
+    Returns:
+    --------
+    select_arg: pd.DataFrame
+        dataframe of the inclusion list
+
+
+    """
+
+    all_subjects = all(item.startswith('sub-') for item in select_arg)
+
+    if all_subjects:
+        return pd.DataFrame({'sub_id': select_arg})
+
+    if len(select_arg) % 2 == 1:
+        raise ValueError(
+            'When selecting specific sessions, include the subject ID and session ID'
+            ' separated by a space. Even if selecting multiple sessions per subject '
+            ' the subject ID must come first'
+        )
+
+    selection_df = pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})
+
+    # Check all items in the sub_id column start with sub-
+    if not all(selection_df['sub_id'].str.startswith('sub-')):
+        raise ValueError('All subject IDs must start with "sub-"')
+
+    # Check all items in the ses_id column start with ses-
+    if not all(selection_df['ses_id'].str.startswith('ses-')):
+        raise ValueError('All session IDs must start with "ses-"')
+
+    return selection_df
 
 
 def validate_sub_ses_processing_inclusion(processing_inclusion_file, processing_level):
@@ -1401,3 +910,32 @@ def validate_sub_ses_processing_inclusion(processing_inclusion_file, processing_
     sorting_indices = ['sub_id'] if processing_level == 'subject' else ['sub_id', 'ses_id']
     initial_inclu_df = initial_inclu_df.sort_values(by=sorting_indices).reset_index(drop=True)
     return initial_inclu_df
+
+
+def combine_inclusion_dataframes(initial_inclusion_dfs):
+    """Combine multiple inclusion DataFrames into a single DataFrame.
+
+    Parameters
+    ----------
+    initial_inclusion_dfs : list of pandas DataFrame
+        List of DataFrames containing subject and session information
+
+    Returns
+    -------
+    combined_df : pandas DataFrame
+        A DataFrame containing only the rows that are present in all input DataFrames
+    """
+    if not initial_inclusion_dfs:
+        raise ValueError('No DataFrames provided')
+
+    if len(initial_inclusion_dfs) == 1:
+        return initial_inclusion_dfs[0]
+
+    # Start with the first DataFrame
+    combined_df = initial_inclusion_dfs[0]
+
+    # Iteratively join with remaining DataFrames
+    for df in initial_inclusion_dfs[1:]:
+        combined_df = pd.merge(combined_df, df, how='inner')
+
+    return combined_df

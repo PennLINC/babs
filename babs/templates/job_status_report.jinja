@@ -1,0 +1,19 @@
+Job status:
+There are in total of {{ total_jobs }} jobs to complete.
+
+{{ total_submitted }} job(s) have been submitted; {{ total_jobs - total_submitted }} job(s) haven't been submitted.
+
+{% if total_submitted > 0 %}
+Among submitted jobs,
+{{ total_is_done }} job(s) successfully finished;
+
+{% if total_is_done == total_jobs %}
+All jobs are completed!
+{% else %}
+{{ total_pending }} job(s) are pending;
+{{ total_running }} job(s) are running;
+{{ total_failed }} job(s) failed.
+{% endif %}
+
+All log files are located in folder: {{ log_path }}
+{% endif %} 

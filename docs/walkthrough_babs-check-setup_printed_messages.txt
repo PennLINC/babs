@@ -1,4 +1,4 @@
-Will check setups of BABS project located at: /cbica/projects/BABS/babs_demo/my_BABS_project
+Will check setup of BABS project located at: /cbica/projects/BABS/babs_demo/my_BABS_project
 Will submit a test job for testing; will take longer time.
 Below is the configuration information saved during `babs init` in file 'analysis/code/babs_proj_config.yaml':
 

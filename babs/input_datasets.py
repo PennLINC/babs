@@ -1,9 +1,7 @@
 """This module is for input dataset(s)."""
 
-import pandas as pd
-
 from babs.input_dataset import InputDataset
-from babs.utils import validate_sub_ses_processing_inclusion
+from babs.utils import combine_inclusion_dataframes, validate_sub_ses_processing_inclusion
 
 
 class InputDatasets:
@@ -129,32 +127,3 @@ class InputDatasets:
     def as_records(self):
         """Return the input datasets as a list of dictionaries."""
         return [in_ds.as_dict() for in_ds in self._datasets]
-
-
-def combine_inclusion_dataframes(initial_inclusion_dfs):
-    """Combine multiple inclusion DataFrames into a single DataFrame.
-
-    Parameters
-    ----------
-    initial_inclusion_dfs : list of pandas DataFrame
-        List of DataFrames containing subject and session information
-
-    Returns
-    -------
-    combined_df : pandas DataFrame
-        A DataFrame containing only the rows that are present in all input DataFrames
-    """
-    if not initial_inclusion_dfs:
-        raise ValueError('No DataFrames provided')
-
-    if len(initial_inclusion_dfs) == 1:
-        return initial_inclusion_dfs[0]
-
-    # Start with the first DataFrame
-    combined_df = initial_inclusion_dfs[0]
-
-    # Iteratively join with remaining DataFrames
-    for df in initial_inclusion_dfs[1:]:
-        combined_df = pd.merge(combined_df, df, how='inner')
-
-    return combined_df

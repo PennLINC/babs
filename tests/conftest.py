@@ -17,6 +17,16 @@ TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'
 
 
 @pytest.fixture(scope='session')
+def squeue_available():
+    """Fixture to check if squeue is available and skip tests if not."""
+    from babs.scheduler import check_slurm_available
+
+    if not check_slurm_available():
+        pytest.skip('squeue command not available')
+    return True
+
+
+@pytest.fixture(scope='session')
 def simbids_apptainer_image():
     """
     Get the path of the simbids-raw-mri apptainer image.

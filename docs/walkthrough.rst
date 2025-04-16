@@ -656,7 +656,7 @@ You'll see something like this (the job ID will probably be different):
 ..  code-block:: console
 
     Job for sub-01, ses-A has been submitted (job ID: 4639278).
-    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done  is_failed
+    sub_id ses_id  submitted   job_id  state  state  time_used  has_results  is_failed
     0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN    False        NaN  \
     1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
     2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN
@@ -726,7 +726,7 @@ Now, you can submit all other jobs by specifying ``--all``:
     Job for sub-02, ses-A has been submitted (job ID: 4649003).
     Job for sub-02, ses-B has been submitted (job ID: 4649006).
     Job for sub-02, ses-D has been submitted (job ID: 4649009).
-    sub_id ses_id  has_submitted   job_id  job_state_category  job_state_code  duration  is_done is_failed
+    sub_id ses_id  submitted   job_id  state  state  time_used  has_results is_failed
     0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN     True     False  \
     1  sub-01  ses-B           True  4648997                 NaN             NaN       NaN    False       NaN
     2  sub-01  ses-C           True  4649000                 NaN             NaN       NaN    False       NaN

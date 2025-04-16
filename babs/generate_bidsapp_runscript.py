@@ -5,9 +5,7 @@ import warnings
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from babs.utils import (
-    replace_placeholder_from_config,
-)
+from babs.utils import RUNNING_PYTEST, replace_placeholder_from_config
 
 
 def generate_bidsapp_runscript(
@@ -203,7 +201,7 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
         if key == '--fs-license-file':
             flag_fs_license = True
             path_fs_license = value
-            if not op.exists(path_fs_license):
+            if not op.exists(path_fs_license) and not RUNNING_PYTEST:
                 # raise a warning, instead of an error
                 #   so that pytest using example yaml files will always pass
                 #   regardless of the path provided in the yaml file

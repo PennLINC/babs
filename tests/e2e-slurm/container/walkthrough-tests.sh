@@ -5,6 +5,8 @@ set -eu
 
 export USER=root
 export SUBPROJECT_NAME=test_project
+export RUNNING_PYTEST=1
+
 echo "Git user: $(git config user.name)"
 echo "Git email: $(git config user.email)"
 

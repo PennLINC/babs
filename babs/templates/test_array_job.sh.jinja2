@@ -1,0 +1,24 @@
+#!/bin/bash
+#SBATCH --job-name=test_array_job
+#SBATCH --output=test_array_job.out
+#SBATCH --error=test_array_job.err
+#SBATCH --array=1-{{ array_size }}%1  # Only run one array task at a time
+
+RESULTS_DIR={{ job_scratch_directory }}
+mkdir -p "${RESULTS_DIR}"
+
+# Sleep for a long time for the first job
+if [ "$SLURM_ARRAY_TASK_ID" -eq 1 ]; then
+    sleep 5
+else
+	# Sleep for a random time between 1 and 5 seconds
+	sleep $((RANDOM % 4 + 1))
+fi
+
+echo "Hello, world! I am job $SLURM_ARRAY_TASK_ID" >> "${RESULTS_DIR}/$SLURM_ARRAY_TASK_ID.txt"
+
+# Always exit with a non-zero exit code on the second job
+if [ "$SLURM_ARRAY_TASK_ID" -eq 2 ]; then
+    exit 1
+fi
+exit 0
