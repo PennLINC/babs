@@ -9,7 +9,8 @@ docker run -it \
     -v "${HOME}"/projects/e2e-testing:/test-temp:rw \
     -h slurmctl --cap-add sys_admin \
     --privileged \
-    pennlinc/slurm-docker-ci:unstable
+    pennlinc/slurm-docker-ci:unstable \
+        /babs/tests/e2e-slurm/container/walkthrough-tests.sh
 
 
     #pytest -svx --pdb \
