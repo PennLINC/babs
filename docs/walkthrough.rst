@@ -375,12 +375,6 @@ and results and provenance are saved. An example command of ``babs init`` is as 
         --queue slurm \
         "${HOME}/babs_demo/my_BABS_project"
 
-.. dropdown:: If there is no Internet connection on compute nodes
-
-    Please replace line #5 with ``--datasets BIDS=/path/to/cloned_input_BIDS_dataset``,
-    and please replace ``/path/to/cloned_input_BIDS_dataset`` with the correct path
-    to the local copy of the input BIDS dataset,
-    e.g., ``${PWD}/raw_BIDS_multi-ses``.
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
 The input dataset will be called ``BIDS``, and you can just provide the OSF link as its path (line #5).
@@ -431,16 +425,20 @@ The command below can be found in the printed messages from ``babs init``:
 
 ..  code-block:: console
 
-    singularity run --cleanenv \
-        -B ${PWD} \
-        containers/.datalad/environments/toybidsapp-0-0-7/image \
-        inputs/data/BIDS \
-        outputs \
-        participant \
-        --no-zipped \
-        --dummy 2 \
-        -v \
-        --participant-label "${subid}"
+    singularity run \
+        -B "${PWD}" \
+        --containall \
+        --writable-tmpfs \
+        containers/.datalad/environments/simbids-0-0-3/image \
+            "${PWD}/inputs/data/BIDS" \
+            "${PWD}/outputs/fmriprep_anat" \
+            participant \
+            -w "${PWD}/.git/tmp/wkdir" \
+            --stop-on-first-crash \
+            -vv \
+            --anat-only \
+            --participant-label "${subid}"
+
 
 
 As you can see, BABS has automatically handled the positional arguments of BIDS App
@@ -455,7 +453,7 @@ You can get them via:
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
     $ head analysis/code/participant_job.sh
 
-The first several lines starting with ``#`` and before the line ``# Script preambles:``
+The first several lines starting with ``#`` and before the line ``# Script preamble:``
 are directives for job submissions.
 It should be noted that, when using different types of cluster systems (e.g., SLURM),
 you will see different generated directives.
@@ -489,7 +487,7 @@ the generated directives would be:
         │   │   ├── README.md
         │   │   ├── submit_job_template.yaml
         │   │   ├── sub_ses_final_inclu.csv
-        │   │   └── toybidsapp-0-0-7_zip.sh
+        │   │   └── simbids-0-0-3_zip.sh
         │   ├── containers
         │   ├── inputs
         │   │   └── data
@@ -549,11 +547,6 @@ the designated environment, especially the version numbers:
       git-annex: 'git-annex version: 10.20230626-g8594d49'
       datalad_containers: 'datalad_container 1.2.5'
 
-.. dropdown:: Full printed messages from ``babs check-setup``
-
-    .. literalinclude:: walkthrough_babs-check-setup_printed_messages.txt
-       :language: console
-
 .. developer's note:
 .. TODO before copying:
 ..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
@@ -568,7 +561,7 @@ Step 3. Submit jobs and check job status
 ========================================
 We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and check job status.
 
-We first use ``babs status`` to check the number of jobs we initially expect to finish successfully.
+We first use ``babs sumbit`` to sumit some jobs. 
 In this example walkthrough, as no initial list was provided,
 BABS determines this number based on the number of sessions in the input BIDS dataset.
 We did not request extra filtering (based on required files) in our YAML file either,
@@ -577,47 +570,17 @@ so BABS will submit one job for each session.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs status
-
-You'll see:
-
-..  code-block:: console
-    :emphasize-lines: 4
-
-    Did not request resubmit based on job states (no `--resubmit`).
-
-    Job status:
-    There are in total of 6 jobs to complete.
-    0 job(s) have been submitted; 6 job(s) haven't been submitted.
-
-Let's use ``babs submit`` to submit one job and see if it will finish successfully.
-By default, ``babs submit`` will only submit one job.
-If you would like to submit all jobs, you can use the ``--all`` argument.
-
-.. code-block:: console
-
     $ babs submit
 
 You'll see something like this (the job ID will probably be different):
 
 ..  code-block:: console
 
-    Job for sub-01, ses-A has been submitted (job ID: 4639278).
-    sub_id ses_id  submitted   job_id  state  state  time_used  has_results  is_failed
-    0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN    False        NaN  \
-    1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
-    2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN
-    3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False        NaN
-    4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
-    5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN
-
-                    log_filename  last_line_stdout_file  alert_message
-    0  toy_sub-01_ses-A.*4639278                    NaN            NaN
-    1                        NaN                    NaN            NaN
-    2                        NaN                    NaN            NaN
-    3                        NaN                    NaN            NaN
-    4                        NaN                    NaN            NaN
-    5                        NaN                    NaN            NaN
+    Submitting the following jobs:
+        sub_id  ses_id  job_id  ...  log_filename  last_line_stdout_file  alert_message
+    0  sub-0001  ses-01      -1  ...           NaN                    NaN            NaN
+    1  sub-0001  ses-02      -1  ...           NaN                    NaN            NaN
+    2  sub-0002  ses-01      -1  ...           NaN                    NaN            NaN
 
 You can check the job status via ``babs status``:
 

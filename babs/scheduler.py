@@ -117,6 +117,9 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
     )
 
     # Check if command failed
+    if result.returncode == 1 and 'Invalid job id specified' in result.stderr:
+        print('No jobs in the queue')
+        return pd.DataFrame(columns=status_columns)
     if result.returncode != 0:
         raise RuntimeError(
             f'squeue command failed with return code {result.returncode}\nstderr: {result.stderr}'
