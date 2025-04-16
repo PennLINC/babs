@@ -42,9 +42,10 @@ doc = [
 ]
 dev = ["ruff ~= 0.4.3", "pre-commit"]
 tests = [
+    "coverage",
     "pytest",
     "pytest-xdist", # for running pytest in parallel
-    "pytest-order", # for ordering test execution
+    "pytest-cov", # for ordering test execution
     "datalad-osf",
 ]
 maint = ["fuzzywuzzy", "python-Levenshtein"]
@@ -162,6 +163,7 @@ markers = []
 env = ["RUNNING_PYTEST = 1"]
 
 [tool.coverage.run]
+source = ["babs/"]
 branch = true
 omit = ["*/tests/*", "*/__init__.py", "*/conftest.py", "babs/_version.py"]
 

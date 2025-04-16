@@ -7,6 +7,9 @@ BABS: BIDS App Bootstrap
   :alt: Documentation Status
 .. image:: https://circleci.com/gh/PennLINC/babs/tree/main.svg?style=svg
   :target: https://circleci.com/gh/PennLINC/babs/tree/main
+.. image:: https://codecov.io/gh/PennLINC/babs/branch/main/graph/badge.svg
+  :target: https://codecov.io/gh/PennLINC/babs
+  :alt: Code Coverage
 .. image:: https://zenodo.org/badge/456981533.svg
    :target: https://zenodo.org/badge/latestdoi/456981533
    :alt: DOI
