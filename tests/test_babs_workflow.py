@@ -164,7 +164,7 @@ def test_babs_init_raw_bids(
         _enter_status()
 
     finished = False
-    for waitnum in [5, 8, 10, 15, 30]:
+    for waitnum in [5, 8, 10, 15, 30, 60]:
         time.sleep(waitnum)
         print(f'Waiting {waitnum} seconds...')
         df = squeue_to_pandas()
