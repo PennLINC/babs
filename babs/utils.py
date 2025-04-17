@@ -667,8 +667,8 @@ def results_branch_dataframe(branches):
 
     # Create a pattern with named groups - ses_id is optional
     pattern = (
-        r'job-(?P<job_id>\d+)-?(?P<task_id>\d+)?[-_]'
-        r'(?P<sub_id>sub-[^_]+)(?:_(?P<ses_id>ses-[^_]+))?'
+        r'job-(?P<job_id>\d+)-?(?P<task_id>\d+)?[-]'
+        r'(?P<sub_id>sub-[^-]+)(?:_(?P<ses_id>ses-[^-]+))?'
     )
 
     result_data = []
@@ -747,7 +747,7 @@ def update_results_status(previous_job_completion_df, job_completion_df):
     # The job and task ids all need to be cleared out and replaced with the new ones
     # from the job_completion_df, which is based on the latest results branches
     updated_results_df = pd.merge(
-        previous_job_completion_df.drop(['has_results', 'job_id', 'task_id'], axis=1),
+        previous_job_completion_df.drop(columns=['has_results', 'job_id', 'task_id']),
         job_completion_df,
         on=merge_on,
         how='left',
