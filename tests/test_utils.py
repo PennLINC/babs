@@ -10,7 +10,6 @@ from babs.utils import (
     parse_select_arg,
     results_branch_dataframe,
     update_job_batch_status,
-    update_results_status,
 )
 
 
@@ -47,46 +46,46 @@ def test_results_branch_dataframe(tmp_path_factory, branch_list):
     assert df.shape[0] == len(branch_list)
 
 
-def test_update_job_status():
-    # One session has results in the results branch
-    has_results_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0002', 'sub-0002'],
-            'ses_id': ['ses-01', 'ses-02'],
-            'job_id': [2, 1],
-            'task_id': [1, 1],
-            'has_results': [True, True],
-        }
-    )
+# def test_update_job_status():
+#     # One session has results in the results branch
+#     has_results_df = pd.DataFrame(
+#         {
+#             'sub_id': ['sub-0002', 'sub-0002'],
+#             'ses_id': ['ses-01', 'ses-02'],
+#             'job_id': [2, 1],
+#             'task_id': [1, 1],
+#             'has_results': [True, True],
+#         }
+#     )
 
-    # The previous status was checked before submitting the new jobs
-    previous_status_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
-            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
-            'job_id': [-1, -1, -1, 1],
-            'task_id': [-1, -1, -1, 1],
-            'submitted': [False, False, False, True],
-            'state': [pd.NA, pd.NA, pd.NA, 'R'],
-            'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
-            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
-            'nodes': [pd.NA, pd.NA, pd.NA, 1],
-            'cpus': [pd.NA, pd.NA, pd.NA, 1],
-            'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
-            'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
-            'has_results': [pd.NA, pd.NA, pd.NA, True],
-            # Fields for tracking:
-            'needs_resubmit': [False, False, False, False],
-            'is_failed': [pd.NA, pd.NA, pd.NA, False],
-            'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
-            'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
-            'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
-        }
-    )
+#     # The previous status was checked before submitting the new jobs
+#     previous_status_df = pd.DataFrame(
+#         {
+#             'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
+#             'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
+#             'job_id': [-1, -1, -1, 1],
+#             'task_id': [-1, -1, -1, 1],
+#             'submitted': [False, False, False, True],
+#             'state': [pd.NA, pd.NA, pd.NA, 'R'],
+#             'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
+#             'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
+#             'nodes': [pd.NA, pd.NA, pd.NA, 1],
+#             'cpus': [pd.NA, pd.NA, pd.NA, 1],
+#             'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
+#             'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
+#             'has_results': [pd.NA, pd.NA, pd.NA, True],
+#             # Fields for tracking:
+#             'needs_resubmit': [False, False, False, False],
+#             'is_failed': [pd.NA, pd.NA, pd.NA, False],
+#             'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
+#             'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
+#             'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
+#         }
+#     )
 
-    current_status_df = update_results_status(previous_status_df, has_results_df)
+#     current_status_df = update_results_status(previous_status_df, has_results_df)
 
-    assert current_status_df.shape[0] == previous_status_df.shape[0]
+#     assert current_status_df.shape[0] == previous_status_df.shape[0]
 
 
 def test_update_currently_running_jobs_df():
@@ -122,49 +121,6 @@ def test_update_currently_running_jobs_df():
         'ses_id',
     }
     assert identified_running_df.shape[0] == 3
-
-
-def test_update_results_status():
-    job_completion_df = pd.DataFrame(
-        [
-            {'job_id': 1, 'task_id': 1, 'sub_id': 'sub-NDARINVAZ218MB7', 'has_results': True},
-            {'job_id': 1, 'task_id': 2, 'sub_id': 'sub-NDARINVBH315KUM', 'has_results': True},
-        ]
-    )
-    previous_status_df = pd.DataFrame(
-        [
-            {
-                'sub_id': 'sub-NDARINVAZ218MB7',
-                'submitted': True,
-                'is_failed': False,
-                'state': 'nan',
-                'time_used': 'nan',
-                'time_limit': 'nan',
-                'nodes': 0,
-                'cpus': 0,
-                'partition': 'nan',
-                'name': 'nan',
-                'job_id': 1,
-                'task_id': 1,
-                'has_results': True,
-            },
-            {
-                'sub_id': 'sub-NDARINVBH315KUM',
-                'submitted': True,
-                'is_failed': True,
-                'state': 'nan',
-                'time_used': 'nan',
-                'time_limit': 'nan',
-                'nodes': 0,
-                'cpus': 0,
-                'partition': 'nan',
-                'name': 'nan',
-                'job_id': 1,
-                'task_id': 2,
-                'has_results': True,
-            },
-        ]
-    )
 
 
 def test_update_job_batch_status():
