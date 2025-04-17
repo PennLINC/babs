@@ -27,11 +27,15 @@ from babs.utils import (
     compare_repo_commit_hashes,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
+    get_latest_submitted_jobs_columns,
     get_results_branches,
     identify_running_jobs,
     print_versions_from_yaml,
     read_yaml,
     results_branch_dataframe,
+    results_status_columns,
+    results_status_default_values,
+    status_dtypes,
     update_job_batch_status,
     update_results_status,
     update_submitted_job_ids,
@@ -564,7 +568,9 @@ class BABS:
         # to check this symbolic link, just: $ ls -l <output_ria/alias/data>
         #   it should point to /full/path/output_ria/xxx/xxx-xxx-xxx-xxx
 
-        # SUCCESS!
+        # Initialize the job status csv file:
+        self._create_initial_job_status_csv()
+
         print('\n')
         print(
             'BABS project has been initialized!'
@@ -973,7 +979,28 @@ class BABS:
         print(f'{CHECK_MARK} All good in test job!')
         print('\n`babs check-setup` was successful! ')
 
-    def babs_submit(self, count=None, submit_df=None):
+    def _create_initial_job_status_csv(self):
+        """
+        Create the initial job status csv file.
+        """
+        if op.exists(self.job_status_path_abs):
+            return
+
+        # Load the complete list of subjects and optionally sessions
+        df_sub = pd.read_csv(self.list_sub_path_abs)
+        df_job = df_sub.copy()
+
+        # Fill the columns that should get default values
+        for column_name, default_value in results_status_default_values.items():
+            df_job[column_name] = default_value
+
+        # ensure dtypes for all the columns
+        for column_name in results_status_columns:
+            df_job[column_name] = df_job[column_name].astype(status_dtypes[column_name])
+
+        df_job.to_csv(self.job_status_path_abs, index=False)
+
+    def babs_submit(self, count=None, submit_df=None, skip_failed=False):
         """
         This function submits jobs that don't have results yet and prints out job status.
 
@@ -991,6 +1018,7 @@ class BABS:
         if self.analysis_datalad_handle is None:
             self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
 
+        # Check if there are still jobs running
         currently_running_df = self.get_currently_running_jobs_df()
         if currently_running_df.shape[0] > 0:
             raise Exception(
@@ -1001,6 +1029,8 @@ class BABS:
         # Find the rows that don't have results yet
         status_df = self.get_results_status_df()
         df_needs_submit = status_df[~status_df['has_results']].reset_index(drop=True)
+        if skip_failed:
+            df_needs_submit = df_needs_submit[~df_needs_submit['submitted']]
 
         if submit_df is not None:
             df_needs_submit = submit_df
@@ -1047,49 +1077,78 @@ class BABS:
         """
 
         # Step 1: get a list of branches in the output ria to update the status
-        # Get the list of branches in output RIA
         list_branches = get_results_branches(self.output_ria_data_dir)
         previous_job_completion_df = self.get_results_status_df()
 
         if not list_branches:
-            current_status_df = previous_job_completion_df
-        else:
-            print('New results found!')
-            # This has columns job_id, task_id, sub_id, ses_id, has_results
-            job_completion_df = results_branch_dataframe(list_branches)
-            current_status_df = update_results_status(
-                previous_job_completion_df, job_completion_df
-            )
+            return
+        # Update the results status
+        job_completion_df = results_branch_dataframe(list_branches)
+        current_status_df = update_results_status(previous_job_completion_df, job_completion_df)
 
-        job_batch_status_df = update_job_batch_status(
-            current_status_df, self.get_latest_submitted_jobs_df()
-        )
-        job_batch_status_df.to_csv(self.job_status_path_abs, index=False)
+        # Part 2: Update which jobs are running
+        currently_running_df = self.get_currently_running_jobs_df()
+        current_status_df = update_job_batch_status(current_status_df, currently_running_df)
+
+        current_status_df.to_csv(self.job_status_path_abs, index=False)
 
     def babs_status(self):
         """
         Check job status and makes a nice report.
         """
-        if not op.exists(self.job_submit_path_abs):
-            raise FileNotFoundError(
-                f'Job submission file not found: {self.job_submit_path_abs}'
-                'Try launching jobs with `babs submit` first.'
-            )
-        current_results_df = self.get_results_status_df()
+        self._update_results_status()
         currently_running_df = self.get_currently_running_jobs_df()
+        current_results_df = self.get_results_status_df()
         report_job_status(current_results_df, currently_running_df, self.analysis_path)
 
     def get_latest_submitted_jobs_df(self):
         """
         Get the latest submitted jobs.
+
+        Example:
+        --------
+        >>> bbs.get_latest_submitted_jobs_df()
+
+            sub_id  job_id  task_id
+        0  sub-0001       1        1
+        1  sub-0002       1        2
+
         """
         if not op.exists(self.job_submit_path_abs):
-            return pd.DataFrame(columns=['sub_id', 'ses_id', 'task_id', 'job_id'])
-        return pd.read_csv(self.job_submit_path_abs)
+            warnings.warn(
+                f'Job submission file not found: {self.job_submit_path_abs}\n'
+                'Run `babs submit` to submit some jobs.',
+                stacklevel=2,
+            )
+            return EMPTY_JOB_STATUS_DF
+        df = pd.read_csv(self.job_submit_path_abs)
+        for column_name in get_latest_submitted_jobs_columns(self.processing_level):
+            df[column_name] = df[column_name].astype(status_dtypes[column_name])
+        return df
 
     def get_currently_running_jobs_df(self):
         """
         Get the currently running jobs. Subject/session information is added.
+
+        This only reflects currently running jobs, not all of those that have been submitted.
+        It is a quick check on job status.
+
+        Examples:
+        ---------
+        Right after submitting the jobs:
+        >>> bbs.get_currently_running_jobs_df()
+        job_id  task_id state time_used  time_limit  nodes  cpus partition name    sub_id
+        0       1        2    PD      0:00  5-00:00:00      1     1    normal  sim  sub-0002
+        1       1        1     R      0:27  5-00:00:00      1     1    normal  sim  sub-0001
+
+        After waiting for a while, the queue will empty:
+        >>> bbs.get_currently_running_jobs_df()
+        Empty DataFrame
+        Columns: [
+            job_id, task_id, state, time_used, time_limit, nodes, cpus,
+            partition, name, sub_id]
+        Index: []
+
         """
         last_submitted_jobs_df = self.get_latest_submitted_jobs_df()
         if last_submitted_jobs_df.empty:
@@ -1107,7 +1166,10 @@ class BABS:
         """
         if not op.exists(self.job_status_path_abs):
             return EMPTY_JOB_STATUS_DF
-        return pd.read_csv(self.job_status_path_abs)
+        df = pd.read_csv(self.job_status_path_abs)
+        for column_name in results_status_columns:
+            df[column_name] = df[column_name].astype(status_dtypes[column_name])
+        return df
 
     def babs_merge(self, chunk_size, trial_run):
         """

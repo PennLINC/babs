@@ -3,38 +3,10 @@ import re
 import subprocess
 from io import StringIO
 
-import numpy as np
 import pandas as pd
 import yaml
-from filelock import FileLock, Timeout
 
-from babs.utils import get_username
-
-scheduler_status_dtype = {
-    'job_id': 'Int64',
-    'task_id': 'Int64',
-    'log_filename': 'str',
-    'submitted': 'boolean',
-    'has_results': 'boolean',
-    'is_failed': 'boolean',
-    'needs_resubmit': 'boolean',
-    'last_line_stdout_file': 'str',
-    'state': 'str',
-    'time_used': 'str',
-    'alert_message': 'str',
-}
-
-status_columns = [
-    'job_id',
-    'task_id',
-    'state',
-    'time_used',
-    'time_limit',
-    'nodes',
-    'cpus',
-    'partition',
-    'name',
-]
+from babs.utils import get_username, scheduler_status_columns, status_dtypes
 
 
 def check_slurm_available() -> bool:
@@ -119,21 +91,21 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
     # Check if command failed
     if result.returncode == 1 and 'Invalid job id specified' in result.stderr:
         print('No jobs in the queue')
-        return pd.DataFrame(columns=status_columns)
+        return pd.DataFrame(columns=scheduler_status_columns)
     if result.returncode != 0:
         raise RuntimeError(
             f'squeue command failed with return code {result.returncode}\nstderr: {result.stderr}'
         )
 
     # Print the full squeue output for debugging
-    print('\nFull squeue output:')
-    print(result.stdout)
+    # print('\nFull squeue output:')
+    # print(result.stdout)
 
     # Handle empty output
     if not result.stdout.strip():
-        print('Warning: squeue returned empty output')
+        # print('Warning: squeue returned empty output')
         # Return empty DataFrame with correct columns
-        return pd.DataFrame(columns=status_columns)
+        return pd.DataFrame(columns=scheduler_status_columns)
 
     try:
         # Parse the output into a DataFrame
@@ -151,12 +123,18 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
     df['job_id'] = df['job_id'].str.split('_').str[0].astype(int)
 
     # Validate DataFrame structure
-    if not all(col in df.columns for col in status_columns):
+    if not all(col in df.columns for col in scheduler_status_columns):
         raise RuntimeError(
-            f'Unexpected DataFrame columns. Expected: {status_columns}, got: {df.columns.tolist()}'
+            f'Unexpected DataFrame columns.\n\nExpected: {scheduler_status_columns},\n'
+            f'got: {df.columns.tolist()}'
         )
     # reorder the columns to be standard
-    df = df[status_columns]
+    df = df[scheduler_status_columns]
+
+    # Convert only problematic columns
+    for col in ['state', 'time_used', 'time_limit', 'partition', 'name']:
+        if col in df.columns and col in status_dtypes:
+            df[col] = df[col].astype(status_dtypes[col])
 
     return df
 
@@ -194,39 +172,6 @@ def sbatch_get_job_id(sbatch_cmd_list, working_dir):
     if not job_id_match:
         raise RuntimeError(f'Could not find job ID in message: {msg}')
     return int(job_id_match.group(1))
-
-
-def get_cmd_cancel_job(queue):
-    """
-    This is to get the command used for canceling a job
-    (i.e., deleting a job from the queue).
-    This is dependent on cluster system.
-
-    Parameters
-    ----------
-    queue: str
-        the type of job scheduling system, "sge" or "slurm"
-
-    Returns:
-    --------------
-    cmd: str
-        the command for canceling a job
-
-    Notes:
-    ----------------
-    On SGE clusters, we use `qdel <job_id>` to cancel a job;
-    On Slurm clusters, we use `scancel <job_id>` to cancel a job.
-    """
-
-    if queue == 'sge':
-        cmd = 'qdel'
-    elif queue == 'slurm':
-        cmd = 'scancel'
-    else:
-        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
-
-    # print("the command for cancelling the job: " + cmd)   # NOTE: for testing only
-    return cmd
 
 
 def submit_array(analysis_path, queue, maxarray):
@@ -385,52 +330,6 @@ def submit_one_test_job(analysis_path, queue, flag_print_message=True):
     return job_id
 
 
-def create_job_status_csv(babs):
-    """
-    This is to create a CSV file of `job_status`.
-    This should be used by `babs submit` and `babs status`.
-
-    Parameters:
-    ------------
-    babs: class `BABS`
-        information about a BABS project.
-    """
-    if op.exists(babs.job_status_path_abs):
-        return
-
-    # Load the complete list of subjects and optionally sessions
-    df_sub = pd.read_csv(babs.list_sub_path_abs)
-    df_job = df_sub.copy()  # deep copy of pandas df
-
-    df_job['job_id'] = -1  # int
-    df_job['task_id'] = -1  # int
-    df_job['submitted'] = False
-    df_job['state'] = np.nan
-    df_job['time_used'] = np.nan
-    df_job['time_limit'] = np.nan
-    df_job['nodes'] = np.nan
-    df_job['cpus'] = np.nan
-    df_job['partition'] = np.nan
-    df_job['name'] = np.nan
-    df_job['has_results'] = False  # = has branch in output_ria
-    # Fields for tracking:
-    df_job['needs_resubmit'] = False
-    df_job['is_failed'] = np.nan
-    df_job['log_filename'] = np.nan
-    df_job['last_line_stdout_file'] = np.nan
-    df_job['alert_message'] = np.nan
-
-    # Save the df as csv file, using lock:
-    lock = FileLock(f'{babs.job_status_path_abs}.lock')
-    try:
-        with lock.acquire(timeout=5):
-            df_job.to_csv(babs.job_status_path_abs, index=False)
-    except Timeout:  # after waiting for time defined in `timeout`:
-        # if another instance also uses locks, and is currently running,
-        #   there will be a timeout error
-        print('Another instance of this application currently holds the lock.')
-
-
 def report_job_status(current_results_df, currently_running_df, analysis_path):
     """
     Print a report that summarizes the overall status of a BABS project.
@@ -459,13 +358,11 @@ def report_job_status(current_results_df, currently_running_df, analysis_path):
     template = env.get_template('job_status_report.jinja')
 
     total_jobs = current_results_df.shape[0]
-    total_submitted = currently_running_df.shape[0]
-    total_is_done = current_results_df['has_results'].sum()
-    total_pending = (currently_running_df['state'] == 'PD').sum()
-    total_running = (currently_running_df['state'] == 'R').sum()
-    total_failed = (
-        current_results_df['is_failed'].sum() if 'is_failed' in current_results_df else 0
-    )
+    total_submitted = int(current_results_df['submitted'].sum())
+    total_is_done = int(current_results_df['has_results'].sum())
+    total_pending = int((currently_running_df['state'] == 'PD').sum())
+    total_running = int((currently_running_df['state'] == 'R').sum())
+    total_failed = int(current_results_df['is_failed'].sum())
 
     print(
         template.render(

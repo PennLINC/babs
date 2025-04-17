@@ -341,8 +341,8 @@ There are several lines (highlighted above) that require customization based on 
       Here ``"/tmp"`` is NOT a good choice, check your cluster's documentation for the correct path.
     * For more, please see: :ref:`job-compute-space`.
 
-PennLINC members using CUBIC can find a complete example here: https://raw.githubusercontent.com/PennLINC/babs-yamls-cubic/refs/heads/main/container-configs/fmriprep-25-0-0_anatonly.yaml
-
+PennLINC members using CUBIC can find a complete example here
+<https://raw.githubusercontent.com/PennLINC/babs-yamls-cubic/refs/heads/main/container-configs/fmriprep-25-0-0_anatonly.yaml>_
 By now, you have prepared these in the ``~/babs_demo`` folder:
 
 .. code-block:: console

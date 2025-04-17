@@ -10,7 +10,6 @@ import yaml
 
 from babs.babs import BABS
 from babs.input_datasets import InputDatasets
-from babs.scheduler import create_job_status_csv
 from babs.system import System
 from babs.utils import (
     RUNNING_PYTEST,
@@ -443,9 +442,6 @@ def babs_submit_main(
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
 
-    # Check if this csv file has been created, if not, create it:
-    create_job_status_csv(babs_proj)
-
     # Get a selection dataframe in order of preference
     if inclusion_file is not None:
         df_job_specified = pd.read_csv(inclusion_file)
@@ -518,10 +514,6 @@ def babs_status_main(
     """
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
     babs_proj, _ = get_existing_babs_proj(project_root)
-
-    # Check if this csv file has been created, if not, create it:
-    create_job_status_csv(babs_proj)
-
     babs_proj.babs_status()
 
 
@@ -775,7 +767,7 @@ def get_existing_babs_proj(project_root):
 
     # Get the class `InputDatasets`:
     input_ds = InputDatasets(babs_proj_config['processing_level'], input_ds_yaml)
-    input_ds.update_abs_paths(project_root / 'analysis')
+    input_ds.update_abs_paths(Path(project_root) / 'analysis')
     return babs_proj, input_ds
 
 

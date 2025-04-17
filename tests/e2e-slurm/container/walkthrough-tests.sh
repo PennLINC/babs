@@ -4,7 +4,6 @@
 set -eu
 
 export USER=root
-export SUBPROJECT_NAME=test_project
 export RUNNING_PYTEST=1
 
 echo "Git user: $(git config user.name)"
@@ -37,6 +36,10 @@ apptainer exec \
 datalad create -D "empty BIDS dataset" --force /test-temp/simbids
 datalad save -m "add empty files" -d /test-temp/simbids
 
+cd /test-temp
+if [ -d "test_project" ]; then
+    rm -rf test_project
+fi
 babs init \
     --container_ds "${PWD}"/simbids-container \
     --container_name simbids-0-0-3 \
@@ -44,11 +47,11 @@ babs init \
     --processing_level subject \
     --queue slurm \
     --keep-if-failed \
-    "${PWD}/${SUBPROJECT_NAME}"
+    "${PWD}/test_project"
 
 echo "PASSED: babs init"
 
-pushd "${PWD}/${SUBPROJECT_NAME}"
+pushd "${PWD}/test_project"
 
 echo "Check setup, without job"
 babs check-setup

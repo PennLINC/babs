@@ -124,6 +124,49 @@ def test_update_currently_running_jobs_df():
     assert identified_running_df.shape[0] == 3
 
 
+def test_update_results_status():
+    job_completion_df = pd.DataFrame(
+        [
+            {'job_id': 1, 'task_id': 1, 'sub_id': 'sub-NDARINVAZ218MB7', 'has_results': True},
+            {'job_id': 1, 'task_id': 2, 'sub_id': 'sub-NDARINVBH315KUM', 'has_results': True},
+        ]
+    )
+    previous_status_df = pd.DataFrame(
+        [
+            {
+                'sub_id': 'sub-NDARINVAZ218MB7',
+                'submitted': True,
+                'is_failed': False,
+                'state': 'nan',
+                'time_used': 'nan',
+                'time_limit': 'nan',
+                'nodes': 0,
+                'cpus': 0,
+                'partition': 'nan',
+                'name': 'nan',
+                'job_id': 1,
+                'task_id': 1,
+                'has_results': True,
+            },
+            {
+                'sub_id': 'sub-NDARINVBH315KUM',
+                'submitted': True,
+                'is_failed': True,
+                'state': 'nan',
+                'time_used': 'nan',
+                'time_limit': 'nan',
+                'nodes': 0,
+                'cpus': 0,
+                'partition': 'nan',
+                'name': 'nan',
+                'job_id': 1,
+                'task_id': 2,
+                'has_results': True,
+            },
+        ]
+    )
+
+
 def test_update_job_batch_status():
     job_submit_df = pd.DataFrame(
         {

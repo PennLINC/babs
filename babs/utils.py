@@ -15,6 +15,66 @@ from filelock import FileLock, Timeout
 
 RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
 
+status_dtypes = {
+    'job_id': 'Int64',
+    'task_id': 'Int64',
+    'state': 'str',
+    'time_used': 'str',
+    'time_limit': 'str',
+    'nodes': 'Int64',
+    'cpus': 'Int64',
+    'partition': 'str',
+    'name': 'str',
+    'submitted': 'boolean',
+    'has_results': 'boolean',
+    'is_failed': 'boolean',
+    'sub_id': 'str',
+    'ses_id': 'str',
+}
+
+
+def get_latest_submitted_jobs_columns(processing_level):
+    if processing_level == 'subject':
+        return ['sub_id', 'job_id', 'task_id']
+    elif processing_level == 'session':
+        return ['sub_id', 'ses_id', 'job_id', 'task_id']
+    else:
+        raise ValueError(f'Invalid processing level: {processing_level}')
+
+
+scheduler_status_columns = [
+    'job_id',
+    'task_id',
+    'state',
+    'time_used',
+    'time_limit',
+    'nodes',
+    'cpus',
+    'partition',
+    'name',
+]
+
+results_status_columns = [
+    'submitted',
+    'has_results',
+    'is_failed',
+] + scheduler_status_columns
+
+results_status_default_values = {
+    'submitted': False,
+    'has_results': False,
+    'is_failed': False,
+    'job_id': -1,
+    'task_id': -1,
+    'state': '',
+    'time_used': '',
+    'time_limit': '',
+    'nodes': 0,
+    'cpus': 0,
+    'partition': '',
+    'name': '',
+}
+
 
 def get_datalad_version():
     return version('datalad')
@@ -621,11 +681,18 @@ def results_branch_dataframe(branches):
             result_data.append(result)
 
     df = pd.DataFrame(result_data)
+    if df['ses_id'].isna().all():
+        columns = ['job_id', 'task_id', 'sub_id', 'has_results']
+    else:
+        columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
 
     if df.empty:
-        return pd.DataFrame(columns=['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results'])
+        return pd.DataFrame(columns=columns)
 
-    return df
+    for column_name in columns:
+        df[column_name] = df[column_name].astype(status_dtypes[column_name])
+
+    return df[columns]
 
 
 def identify_running_jobs(last_submitted_jobs_df, currently_running_df):
@@ -648,6 +715,7 @@ def identify_running_jobs(last_submitted_jobs_df, currently_running_df):
 
     try:
         return pd.merge(currently_running_df, last_submitted_jobs_df, on=['job_id', 'task_id'])
+
     except Exception as e:
         raise ValueError(
             f'Error merging currently_running_df and last_submitted_jobs_df: {e}'
@@ -656,16 +724,16 @@ def identify_running_jobs(last_submitted_jobs_df, currently_running_df):
         )
 
 
-def update_results_status(status_df, has_results_df):
+def update_results_status(previous_job_completion_df, job_completion_df):
     """
     Update a status dataframe with a results branch dataframe.
 
     Parameters:
     --------------
-    status_df: pd.DataFrame
-        status dataframe
-    has_results_df: pd.DataFrame
-        results branch dataframe
+    previous_job_completion_df: pd.DataFrame
+        previous job completion dataframe
+    job_completion_df: pd.DataFrame
+        job completion dataframe from results_branch_dataframe()
 
     Returns:
     -------------
@@ -673,30 +741,29 @@ def update_results_status(status_df, has_results_df):
         updated job status dataframe
 
     """
-    use_sesid = 'ses_id' in status_df and 'ses_id' in has_results_df
+    use_sesid = 'ses_id' in previous_job_completion_df and 'ses_id' in job_completion_df
     merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
 
-    # First merge to get the most recent results information
+    # The job and task ids all need to be cleared out and replaced with the new ones
+    # from the job_completion_df, which is based on the latest results branches
     updated_results_df = pd.merge(
-        status_df, has_results_df, on=merge_on, how='left', suffixes=('', '_results')
+        previous_job_completion_df.drop(['has_results', 'job_id', 'task_id'], axis=1),
+        job_completion_df,
+        on=merge_on,
+        how='left',
     )
-    # Update job_id and task_id only where there's a new result
-    has_results_mask = (
-        updated_results_df['has_results'].notna() & updated_results_df['has_results']
+
+    updated_results_df['is_failed'] = (
+        updated_results_df['submitted']
+        & ~updated_results_df['has_results']
+        & ~updated_results_df['state'].isin(['PD', 'R'])
     )
-    updated_results_df.loc[has_results_mask, 'job_id'] = updated_results_df.loc[
-        has_results_mask, 'job_id_results'
-    ]
-    updated_results_df.loc[has_results_mask, 'task_id'] = updated_results_df.loc[
-        has_results_mask, 'task_id_results'
-    ]
-    updated_results_df = updated_results_df.drop(columns=['job_id_results', 'task_id_results'])
 
     return updated_results_df
 
 
 def update_submitted_job_ids(results_df, submitted_df):
-    """Update the most revent job and task ids in the status df"""
+    """Update the most recent job and task ids in the status df"""
     if 'sub_id' not in submitted_df:
         raise ValueError('job_submit_df must have a sub_id column')
 
@@ -729,6 +796,9 @@ def update_job_batch_status(status_df, job_submit_df):
 
     """
 
+    if job_submit_df.empty:
+        return status_df
+
     if 'sub_id' not in job_submit_df:
         raise ValueError('job_submit_df must have a sub_id column')
 
@@ -743,12 +813,6 @@ def update_job_batch_status(status_df, job_submit_df):
     # Updated which jobs have failed. If they have been submitted, do not have results,
     # and are not currently running, they have failed.
     currently_running = updated_status_df['state_batch'].isin(['PD', 'R'])
-    submitted_no_results = updated_status_df['submitted'] & ~updated_status_df['has_results']
-    updated_status_df['is_failed'] = submitted_no_results & ~currently_running
-
-    update_mask = (
-        updated_status_df['job_id'] != updated_status_df['job_id_batch']
-    ) & updated_status_df['job_id_batch'].notna()
 
     for update_col in [
         'job_id',
@@ -762,13 +826,25 @@ def update_job_batch_status(status_df, job_submit_df):
         'name',
     ]:
         # Update job_id where update_mask is True
-        updated_status_df.loc[update_mask, update_col] = updated_status_df.loc[
-            update_mask, f'{update_col}_batch'
-        ]
+        updated_status_df.loc[currently_running, update_col] = updated_status_df.loc[
+            currently_running, f'{update_col}_batch'
+        ].astype(status_dtypes[update_col])
 
     # Drop the batch columns
     updated_status_df = updated_status_df.drop(
         columns=[col for col in updated_status_df.columns if col.endswith('_batch')]
+    )
+
+    # replace NaN with False in has_results
+    updated_status_df['has_results'] = (
+        updated_status_df['has_results'].astype('boolean').fillna(False)
+    )
+
+    # Update some of the dynamic columns
+    updated_status_df['is_failed'] = (
+        updated_status_df['submitted']
+        & ~updated_status_df['has_results']
+        & ~updated_status_df['state'].isin(['PD', 'R'])
     )
 
     return updated_status_df
