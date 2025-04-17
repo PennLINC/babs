@@ -1024,7 +1024,6 @@ class BABS:
         )
         # Write the job submission dataframe to a csv file
         df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
-        print(f'Submitting the following jobs:\n{df_needs_submit}')
         job_id = submit_array(
             self.analysis_path,
             self.queue,
@@ -1033,6 +1032,7 @@ class BABS:
 
         df_needs_submit['job_id'] = job_id
         # Update the job submission dataframe with the new job id
+        print(f'Submitting the following jobs:\n{df_needs_submit}')
         df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
 
         # Update the results df

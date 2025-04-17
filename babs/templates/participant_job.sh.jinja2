@@ -56,6 +56,9 @@ echo "# Pull down the input subject (or dataset) but don't retrieve data content
 {% if not input_dataset['is_zipped'] %}
 datalad get -n "{{ input_dataset['path_in_babs'] }}/${subid}"
 (cd {{ input_dataset['path_in_babs'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs rm -rf)
+{% if processing_level == 'session' %}
+(cd {{ input_dataset['path_in_babs'] }}/"${subid}" && find . -type d -name 'ses*' | grep -v "$sesid" | xargs rm -rf)
+{% endif %}
 {% else %}
 datalad get -n "{{ input_dataset['path_in_babs'] }}"
 (cd {{ input_dataset['path_in_babs'] }} && find . -type f -name 'sub*.zip' | grep -v "$subid" | xargs rm -f)
