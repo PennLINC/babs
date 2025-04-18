@@ -1,0 +1,41 @@
+input_datasets:
+    BIDS:
+        required_files:
+            - "anat/*_T1w.nii*"
+        is_zipped: false
+        origin_url: "/test-temp/simbids"
+        path_in_babs: inputs/data/BIDS
+    fmriprep_anat:
+        is_zipped: true
+        origin_url: "ria+file:///test-temp/test_project/output_ria#~data"
+        path_in_babs: inputs/data/fmriprep_anat
+
+bids_app_args:
+    --bids-app: "fmriprep"
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
+    --stop-on-first-crash: ""
+    -vv: ""
+
+all_results_in_one_zip: true
+zip_foldernames:
+    fmriprep_anat: "24-1-1"
+
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
+cluster_resources:
+    interpreting_shell: "/bin/bash"
+
+script_preamble: |
+    PATH=/opt/conda/envs/babs/bin:$PATH
+
+job_compute_space: "/tmp"
+
+alert_log_messages:
+    stdout:
+        - "Excessive topologic defect encountered"
+        - "Cannot allocate memory"
+        - "mris_curvature_stats: Could not open file"
+        - "Numerical result out of range"
+        - "fMRIPrep failed"

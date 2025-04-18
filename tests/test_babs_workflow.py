@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 from unittest import mock
 
-import pytest
 import yaml
 
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
@@ -143,13 +142,10 @@ def test_babs_init_raw_bids(
     ):
         _enter_check_setup()
 
-    # babs status: shouldn't work until we submit jobs
+    # test babs status before submitting jobs
     babs_status_opts = argparse.Namespace(project_root=project_root)
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
-        with pytest.raises(
-            FileNotFoundError, match='Try launching jobs with `babs submit` first.'
-        ):
-            _enter_status()
+        _enter_status()
 
     # babs submit:
     babs_submit_opts = argparse.Namespace(

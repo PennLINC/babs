@@ -1,0 +1,42 @@
+bids_app_args:
+    --bids-app: fmriprep
+    $SUBJECT_SELECTION_FLAG: "--participant-label"
+    --stop-on-first-crash: ""
+    -vv: ""
+    --anat-only: ""
+
+all_results_in_one_zip: true
+zip_foldernames:
+    fmriprep_anat: "25-0-0"
+
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --containall
+    - --writable-tmpfs
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: "/bin/bash"
+    hard_runtime_limit: "00:10:00"
+    customized_text: |
+        #SBATCH -p all
+        #SBATCH --nodes=1
+        #SBATCH --ntasks=1
+        #SBATCH --mem=2G
+        #SBATCH --propagate=NONE
+
+# Necessary commands to be run first:
+script_preamble: |
+    eval "$(micromamba shell hook --shell bash)"
+    micromamba activate babs
+
+# Where to run the jobs:
+job_compute_space: "${TMP}"
+
+input_datasets:
+    BIDS:
+        required_files:
+            - "anat/*_T1w.nii*"
+        is_zipped: false
+        origin_url: "/cbica/home/cieslakm/babs_demo/simbids"
+        path_in_babs: inputs/data/BIDS

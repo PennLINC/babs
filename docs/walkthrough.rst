@@ -17,8 +17,7 @@ to demonstrate how to use BABS.
 By following the :doc:`the installation page <installation>`,
 on the cluster, you should have successfully installed BABS and its dependent software
 (``DataLad``, ``Git``, ``git-annex``, ``datalad-container``)
-in an environment called ``babs``. In addition, because the toy BIDS data
-you'll use is on OSF, you also need to install ``datalad-osf``.
+in an environment called ``babs``. 
 
 Here is the list of software versions we used to prepare this walkthrough.
 It is a good idea to use the versions at or above the versions listed:
@@ -37,8 +36,7 @@ It is a good idea to use the versions at or above the versions listed:
     git-annex version: 10.20230626-g8594d49
     $ datalad containers-add --version
     datalad_container 1.2.5
-    $ datalad osf-credentials --version
-    datalad_osf 0.3.0
+
 
 We used ``BABS version 0.0.9`` to prepare this example walkthrough.
 We encourage you to use the **latest BABS version available on PyPI**.
@@ -60,106 +58,84 @@ as the working directory in this example walkthrough:
 
     $ mamba activate babs
     $ mkdir -p ~/babs_demo
-    $ cd babs_demo
+    $ cd ~/babs_demo
 
-Step 0: Ensure dependencies and data access
-===========================================
+Step 0: Create some testing BIDS data
+=====================================
 
-*Notes: This Step 0 is only required for clusters
-where there is no Internet connection on compute nodes;
-otherwise, you may skip this step.
-However we do recommend going through this step if this is your first time
-running this example walkthrough.*
-
-Before you start, you can test if you have all the dependencies
-(including ``datalad-osf``) installed properly. Let's try installing
-the toy, multi-session BIDS dataset you'll use in this example walkthrough:
+We will build a container of SIMBIDS, 
+which we can use to create some testing BIDS data.
+SIMBIDS will also serve as our BIDS App for processing the testing BIDS data.
 
 ..  code-block:: console
 
-    $ datalad clone https://osf.io/w2nu3/ raw_BIDS_multi-ses
+    $ cd ~/babs_demo
+    $ singularity build \
+        simbids-0.0.3.sif \
+        docker://pennlinc/simbids:0.0.3
 
-The printed messages should look like below.
-Note that the absolute path to ``babs_demo`` (i.e., ``/cbica/projects/BABS/babs_demo``)
-would probably be different from yours due to different clusters, which is fine:
+.. dropdown:: Having trouble building this Singularity image?
 
-.. code-block:: console
-
-    install(ok): /cbica/projects/BABS/babs_demo/raw_BIDS_multi-ses (dataset)
-
-.. dropdown:: Why do I also see ``[INFO]`` messages?
-
-    It's normal to see additional messages from DataLad like below:
-
-    ..  code-block:: console
-
-        [INFO   ] Remote origin uses a protocol not supported by git-annex; setting annex-ignore
+    It might be because the Singularity software's version you're using is too old or new.
+    You can check your Singularity's version via ``singularity --version``.
+    We've tested that these versions work fine:
+    ``singularity-ce version 3.9.5`` and ``apptainer version 1.1.8-1.el7``.
 
 
-There are two subjects (``sub-01`` and ``sub-02``) and six sessions in this toy dataset.
-Now let's try getting a file's content:
+Now you should see the file ``simbids-0.0.3.sif`` in the current directory.
+We can now use SIMBIDS to create some testing BIDS data.
 
 ..  code-block:: console
 
-    $ cd raw_BIDS_multi-ses
-    $ datalad get sub-01/ses-A/anat/sub-01_ses-A_T1w.nii.gz
+    $ singularity exec -B "$PWD" simbids-0.0.3.sif \
+        simbids-raw-mri \
+            "$PWD" \
+            ds004146_configs.yaml
 
-You should see:
-
-..  code-block:: console
-
-    get(ok): sub-01/ses-A/anat/sub-01_ses-A_T1w.nii.gz (file) [from osf-storage...]
-
-You can now view this image in image viewers.
-Note that the intensities of images in this dataset have been zero-ed out, so it's normal to
-see all-black images in image viewers.
-
-.. dropdown:: If there is no Internet connection on compute nodes
-
-    In the later steps, jobs for executing the BIDS App will run on compute nodes,
-    and will fetch the file contents of the input BIDS dataset.
-    As this input BIDS dataset we use for this example walkthrough is available on OSF,
-    by default, jobs will fetch the file contents from OSF via Internet connections.
-    This would be a problem for clusters without Internet connection on compute nodes.
-
-    If the cluster you're using does not have Internet connection on compute nodes,
-    to avoid issues when running the jobs,
-    please fetch all the file contents now by running:
-
-    ..  code-block:: console
-
-        $ datalad get *
-
-    You should see these printed messages from ``datalad`` at the end:
-
-    .. code-block:: console
-
-        action summary:
-          get (notneeded: 1, ok: 47)
-
-    Then, please skip the step in the next code block below,
-    i.e., do NOT drop file content or remove the local copy of this dataset.
-
-
-By now, you have made sure you can successfully install this dataset and get the file contents.
-Now you can drop the file content and remove this local copy of this dataset,
-as you can directly use its OSF link for input dataset for BABS:
+You can see that a BIDS dataset has been created in the ``simbids`` directory:
 
 ..  code-block:: console
 
-    $ datalad drop sub-01/ses-A/anat/sub-01_ses-A_T1w.nii.gz
-    $ cd ..
-    $ datalad remove -d raw_BIDS_multi-ses
+    $ tree simbids
 
-.. dropdown:: Printed messages you'll see
+    simbids
+    ├── dataset_description.json
+    ├── sub-0001
+    │   ├── ses-01
+    │   │   ├── anat
+    │   │   │   ├── sub-0001_ses-01_FLAIR.json
+    │   │   │   ├── sub-0001_ses-01_FLAIR.nii.gz
+    │   │   │   ├── sub-0001_ses-01_T2w.json
+    │   │   │   └── sub-0001_ses-01_T2w.nii.gz
+    │   │   ├── dwi
+    │   │   │   ├── sub-0001_ses-01_dir-AP_run-01_dwi.json
+    │   │   │   ├── sub-0001_ses-01_dir-AP_run-01_dwi.nii.gz
+    │   │   │   ├── sub-0001_ses-01_dir-AP_run-01_dwi.bval
+    ...
 
-    ..  code-block:: console
 
-        # from `datalad drop`:
-        drop(ok): sub-01/ses-A/anat/sub-01_ses-A_T1w.nii.gz (file)
+Now we can create a Datalad dataset of this BIDS dataset:
 
-        # from `datalad remove`:
-        uninstall(ok): . (dataset)
+..  code-block:: console
+
+    $ cd simbids
+    $ datalad create -D "SIMBIDS simulated dataset" -d . --force
+    $ datalad save
+    add(ok): dataset_description.json (file)
+    add(ok): sub-0001/ses-01/anat/sub-0001_ses-01_FLAIR.json (file)
+    add(ok): sub-0001/ses-01/anat/sub-0001_ses-01_FLAIR.nii.gz (file)
+    add(ok): sub-0001/ses-01/anat/sub-0001_ses-01_T2w.json (file)
+    add(ok): sub-0001/ses-01/anat/sub-0001_ses-01_T2w.nii.gz (file)
+    add(ok): sub-0001/ses-01/dwi/sub-0001_ses-01_dir-AP_run-01_dwi.json (file)
+    add(ok): sub-0001/ses-01/dwi/sub-0001_ses-01_dir-AP_run-01_dwi.nii.gz (file)
+    add(ok): sub-0001/ses-01/dwi/sub-0001_ses-01_dir-AP_run-02_dwi.json (file)
+    add(ok): sub-0001/ses-01/dwi/sub-0001_ses-01_dir-AP_run-02_dwi.nii.gz (file)
+    add(ok): sub-0001/ses-01/dwi/sub-0001_ses-01_dir-PA_run-01_dwi.json (file)
+    [1 similar message has been suppressed; disable with datalad.ui.suppress-simil  [45 similar messages have been suppressed; disable with datalad.ui.suppress-similar-results=off]
+    save(ok): . (dataset)
+    action summary:
+    add (ok: 55)
+    save (ok: 1)
 
 
 Step 1. Get prepared
@@ -172,46 +148,18 @@ There are three things required by BABS as input:
 
 Step 1.1. Prepare DataLad dataset(s) of BIDS dataset(s)
 -------------------------------------------------------
-As mentioned above, you will use a toy, multi-session BIDS dataset available on OSF:
-https://osf.io/w2nu3/.
-You'll directly copy this link as the path to the input dataset,
+You'll use the simulated BIDS dataset as the input dataset,
 so no extra work needs to be done here.
 
-.. dropdown:: If there is no Internet connection on compute nodes
-
-    When providing the path to the input BIDS dataset,
-    please do not use the OSF http link;
-    instead, please use the path to the local copy of this dataset.
-    We will provide more guidance when we reach that step.
 
 Step 1.2. Prepare a DataLad dataset of the containerized BIDS App
 -----------------------------------------------------------------
-For this walkthrough, we have prepared a `toy BIDS App <https://hub.docker.com/r/pennlinc/toy_bids_app>`_
-that performs a simple task: if the input dataset is a raw BIDS dataset (unzipped),
-the toy BIDS App will count non-hidden files in a subject's folder. Note that
-even if the input dataset is multi-session dataset, it will still count at the subject-level
-(instead of session-level).
+For this walkthrough, we'll use SIMBIDS as the containerized BIDS App.
+SIMBIDS is a BIDS App that simulates the processing of BIDS data,
+producing files that have the same structure as the output of real BIDS Apps.
 
-You now need to pull our toy BIDS App as a Singularity image (the latest version is ``0.0.7``):
-
-..  code-block:: console
-
-    $ cd ~/babs_demo
-    $ singularity build \
-        toybidsapp-0.0.7.sif \
-        docker://pennlinc/toy_bids_app:0.0.7
-
-Now you should see the file ``toybidsapp-0.0.7.sif`` in the current directory.
-
-.. dropdown:: Having trouble building this Singularity image?
-
-    It might be because the Singularity software's version you're using is too old.
-    You can check your Singularity's version via ``singularity --version``.
-    We've tested that these versions work fine:
-    ``singularity-ce version 3.9.5`` and ``apptainer version 1.1.8-1.el7``.
-
-
-Then create a DataLad dataset of this container (i.e., let DataLad track this Singularity image):
+We need to create a DataLad dataset of this container 
+(i.e., let DataLad track this Singularity image):
 
 .. dropdown:: I'm confused - Why is the container another DataLad `dataset`?
 
@@ -223,82 +171,75 @@ Then create a DataLad dataset of this container (i.e., let DataLad track this Si
 
 .. code-block:: console
 
-    $ datalad create -D "toy BIDS App" toybidsapp-container
-    $ cd toybidsapp-container
+    $ cd ~/babs_demo
+    $ datalad create -D "SIMBIDS container" simbids-container
+    $ cd simbids-container
     $ datalad containers-add \
-        --url ${PWD}/../toybidsapp-0.0.7.sif \
-        toybidsapp-0-0-7
+        --url "${HOME}/babs_demo/simbids-0.0.3.sif" \
+        simbids-0-0-3
 
 .. dropdown:: Printed messages you'll see
 
     .. code-block:: bash
 
         # from `datalad create`:
-        create(ok): /cbica/projects/BABS/babs_demo/toybidsapp-container (dataset)
+        create(ok): /home/username/babs_demo/simbids-container (dataset)
 
-        # from `datalad containers-add`:
-        [INFO   ] Copying local file /cbica/projects/BABS/babs_demo/toybidsapp-container/../toybidsapp-0.0.7.sif to /cbica/projects/BABS/babs_demo/toybidsapp-container/.datalad/environments/toybidsapp-0-0-7/image
-        add(ok): .datalad/environments/toybidsapp-0-0-7/image (file)
+        [INFO   ] Copying local file /home/username/babs_demo/simbids-0.0.3.sif to /home/username/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image
+        add(ok): .datalad/environments/simbids-0-0-3/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
         action summary:
-          add (ok: 2)
-          save (ok: 1)
-        add(ok): .datalad/environments/toybidsapp-0-0-7/image (file)
+        add (ok: 2)
+        save (ok: 1)
+        add(ok): .datalad/environments/simbids-0-0-3/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
-        containers_add(ok): /cbica/projects/BABS/babs_demo/toybidsapp-container/.datalad/environments/toybidsapp-0-0-7/image (file)
+        containers_add(ok): /home/username/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image (file)
         action summary:
-          add (ok: 2)
-          containers_add (ok: 1)
-          save (ok: 1)
+        add (ok: 2)
+        containers_add (ok: 1)
+        save (ok: 1)
 
-Now, the DataLad dataset containing the toy BIDS App container ``toybidsapp-container`` is ready to use.
+Now, the DataLad dataset containing the SIMBIDS container ``simbids-container`` is ready to use.
 
-.. developer's note: no need:
-..  Please get its full path for later use by calling ``echo $PWD``.
-
-As the ``sif`` file has been copied into ``toybidsapp-container``,
+As the ``sif`` file has been copied into ``simbids-container``,
 you can remove the original ``sif`` file:
 
 .. code-block:: console
 
-    $ cd ..
-    $ rm toybidsapp-0.0.7.sif
+    $ cd ~/babs_demo
+    $ rm simbids-0.0.3.sif
 
-.. developer's note: for my case, it's ``/cbica/projects/BABS/babs_demo/toybidsapp-container``
 
 Step 1.3. Prepare a YAML file for the BIDS App
 ----------------------------------------------
 
 Finally, you'll prepare a YAML file that instructs BABS for how to run the BIDS App.
-Below is an example YAML file for toy BIDS App:
+Below is an example YAML file for SIMBIDS that you can use as a template.
+This example mocks up what you might do if you wanted to do only anatomical processing using fmriprep:
 
-.. developer's note: ref below: https://www.sphinx-doc.org/en/master/usage/restructuredtext/directives.html#directive-literalinclude
-..  `:lines:` is the line ranges in the original file
-..  `:emphasize-lines:`: line # in the selected lines defined in `:lines:`
-
-.. literalinclude:: ../notebooks/eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml
+.. literalinclude:: ../notebooks/eg_simbids_0-0-3_raw_mri.yaml
    :language: yaml
-   :linenos:
-   :emphasize-lines: 23,24,26,27,30
 
 As you can see, there are several sections in this YAML file.
 
-Here, in section ``bids_app_args``, ``$SUBJECT_SELECTION_FLAG`` designates the flag used for selecting participants in the BIDS app.
-. Additionally, both ``--dummy`` and ``-v`` are dummy arguments to this toy BIDS Apps:
-argument ``--dummy`` can take any value afterwards, whereas argument ``-v`` does not take values.
+You can see there are multiple sections that together provide the information BABS needs to run the BIDS App.
+Arguments that are provided directly to the BIDS app go in ``bids_app_args``.
+The exception is ``$SUBJECT_SELECTION_FLAG``, which designates the flag used for selecting participants in the BIDS app.
+The ``--stop-on-first-crash``, ``-vv`` and ``--anat-only`` should be familiar to users of fmriprep.
+The ``--bids-app: "fmriprep"`` tells BABS to use fmriprep as the BIDS app.
 Here we use these arguments to show examples of:
 
-* how to add values after arguments: e.g., ``--dummy: "2"``;
-* how to add arguments without values: e.g., ``--no-zipped: ""`` and ``-v: ""``;
+* how to add values after arguments: e.g., ``--bids-app: "fmriprep"``;
+* how to add arguments without values: e.g., ``--stop-on-first-crash: ""`` and ``-vv: ""``;
 * and it's totally fine to mix flags with prefix of ``--`` and ``-``.
 
-Section ``zip_foldernames`` tells BABS to zip the output folder named ``toybidsapp``
-as a zip file as ``${sub-id}_${ses-id}_toybidsapp-0-0-7.zip`` for each subject's each session,
+Section ``zip_foldernames`` tells BABS to zip the output folder named ``fmriprep_anat``
+as a zip file as ``${sub-id}_${ses-id}_fmriprep_anat-25-0-0.zip`` for each subject's each session,
 where ``${sub-id}`` is a subject ID, ``${ses-id}`` is a session ID.
 
-You can copy the above content and save it as file ``config_toybidsapp_demo.yaml`` in ``~/babs_demo`` directory.
+You can copy the above content and save it as file ``config_simbids_0-0-3_raw_mri.yaml`` in ``~/babs_demo`` directory.
 
 .. dropdown:: How to copy above content using ``Vim`` with correct indent?
 
@@ -350,19 +291,12 @@ There are several lines (highlighted above) that require customization based on 
       Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
 
-
-.. developer's note: if YAML file of walkthrough was changed:
-..  also need to change above copied section "cluster_resources"!
-.. developer's note: for MSI SLURM cluster: need to add `hard_runtime_limit: "20"`
-..  without it, when using e.g. `k40` partition, one job was success (branch pushed to output RIA)
-..  but "TIMEOUT" in `sacct`, leaving last 2 lines of stdout message of "deleting branch:\n job-xx-xx-xx"
-
 * Section ``script_preamble``:
 
-    * You might need to adjust the highlighted line #18 of the ``source`` command
+    * You will need to adjust the highlighted line #18 of the ``source`` command
       based on your cluster and environment name.
 
-    * You might need to add another line to ``module load`` any necessary modules,
+    * You will need to add another line to ``module load`` any necessary modules,
       such as ``singularity``.
       This section will looks like this after you add it:
 
@@ -374,6 +308,12 @@ There are several lines (highlighted above) that require customization based on 
 
     * For more, please see: :ref:`script-preamble`.
 
+* Section ``input_datasets``:
+    * Describe the inputs to the BIDS App here.
+    * Specify the original location of the data.
+    * Specify whether the data is zipped or not.
+    * Tell BABS where to put the data for the BIDS App at run time.
+
 * Section ``job_compute_space``:
 
     * You need to change ``/tmp`` to the temporary compute space available on your cluster
@@ -382,25 +322,14 @@ There are several lines (highlighted above) that require customization based on 
       Here ``"/tmp"`` is NOT a good choice, check your cluster's documentation for the correct path.
     * For more, please see: :ref:`job-compute-space`.
 
-.. developer's note:
-..  before proceeding, make sure you changed the env name in `script_preamble` in YAML file
-..  to `babs_demo`!
-
+PennLINC members using CUBIC can find a complete example here
+<https://raw.githubusercontent.com/PennLINC/babs-yamls-cubic/refs/heads/main/container-configs/fmriprep-25-0-0_anatonly.yaml>_
 By now, you have prepared these in the ``~/babs_demo`` folder:
 
 .. code-block:: console
 
-    config_toybidsapp_demo.yaml
-    toybidsapp-container/
-
-.. developer's note:
-..  It's optional to have cloned dataset ``raw_BIDS_multi-ses`` locally, as we can directly use its OSF link
-..  for input dataset for BABS. Unless there is no internet connection on compute node.
-
-.. dropdown:: If there is no Internet connection on compute nodes
-
-    In this folder, you should also see the local copy of the input BIDS dataset
-    ``raw_BIDS_multi-ses``.
+    config_simbids_0-0-3_raw_mri.yaml
+    simbids-container/
 
 Now you can start to use BABS for data analysis.
 
@@ -415,33 +344,24 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 .. developer's note: reset `$TEMPLATEFLOW_HOME` for now: `unset TEMPLATEFLOW_HOME`
 
 ..  code-block:: console
-    :linenos:
-    :emphasize-lines: 9
 
     $ cd ~/babs_demo
     $ babs init \
-        --datasets BIDS=https://osf.io/w2nu3/ \
-        --container_ds ${PWD}/toybidsapp-container \
-        --container_name toybidsapp-0-0-7 \
-        --container_config ${PWD}/config_toybidsapp_demo.yaml \
+        --container_ds "${HOME}/babs_demo/simbids-container" \
+        --container_name simbids-0-0-3 \
+        --container_config "${HOME}/babs_demo/config_simbids_0-0-3_raw_mri.yaml" \
         --processing_level session \
         --queue slurm \
-        ${PWD}/my_BABS_project
+        "${HOME}/babs_demo/my_BABS_project"
 
-.. dropdown:: If there is no Internet connection on compute nodes
-
-    Please replace line #5 with ``--datasets BIDS=/path/to/cloned_input_BIDS_dataset``,
-    and please replace ``/path/to/cloned_input_BIDS_dataset`` with the correct path
-    to the local copy of the input BIDS dataset,
-    e.g., ``${PWD}/raw_BIDS_multi-ses``.
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
-The input dataset will be called ``BIDS``, and you can just provide the OSF link as its path (line #5).
-For container, you will use the DataLad-tracked ``toybidsapp-container`` and the YAML file you just prepared (line #6-8).
-It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--container_name`` (line #7)
+The input dataset is specified in the yaml file and no longer specified in the command line.
+For container, you will use the DataLad-tracked ``simbids-container`` and the YAML file you just prepared.
+It is important to make sure the string ``simbids-0-0-3`` used in ``--container_name``
 is consistent with the image name you specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
-If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session`` (line #9).
+If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session``.
 
 
 If ``babs init`` succeeded, you should see this message at the end:
@@ -450,31 +370,18 @@ If ``babs init`` succeeded, you should see this message at the end:
 
     `babs init` was successful!
 
-
-.. dropdown:: Full printed messages from ``babs init``
-
-    .. literalinclude:: walkthrough_babs-init_printed_messages.txt
-       :language: console
-.. developer's note: cannot change the `language` to `bash` here...
-.. TODO before copying:
-..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
-..  2. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  3. annoying but not useful warning from git-annex
-.. TODO after copying:
-..  1. check the tracked changes!
-
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
     You may receive this warning from ``babs init`` if you did not set up
     the environment variable ``$TEMPLATEFLOW_HOME``::
 
-        UserWarning: Usually BIDS App depends on TemplateFlow, but environment
+        UserWarning: Usually BIDS Apps depend on TemplateFlow, but environment
         variable `TEMPLATEFLOW_HOME` was not set up.
         Therefore, BABS will not bind its directory or inject this environment
         variable into the container when running the container.
         This may cause errors.
 
-    This is totally fine for the toy BIDS App we're using here, and it won't use TemplateFlow.
+    This is totally fine for SIMBIDS, and it won't use TemplateFlow.
     However, a lot of BIDS Apps would use it.
     Make sure you set it up when you use those BIDS Apps.
 
@@ -484,16 +391,20 @@ The command below can be found in the printed messages from ``babs init``:
 
 ..  code-block:: console
 
-    singularity run --cleanenv \
-        -B ${PWD} \
-        containers/.datalad/environments/toybidsapp-0-0-7/image \
-        inputs/data/BIDS \
-        outputs \
-        participant \
-        --no-zipped \
-        --dummy 2 \
-        -v \
-        --participant-label "${subid}"
+    singularity run \
+        -B "${PWD}" \
+        --containall \
+        --writable-tmpfs \
+        containers/.datalad/environments/simbids-0-0-3/image \
+            "${PWD}/inputs/data/BIDS" \
+            "${PWD}/outputs/fmriprep_anat" \
+            participant \
+            --bids-app fmriprep \
+            --stop-on-first-crash \
+            -vv \
+            --anat-only \
+            --participant-label "${subid}"
+
 
 
 As you can see, BABS has automatically handled the positional arguments of BIDS App
@@ -508,7 +419,7 @@ You can get them via:
     $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
     $ head analysis/code/participant_job.sh
 
-The first several lines starting with ``#`` and before the line ``# Script preambles:``
+The first several lines starting with ``#`` and before the line ``# Script preamble:``
 are directives for job submissions.
 It should be noted that, when using different types of cluster systems (e.g., SLURM),
 you will see different generated directives.
@@ -536,20 +447,30 @@ the generated directives would be:
         │   ├── CHANGELOG.md
         │   ├── code
         │   │   ├── babs_proj_config.yaml
-        │   │   ├── babs_proj_config.yaml.lock
         │   │   ├── check_setup
+        │   │   ├── job_status.csv
         │   │   ├── participant_job.sh
         │   │   ├── README.md
+        │   │   ├── simbids-0-0-3_zip.sh
         │   │   ├── submit_job_template.yaml
-        │   │   ├── sub_ses_final_inclu.csv
-        │   │   └── toybidsapp-0-0-7_zip.sh
+        │   │   └── sub_ses_final_inclu.csv
         │   ├── containers
         │   ├── inputs
         │   │   └── data
         │   ├── logs
         │   └── README.md
         ├── input_ria
+        │   ├── 05e
+        │   │   └── 1e2ab-c974-48c4-91f6-ce57d5f5ad25
+        │   ├── error_logs
+        │   └── ria-layout-version
         └── output_ria
+            ├── 05e
+            │   └── 1e2ab-c974-48c4-91f6-ce57d5f5ad25
+            ├── alias
+            │   └── data -> /home/username/babs_demo/my_BABS_project/output_ria/05e/1e2ab-c974-48c4-91f6-ce57d5f5ad25
+            ├── error_logs
+            └── ria-layout-version
 
     Here, ``analysis`` is a DataLad dataset that includes generated scripts in ``code/``,
     a cloned container DataLad dataset ``containers/``, and a cloned input dataset in ``inputs/data``.
@@ -602,11 +523,6 @@ the designated environment, especially the version numbers:
       git-annex: 'git-annex version: 10.20230626-g8594d49'
       datalad_containers: 'datalad_container 1.2.5'
 
-.. dropdown:: Full printed messages from ``babs check-setup``
-
-    .. literalinclude:: walkthrough_babs-check-setup_printed_messages.txt
-       :language: console
-
 .. developer's note:
 .. TODO before copying:
 ..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
@@ -621,7 +537,18 @@ Step 3. Submit jobs and check job status
 ========================================
 We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and check job status.
 
-We first use ``babs status`` to check the number of jobs we initially expect to finish successfully.
+
+.. code-block:: console
+
+    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
+    $ babs status
+
+    Job status:
+    There are in total of 3 jobs to complete.
+
+    0 job(s) have been submitted; 3 job(s) haven't been submitted.
+
+We first use ``babs submit`` to sumit some jobs. 
 In this example walkthrough, as no initial list was provided,
 BABS determines this number based on the number of sessions in the input BIDS dataset.
 We did not request extra filtering (based on required files) in our YAML file either,
@@ -629,160 +556,81 @@ so BABS will submit one job for each session.
 
 ..  code-block:: console
 
-    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs status
+    $ babs submit --count 1
+    Submitting the first 1 jobs
+    Submitting the following jobs:
+        sub_id  ses_id  submitted  has_results  is_failed  ...  time_limit  nodes cpus partition name
+    0  sub-0001  ses-01      False        False      False  ...         nan      0    0       nan  nan
 
-You'll see:
-
-..  code-block:: console
-    :emphasize-lines: 4
-
-    Did not request resubmit based on job states (no `--resubmit`).
-
-    Job status:
-    There are in total of 6 jobs to complete.
-    0 job(s) have been submitted; 6 job(s) haven't been submitted.
-
-Let's use ``babs submit`` to submit one job and see if it will finish successfully.
-By default, ``babs submit`` will only submit one job.
-If you would like to submit all jobs, you can use the ``--all`` argument.
-
-.. code-block:: console
-
-    $ babs submit
-
-You'll see something like this (the job ID will probably be different):
-
-..  code-block:: console
-
-    Job for sub-01, ses-A has been submitted (job ID: 4639278).
-    sub_id ses_id  submitted   job_id  state  state  time_used  has_results  is_failed
-    0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN    False        NaN  \
-    1  sub-01  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
-    2  sub-01  ses-C          False       -1                 NaN             NaN       NaN    False        NaN
-    3  sub-02  ses-A          False       -1                 NaN             NaN       NaN    False        NaN
-    4  sub-02  ses-B          False       -1                 NaN             NaN       NaN    False        NaN
-    5  sub-02  ses-D          False       -1                 NaN             NaN       NaN    False        NaN
-
-                    log_filename  last_line_stdout_file  alert_message
-    0  toy_sub-01_ses-A.*4639278                    NaN            NaN
-    1                        NaN                    NaN            NaN
-    2                        NaN                    NaN            NaN
-    3                        NaN                    NaN            NaN
-    4                        NaN                    NaN            NaN
-    5                        NaN                    NaN            NaN
 
 You can check the job status via ``babs status``:
 
 ..  code-block:: console
 
     $ babs status
-
-..
-   when pending::
-
-        Did not request resubmit based on job states (no `--resubmit`).
-
-        Job status:
-        There are in total of 6 jobs to complete.
-        1 job(s) have been submitted; 5 job(s) haven't been submitted.
-        Among submitted jobs,
-        0 job(s) are successfully finished;
-        1 job(s) are pending;
-        0 job(s) are running;
-        0 job(s) are failed.
-
-        All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
-
-If it's successfully finished, you'll see:
-
-..  code-block:: console
-    :emphasize-lines: 5,7
-
-    Did not request resubmit based on job states (no `--resubmit`).
-
     Job status:
-    There are in total of 6 jobs to complete.
-    1 job(s) have been submitted; 5 job(s) haven't been submitted.
+    There are in total of 3 jobs to complete.
+
+    1 job(s) have been submitted; 2 job(s) haven't been submitted.
+
     Among submitted jobs,
-    1 job(s) are successfully finished;
+    0 job(s) successfully finished;
     0 job(s) are pending;
-    0 job(s) are running;
-    0 job(s) are failed.
+    1 job(s) are running;
+    0 job(s) failed.
 
-    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/home/username/babs_demo/my_BABS_project/analysis/logs
 
-Now, you can submit all other jobs by specifying ``--all``:
+Wait for a bit and re-run ``babs status``. If it's successfully finished, you'll see:
 
 .. code-block:: console
 
-    $ babs submit --all
+    Job status:
+    There are in total of 3 jobs to complete.
 
-..
-    printed messages you'll see:
+    1 job(s) have been submitted; 2 job(s) haven't been submitted.
 
-    Job for sub-01, ses-B has been submitted (job ID: 4648997).
-    Job for sub-01, ses-C has been submitted (job ID: 4649000).
-    Job for sub-02, ses-A has been submitted (job ID: 4649003).
-    Job for sub-02, ses-B has been submitted (job ID: 4649006).
-    Job for sub-02, ses-D has been submitted (job ID: 4649009).
-    sub_id ses_id  submitted   job_id  state  state  time_used  has_results is_failed
-    0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN     True     False  \
-    1  sub-01  ses-B           True  4648997                 NaN             NaN       NaN    False       NaN
-    2  sub-01  ses-C           True  4649000                 NaN             NaN       NaN    False       NaN
-    3  sub-02  ses-A           True  4649003                 NaN             NaN       NaN    False       NaN
-    4  sub-02  ses-B           True  4649006                 NaN             NaN       NaN    False       NaN
-    5  sub-02  ses-D           True  4649009                 NaN             NaN       NaN    False       NaN
+    Among submitted jobs,
+    1 job(s) successfully finished;
+    0 job(s) are pending;
+    0 job(s) are running;
+    0 job(s) failed.
 
-                    log_filename last_line_stdout_file  alert_message
-    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN
-    1  toy_sub-01_ses-B.*4648997                   NaN            NaN
-    2  toy_sub-01_ses-C.*4649000                   NaN            NaN
-    3  toy_sub-02_ses-A.*4649003                   NaN            NaN
-    4  toy_sub-02_ses-B.*4649006                   NaN            NaN
-    5  toy_sub-02_ses-D.*4649009                   NaN            NaN
+    All log files are located in folder: /gpfs/fs001/home/username/babs_demo/my_BABS_project/analysis/logs
 
+
+Now, you can submit all other jobs by rerunning ``babs submit`` without any arguments.
+By default ``babs submit`` submits all jobs that don't haven't successfully run:
+
+.. code-block:: console
+
+    $ babs submit
+    No jobs in the queue
+    Submitting the following jobs:
+        sub_id  ses_id  submitted  is_failed state time_used  ... cpus  partition  name   job_id task_id  has_results
+    0  sub-0001  ses-02      False      False   nan       nan  ...    0        nan   nan  6959620       1        False
+    1  sub-0002  ses-01      False      False   nan       nan  ...    0        nan   nan  6959620       2        False
+
+You can see that the remaining 2 jobs have been submitted. 
 You can again call ``babs status`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
 
-..  code-block:: console
-    :linenos:
-    :emphasize-lines: 5,8
-
-    Did not request resubmit based on job states (no `--resubmit`).
-
-    Job status:
-    There are in total of 6 jobs to complete.
-    6 job(s) have been submitted; 0 job(s) haven't been submitted.
-    Among submitted jobs,
-    1 job(s) are successfully finished;
-    5 job(s) are pending;
-    0 job(s) are running;
-    0 job(s) are failed.
-
-    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
-
-If some jobs are running or have failed, you'll see non-zero numbers in line #9 or #10.
-
-If all jobs have finished successfully, you'll see:
+If all jobs have finished successfully, ``babs status`` will show you:
 
 ..  code-block:: console
     :emphasize-lines: 7,8
 
-    Did not request resubmit based on job states (no `--resubmit`).
-
     Job status:
-    There are in total of 6 jobs to complete.
-    6 job(s) have been submitted; 0 job(s) haven't been submitted.
+    There are in total of 3 jobs to complete.
+
+    3 job(s) have been submitted; 0 job(s) haven't been submitted.
+
     Among submitted jobs,
-    6 job(s) are successfully finished;
+    3 job(s) successfully finished;
     All jobs are completed!
 
-    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/home/username/babs_demo/my_BABS_project/analysis/logs
 
-.. developer's note:
-.. TODO before copying:
-..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
 
 Step 4. After jobs have finished
 ================================
@@ -807,18 +655,6 @@ If it was successful, you'll see this message at the end:
     `babs merge` was successful!
 
 
-.. dropdown:: Full printed messages from ``babs merge``
-
-    .. literalinclude:: walkthrough_babs-merge_printed_messages.txt
-       :language: console
-
-.. developer's note:
-.. TODO before copying:
-..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  2. annoying but not useful warning from git-annex
-.. TODO after copying:
-..  1. check the tracked changes!
-
 Now you're ready to consume the results.
 
 Step 4.2. Consume results
@@ -842,10 +678,10 @@ You'll see:
 
     [INFO   ] Configure additional publication dependency on "output-storage"
     configure-sibling(ok): . (sibling)
-    install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project_outputs (dataset)
+    install(ok): /home/username/babs_demo/my_BABS_project_outputs (dataset)
     action summary:
-      configure-sibling (ok: 1)
-      install (ok: 1)
+    configure-sibling (ok: 1)
+    install (ok: 1)
 
 Let's go into this new folder and see what's inside:
 
@@ -858,52 +694,42 @@ You'll see:
 
 ..  code-block:: console
 
-    CHANGELOG.md				sub-01_ses-B_toybidsapp-0-0-7.zip@
-    code/			                sub-01_ses-C_toybidsapp-0-0-7.zip@
-    containers/					sub-02_ses-A_toybidsapp-0-0-7.zip@
-    inputs/					sub-02_ses-B_toybidsapp-0-0-7.zip@
-    README.md					sub-02_ses-D_toybidsapp-0-0-7.zip@
-    sub-01_ses-A_toybidsapp-0-0-7.zip@
+    CHANGELOG.md  inputs/					 sub-0001_ses-02_fmriprep_anat-25-0-0.zip@
+    code/	      README.md					 sub-0002_ses-01_fmriprep_anat-25-0-0.zip@
+    containers/   sub-0001_ses-01_fmriprep_anat-25-0-0.zip@
 
-.. developer's note: do NOT change the indents above! In the html the 2nd column is aligned...
 
 As you can see, each session's results have been saved in a zip file.
-Before unzipping a zip file, you need to get its content first:
+Before unzipping a zip file, you need to ``datalad get`` it first.
+Then use ``unzip -l`` to list the content of the zip file:
 
 ..  code-block:: console
 
-    $ datalad get sub-01_ses-A_toybidsapp-0-0-7.zip
-    $ unzip sub-01_ses-A_toybidsapp-0-0-7.zip
+    $ datalad get sub-0001_ses-01_fmriprep_anat-25-0-0.zip
+    $ unzip -l sub-0001_ses-01_fmriprep_anat-25-0-0.zip
 
 You'll see printed messages like this:
 
 ..  code-block:: console
 
     # from `datalad get`:
-    get(ok): sub-01_ses-A_toybidsapp-0-0-7.zip (file) [from output-storage...]
+    get(ok): sub-0001_ses-01_fmriprep_anat-25-0-0.zip (file) [from output-storage...]
 
     # from unzip:
-    Archive:  sub-01_ses-A_toybidsapp-0-0-7.zip
-       creating: toybidsapp/
-     extracting: toybidsapp/num_nonhidden_files.txt
+    Archive:  sub-0001_ses-01_fmriprep_anat-25-0-0.zip
+    Length      Date    Time    Name
+    ---------  ---------- -----   ----
+            0  04-17-2025 21:13   fmriprep_anat/
+        507  04-17-2025 21:13   fmriprep_anat/dataset_description.json
+            0  04-17-2025 21:13   fmriprep_anat/logs/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/BA_exvivo.ctab
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/BA_exvivo.thresh.ctab
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/aparc.annot.DKTatlas.ctab
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/aparc.annot.a2009s.ctab
 
-From the zip file, you got a folder called ``toybidsapp``.
 
-..  code-block:: console
-
-    $ cd toybidsapp
-    $ ls
-
-In this folder, there is a file called ``num_nonhidden_files.txt``.
-This is the result from toy BIDS App, which is the number of non-hidden files in this subject.
-Note that for raw BIDS dataset, toy BIDS App counts at subject-level, even though
-current dataset is a multi-session dataset.
-
-..  code-block:: console
-
-    $ cat num_nonhidden_files.txt
-    67
-
-Here, ``67`` is the expected number for ``sub-01`` (which you're looking at),
-``56`` is the expected number for ``sub-02``.
-This means that toy BIDS App and BABS ran as expected :).
+these are a bunch of empty files that mirror the outputs you'd get with an ``fmriprep`` run with ``--anat-only``.
