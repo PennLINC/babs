@@ -1,21 +1,12 @@
 """This provides command-line interfaces of babs functions"""
 
 import argparse
-import os
 import warnings
 from functools import partial
 from pathlib import Path
 
-import yaml
-
-from babs.babs import BABS
-from babs.input_datasets import InputDatasets
-from babs.system import System
 from babs.utils import (
     RUNNING_PYTEST,
-    get_datalad_version,
-    read_yaml,
-    validate_processing_level,
     validate_sub_ses_processing_inclusion,
 )
 
@@ -183,80 +174,24 @@ def babs_init_main(
     keep_if_failed: bool
         If `babs init` failed with error, whether to keep the created BABS project.
     """
-    # =================================================================
-    # Sanity checks:
-    # =================================================================
-    # check if it exists: if so, raise error
-    if project_root.exists():
-        raise ValueError(
-            f"The project folder '{project_root}' already exists! "
-            "`babs init` won't proceed to overwrite this folder."
-        )
 
-    # check if parent directory exists:
-    if not project_root.parent.exists():
-        raise ValueError(
-            f"The parent folder '{project_root.parent}' does not exist! `babs init` won't proceed."
-        )
+    from babs import BABSBootstrap
 
-    # check if parent directory is writable:
-    if not os.access(project_root.parent, os.W_OK):
-        raise ValueError(
-            f"The parent folder '{project_root.parent}' is not writable! "
-            "`babs init` won't proceed."
-        )
-
-    # print datalad version:
-    #   if no datalad is installed, will raise error
-    print('DataLad version: ' + get_datalad_version())
-
-    # validate `processing_level`:
-    processing_level = validate_processing_level(processing_level)
-
-    # Read the config yaml to get the datasets:
-    with open(container_config) as f:
-        babs_config = yaml.safe_load(f)
-    datasets = babs_config.get('input_datasets')
-    if not datasets:
-        raise ValueError('No input datasets found in the container config file.')
-    input_ds = InputDatasets(processing_level, datasets)
-    input_ds.set_inclusion_dataframe(list_sub_file, processing_level)
-
-    # Note: not to perform sanity check on the input dataset re: if it exists
-    #   as: 1) robust way is to clone it, which will take longer time;
-    #           so better tob just leave to the real cloning when `babs init`;
-    #       2) otherwise, if using "if `.datalad/config` exists" to check, then need to check
-    #           if input dataset is local or not, and it's very tricky to check that...
-    #       3) otherwise, if using "dlapi.status(dataset=the_input_ds)": will take long time
-    #           for big dataset; in addition, also need to check if it's local or not...
-    # currently solution: add notes in Debugging in `babs init` docs: `babs init.rst`
-
-    # Create an instance of babs class:
-    babs_proj = BABS(project_root, processing_level, queue)
-
-    # Validate system's type name `queue`:
-    system = System(queue)
-
-    # print out key information for visual check:
-    print('')
-    print('project_root of this BABS project: ' + babs_proj.project_root)
-    print('processing level of this BABS project: ' + babs_proj.processing_level)
-    print('job scheduling system of this BABS project: ' + babs_proj.queue)
-    print('')
-
+    babs_proj = BABSBootstrap(project_root)
     try:
         babs_proj.babs_bootstrap(
-            input_ds,
+            processing_level,
+            queue,
             container_ds,
             container_name,
             container_config,
-            system,
+            list_sub_file,
         )
     except Exception as exc:
         print('\n`babs init` failed! Below is the error message:')
         if not keep_if_failed:
             print('\nCleaning up created BABS project...')
-            babs_proj.clean_up(input_ds)
+            babs_proj.clean_up()
         else:
             print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
         raise exc
@@ -331,11 +266,10 @@ def babs_check_setup_main(
     job_test: bool
         Whether to submit and run a test job.
     """
-    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, input_ds = get_existing_babs_proj(project_root)
+    from babs import BABSCheckSetup
 
-    # Call method `babs_check_setup()`:
-    babs_proj.babs_check_setup(input_ds, job_test)
+    babs_proj = BABSCheckSetup(project_root)
+    babs_proj.babs_check_setup(job_test)
 
 
 def _parse_submit():
@@ -437,10 +371,10 @@ def babs_submit_main(
     """
     import pandas as pd
 
+    from babs import BABSInteraction
     from babs.utils import parse_select_arg
 
-    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, _ = get_existing_babs_proj(project_root)
+    babs_proj = BABSInteraction(project_root)
 
     # Get a selection dataframe in order of preference
     if inclusion_file is not None:
@@ -451,7 +385,6 @@ def babs_submit_main(
     else:
         df_job_specified = None
 
-    # Call method `babs_submit()`:
     babs_proj.babs_submit(count=count, submit_df=df_job_specified)
 
 
@@ -512,8 +445,9 @@ def babs_status_main(
     project_root: str
         absolute path to the directory of BABS project
     """
-    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, _ = get_existing_babs_proj(project_root)
+    from babs import BABSInteraction
+
+    babs_proj = BABSInteraction(project_root)
     babs_proj.babs_status()
 
 
@@ -604,271 +538,10 @@ def babs_merge_main(
         Whether to run as a trial run which won't push the merging actions back to output RIA.
         This option should only be used by developers for testing purpose.
     """
-    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, _ = get_existing_babs_proj(project_root)
+    from babs import BABSMerge
 
-    # Call method `babs_merge()`:
+    babs_proj = BABSMerge(project_root)
     babs_proj.babs_merge(chunk_size, trial_run)
-
-
-def _parse_unzip():
-    """Create and configure the argument parser for the `babs unzip` command.
-
-    It includes a description and formatter class, and adds arguments for the command.
-
-    Returns
-    -------
-    argparse.ArgumentParser
-    """
-    parser = argparse.ArgumentParser(
-        description='Unzip results zip files and extracts desired files',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    PathExists = partial(_path_exists, parser=parser)
-    parser.add_argument(
-        'project_root',
-        metavar='PATH',
-        help=(
-            'Absolute path to the root of BABS project. '
-            "For example, '/path/to/my_BABS_project/' "
-            '(default is current working directory).'
-        ),
-        nargs='?',
-        default=Path.cwd(),
-        type=PathExists,
-    )
-    parser.add_argument(
-        '--container_config',
-        '--container-config',
-        help='Path to a YAML file of the BIDS App container that contains information of'
-        ' what files to unzip etc.',
-    )
-
-    return parser
-
-
-def _enter_unzip(argv=None):
-    """Entry point for `babs-unzip` command.
-
-    This function is deprecated and will be removed in a future release.
-    Please use `babs unzip` instead.
-    """
-    if not RUNNING_PYTEST:
-        warnings.warn(
-            'babs-unzip is deprecated and will be removed in the future. Please use babs unzip.',
-            DeprecationWarning,
-            stacklevel=2,
-        )
-    options = _parse_unzip().parse_args(argv)
-    babs_unzip_main(**vars(options))
-
-
-def babs_unzip_main(
-    project_root: str,
-    container_config: str,
-):
-    """
-    This is the core function of babs-unzip, which unzip results zip files
-    and extracts desired files.
-
-    project_root: str
-        Absolute path to the root of BABS project.
-        For example, '/path/to/my_BABS_project/'.
-    container_config: str
-        path to container's configuration YAML file.
-        These two sections will be used:
-        1. 'unzip_desired_filenames' - must be included
-        2. 'rename_conflict_files' - optional
-    """
-    # container config:
-    config = read_yaml(container_config)
-    # ^^ not to use filelock here - otherwise will create `*.lock` file in user's folder
-
-    # Sanity checks:
-    if 'unzip_desired_filenames' not in config:
-        raise Exception(
-            "Section 'unzip_desired_filenames' is not included"
-            ' in `--container_config`. This section is required.'
-            " Path to this YAML file: '" + container_config + "'."
-        )
-
-    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, _ = get_existing_babs_proj(project_root)
-
-    # Call method `babs_unzip()`:
-    babs_proj.babs_unzip(config)
-
-
-def get_existing_babs_proj(project_root):
-    """
-    This is to get `babs_proj` (class `BABS`) and `input_ds` (class `InputDatasets`)
-    based on existing yaml file `babs_proj_config.yaml`.
-    This should be used by `babs_submit()` and `babs_status`.
-
-    Parameters
-    ----------
-    project_root: str
-        absolute path to the directory of BABS project
-        TODO: accept relative path too, like datalad's `-d`
-
-    Returns
-    -------
-    babs_proj: class `BABS`
-        information about a BABS project
-    input_ds: class `InputDatasets`
-        information about input dataset(s)
-    """
-
-    # Sanity check: the path `project_root` exists:
-    if not os.path.exists(project_root):
-        raise Exception(
-            f'`project_root` does not exist! Requested `project_root` was: {project_root}'
-        )
-
-    # Read configurations of BABS project from saved yaml file:
-    babs_proj_config_yaml = os.path.join(project_root, 'analysis/code/babs_proj_config.yaml')
-    if not os.path.exists(babs_proj_config_yaml):
-        raise Exception(
-            '`babs init` was not successful;'
-            " there is no 'analysis/code/babs_proj_config.yaml' file!"
-            ' Please rerun `babs init` to finish the setup.'
-        )
-
-    babs_proj_config = read_yaml(babs_proj_config_yaml, use_filelock=True)
-
-    # make sure the YAML file has necessary sections:
-    list_sections = ['processing_level', 'queue', 'input_datasets', 'container']
-    for i in range(0, len(list_sections)):
-        the_section = list_sections[i]
-        if the_section not in babs_proj_config:
-            raise Exception(
-                f"There is no section '{the_section}' in 'babs_proj_config.yaml' file "
-                "in 'analysis/code' folder! Please rerun `babs init` to finish the setup."
-            )
-
-    processing_level = babs_proj_config['processing_level']
-    queue = babs_proj_config['queue']
-
-    # Get the class `BABS`:
-    babs_proj = BABS(project_root, processing_level, queue)
-
-    # update key information including `output_ria_data_dir`:
-    babs_proj.wtf_key_info(flag_output_ria_only=True)
-
-    # Get information for input dataset:
-    input_ds_yaml = babs_proj_config['input_datasets']
-    # sanity check:
-    if len(input_ds_yaml) == 0:  # there was no input ds:
-        raise Exception(
-            "Section 'input_datasets' in `analysis/code/babs_proj_config.yaml`"
-            'does not include any input dataset!'
-            ' Something was wrong during `babs init`...'
-        )
-
-    # Get the class `InputDatasets`:
-    input_ds = InputDatasets(babs_proj_config['processing_level'], input_ds_yaml)
-    input_ds.update_abs_paths(Path(project_root) / 'analysis')
-    return babs_proj, input_ds
-
-
-def _parse_sync_code():
-    """Create and configure the argument parser for the `babs sync-code` command.
-
-    Returns
-    -------
-    argparse.ArgumentParser
-    """
-    parser = argparse.ArgumentParser(
-        description='Save and push code changes to input dataset.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        'project_root',
-        nargs='?',
-        default=Path.cwd(),
-        help=(
-            'Absolute path to the root of BABS project. '
-            "For example, '/path/to/my_BABS_project/' "
-            '(default is current working directory).'
-        ),
-    )
-    parser.add_argument(
-        '-m',
-        '--message',
-        help='Commit message for datalad save',
-        default='[babs] sync code changes',
-    )
-
-    return parser
-
-
-def babs_sync_code_main(project_root: str, commit_message: str):
-    """This is the core function of babs sync-code.
-
-    Parameters
-    ----------
-    project_root: str
-        absolute path to the directory of BABS project
-    commit_message: str
-        commit message for datalad save
-    """
-    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
-    babs_proj, _ = get_existing_babs_proj(project_root)
-
-    # Change to `analysis/code` directory
-    analysis_code_dir = os.path.join(project_root, 'analysis/code')
-    if not os.path.exists(analysis_code_dir):
-        raise FileNotFoundError(
-            f'`analysis/code` directory does not exist at: {analysis_code_dir}'
-        )
-
-    # Run datalad commands with filter to exclude specific files
-    # job_status and job_submit are modified every time `babs status` or `babs submit` is run
-    # no need to save and push these files
-    babs_proj.datalad_save(
-        analysis_code_dir,
-        commit_message,
-        filter_files=[
-            'job_status.csv',
-            'job_status.csv.lock',
-            'job_submit.csv',
-            'job_submit.csv.lock',
-        ],
-    )
-    babs_proj.datalad_push(analysis_code_dir, '--to input')
-
-
-def _parse_make_input_dataset():
-    """Create and configure the argument parser for the `babs create-input-dataset` command.
-
-    Returns
-    -------
-    argparse.ArgumentParser
-    """
-    parser = argparse.ArgumentParser(
-        description='Create a BIDS or zipped BIDS derivatives dataset for testing.',
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    parser.add_argument(
-        'output_path',
-        nargs=1,
-        help=(
-            "Absolute path to the output directory. For example, '/path/to/fake_bids_dataset/' "
-        ),
-    )
-    parser.add_argument(
-        '--multiple-sessions',
-        help='Create a BIDS dataset with multiple sessions.',
-        action='store_true',
-    )
-    parser.add_argument(
-        '--zip-level',
-        help='The level at which to zip the dataset.',
-        choices=['subject', 'session', 'none'],
-        default='subject',
-    )
-
-    return parser
 
 
 COMMANDS = [
@@ -877,8 +550,6 @@ COMMANDS = [
     ('submit', _parse_submit, babs_submit_main),
     ('status', _parse_status, babs_status_main),
     ('merge', _parse_merge, babs_merge_main),
-    ('unzip', _parse_unzip, babs_unzip_main),
-    ('sync-code', _parse_sync_code, babs_sync_code_main),
 ]
 
 

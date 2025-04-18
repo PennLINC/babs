@@ -10,17 +10,16 @@ Command line reference
 BABS features several command-line interface programs:
 
 Set up a BABS project
-========================
+=====================
 
 .. toctree::
    :maxdepth: 1
 
    babs-init
    babs-check-setup
-   babs-sync-code
 
 Submit jobs and check job status
-==================================
+================================
 
 .. toctree::
    :maxdepth: 1
@@ -29,7 +28,7 @@ Submit jobs and check job status
    babs-status
 
 After jobs have finished
-===========================
+========================
 
 .. toctree::
    :maxdepth: 1

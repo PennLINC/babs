@@ -22,8 +22,8 @@ List of included subjects (and sessions) to process
    provided when running ``babs init``.
 
 Now, BABS gets the final included subjects (and sessions) to process.
-It saves this list into a CSV file, named ``sub_final_inclu.csv`` (for single-session dataset)
-or ``sub_ses_final_inclu.csv`` (for multiple-session dataset),
+It saves this list into a CSV file, named ``processing_inclusion.csv`` (for single-session dataset)
+or ``processing_inclusion.csv`` (for multiple-session dataset),
 is located at ``/path/to/my_BABS_project/analysis/code``.
 
 .. TODO: describe other saved csv files for e.g., exclusions

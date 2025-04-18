@@ -181,7 +181,7 @@ def test_input_datasets_subject_level(
 
     assert input_datasets.validate_input_contents() is None
 
-    assert input_datasets.num_ds == 2
+    assert len(input_datasets) == 2
     assert input_datasets.processing_level == 'subject'
     inclu_df = input_datasets.generate_inclusion_dataframe()
     assert inclu_df.shape[0] == 2
@@ -221,7 +221,7 @@ def test_input_datasets_session_level(
 
     assert input_datasets.validate_input_contents() is None
 
-    assert input_datasets.num_ds == 2
+    assert len(input_datasets) == 2
     assert input_datasets.processing_level == 'session'
     inclu_df = input_datasets.generate_inclusion_dataframe()
     assert inclu_df.shape[0] == 3

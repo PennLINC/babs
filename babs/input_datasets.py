@@ -48,8 +48,7 @@ class InputDatasets:
         self.initial_inclu_df = None
         self.processing_level = processing_level
 
-    @property
-    def num_ds(self):
+    def __len__(self):
         """Get the number of input datasets."""
         return len(self._datasets)
 
