@@ -668,7 +668,7 @@ def results_branch_dataframe(branches):
     # Create a pattern with named groups - ses_id is optional
     pattern = (
         r'job-(?P<job_id>\d+)-?(?P<task_id>\d+)?[-]'
-        r'(?P<sub_id>sub-[^-]+)(?:_(?P<ses_id>ses-[^-]+))?'
+        r'(?P<sub_id>sub-[^-]+)(?:-(?P<ses_id>ses-[^-]+))?'
     )
 
     result_data = []
