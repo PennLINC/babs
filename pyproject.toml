@@ -165,7 +165,7 @@ env = ["RUNNING_PYTEST = 1"]
 [tool.coverage.run]
 source = ["babs/"]
 branch = true
-omit = ["*/tests/*", "*/__init__.py", "*/conftest.py", "babs/_version.py"]
+omit = ["*/tests/*", "*/__init__.py", "*/conftest.py", "babs/_version.py", "babs/template_test_job.py"]
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
