@@ -24,14 +24,12 @@ from babs.utils import (
 class BABSCheckSetup(BABS):
     """The BABS class is for babs projects of BIDS Apps"""
 
-    def babs_check_setup(self, input_ds, submit_a_test_job):
+    def babs_check_setup(self, submit_a_test_job):
         """
         This function validates the setup by babs init.
 
         Parameters
         ----------
-        input_ds: class `InputDatasets`
-            information of input dataset(s)
         submit_a_test_job: bool
             Whether to submit and run a test job.
         """
@@ -101,7 +99,7 @@ class BABSCheckSetup(BABS):
             )
 
         # check each input ds:
-        for idx, in_ds in enumerate(input_ds):
+        for idx, in_ds in enumerate(self.input_datasets):
             abs_path = in_ds.babs_project_analysis_path
             dataset_name = in_ds.name
 

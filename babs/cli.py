@@ -1,14 +1,12 @@
 """This provides command-line interfaces of babs functions"""
 
 import argparse
-import os
 import warnings
 from functools import partial
 from pathlib import Path
 
 from babs.utils import (
     RUNNING_PYTEST,
-    get_datalad_version,
     validate_sub_ses_processing_inclusion,
 )
 
@@ -179,31 +177,7 @@ def babs_init_main(
 
     from babs import BABSBootstrap
 
-    if project_root.exists():
-        raise ValueError(
-            f"The project folder '{project_root}' already exists! "
-            "`babs init` won't proceed to overwrite this folder."
-        )
-
-    # check if parent directory exists:
-    if not project_root.parent.exists():
-        raise ValueError(
-            f"The parent folder '{project_root.parent}' does not exist! `babs init` won't proceed."
-        )
-
-    # check if parent directory is writable:
-    if not os.access(project_root.parent, os.W_OK):
-        raise ValueError(
-            f"The parent folder '{project_root.parent}' is not writable! "
-            "`babs init` won't proceed."
-        )
-
-    # print datalad version:
-    #   if no datalad is installed, will raise error
-    print('DataLad version: ' + get_datalad_version())
-
     babs_proj = BABSBootstrap(project_root)
-
     try:
         babs_proj.babs_bootstrap(
             processing_level,
@@ -292,9 +266,9 @@ def babs_check_setup_main(
     job_test: bool
         Whether to submit and run a test job.
     """
-    from babs import BABSInteraction
+    from babs import BABSCheckSetup
 
-    babs_proj = BABSInteraction(project_root)
+    babs_proj = BABSCheckSetup(project_root)
     babs_proj.babs_check_setup(job_test)
 
 

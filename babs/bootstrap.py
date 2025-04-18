@@ -3,7 +3,6 @@
 import os
 import os.path as op
 import subprocess
-import warnings
 from pathlib import Path
 
 import datalad.api as dlapi
@@ -14,9 +13,10 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 from babs.base import BABS
 from babs.container import Container
 from babs.input_datasets import InputDatasets
-from babs.system import System
+from babs.system import System, validate_queue
 from babs.utils import (
     combine_inclusion_dataframes,
+    get_datalad_version,
     results_status_columns,
     results_status_default_values,
     status_dtypes,
@@ -64,6 +64,20 @@ class BABSBootstrap(BABS):
                 f'{self.project_root} already exists.\n\n'
                 '`babs init` requires path to a non-existent folder.'
             )
+
+        parent_dir = Path(self.project_root).parent
+        # check if parent directory exists:
+        if not parent_dir.exists():
+            raise ValueError(
+                f"The parent folder '{parent_dir}' does not exist! `babs init` won't proceed."
+            )
+
+        # check if parent directory is writable:
+        if not os.access(parent_dir, os.W_OK):
+            raise ValueError(
+                f"The parent folder '{parent_dir}' is not writable! `babs init` won't proceed."
+            )
+
         os.makedirs(self.project_root)
 
         # validate `processing_level`:
@@ -76,16 +90,17 @@ class BABSBootstrap(BABS):
         if not datasets:
             raise ValueError('No input datasets found in the container config file.')
         self.input_datasets = InputDatasets(processing_level, datasets)
-        self.input_datasets.set_inclusion_dataframe(initial_inclusion_df, processing_level)
-
-        system = System(queue)
+        self.queue = validate_queue(queue)
+        system = System(self.queue)
 
         # Create `analysis` folder: -----------------------------
+        print('DataLad version: ' + get_datalad_version())
         print('\nCreating `analysis` folder (also a datalad dataset)...')
         self.analysis_datalad_handle = dlapi.create(
             self.analysis_path, cfg_proc='yoda', annex=True
         )
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
+        self.input_datasets.set_inclusion_dataframe(initial_inclusion_df, processing_level)
 
         # Prepare `.gitignore` ------------------------------
         # write into .gitignore so won't be tracked by git:
@@ -98,15 +113,7 @@ class BABSBootstrap(BABS):
         # not to track `logs` folder:
         gitignore_file.write('\nlogs')
         # not to track `.*_datalad_lock`:
-        if system.type == 'sge':
-            gitignore_file.write('\n.SGE_datalad_lock')
-        elif system.type == 'slurm':
-            gitignore_file.write('\n.SLURM_datalad_lock')
-        else:
-            warnings.warn(
-                'Not supporting systems other than SGE or Slurm' + " for '.gitignore'.",
-                stacklevel=2,
-            )
+        gitignore_file.write('\n.*_datalad_lock')
         # not to track lock file:
         gitignore_file.write('\n' + 'code/babs_proj_config.yaml.lock')
         # not to track `job_status.csv`:
