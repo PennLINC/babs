@@ -553,7 +553,7 @@ We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and che
 
     0 job(s) have been submitted; 3 job(s) haven't been submitted.
 
-We first use ``babs sumbit`` to sumit some jobs. 
+We first use ``babs submit`` to sumit some jobs. 
 In this example walkthrough, as no initial list was provided,
 BABS determines this number based on the number of sessions in the input BIDS dataset.
 We did not request extra filtering (based on required files) in our YAML file either,
@@ -589,6 +589,7 @@ You can check the job status via ``babs status``:
 Wait for a bit and re-run ``babs status``. If it's successfully finished, you'll see:
 
 .. code-block:: console
+
     Job status:
     There are in total of 3 jobs to complete.
 
