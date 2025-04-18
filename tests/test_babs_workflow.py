@@ -179,14 +179,6 @@ def test_babs_init_raw_bids(
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
         _enter_submit()
 
-    # # run babs merge (trial run):
-    # babs_merge_opts = argparse.Namespace(
-    #     project_root=project_root, chunk_size=2000, trial_run=True
-    # )
-    # with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
-    #     _enter_merge()
-
-    # run babs merge (non-trial run):
     babs_merge_opts = argparse.Namespace(
         project_root=project_root, chunk_size=2000, trial_run=False
     )

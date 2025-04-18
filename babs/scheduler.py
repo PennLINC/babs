@@ -219,69 +219,7 @@ def submit_array(analysis_path, queue, maxarray):
     return job_id
 
 
-def df_status_update(df_jobs, df_job_submit, submitted=None, done=None, debug=False):
-    """
-    This is to update the status of one array task in the dataframe df_jobs
-    (file: code/job_status.csv). This is done by inserting information from
-    the updated dataframe df_job_submit (file: code/job_submit.csv). This
-    function is mostly used after job submission or resubmission. Therefore,
-    a lot of fields will be reset. For other cases (e.g., to update job status
-    to running state / successfully finished state, etc.), you may directly
-    update df_jobs without using this function.
-
-    Parameters:
-    ----------------
-    df_jobs: pd.DataFrame
-        dataframe of jobs and their status
-    df_job_submit: pd.DataFrame
-        dataframe of the to-be-submitted job
-    submitted: bool or None
-        whether the submitted field has to be updated
-    done: bool or None
-        whether the has_results field has to be updated
-    debug: bool
-        whether the job auditing fields need to be reset to np.nan
-        (fields include last_line_stdout_file, and alert_message).
-
-    Returns:
-    ------------------
-    df_jobs: pd.DataFrame
-        dataframe of jobs and their status, updated
-    """
-    # Updating df_jobs
-    for _, row in df_job_submit.iterrows():
-        sub_id = row['sub_id']
-
-        if 'ses_id' in df_jobs.columns:
-            ses_id = row['ses_id']
-            # Locate the corresponding rows in df_jobs
-            mask = (df_jobs['sub_id'] == sub_id) & (df_jobs['ses_id'] == ses_id)
-        elif 'ses_id' not in df_jobs.columns:
-            mask = df_jobs['sub_id'] == sub_id
-
-        # Update df_jobs fields based on the latest info in df_job_submit
-        df_jobs.loc[mask, 'job_id'] = row['job_id']
-        df_jobs.loc[mask, 'task_id'] = row['task_id']
-        df_jobs.loc[mask, 'log_filename'] = row['log_filename']
-        # reset fields:
-        df_jobs.loc[mask, 'needs_resubmit'] = row['needs_resubmit']
-        df_jobs.loc[mask, 'is_failed'] = row['is_failed']
-        df_jobs.loc[mask, 'state'] = row['state']
-        df_jobs.loc[mask, 'state'] = row['state']
-        df_jobs.loc[mask, 'time_used'] = row['time_used']
-        if submitted is not None:
-            # update the status:
-            df_jobs.loc[mask, 'submitted'] = row['submitted']
-        if done is not None:
-            # update the status:
-            df_jobs.loc[mask, 'has_results'] = row['has_results']
-        if debug:
-            df_jobs.loc[mask, 'last_line_stdout_file'] = row['last_line_stdout_file']
-            df_jobs.loc[mask, 'alert_message'] = row['alert_message']
-    return df_jobs
-
-
-def submit_one_test_job(analysis_path, queue, flag_print_message=True):
+def submit_one_test_job(analysis_path, queue):
     """
     This is to submit one *test* job.
     This is used by `babs check-setup`.
@@ -292,8 +230,6 @@ def submit_one_test_job(analysis_path, queue, flag_print_message=True):
         path to the `analysis` folder. One attribute in class `BABS`
     queue: str
         the type of job scheduling system, "sge" or "slurm"
-    flag_print_message: bool
-        to print a message (True) or not (False)
 
     Returns:
     -----------
