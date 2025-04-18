@@ -31,12 +31,12 @@ script_preamble: |
     micromamba activate babs
 
 # Where to run the jobs:
-job_compute_space: "/cbica/comp_space/cieslakm/test_temp"
+job_compute_space: "${TMP}"
 
 input_datasets:
     BIDS:
         required_files:
             - "anat/*_T1w.nii*"
         is_zipped: false
-        origin_url: "/cbica/comp_space/cieslakm/walkthrough/simbids"
+        origin_url: "/cbica/home/cieslakm/babs_demo/simbids"
         path_in_babs: inputs/data/BIDS

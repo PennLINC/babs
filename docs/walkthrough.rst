@@ -183,9 +183,9 @@ We need to create a DataLad dataset of this container
     .. code-block:: bash
 
         # from `datalad create`:
-        create(ok): /cbica/home/cieslakm/babs_demo/simbids-container (dataset)
+        create(ok): /home/username/babs_demo/simbids-container (dataset)
 
-        [INFO   ] Copying local file /cbica/home/cieslakm/babs_demo/simbids-0.0.3.sif to /cbica/home/cieslakm/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image
+        [INFO   ] Copying local file /home/username/babs_demo/simbids-0.0.3.sif to /home/username/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image
         add(ok): .datalad/environments/simbids-0-0-3/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
@@ -195,7 +195,7 @@ We need to create a DataLad dataset of this container
         add(ok): .datalad/environments/simbids-0-0-3/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
-        containers_add(ok): /cbica/home/cieslakm/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image (file)
+        containers_add(ok): /home/username/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image (file)
         action summary:
         add (ok: 2)
         containers_add (ok: 1)
@@ -221,8 +221,6 @@ This example mocks up what you might do if you wanted to do only anatomical proc
 
 .. literalinclude:: ../notebooks/eg_simbids_0-0-3_raw_mri.yaml
    :language: yaml
-   :linenos:
-   :emphasize-lines: 23,24,26,27,30
 
 As you can see, there are several sections in this YAML file.
 
@@ -238,7 +236,7 @@ Here we use these arguments to show examples of:
 * and it's totally fine to mix flags with prefix of ``--`` and ``-``.
 
 Section ``zip_foldernames`` tells BABS to zip the output folder named ``fmriprep_anat``
-as a zip file as ``${sub-id}_${ses-id}_fmriprep_anat.zip`` for each subject's each session,
+as a zip file as ``${sub-id}_${ses-id}_fmriprep_anat-25-0-0.zip`` for each subject's each session,
 where ``${sub-id}`` is a subject ID, ``${ses-id}`` is a session ID.
 
 You can copy the above content and save it as file ``config_simbids_0-0-3_raw_mri.yaml`` in ``~/babs_demo`` directory.
@@ -293,13 +291,6 @@ There are several lines (highlighted above) that require customization based on 
       Or even resources without pre-defined keys from BABS.
       See :ref:`cluster-resources` for how to do so.
 
-
-.. developer's note: if YAML file of walkthrough was changed:
-..  also need to change above copied section "cluster_resources"!
-.. developer's note: for MSI SLURM cluster: need to add `hard_runtime_limit: "20"`
-..  without it, when using e.g. `k40` partition, one job was success (branch pushed to output RIA)
-..  but "TIMEOUT" in `sacct`, leaving last 2 lines of stdout message of "deleting branch:\n job-xx-xx-xx"
-
 * Section ``script_preamble``:
 
     * You will need to adjust the highlighted line #18 of the ``source`` command
@@ -316,6 +307,12 @@ There are several lines (highlighted above) that require customization based on 
                 module load xxxx
 
     * For more, please see: :ref:`script-preamble`.
+
+* Section ``input_datasets``:
+    * Describe the inputs to the BIDS App here.
+    * Specify the original location of the data.
+    * Specify whether the data is zipped or not.
+    * Tell BABS where to put the data for the BIDS App at run time.
 
 * Section ``job_compute_space``:
 
@@ -347,8 +344,6 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 .. developer's note: reset `$TEMPLATEFLOW_HOME` for now: `unset TEMPLATEFLOW_HOME`
 
 ..  code-block:: console
-    :linenos:
-    :emphasize-lines: 9
 
     $ cd ~/babs_demo
     $ babs init \
@@ -361,12 +356,12 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
-The input dataset will be called ``BIDS``, and you can just provide the OSF link as its path (line #5).
-For container, you will use the DataLad-tracked ``toybidsapp-container`` and the YAML file you just prepared (line #6-8).
-It is important to make sure the string ``toybidsapp-0-0-7`` used in ``--container_name`` (line #7)
+The input dataset is specified in the yaml file and no longer specified in the command line.
+For container, you will use the DataLad-tracked ``simbids-container`` and the YAML file you just prepared.
+It is important to make sure the string ``simbids-0-0-3`` used in ``--container_name``
 is consistent with the image name you specified when preparing
 the DataLad dataset of the container (``datalad containers-add``).
-If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session`` (line #9).
+If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session``.
 
 
 If ``babs init`` succeeded, you should see this message at the end:
@@ -473,7 +468,7 @@ the generated directives would be:
             ├── 05e
             │   └── 1e2ab-c974-48c4-91f6-ce57d5f5ad25
             ├── alias
-            │   └── data -> /cbica/home/cieslakm/babs_demo/my_BABS_project/output_ria/05e/1e2ab-c974-48c4-91f6-ce57d5f5ad25
+            │   └── data -> /home/username/babs_demo/my_BABS_project/output_ria/05e/1e2ab-c974-48c4-91f6-ce57d5f5ad25
             ├── error_logs
             └── ria-layout-version
 
@@ -584,7 +579,7 @@ You can check the job status via ``babs status``:
     1 job(s) are running;
     0 job(s) failed.
 
-    All log files are located in folder: /gpfs/fs001/cbica/home/cieslakm/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/home/username/babs_demo/my_BABS_project/analysis/logs
 
 Wait for a bit and re-run ``babs status``. If it's successfully finished, you'll see:
 
@@ -601,7 +596,7 @@ Wait for a bit and re-run ``babs status``. If it's successfully finished, you'll
     0 job(s) are running;
     0 job(s) failed.
 
-    All log files are located in folder: /gpfs/fs001/cbica/home/cieslakm/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/home/username/babs_demo/my_BABS_project/analysis/logs
 
 
 Now, you can submit all other jobs by rerunning ``babs submit`` without any arguments.
@@ -634,7 +629,7 @@ If all jobs have finished successfully, ``babs status`` will show you:
     3 job(s) successfully finished;
     All jobs are completed!
 
-    All log files are located in folder: /gpfs/fs001/cbica/home/cieslakm/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/home/username/babs_demo/my_BABS_project/analysis/logs
 
 
 Step 4. After jobs have finished
@@ -683,7 +678,7 @@ You'll see:
 
     [INFO   ] Configure additional publication dependency on "output-storage"
     configure-sibling(ok): . (sibling)
-    install(ok): /cbica/home/cieslakm/babs_demo/my_BABS_project_outputs (dataset)
+    install(ok): /home/username/babs_demo/my_BABS_project_outputs (dataset)
     action summary:
     configure-sibling (ok: 1)
     install (ok: 1)
