@@ -17,7 +17,6 @@ Toy BIDS App
 We prepared a toy BIDS App that can be used for quick testing. It counts non-hidden files
 in a subject's (or a session's) folder. The detailed descriptions can be found
 `here <https://github.com/PennLINC/babs_tests/blob/main/docker/README.md>`_.
-Its docker image is publicly available on `Docker Hub <https://hub.docker.com/r/pennlinc/toy_bids_app>`_.
 
 How to prepare a container DataLad dataset of BIDS App?
 =======================================================
