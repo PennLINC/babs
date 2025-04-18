@@ -1115,11 +1115,6 @@ class BABS:
 
         """
         if not op.exists(self.job_submit_path_abs):
-            warnings.warn(
-                f'Job submission file not found: {self.job_submit_path_abs}\n'
-                'Run `babs submit` to submit some jobs.',
-                stacklevel=2,
-            )
             return EMPTY_JOB_STATUS_DF
         df = pd.read_csv(self.job_submit_path_abs)
         for column_name in get_latest_submitted_jobs_columns(self.processing_level):

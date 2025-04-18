@@ -1,3 +1,4 @@
+import io
 import subprocess
 
 import datalad.api as dlapi
@@ -10,6 +11,7 @@ from babs.utils import (
     parse_select_arg,
     results_branch_dataframe,
     update_job_batch_status,
+    update_submitted_job_ids,
 )
 
 
@@ -187,3 +189,23 @@ def test_parse_select_arg():
 
     with pytest.raises(ValueError, match='All session IDs must start with "ses-"'):
         parse_select_arg(['sub-0001', 'notases-01', 'sub-0002', 'notases-02'])
+
+
+job_status = """\
+sub_id,ses_id,submitted,is_failed,state,time_used,time_limit,nodes,cpus,partition,name,job_id,task_id,has_results
+sub-0001,ses-01,True,False,R,nan,nan,0,0,nan,nan,6959442,1,True
+sub-0001,ses-02,False,False,nan,nan,nan,nan,nan,nan,nan,nan,nan,False
+sub-0002,ses-01,False,False,nan,nan,nan,nan,nan,nan,nan,nan,nan,False"""
+
+job_submit = """\
+sub_id,ses_id,job_id,task_id
+sub-0001,ses-02,6959620,1
+sub-0002,ses-01,6959620,2
+"""
+
+
+def test_update_submitted_job_ids():
+    job_status_df = pd.read_csv(io.StringIO(job_status))
+    job_submit_df = pd.read_csv(io.StringIO(job_submit))
+    updated_df = update_submitted_job_ids(job_status_df, job_submit_df)
+    assert updated_df['submitted'].all()

@@ -763,18 +763,31 @@ def update_results_status(previous_job_completion_df, job_completion_df):
 
 
 def update_submitted_job_ids(results_df, submitted_df):
-    """Update the most recent job and task ids in the status df"""
+    """Update the most recent job and task ids in the status df.
+
+    This is a quick update after submitting jobs when we freshly know the job_id
+    and don't need to query anything.
+    """
     if 'sub_id' not in submitted_df:
         raise ValueError('job_submit_df must have a sub_id column')
 
+    # There should be only one job id per submitted job
+    submitted_job_id = submitted_df['job_id'].unique()
+    if len(submitted_job_id) != 1:
+        raise ValueError('There should be only one job id per submitted job')
+    submitted_job_id = int(submitted_job_id[0])
+
     use_sesid = 'ses_id' in results_df and 'ses_id' in submitted_df
     merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
-
     merged = pd.merge(results_df, submitted_df, on=merge_on, how='left', suffixes=('', '_batch'))
-    merged['job_id'] = merged['job_id_batch']
-    merged['task_id'] = merged['task_id_batch']
-    merged.drop(['job_id_batch', 'task_id_batch'], axis=1, inplace=True)
-    merged['submitted'] = merged['job_id'] > -1
+    # Updated which jobs have failed. If they have been submitted, do not have results,
+    # and are not currently running, they have failed.
+    updated_mask = merged['job_id_batch'] == submitted_job_id
+
+    merged.loc[updated_mask, 'job_id'] = merged.loc[updated_mask, 'job_id_batch']
+    merged.loc[updated_mask, 'task_id'] = merged.loc[updated_mask, 'task_id_batch']
+    merged.drop(columns=['job_id_batch', 'task_id_batch'], inplace=True)
+    merged.loc[updated_mask, 'submitted'] = True
     return merged
 
 

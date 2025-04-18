@@ -58,7 +58,7 @@ as the working directory in this example walkthrough:
 
     $ mamba activate babs
     $ mkdir -p ~/babs_demo
-    $ cd babs_demo
+    $ cd ~/babs_demo
 
 Step 0: Create some testing BIDS data
 =====================================
@@ -138,22 +138,6 @@ Now we can create a Datalad dataset of this BIDS dataset:
     save (ok: 1)
 
 
-
-
-
-
-.. code-block:: console
-
-    $ cd ~/babs_demo
-    $ datalad create -D "SIMBIDS dataset" simbids-container
-    
-    It's normal to see additional messages from DataLad like below:
-
-    ..  code-block:: console
-
-        [INFO   ] Remote origin uses a protocol not supported by git-annex; setting annex-ignore
-
-
 Step 1. Get prepared
 ====================
 There are three things required by BABS as input:
@@ -199,9 +183,9 @@ We need to create a DataLad dataset of this container
     .. code-block:: bash
 
         # from `datalad create`:
-        create(ok): /cbica/projects/BABS/babs_demo/simbids-container (dataset)
+        create(ok): /cbica/home/cieslakm/babs_demo/simbids-container (dataset)
 
-        [INFO   ] Copying local file /cbica/comp_space/cieslakm/walkthrough/simbids-0.0.3.sif to /cbica/comp_space/cieslakm/walkthrough/simbids-container/.datalad/environments/simbids-0-0-3/image
+        [INFO   ] Copying local file /cbica/home/cieslakm/babs_demo/simbids-0.0.3.sif to /cbica/home/cieslakm/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image
         add(ok): .datalad/environments/simbids-0-0-3/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
@@ -211,7 +195,7 @@ We need to create a DataLad dataset of this container
         add(ok): .datalad/environments/simbids-0-0-3/image (file)
         add(ok): .datalad/config (file)
         save(ok): . (dataset)
-        containers_add(ok): /cbica/comp_space/cieslakm/walkthrough/simbids-container/.datalad/environments/simbids-0-0-3/image (file)
+        containers_add(ok): /cbica/home/cieslakm/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image (file)
         action summary:
         add (ok: 2)
         containers_add (ok: 1)
@@ -224,7 +208,7 @@ you can remove the original ``sif`` file:
 
 .. code-block:: console
 
-    $ cd ..
+    $ cd ~/babs_demo
     $ rm simbids-0.0.3.sif
 
 
@@ -370,7 +354,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
     $ babs init \
         --container_ds "${HOME}/babs_demo/simbids-container" \
         --container_name simbids-0-0-3 \
-        --container_config "${HOME}/babs_demo/config_simbids_0-0-3_raw_mri.yaml \
+        --container_config "${HOME}/babs_demo/config_simbids_0-0-3_raw_mri.yaml" \
         --processing_level session \
         --queue slurm \
         "${HOME}/babs_demo/my_BABS_project"
@@ -391,31 +375,18 @@ If ``babs init`` succeeded, you should see this message at the end:
 
     `babs init` was successful!
 
-
-.. dropdown:: Full printed messages from ``babs init``
-
-    .. literalinclude:: walkthrough_babs-init_printed_messages.txt
-       :language: console
-.. developer's note: cannot change the `language` to `bash` here...
-.. TODO before copying:
-..  1. check if `miniconda3/envs/` env name is `babs` as instructed in the this example walkthrough!
-..  2. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  3. annoying but not useful warning from git-annex
-.. TODO after copying:
-..  1. check the tracked changes!
-
 .. dropdown:: Warning regarding TemplateFlow? Fine to toy BIDS App!
 
     You may receive this warning from ``babs init`` if you did not set up
     the environment variable ``$TEMPLATEFLOW_HOME``::
 
-        UserWarning: Usually BIDS App depends on TemplateFlow, but environment
+        UserWarning: Usually BIDS Apps depend on TemplateFlow, but environment
         variable `TEMPLATEFLOW_HOME` was not set up.
         Therefore, BABS will not bind its directory or inject this environment
         variable into the container when running the container.
         This may cause errors.
 
-    This is totally fine for the toy BIDS App we're using here, and it won't use TemplateFlow.
+    This is totally fine for SIMBIDS, and it won't use TemplateFlow.
     However, a lot of BIDS Apps would use it.
     Make sure you set it up when you use those BIDS Apps.
 
@@ -433,7 +404,7 @@ The command below can be found in the printed messages from ``babs init``:
             "${PWD}/inputs/data/BIDS" \
             "${PWD}/outputs/fmriprep_anat" \
             participant \
-            -w "${PWD}/.git/tmp/wkdir" \
+            --bids-app fmriprep \
             --stop-on-first-crash \
             -vv \
             --anat-only \
@@ -481,20 +452,30 @@ the generated directives would be:
         │   ├── CHANGELOG.md
         │   ├── code
         │   │   ├── babs_proj_config.yaml
-        │   │   ├── babs_proj_config.yaml.lock
         │   │   ├── check_setup
+        │   │   ├── job_status.csv
         │   │   ├── participant_job.sh
         │   │   ├── README.md
+        │   │   ├── simbids-0-0-3_zip.sh
         │   │   ├── submit_job_template.yaml
-        │   │   ├── sub_ses_final_inclu.csv
-        │   │   └── simbids-0-0-3_zip.sh
+        │   │   └── sub_ses_final_inclu.csv
         │   ├── containers
         │   ├── inputs
         │   │   └── data
         │   ├── logs
         │   └── README.md
         ├── input_ria
+        │   ├── 05e
+        │   │   └── 1e2ab-c974-48c4-91f6-ce57d5f5ad25
+        │   ├── error_logs
+        │   └── ria-layout-version
         └── output_ria
+            ├── 05e
+            │   └── 1e2ab-c974-48c4-91f6-ce57d5f5ad25
+            ├── alias
+            │   └── data -> /cbica/home/cieslakm/babs_demo/my_BABS_project/output_ria/05e/1e2ab-c974-48c4-91f6-ce57d5f5ad25
+            ├── error_logs
+            └── ria-layout-version
 
     Here, ``analysis`` is a DataLad dataset that includes generated scripts in ``code/``,
     a cloned container DataLad dataset ``containers/``, and a cloned input dataset in ``inputs/data``.
@@ -561,6 +542,17 @@ Step 3. Submit jobs and check job status
 ========================================
 We'll iteratively use ``babs submit`` and ``babs status`` to submit jobs and check job status.
 
+
+.. code-block:: console
+
+    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
+    $ babs status
+
+    Job status:
+    There are in total of 3 jobs to complete.
+
+    0 job(s) have been submitted; 3 job(s) haven't been submitted.
+
 We first use ``babs sumbit`` to sumit some jobs. 
 In this example walkthrough, as no initial list was provided,
 BABS determines this number based on the number of sessions in the input BIDS dataset.
@@ -569,130 +561,80 @@ so BABS will submit one job for each session.
 
 ..  code-block:: console
 
-    $ cd ~/babs_demo/my_BABS_project    # make sure you're in `my_BABS_project` folder
-    $ babs submit
-
-You'll see something like this (the job ID will probably be different):
-
-..  code-block:: console
-
+    $ babs submit --count 1
+    Submitting the first 1 jobs
     Submitting the following jobs:
-        sub_id  ses_id  job_id  ...  log_filename  last_line_stdout_file  alert_message
-    0  sub-0001  ses-01      -1  ...           NaN                    NaN            NaN
-    1  sub-0001  ses-02      -1  ...           NaN                    NaN            NaN
-    2  sub-0002  ses-01      -1  ...           NaN                    NaN            NaN
+        sub_id  ses_id  submitted  has_results  is_failed  ...  time_limit  nodes cpus partition name
+    0  sub-0001  ses-01      False        False      False  ...         nan      0    0       nan  nan
+
 
 You can check the job status via ``babs status``:
 
 ..  code-block:: console
 
     $ babs status
-
-..
-   when pending::
-
-        Did not request resubmit based on job states (no `--resubmit`).
-
-        Job status:
-        There are in total of 6 jobs to complete.
-        1 job(s) have been submitted; 5 job(s) haven't been submitted.
-        Among submitted jobs,
-        0 job(s) are successfully finished;
-        1 job(s) are pending;
-        0 job(s) are running;
-        0 job(s) are failed.
-
-        All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
-
-If it's successfully finished, you'll see:
-
-..  code-block:: console
-    :emphasize-lines: 5,7
-
-    Did not request resubmit based on job states (no `--resubmit`).
-
     Job status:
-    There are in total of 6 jobs to complete.
-    1 job(s) have been submitted; 5 job(s) haven't been submitted.
+    There are in total of 3 jobs to complete.
+
+    1 job(s) have been submitted; 2 job(s) haven't been submitted.
+
     Among submitted jobs,
-    1 job(s) are successfully finished;
+    0 job(s) successfully finished;
+    0 job(s) are pending;
+    1 job(s) are running;
+    0 job(s) failed.
+
+    All log files are located in folder: /gpfs/fs001/cbica/home/cieslakm/babs_demo/my_BABS_project/analysis/logs
+
+Wait for a bit and re-run ``babs status``. If it's successfully finished, you'll see:
+
+.. code-block:: console
+    Job status:
+    There are in total of 3 jobs to complete.
+
+    1 job(s) have been submitted; 2 job(s) haven't been submitted.
+
+    Among submitted jobs,
+    1 job(s) successfully finished;
     0 job(s) are pending;
     0 job(s) are running;
-    0 job(s) are failed.
+    0 job(s) failed.
 
-    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/cbica/home/cieslakm/babs_demo/my_BABS_project/analysis/logs
 
-Now, you can submit all other jobs by specifying ``--all``:
+
+Now, you can submit all other jobs by rerunning ``babs submit`` without any arguments.
+By default ``babs submit`` submits all jobs that don't haven't successfully run:
 
 .. code-block:: console
 
-    $ babs submit --all
+    $ babs submit
+    No jobs in the queue
+    Submitting the following jobs:
+        sub_id  ses_id  submitted  is_failed state time_used  ... cpus  partition  name   job_id task_id  has_results
+    0  sub-0001  ses-02      False      False   nan       nan  ...    0        nan   nan  6959620       1        False
+    1  sub-0002  ses-01      False      False   nan       nan  ...    0        nan   nan  6959620       2        False
 
-..
-    printed messages you'll see:
-
-    Job for sub-01, ses-B has been submitted (job ID: 4648997).
-    Job for sub-01, ses-C has been submitted (job ID: 4649000).
-    Job for sub-02, ses-A has been submitted (job ID: 4649003).
-    Job for sub-02, ses-B has been submitted (job ID: 4649006).
-    Job for sub-02, ses-D has been submitted (job ID: 4649009).
-    sub_id ses_id  submitted   job_id  state  state  time_used  has_results is_failed
-    0  sub-01  ses-A           True  4639278                 NaN             NaN       NaN     True     False  \
-    1  sub-01  ses-B           True  4648997                 NaN             NaN       NaN    False       NaN
-    2  sub-01  ses-C           True  4649000                 NaN             NaN       NaN    False       NaN
-    3  sub-02  ses-A           True  4649003                 NaN             NaN       NaN    False       NaN
-    4  sub-02  ses-B           True  4649006                 NaN             NaN       NaN    False       NaN
-    5  sub-02  ses-D           True  4649009                 NaN             NaN       NaN    False       NaN
-
-                    log_filename last_line_stdout_file  alert_message
-    0  toy_sub-01_ses-A.*4639278               SUCCESS            NaN
-    1  toy_sub-01_ses-B.*4648997                   NaN            NaN
-    2  toy_sub-01_ses-C.*4649000                   NaN            NaN
-    3  toy_sub-02_ses-A.*4649003                   NaN            NaN
-    4  toy_sub-02_ses-B.*4649006                   NaN            NaN
-    5  toy_sub-02_ses-D.*4649009                   NaN            NaN
-
+You can see that the remaining 2 jobs have been submitted. 
 You can again call ``babs status`` to check status.
 If those 5 jobs are pending (submitted but not yet run by the cluster), you'll see:
 
-..  code-block:: console
-    :linenos:
-    :emphasize-lines: 5,8
-
-    Did not request resubmit based on job states (no `--resubmit`).
-
-    Job status:
-    There are in total of 6 jobs to complete.
-    6 job(s) have been submitted; 0 job(s) haven't been submitted.
-    Among submitted jobs,
-    1 job(s) are successfully finished;
-    5 job(s) are pending;
-    0 job(s) are running;
-    0 job(s) are failed.
-
-    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
-
-If some jobs are running or have failed, you'll see non-zero numbers in line #9 or #10.
-
-If all jobs have finished successfully, you'll see:
+If all jobs have finished successfully, ``babs status`` will show you:
 
 ..  code-block:: console
     :emphasize-lines: 7,8
 
-    Did not request resubmit based on job states (no `--resubmit`).
-
     Job status:
-    There are in total of 6 jobs to complete.
-    6 job(s) have been submitted; 0 job(s) haven't been submitted.
+    There are in total of 3 jobs to complete.
+
+    3 job(s) have been submitted; 0 job(s) haven't been submitted.
+
     Among submitted jobs,
-    6 job(s) are successfully finished;
+    3 job(s) successfully finished;
     All jobs are completed!
 
-    All log files are located in folder: /cbica/projects/BABS/babs_demo/my_BABS_project/analysis/logs
+    All log files are located in folder: /gpfs/fs001/cbica/home/cieslakm/babs_demo/my_BABS_project/analysis/logs
 
-.. developer's note:
-.. TODO before copying:
-..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
 
 Step 4. After jobs have finished
 ================================
@@ -717,18 +659,6 @@ If it was successful, you'll see this message at the end:
     `babs merge` was successful!
 
 
-.. dropdown:: Full printed messages from ``babs merge``
-
-    .. literalinclude:: walkthrough_babs-merge_printed_messages.txt
-       :language: console
-
-.. developer's note:
-.. TODO before copying:
-..  1. 'babs_demo_prep' foldername used by developer --> 'babs_demo'
-..  2. annoying but not useful warning from git-annex
-.. TODO after copying:
-..  1. check the tracked changes!
-
 Now you're ready to consume the results.
 
 Step 4.2. Consume results
@@ -752,10 +682,10 @@ You'll see:
 
     [INFO   ] Configure additional publication dependency on "output-storage"
     configure-sibling(ok): . (sibling)
-    install(ok): /cbica/projects/BABS/babs_demo/my_BABS_project_outputs (dataset)
+    install(ok): /cbica/home/cieslakm/babs_demo/my_BABS_project_outputs (dataset)
     action summary:
-      configure-sibling (ok: 1)
-      install (ok: 1)
+    configure-sibling (ok: 1)
+    install (ok: 1)
 
 Let's go into this new folder and see what's inside:
 
@@ -768,52 +698,42 @@ You'll see:
 
 ..  code-block:: console
 
-    CHANGELOG.md				sub-01_ses-B_toybidsapp-0-0-7.zip@
-    code/			                sub-01_ses-C_toybidsapp-0-0-7.zip@
-    containers/					sub-02_ses-A_toybidsapp-0-0-7.zip@
-    inputs/					sub-02_ses-B_toybidsapp-0-0-7.zip@
-    README.md					sub-02_ses-D_toybidsapp-0-0-7.zip@
-    sub-01_ses-A_toybidsapp-0-0-7.zip@
+    CHANGELOG.md  inputs/					 sub-0001_ses-02_fmriprep_anat-25-0-0.zip@
+    code/	      README.md					 sub-0002_ses-01_fmriprep_anat-25-0-0.zip@
+    containers/   sub-0001_ses-01_fmriprep_anat-25-0-0.zip@
 
-.. developer's note: do NOT change the indents above! In the html the 2nd column is aligned...
 
 As you can see, each session's results have been saved in a zip file.
-Before unzipping a zip file, you need to get its content first:
+Before unzipping a zip file, you need to ``datalad get`` it first.
+Then use ``unzip -l`` to list the content of the zip file:
 
 ..  code-block:: console
 
-    $ datalad get sub-01_ses-A_toybidsapp-0-0-7.zip
-    $ unzip sub-01_ses-A_toybidsapp-0-0-7.zip
+    $ datalad get sub-0001_ses-01_fmriprep_anat-25-0-0.zip
+    $ unzip -l sub-0001_ses-01_fmriprep_anat-25-0-0.zip
 
 You'll see printed messages like this:
 
 ..  code-block:: console
 
     # from `datalad get`:
-    get(ok): sub-01_ses-A_toybidsapp-0-0-7.zip (file) [from output-storage...]
+    get(ok): sub-0001_ses-01_fmriprep_anat-25-0-0.zip (file) [from output-storage...]
 
     # from unzip:
-    Archive:  sub-01_ses-A_toybidsapp-0-0-7.zip
-       creating: toybidsapp/
-     extracting: toybidsapp/num_nonhidden_files.txt
+    Archive:  sub-0001_ses-01_fmriprep_anat-25-0-0.zip
+    Length      Date    Time    Name
+    ---------  ---------- -----   ----
+            0  04-17-2025 21:13   fmriprep_anat/
+        507  04-17-2025 21:13   fmriprep_anat/dataset_description.json
+            0  04-17-2025 21:13   fmriprep_anat/logs/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/BA_exvivo.ctab
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/BA_exvivo.thresh.ctab
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/aparc.annot.DKTatlas.ctab
+            0  04-17-2025 21:13   fmriprep_anat/sourcedata/freesurfer/0001/label/aparc.annot.a2009s.ctab
 
-From the zip file, you got a folder called ``toybidsapp``.
 
-..  code-block:: console
-
-    $ cd toybidsapp
-    $ ls
-
-In this folder, there is a file called ``num_nonhidden_files.txt``.
-This is the result from toy BIDS App, which is the number of non-hidden files in this subject.
-Note that for raw BIDS dataset, toy BIDS App counts at subject-level, even though
-current dataset is a multi-session dataset.
-
-..  code-block:: console
-
-    $ cat num_nonhidden_files.txt
-    67
-
-Here, ``67`` is the expected number for ``sub-01`` (which you're looking at),
-``56`` is the expected number for ``sub-02``.
-This means that toy BIDS App and BABS ran as expected :).
+these are a bunch of empty files that mirror the outputs you'd get with an ``fmriprep`` run with ``--anat-only``.
