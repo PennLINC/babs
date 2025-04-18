@@ -453,7 +453,7 @@ the generated directives would be:
         │   │   ├── README.md
         │   │   ├── simbids-0-0-3_zip.sh
         │   │   ├── submit_job_template.yaml
-        │   │   └── sub_ses_final_inclu.csv
+        │   │   └── processing_inclusion.csv
         │   ├── containers
         │   ├── inputs
         │   │   └── data
