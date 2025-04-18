@@ -1,18 +1,40 @@
 # What's New
 
+## Version 0.4.0
+
+Arguments and default behavior for `babs submit` and `babs status` have changed.
+The specification of input datasets all happens in the config yaml file now (the `--datasets` option is removed).
+See the walkthrough example for an up-to-date example of BABS in action.
+
+### What's Changed
+#### 🛠 Breaking Changes
+* Fix walkthrough test by @mattcieslak in https://github.com/PennLINC/babs/pull/286
+#### 🎉 Exciting New Features
+* Add codecov again by @mattcieslak in https://github.com/PennLINC/babs/pull/289
+#### 🐛 Bug Fixes
+* update e2e to use new CLIs by @mattcieslak in https://github.com/PennLINC/babs/pull/288
+#### Other Changes
+* Make InputDataset handle individual input dataset checking/querying by @mattcieslak in https://github.com/PennLINC/babs/pull/277
+* Refactor babs init to use the InputDataset class by @mattcieslak in https://github.com/PennLINC/babs/pull/284
+* RF the slurm-interacting code by @mattcieslak in https://github.com/PennLINC/babs/pull/287
+* Test BABS on upenn cluster + update docs with simbids examples by @mattcieslak in https://github.com/PennLINC/babs/pull/290
+* Subclass BABS for different interactions by @mattcieslak in https://github.com/PennLINC/babs/pull/291
+
+**Full Changelog**: https://github.com/PennLINC/babs/compare/0.3.0...0.4.0
+
 ## Version 0.3.0
 
 Critical bugfix for 0.2.0 and adds the ability to add small files to the BABS project
 so they can be tracked by git and accessed during the BIDS app run.
 
-## What's Changed
-### Other Changes
+### What's Changed
+#### Other Changes
 * Fix SLURM JOB_ID bug by @mattcieslak in https://github.com/PennLINC/babs/pull/267
 * Add imported_files section to config files by @mattcieslak in https://github.com/PennLINC/babs/pull/266
 * Update docs to reflect changes in 0.3 by @mattcieslak in https://github.com/PennLINC/babs/pull/268
 
 
-**Full Changelog**: https://github.com/PennLINC/babs/compare/0.2.0...pre-0.3.0
+**Full Changelog**: https://github.com/PennLINC/babs/compare/0.2.0...0.3.0
 
 
 ## Version 0.2.0
