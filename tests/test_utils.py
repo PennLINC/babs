@@ -1,16 +1,24 @@
+import getpass
 import io
 import subprocess
+from pathlib import Path
 
 import datalad.api as dlapi
 import pandas as pd
 import pytest
+import yaml
 
 from babs.utils import (
+    app_output_settings_from_config,
     combine_inclusion_dataframes,
+    get_git_show_ref_shasum,
     get_immediate_subdirectories,
+    get_repo_hash,
     get_results_branches,
+    get_username,
     identify_running_jobs,
     parse_select_arg,
+    read_yaml,
     replace_placeholder_from_config,
     results_branch_dataframe,
     update_job_batch_status,
@@ -38,6 +46,146 @@ BRANCH_LISTS = [
     ['job-123-1-sub-01', 'job-123-2-sub-02', 'job-124-1-sub-03'],
     ['job-125-1-sub-01-ses-01', 'job-125-2-sub-01-ses-02', 'job-126-1-sub-02-ses-01'],
 ]
+
+
+def test_get_username():
+    """Test that get_username returns the current username."""
+    # Get the expected username using Python's getpass module
+    expected_username = getpass.getuser()
+
+    # Test the function
+    username = get_username()
+
+    # Check that it returns the expected username
+    assert username == expected_username
+    assert isinstance(username, str)
+    assert len(username) > 0
+
+
+def test_read_yaml(tmp_path):
+    """Test read_yaml function with and without filelock."""
+    # Create a test YAML file
+    test_data = {'key1': 'value1', 'key2': {'nested_key': 'nested_value'}, 'numbers': [1, 2, 3]}
+
+    yaml_file = tmp_path / 'test_config.yaml'
+    with open(yaml_file, 'w') as f:
+        yaml.dump(test_data, f)
+
+    # Test without filelock
+    result = read_yaml(str(yaml_file))
+    assert result == test_data
+
+    # Test with filelock
+    # This is more for coverage since verifying the lock is complex
+    result_with_lock = read_yaml(str(yaml_file), use_filelock=True)
+    assert result_with_lock == test_data
+
+    # Verify the lock file was created (and clean it up)
+    lock_file = Path(str(yaml_file) + '.lock')
+    if lock_file.exists():
+        lock_file.unlink()
+
+
+def test_app_output_settings_from_config():
+    """Test app_output_settings_from_config function with various configs."""
+    # Test with basic config
+    basic_config = {'zip_foldernames': {'output1': 'v1.0.0'}}
+
+    result_basic, output_dir_basic = app_output_settings_from_config(basic_config)
+    assert result_basic == basic_config['zip_foldernames']
+    assert output_dir_basic == 'outputs'
+
+    # Test with all_results_in_one_zip set to True
+    single_zip_config = {'zip_foldernames': {'output1': 'v1.0.0'}, 'all_results_in_one_zip': True}
+
+    result_single, output_dir_single = app_output_settings_from_config(single_zip_config)
+    assert result_single == single_zip_config['zip_foldernames']
+    assert output_dir_single == 'outputs/output1'
+
+    # Test with empty zip_foldernames (should raise exception)
+    empty_config = {'zip_foldernames': {}}
+
+    with pytest.raises(Exception, match='No output folder name provided'):
+        app_output_settings_from_config(empty_config)
+
+    # Test with multiple foldernames and all_results_in_one_zip (should raise exception)
+    multiple_folders_config = {
+        'zip_foldernames': {'output1': 'v1.0.0', 'output2': 'v1.0.0'},
+        'all_results_in_one_zip': True,
+    }
+
+    with pytest.raises(Exception, match='create more than one output folder'):
+        app_output_settings_from_config(multiple_folders_config)
+
+
+def create_git_repo(tmp_path):
+    """Helper function to create a git repository."""
+    repo_path = tmp_path / 'git_repo'
+    repo_path.mkdir()
+
+    # Initialize the git repo
+    subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True)
+
+    # Configure git user name and email (required for commits)
+    subprocess.run(['git', 'config', 'user.name', 'Test User'], cwd=repo_path, capture_output=True)
+    subprocess.run(
+        ['git', 'config', 'user.email', 'test@example.com'], cwd=repo_path, capture_output=True
+    )
+
+    # Create a test file and commit it
+    (repo_path / 'test_file.txt').write_text('Test content')
+    subprocess.run(['git', 'add', 'test_file.txt'], cwd=repo_path, capture_output=True)
+    subprocess.run(['git', 'commit', '-m', 'Initial commit'], cwd=repo_path, capture_output=True)
+
+    return repo_path
+
+
+def test_get_repo_hash(tmp_path):
+    """Test get_repo_hash function."""
+    # Create a git repository
+    repo_path = create_git_repo(tmp_path)
+
+    # Get the hash with our function
+    hash_result = get_repo_hash(repo_path)
+
+    # Get the hash directly with git
+    expected_hash = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'], cwd=repo_path, capture_output=True, text=True
+    ).stdout.strip()
+
+    # They should match
+    assert hash_result == expected_hash
+    assert len(hash_result) == 40  # SHA-1 is 40 chars long
+
+    # Test with invalid repo path
+    invalid_path = tmp_path / 'not_a_repo'
+    invalid_path.mkdir()
+    with pytest.raises(ValueError, match='Error getting the hash'):
+        get_repo_hash(invalid_path)
+
+
+def test_git_show_ref_shasum(tmp_path):
+    """Test get_git_show_ref_shasum function."""
+    # Create a git repository
+    repo_path = create_git_repo(tmp_path)
+
+    # Get the current branch name
+    branch_name = subprocess.run(
+        ['git', 'branch', '--show-current'], cwd=repo_path, capture_output=True, text=True
+    ).stdout.strip()
+
+    # Get the ref with our function
+    git_ref, msg = get_git_show_ref_shasum(branch_name, repo_path)
+
+    # Check the result
+    assert git_ref
+    assert isinstance(git_ref, str)
+    assert len(git_ref) == 40  # SHA-1 hash length
+    assert branch_name in msg  # The message should contain the branch name
+
+    # Test with non-existent branch
+    with pytest.raises(subprocess.CalledProcessError):
+        get_git_show_ref_shasum('nonexistent-branch', repo_path)
 
 
 @pytest.mark.parametrize('branch_list', BRANCH_LISTS)
