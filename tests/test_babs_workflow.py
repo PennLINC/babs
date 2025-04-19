@@ -1,4 +1,5 @@
-# This is to test `babs init`.
+"""Test the babs workflow."""
+
 import argparse
 import os
 import os.path as op
@@ -6,6 +7,7 @@ import time
 from pathlib import Path
 from unittest import mock
 
+import pytest
 import yaml
 
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
@@ -87,10 +89,13 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     return new_yaml_path
 
 
+@pytest.mark.parametrize('processing_level', ['subject', 'session'])
 def test_babs_init_raw_bids(
     tmp_path_factory,
     templateflow_home,
     bids_data_singlesession,
+    bids_data_multisession,
+    processing_level,
     simbids_container_ds,
 ):
     """
@@ -117,7 +122,13 @@ def test_babs_init_raw_bids(
     # Use config_simbids.yaml instead of eg_fmriprep
     config_simbids_path = get_config_simbids_path()
     container_config = update_yaml_for_run(
-        project_base, config_simbids_path.name, {'BIDS': bids_data_singlesession}
+        project_base,
+        config_simbids_path.name,
+        {
+            'BIDS': bids_data_singlesession
+            if processing_level == 'subject'
+            else bids_data_multisession
+        },
     )
 
     babs_init_opts = argparse.Namespace(
@@ -126,14 +137,48 @@ def test_babs_init_raw_bids(
         container_ds=simbids_container_ds,
         container_name=container_name,
         container_config=container_config,
-        processing_level='subject',
+        processing_level=processing_level,
         queue='slurm',
         keep_if_failed=False,
     )
 
-    # babs init:
+    # Test error when project root already exists
+    project_root.mkdir(parents=True, exist_ok=True)
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
-        _enter_init()
+        with pytest.raises(FileExistsError, match=r'already exists'):
+            _enter_init()
+
+    # Test error when parent directory doesn't exist
+    non_existent_parent = project_base / 'non_existent' / 'my_babs_project'
+    babs_init_opts.project_root = non_existent_parent
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
+        with pytest.raises(ValueError, match=r'parent folder.*does not exist'):
+            _enter_init()
+
+    # Test error when parent directory is not writable
+    read_only_dir = project_base / 'read_only'
+    read_only_dir.mkdir()
+    # Make directory read-only for the current user
+    os.chmod(read_only_dir, 0o400)  # Only read permission
+
+    # Skip this test if running as root since root can write to any directory
+    if os.geteuid() == 0:
+        pytest.skip('Test skipped when running as root - root can write to any directory')
+
+    # Verify the directory is not writable
+    assert not os.access(read_only_dir, os.W_OK), 'Directory should not be writable'
+    read_only_project = read_only_dir / 'my_babs_project'
+    babs_init_opts.project_root = read_only_project
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
+        with pytest.raises(ValueError, match=r'parent folder.*is not writable'):
+            _enter_init()
+    os.chmod(read_only_dir, 0o755)  # Restore permissions
+
+    # Reset project_root for the rest of the test
+    babs_init_opts.project_root = project_root
+    # Remove the directory for the actual test if it exists
+    if project_root.exists():
+        project_root.rmdir()
 
     # babs check-setup:
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=True)
