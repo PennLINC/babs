@@ -6,12 +6,17 @@ import pandas as pd
 import pytest
 
 from babs.utils import (
+    combine_inclusion_dataframes,
+    get_immediate_subdirectories,
     get_results_branches,
     identify_running_jobs,
     parse_select_arg,
+    replace_placeholder_from_config,
     results_branch_dataframe,
     update_job_batch_status,
+    update_results_status,
     update_submitted_job_ids,
+    validate_processing_level,
 )
 
 
@@ -48,46 +53,151 @@ def test_results_branch_dataframe(tmp_path_factory, branch_list):
     assert df.shape[0] == len(branch_list)
 
 
-# def test_update_job_status():
-#     # One session has results in the results branch
-#     has_results_df = pd.DataFrame(
-#         {
-#             'sub_id': ['sub-0002', 'sub-0002'],
-#             'ses_id': ['ses-01', 'ses-02'],
-#             'job_id': [2, 1],
-#             'task_id': [1, 1],
-#             'has_results': [True, True],
-#         }
-#     )
+def test_get_immediate_subdirectories(tmp_path):
+    """Test get_immediate_subdirectories function."""
+    # Create test directories
+    subdirs = ['dir1', 'dir2', 'dir3']
+    for subdir in subdirs:
+        (tmp_path / subdir).mkdir()
 
-#     # The previous status was checked before submitting the new jobs
-#     previous_status_df = pd.DataFrame(
-#         {
-#             'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
-#             'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
-#             'job_id': [-1, -1, -1, 1],
-#             'task_id': [-1, -1, -1, 1],
-#             'submitted': [False, False, False, True],
-#             'state': [pd.NA, pd.NA, pd.NA, 'R'],
-#             'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
-#             'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
-#             'nodes': [pd.NA, pd.NA, pd.NA, 1],
-#             'cpus': [pd.NA, pd.NA, pd.NA, 1],
-#             'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
-#             'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
-#             'has_results': [pd.NA, pd.NA, pd.NA, True],
-#             # Fields for tracking:
-#             'needs_resubmit': [False, False, False, False],
-#             'is_failed': [pd.NA, pd.NA, pd.NA, False],
-#             'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
-#             'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
-#             'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
-#         }
-#     )
+    # Create a file (should be ignored)
+    (tmp_path / 'test_file.txt').write_text('test content')
 
-#     current_status_df = update_results_status(previous_status_df, has_results_df)
+    # Get subdirectories
+    result = get_immediate_subdirectories(tmp_path)
 
-#     assert current_status_df.shape[0] == previous_status_df.shape[0]
+    # Sort both lists for comparison
+    assert sorted(result) == sorted(subdirs)
+
+
+def test_validate_processing_level():
+    """Test validate_processing_level function."""
+    # Test valid processing levels
+    assert validate_processing_level('subject') == 'subject'
+    assert validate_processing_level('session') == 'session'
+
+    # Test invalid processing level
+    with pytest.raises(ValueError, match='is not allowed'):
+        validate_processing_level('invalid_level')
+
+
+def test_replace_placeholder_from_config():
+    """Test replace_placeholder_from_config function."""
+    # Test $BABS_TMPDIR replacement
+    assert replace_placeholder_from_config('$BABS_TMPDIR') == '"${PWD}/.git/tmp/wkdir"'
+
+    # Test non-placeholder string
+    value = 'not_a_placeholder'
+    assert replace_placeholder_from_config(value) == value
+
+    # Test with numeric input
+    assert replace_placeholder_from_config(42) == '42'
+
+
+def test_update_results_status():
+    """Test update_results_status function."""
+    # One session has results in the results branch
+    has_results_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02'],
+            'job_id': [2, 1],
+            'task_id': [1, 1],
+            'has_results': [True, True],
+        }
+    )
+
+    # The previous status was checked before submitting the new jobs
+    previous_status_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
+            'job_id': [-1, -1, -1, 1],
+            'task_id': [-1, -1, -1, 1],
+            'submitted': [False, False, False, True],
+            'state': [pd.NA, pd.NA, pd.NA, 'R'],
+            'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
+            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
+            'nodes': [pd.NA, pd.NA, pd.NA, 1],
+            'cpus': [pd.NA, pd.NA, pd.NA, 1],
+            'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
+            'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
+            'has_results': [False, False, False, True],
+            # Fields for tracking:
+            'needs_resubmit': [False, False, False, False],
+            'is_failed': [pd.NA, pd.NA, pd.NA, False],
+            'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
+            'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
+            'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
+        }
+    )
+
+    updated_df = update_results_status(previous_status_df, has_results_df)
+
+    # Check the shape of the returned dataframe
+    assert updated_df.shape[0] == previous_status_df.shape[0]
+
+    # Check that job_id and task_id were updated for entries that have results
+    assert updated_df.loc[2, 'job_id'] == 2
+    assert updated_df.loc[2, 'task_id'] == 1
+    assert updated_df.loc[3, 'job_id'] == 1
+    assert updated_df.loc[3, 'task_id'] == 1
+
+    # Check that has_results field was updated
+    assert updated_df.loc[2, 'has_results']
+    assert updated_df.loc[3, 'has_results']
+
+    # Check that is_failed field was updated correctly
+    assert not updated_df.loc[2, 'is_failed']
+    assert not updated_df.loc[3, 'is_failed']
+
+
+def test_combine_inclusion_dataframes():
+    """Test combine_inclusion_dataframes function."""
+    # Create test DataFrames
+    df1 = pd.DataFrame(
+        {
+            'sub_id': ['sub-01', 'sub-02', 'sub-03'],
+            'ses_id': ['ses-01', 'ses-01', 'ses-01'],
+            'extra_col1': [1, 2, 3],
+        }
+    )
+
+    df2 = pd.DataFrame(
+        {
+            'sub_id': ['sub-01', 'sub-02', 'sub-04'],
+            'ses_id': ['ses-01', 'ses-01', 'ses-01'],
+            'extra_col2': ['a', 'b', 'c'],
+        }
+    )
+
+    df3 = pd.DataFrame(
+        {
+            'sub_id': ['sub-01', 'sub-02', 'sub-05'],
+            'ses_id': ['ses-01', 'ses-01', 'ses-01'],
+            'extra_col3': [True, False, True],
+        }
+    )
+
+    # Test with single DataFrame
+    result = combine_inclusion_dataframes([df1])
+    assert result.equals(df1)
+
+    # Test with multiple DataFrames
+    result = combine_inclusion_dataframes([df1, df2, df3])
+
+    # Should only include rows present in all DataFrames
+    assert len(result) == 2
+    assert set(result['sub_id']) == {'sub-01', 'sub-02'}
+
+    # Should include all columns
+    assert 'extra_col1' in result.columns
+    assert 'extra_col2' in result.columns
+    assert 'extra_col3' in result.columns
+
+    # Test with empty list
+    with pytest.raises(ValueError, match='No DataFrames provided'):
+        combine_inclusion_dataframes([])
 
 
 def test_update_currently_running_jobs_df():
