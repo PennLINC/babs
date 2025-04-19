@@ -1,17 +1,30 @@
+import getpass
 import io
 import subprocess
+from pathlib import Path
 
 import datalad.api as dlapi
 import pandas as pd
 import pytest
+import yaml
 
 from babs.utils import (
+    app_output_settings_from_config,
+    combine_inclusion_dataframes,
+    get_git_show_ref_shasum,
+    get_immediate_subdirectories,
+    get_repo_hash,
     get_results_branches,
+    get_username,
     identify_running_jobs,
     parse_select_arg,
+    read_yaml,
+    replace_placeholder_from_config,
     results_branch_dataframe,
     update_job_batch_status,
+    update_results_status,
     update_submitted_job_ids,
+    validate_processing_level,
 )
 
 
@@ -35,6 +48,146 @@ BRANCH_LISTS = [
 ]
 
 
+def test_get_username():
+    """Test that get_username returns the current username."""
+    # Get the expected username using Python's getpass module
+    expected_username = getpass.getuser()
+
+    # Test the function
+    username = get_username()
+
+    # Check that it returns the expected username
+    assert username == expected_username
+    assert isinstance(username, str)
+    assert len(username) > 0
+
+
+def test_read_yaml(tmp_path):
+    """Test read_yaml function with and without filelock."""
+    # Create a test YAML file
+    test_data = {'key1': 'value1', 'key2': {'nested_key': 'nested_value'}, 'numbers': [1, 2, 3]}
+
+    yaml_file = tmp_path / 'test_config.yaml'
+    with open(yaml_file, 'w') as f:
+        yaml.dump(test_data, f)
+
+    # Test without filelock
+    result = read_yaml(str(yaml_file))
+    assert result == test_data
+
+    # Test with filelock
+    # This is more for coverage since verifying the lock is complex
+    result_with_lock = read_yaml(str(yaml_file), use_filelock=True)
+    assert result_with_lock == test_data
+
+    # Verify the lock file was created (and clean it up)
+    lock_file = Path(str(yaml_file) + '.lock')
+    if lock_file.exists():
+        lock_file.unlink()
+
+
+def test_app_output_settings_from_config():
+    """Test app_output_settings_from_config function with various configs."""
+    # Test with basic config
+    basic_config = {'zip_foldernames': {'output1': 'v1.0.0'}}
+
+    result_basic, output_dir_basic = app_output_settings_from_config(basic_config)
+    assert result_basic == basic_config['zip_foldernames']
+    assert output_dir_basic == 'outputs'
+
+    # Test with all_results_in_one_zip set to True
+    single_zip_config = {'zip_foldernames': {'output1': 'v1.0.0'}, 'all_results_in_one_zip': True}
+
+    result_single, output_dir_single = app_output_settings_from_config(single_zip_config)
+    assert result_single == single_zip_config['zip_foldernames']
+    assert output_dir_single == 'outputs/output1'
+
+    # Test with empty zip_foldernames (should raise exception)
+    empty_config = {'zip_foldernames': {}}
+
+    with pytest.raises(Exception, match='No output folder name provided'):
+        app_output_settings_from_config(empty_config)
+
+    # Test with multiple foldernames and all_results_in_one_zip (should raise exception)
+    multiple_folders_config = {
+        'zip_foldernames': {'output1': 'v1.0.0', 'output2': 'v1.0.0'},
+        'all_results_in_one_zip': True,
+    }
+
+    with pytest.raises(Exception, match='create more than one output folder'):
+        app_output_settings_from_config(multiple_folders_config)
+
+
+def create_git_repo(tmp_path):
+    """Helper function to create a git repository."""
+    repo_path = tmp_path / 'git_repo'
+    repo_path.mkdir()
+
+    # Initialize the git repo
+    subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True)
+
+    # Configure git user name and email (required for commits)
+    subprocess.run(['git', 'config', 'user.name', 'Test User'], cwd=repo_path, capture_output=True)
+    subprocess.run(
+        ['git', 'config', 'user.email', 'test@example.com'], cwd=repo_path, capture_output=True
+    )
+
+    # Create a test file and commit it
+    (repo_path / 'test_file.txt').write_text('Test content')
+    subprocess.run(['git', 'add', 'test_file.txt'], cwd=repo_path, capture_output=True)
+    subprocess.run(['git', 'commit', '-m', 'Initial commit'], cwd=repo_path, capture_output=True)
+
+    return repo_path
+
+
+def test_get_repo_hash(tmp_path):
+    """Test get_repo_hash function."""
+    # Create a git repository
+    repo_path = create_git_repo(tmp_path)
+
+    # Get the hash with our function
+    hash_result = get_repo_hash(repo_path)
+
+    # Get the hash directly with git
+    expected_hash = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'], cwd=repo_path, capture_output=True, text=True
+    ).stdout.strip()
+
+    # They should match
+    assert hash_result == expected_hash
+    assert len(hash_result) == 40  # SHA-1 is 40 chars long
+
+    # Test with invalid repo path
+    invalid_path = tmp_path / 'not_a_repo'
+    invalid_path.mkdir()
+    with pytest.raises(ValueError, match='Error getting the hash'):
+        get_repo_hash(invalid_path)
+
+
+def test_git_show_ref_shasum(tmp_path):
+    """Test get_git_show_ref_shasum function."""
+    # Create a git repository
+    repo_path = create_git_repo(tmp_path)
+
+    # Get the current branch name
+    branch_name = subprocess.run(
+        ['git', 'branch', '--show-current'], cwd=repo_path, capture_output=True, text=True
+    ).stdout.strip()
+
+    # Get the ref with our function
+    git_ref, msg = get_git_show_ref_shasum(branch_name, repo_path)
+
+    # Check the result
+    assert git_ref
+    assert isinstance(git_ref, str)
+    assert len(git_ref) == 40  # SHA-1 hash length
+    assert branch_name in msg  # The message should contain the branch name
+
+    # Test with non-existent branch
+    with pytest.raises(subprocess.CalledProcessError):
+        get_git_show_ref_shasum('nonexistent-branch', repo_path)
+
+
 @pytest.mark.parametrize('branch_list', BRANCH_LISTS)
 def test_results_branch_dataframe(tmp_path_factory, branch_list):
     """Test that branch info is correctly extracted to dataframe."""
@@ -48,46 +201,151 @@ def test_results_branch_dataframe(tmp_path_factory, branch_list):
     assert df.shape[0] == len(branch_list)
 
 
-# def test_update_job_status():
-#     # One session has results in the results branch
-#     has_results_df = pd.DataFrame(
-#         {
-#             'sub_id': ['sub-0002', 'sub-0002'],
-#             'ses_id': ['ses-01', 'ses-02'],
-#             'job_id': [2, 1],
-#             'task_id': [1, 1],
-#             'has_results': [True, True],
-#         }
-#     )
+def test_get_immediate_subdirectories(tmp_path):
+    """Test get_immediate_subdirectories function."""
+    # Create test directories
+    subdirs = ['dir1', 'dir2', 'dir3']
+    for subdir in subdirs:
+        (tmp_path / subdir).mkdir()
 
-#     # The previous status was checked before submitting the new jobs
-#     previous_status_df = pd.DataFrame(
-#         {
-#             'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
-#             'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
-#             'job_id': [-1, -1, -1, 1],
-#             'task_id': [-1, -1, -1, 1],
-#             'submitted': [False, False, False, True],
-#             'state': [pd.NA, pd.NA, pd.NA, 'R'],
-#             'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
-#             'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
-#             'nodes': [pd.NA, pd.NA, pd.NA, 1],
-#             'cpus': [pd.NA, pd.NA, pd.NA, 1],
-#             'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
-#             'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
-#             'has_results': [pd.NA, pd.NA, pd.NA, True],
-#             # Fields for tracking:
-#             'needs_resubmit': [False, False, False, False],
-#             'is_failed': [pd.NA, pd.NA, pd.NA, False],
-#             'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
-#             'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
-#             'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
-#         }
-#     )
+    # Create a file (should be ignored)
+    (tmp_path / 'test_file.txt').write_text('test content')
 
-#     current_status_df = update_results_status(previous_status_df, has_results_df)
+    # Get subdirectories
+    result = get_immediate_subdirectories(tmp_path)
 
-#     assert current_status_df.shape[0] == previous_status_df.shape[0]
+    # Sort both lists for comparison
+    assert sorted(result) == sorted(subdirs)
+
+
+def test_validate_processing_level():
+    """Test validate_processing_level function."""
+    # Test valid processing levels
+    assert validate_processing_level('subject') == 'subject'
+    assert validate_processing_level('session') == 'session'
+
+    # Test invalid processing level
+    with pytest.raises(ValueError, match='is not allowed'):
+        validate_processing_level('invalid_level')
+
+
+def test_replace_placeholder_from_config():
+    """Test replace_placeholder_from_config function."""
+    # Test $BABS_TMPDIR replacement
+    assert replace_placeholder_from_config('$BABS_TMPDIR') == '"${PWD}/.git/tmp/wkdir"'
+
+    # Test non-placeholder string
+    value = 'not_a_placeholder'
+    assert replace_placeholder_from_config(value) == value
+
+    # Test with numeric input
+    assert replace_placeholder_from_config(42) == '42'
+
+
+def test_update_results_status():
+    """Test update_results_status function."""
+    # One session has results in the results branch
+    has_results_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02'],
+            'job_id': [2, 1],
+            'task_id': [1, 1],
+            'has_results': [True, True],
+        }
+    )
+
+    # The previous status was checked before submitting the new jobs
+    previous_status_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
+            'job_id': [-1, -1, -1, 1],
+            'task_id': [-1, -1, -1, 1],
+            'submitted': [False, False, False, True],
+            'state': [pd.NA, pd.NA, pd.NA, 'R'],
+            'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
+            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
+            'nodes': [pd.NA, pd.NA, pd.NA, 1],
+            'cpus': [pd.NA, pd.NA, pd.NA, 1],
+            'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
+            'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
+            'has_results': [False, False, False, True],
+            # Fields for tracking:
+            'needs_resubmit': [False, False, False, False],
+            'is_failed': [pd.NA, pd.NA, pd.NA, False],
+            'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
+            'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
+            'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
+        }
+    )
+
+    updated_df = update_results_status(previous_status_df, has_results_df)
+
+    # Check the shape of the returned dataframe
+    assert updated_df.shape[0] == previous_status_df.shape[0]
+
+    # Check that job_id and task_id were updated for entries that have results
+    assert updated_df.loc[2, 'job_id'] == 2
+    assert updated_df.loc[2, 'task_id'] == 1
+    assert updated_df.loc[3, 'job_id'] == 1
+    assert updated_df.loc[3, 'task_id'] == 1
+
+    # Check that has_results field was updated
+    assert updated_df.loc[2, 'has_results']
+    assert updated_df.loc[3, 'has_results']
+
+    # Check that is_failed field was updated correctly
+    assert not updated_df.loc[2, 'is_failed']
+    assert not updated_df.loc[3, 'is_failed']
+
+
+def test_combine_inclusion_dataframes():
+    """Test combine_inclusion_dataframes function."""
+    # Create test DataFrames
+    df1 = pd.DataFrame(
+        {
+            'sub_id': ['sub-01', 'sub-02', 'sub-03'],
+            'ses_id': ['ses-01', 'ses-01', 'ses-01'],
+            'extra_col1': [1, 2, 3],
+        }
+    )
+
+    df2 = pd.DataFrame(
+        {
+            'sub_id': ['sub-01', 'sub-02', 'sub-04'],
+            'ses_id': ['ses-01', 'ses-01', 'ses-01'],
+            'extra_col2': ['a', 'b', 'c'],
+        }
+    )
+
+    df3 = pd.DataFrame(
+        {
+            'sub_id': ['sub-01', 'sub-02', 'sub-05'],
+            'ses_id': ['ses-01', 'ses-01', 'ses-01'],
+            'extra_col3': [True, False, True],
+        }
+    )
+
+    # Test with single DataFrame
+    result = combine_inclusion_dataframes([df1])
+    assert result.equals(df1)
+
+    # Test with multiple DataFrames
+    result = combine_inclusion_dataframes([df1, df2, df3])
+
+    # Should only include rows present in all DataFrames
+    assert len(result) == 2
+    assert set(result['sub_id']) == {'sub-01', 'sub-02'}
+
+    # Should include all columns
+    assert 'extra_col1' in result.columns
+    assert 'extra_col2' in result.columns
+    assert 'extra_col3' in result.columns
+
+    # Test with empty list
+    with pytest.raises(ValueError, match='No DataFrames provided'):
+        combine_inclusion_dataframes([])
 
 
 def test_update_currently_running_jobs_df():
