@@ -11,7 +11,7 @@ import pytest
 from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
-from babs.utils import squeue_to_pandas
+from babs.scheduler import squeue_to_pandas
 
 
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
