@@ -1,19 +1,23 @@
 """This is to get data for pytests"""
 
+import os
 import os.path as op
 
 # import tempfile
 import subprocess
 import sys
 import zipfile
+from pathlib import Path
 
 import datalad.api as dlapi
 import pytest
+import yaml
 
 SIMBIDS_VERSION = '0.0.3'
 sys.path.append('..')
 __location__ = op.dirname(op.abspath(__file__))
 TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'
+NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
 
 
 @pytest.fixture(scope='session')
@@ -242,3 +246,151 @@ def templateflow_home(tmp_path_factory):
     """
     templateflow_home = tmp_path_factory.mktemp('TEMPLATEFLOW_HOME')
     return templateflow_home
+
+
+def get_config_simbids_path():
+    """Get the path to the config_simbids.yaml file."""
+    e2e_slurm_path = Path(__file__).parent / 'e2e-slurm' / 'container'
+    return e2e_slurm_path / 'config_simbids.yaml'
+
+
+def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
+    """Copy a packaged yaml to a new_dir and make any included_files in new_dir.
+
+    Parameters
+    ----------
+    new_dir : Path
+        The directory to copy the yaml to.
+    babs_config_yaml : str
+        The name of the yaml file to copy.
+    input_datasets_updates : dict
+        A dictionary of input datasets to update in the yaml file.
+
+    Returns
+    -------
+    new_yaml_path : Path
+        The path to the new yaml file.
+    """
+    from babs.utils import read_yaml
+
+    # Check if we're using the config_simbids.yaml file
+    if babs_config_yaml == 'config_simbids.yaml':
+        packaged_yaml_path = get_config_simbids_path()
+    else:
+        packaged_yaml_path = op.join(NOTEBOOKS_DIR, babs_config_yaml)
+
+    new_yaml_path = new_dir / babs_config_yaml
+
+    assert op.exists(packaged_yaml_path)
+    babs_config = read_yaml(packaged_yaml_path)
+
+    # Create temporary files for each of the imported files:
+    for imported_file in babs_config.get('imported_files', []):
+        # create a temporary file:
+        fn_imported_file = new_dir / imported_file['original_path'].lstrip('/')
+        fn_imported_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(fn_imported_file, 'w') as f:
+            f.write('FAKE DATA')
+        imported_file['original_path'] = fn_imported_file
+
+    # Update input datasets if provided
+    if input_datasets_updates:
+        for ds_name, ds_path in input_datasets_updates.items():
+            babs_config['input_datasets'][ds_name]['origin_url'] = ds_path
+
+    yaml_data = babs_config.copy()
+    for imported_file in yaml_data.get('imported_files', []):
+        imported_file['original_path'] = str(imported_file['original_path'])
+
+    # Only update these if not already present in the YAML
+    if 'script_preamble' not in yaml_data:
+        yaml_data['script_preamble'] = 'PATH=/opt/conda/envs/babs/bin:$PATH'
+
+    # How much cluster resources it needs:
+    if 'cluster_resources' not in yaml_data:
+        yaml_data['cluster_resources'] = {'interpreting_shell': '/bin/bash'}
+
+    if 'job_compute_space' not in yaml_data:
+        yaml_data['job_compute_space'] = '/tmp'
+
+    with open(new_yaml_path, 'w') as f:
+        yaml.dump(yaml_data, f)
+
+    return new_yaml_path
+
+
+def get_babs_project(
+    tmp_path_factory,
+    templateflow_home,
+    simbids_container_ds,
+    bids_data,
+    processing_level,
+):
+    """
+    Create a BABS project set to process at the session-level
+    """
+
+    from babs.bootstrap import BABSBootstrap
+
+    # Check the container dataset
+    assert op.exists(simbids_container_ds)
+    assert op.exists(op.join(simbids_container_ds, '.datalad/config'))
+
+    # Check the bids input dataset:
+    assert op.exists(bids_data)
+    assert op.exists(op.join(bids_data, '.datalad/config'))
+
+    # Preparation of env variable `TEMPLATEFLOW_HOME`:
+    os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
+    assert os.getenv('TEMPLATEFLOW_HOME')
+
+    # Get the cli of `babs init`:
+    project_base = tmp_path_factory.mktemp('project')
+    project_root = project_base / 'my_babs_project'
+    container_name = 'simbids-0-0-3'
+
+    # Use config_simbids.yaml instead of eg_fmriprep
+    config_simbids_path = get_config_simbids_path()
+    container_config = update_yaml_for_run(
+        project_base,
+        config_simbids_path.name,
+        {'BIDS': bids_data},
+    )
+
+    babs_bootstrap = BABSBootstrap(project_root=project_root)
+    babs_bootstrap.babs_bootstrap(
+        processing_level=processing_level,
+        queue='slurm',
+        container_ds=simbids_container_ds,
+        container_name=container_name,
+        container_config=container_config,
+        initial_inclusion_df=None,
+    )
+
+    return project_root
+
+
+@pytest.fixture
+def babs_project_subjectlevel(
+    tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_singlesession
+):
+    return get_babs_project(
+        tmp_path_factory,
+        templateflow_home,
+        simbids_container_ds,
+        bids_data_singlesession,
+        'subject',
+    )
+
+
+@pytest.fixture
+def babs_project_sessionlevel(
+    tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_multisession
+):
+    return get_babs_project(
+        tmp_path_factory,
+        templateflow_home,
+        simbids_container_ds,
+        bids_data_multisession,
+        'session',
+    )

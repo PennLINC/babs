@@ -4,89 +4,13 @@ import argparse
 import os
 import os.path as op
 import time
-from pathlib import Path
 from unittest import mock
 
 import pytest
-import yaml
+from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
 from babs.scheduler import squeue_to_pandas
-from babs.utils import read_yaml
-
-# Get the path to the notebooks directory
-NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
-
-
-# Get the path to the config_simbids.yaml file
-def get_config_simbids_path():
-    """Get the path to the config_simbids.yaml file."""
-    e2e_slurm_path = Path(__file__).parent / 'e2e-slurm' / 'container'
-    return e2e_slurm_path / 'config_simbids.yaml'
-
-
-def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
-    """Copy a packaged yaml to a new_dir and make any included_files in new_dir.
-
-    Parameters
-    ----------
-    new_dir : Path
-        The directory to copy the yaml to.
-    babs_config_yaml : str
-        The name of the yaml file to copy.
-    input_datasets_updates : dict
-        A dictionary of input datasets to update in the yaml file.
-
-    Returns
-    -------
-    new_yaml_path : Path
-        The path to the new yaml file.
-    """
-
-    # Check if we're using the config_simbids.yaml file
-    if babs_config_yaml == 'config_simbids.yaml':
-        packaged_yaml_path = get_config_simbids_path()
-    else:
-        packaged_yaml_path = op.join(NOTEBOOKS_DIR, babs_config_yaml)
-
-    new_yaml_path = new_dir / babs_config_yaml
-
-    assert op.exists(packaged_yaml_path)
-    babs_config = read_yaml(packaged_yaml_path)
-
-    # Create temporary files for each of the imported files:
-    for imported_file in babs_config.get('imported_files', []):
-        # create a temporary file:
-        fn_imported_file = new_dir / imported_file['original_path'].lstrip('/')
-        fn_imported_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(fn_imported_file, 'w') as f:
-            f.write('FAKE DATA')
-        imported_file['original_path'] = fn_imported_file
-
-    # Update input datasets if provided
-    if input_datasets_updates:
-        for ds_name, ds_path in input_datasets_updates.items():
-            babs_config['input_datasets'][ds_name]['origin_url'] = ds_path
-
-    yaml_data = babs_config.copy()
-    for imported_file in yaml_data.get('imported_files', []):
-        imported_file['original_path'] = str(imported_file['original_path'])
-
-    # Only update these if not already present in the YAML
-    if 'script_preamble' not in yaml_data:
-        yaml_data['script_preamble'] = 'PATH=/opt/conda/envs/babs/bin:$PATH'
-
-    # How much cluster resources it needs:
-    if 'cluster_resources' not in yaml_data:
-        yaml_data['cluster_resources'] = {'interpreting_shell': '/bin/bash'}
-
-    if 'job_compute_space' not in yaml_data:
-        yaml_data['job_compute_space'] = '/tmp'
-
-    with open(new_yaml_path, 'w') as f:
-        yaml.dump(yaml_data, f)
-
-    return new_yaml_path
 
 
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
