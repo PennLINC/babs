@@ -5,10 +5,17 @@ Tests are skipped if Slurm commands (squeue, sbatch) are not available on the sy
 """
 
 from pathlib import Path
+from unittest import mock
 
+import pandas as pd
 import pytest
 
-from babs.scheduler import check_slurm_available, sbatch_get_job_id, squeue_to_pandas
+from babs.scheduler import (
+    check_slurm_available,
+    request_all_job_status,
+    sbatch_get_job_id,
+    squeue_to_pandas,
+)
 
 
 @pytest.fixture(scope='session')
@@ -134,3 +141,18 @@ def test_array_job_submission(
     # Print parsed DataFrame for debugging
     print('\nParsed DataFrame:')
     print(df)
+
+
+def test_request_all_job_status(slurm_available):
+    """Test the request_all_job_status wrapper function."""
+    # Test with slurm queue type
+    with mock.patch('babs.scheduler.squeue_to_pandas', return_value=pd.DataFrame()) as mock_squeue:
+        df = request_all_job_status('slurm', job_id=123)
+
+        # Verify function was called with correct arguments
+        mock_squeue.assert_called_once_with(123)
+        assert isinstance(df, pd.DataFrame)
+
+    # Test with unsupported queue type
+    with pytest.raises(NotImplementedError, match='SGE is not supported'):
+        request_all_job_status('sge')
