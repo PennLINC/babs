@@ -325,6 +325,7 @@ def get_babs_project(
     simbids_container_ds,
     bids_data,
     processing_level,
+    return_path=True,
 ):
     """
     Create a BABS project set to process at the session-level
@@ -367,7 +368,10 @@ def get_babs_project(
         initial_inclusion_df=None,
     )
 
-    return project_root
+    if return_path:
+        return project_root
+    else:
+        return babs_bootstrap
 
 
 @pytest.fixture
@@ -380,6 +384,21 @@ def babs_project_subjectlevel(
         simbids_container_ds,
         bids_data_singlesession,
         'subject',
+        return_path=True,
+    )
+
+
+@pytest.fixture
+def babs_project_subjectlevel_babsobject(
+    tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_singlesession
+):
+    return get_babs_project(
+        tmp_path_factory,
+        templateflow_home,
+        simbids_container_ds,
+        bids_data_singlesession,
+        'subject',
+        return_path=False,
     )
 
 
@@ -393,4 +412,19 @@ def babs_project_sessionlevel(
         simbids_container_ds,
         bids_data_multisession,
         'session',
+        return_path=True,
+    )
+
+
+@pytest.fixture
+def babs_project_sessionlevel_babsobject(
+    tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_multisession
+):
+    return get_babs_project(
+        tmp_path_factory,
+        templateflow_home,
+        simbids_container_ds,
+        bids_data_multisession,
+        'session',
+        return_path=False,
     )
