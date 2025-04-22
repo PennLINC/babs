@@ -424,8 +424,6 @@ class BABSBootstrap(BABS):
         """
         if op.exists(self.project_root):  # if BABS project root folder has been created:
             if op.exists(self.analysis_path):  # analysis folder is created by datalad
-                self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
-
                 print('Removing input dataset(s) if cloned...')
                 for in_ds in self.input_datasets:
                     if op.exists(in_ds.babs_project_analysis_path):
