@@ -17,6 +17,7 @@ Set up a BABS project
 
    babs-init
    babs-check-setup
+   babs-sync-code
 
 Submit jobs and check job status
 ================================

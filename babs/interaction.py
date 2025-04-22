@@ -2,7 +2,6 @@
 
 import os.path as op
 
-import datalad.api as dlapi
 import numpy as np
 import pandas as pd
 
@@ -47,9 +46,6 @@ class BABSInteraction(BABS):
             dataframe of jobs to be submitted
             default: None
         """
-        # update `analysis_datalad_handle`:
-        if self.analysis_datalad_handle is None:
-            self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
 
         # Check if there are still jobs running
         currently_running_df = self.get_currently_running_jobs_df()

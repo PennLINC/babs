@@ -160,7 +160,7 @@ def test_check_setup_with_non_clean_status(babs_project_sessionlevel):
         f.write('Uncommitted change')
 
     # Check setup should raise a ValueError about non-clean status
-    with pytest.raises(ValueError, match="Analysis DataLad dataset's status is not clean"):
+    with pytest.raises(ValueError, match='Consider running `babs sync-code`'):
         babs_proj.babs_check_setup(submit_a_test_job=False)
 
 
