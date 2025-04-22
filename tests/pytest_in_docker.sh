@@ -9,5 +9,6 @@ docker run -it \
         --cov-report=term-missing \
         --cov-report=xml \
         --cov=babs \
-        --pdb /babs/tests/test_template_job.py
+        --pdb \
+        /babs/tests/test_check_base.py
     

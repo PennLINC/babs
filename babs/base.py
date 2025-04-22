@@ -116,7 +116,7 @@ class BABS:
         """
         # Sanity check: the path `project_root` exists:
         if not op.exists(self.project_root):
-            raise Exception(
+            raise FileNotFoundError(
                 f'`project_root` does not exist! Requested `project_root` was: {self.project_root}'
             )
         if not op.exists(self.analysis_path):
@@ -177,14 +177,10 @@ class BABS:
             ],
             stdout=subprocess.PIPE,
         )
-        # ^^: for `analysis`: git remote get-url --push output
-        # ^^ another way to change the wd temporarily: add `cwd=self.xxx` in `subprocess.run()`
-        # if success: no output; if failed: will raise CalledProcessError
         proc_output_ria_data_dir.check_returncode()
-        self.output_ria_data_dir = urlparse(proc_output_ria_data_dir.stdout.decode('utf-8')).path
-        if self.output_ria_data_dir[-1:] == '\n':
-            # remove the last 2 characters
-            self.output_ria_data_dir = self.output_ria_data_dir[:-1]
+        self.output_ria_data_dir = urlparse(
+            proc_output_ria_data_dir.stdout.decode('utf-8')
+        ).path.strip()
 
         if not flag_output_ria_only:  # also want other information:
             # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
@@ -196,12 +192,6 @@ class BABS:
             )
             # datalad -f '{infos[dataset][id]}' wtf -S dataset
             proc_analysis_dataset_id.check_returncode()
-            self.analysis_dataset_id = proc_analysis_dataset_id.stdout.decode('utf-8')
-            # remove the `\n`:
-            if self.analysis_dataset_id[-1:] == '\n':
-                # remove the last 2 characters
-                self.analysis_dataset_id = self.analysis_dataset_id[:-1]
-            # remove the double quotes:
-            if (self.analysis_dataset_id[0] == "'") & (self.analysis_dataset_id[-1] == "'"):
-                # if first and the last characters are quotes: remove them
-                self.analysis_dataset_id = self.analysis_dataset_id[1:-1]
+            self.analysis_dataset_id = (
+                proc_analysis_dataset_id.stdout.decode('utf-8').strip().lstrip("'").rstrip("'")
+            )

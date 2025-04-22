@@ -148,6 +148,8 @@ def replace_placeholder_from_config(value):
     value = str(value)
     if value == '$BABS_TMPDIR':
         replaced = '"${PWD}/.git/tmp/wkdir"'
+    else:
+        replaced = value
 
     return replaced
 
@@ -501,6 +503,12 @@ def update_results_status(previous_job_completion_df, job_completion_df):
         how='left',
     )
 
+    # Fill NaN values with appropriate defaults
+    updated_results_df['has_results'] = updated_results_df['has_results'].fillna(False)
+    updated_results_df['submitted'] = updated_results_df['submitted'].fillna(False)
+    updated_results_df['state'] = updated_results_df['state'].fillna('')
+
+    # Now compute is_failed with NaN-safe operations
     updated_results_df['is_failed'] = (
         updated_results_df['submitted']
         & ~updated_results_df['has_results']
