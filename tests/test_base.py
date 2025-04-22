@@ -1,13 +1,11 @@
 """Test the check_setup functionality."""
 
-import random
 from pathlib import Path
 
 import pytest
 import yaml
 
 from babs import BABSCheckSetup
-from babs.base import CONFIG_SECTIONS
 from babs.utils import read_yaml
 
 
@@ -16,13 +14,13 @@ def test_missing_config_parts(babs_project_sessionlevel):
 
     babs_proj = BABSCheckSetup(babs_project_sessionlevel)
     complete_config = read_yaml(babs_proj.config_path)
-    deleted_section = random.choice(CONFIG_SECTIONS)
+    deleted_section = 'input_datasets'
 
     complete_config.pop(deleted_section)
     with open(babs_proj.config_path, 'w') as f:
         yaml.dump(complete_config, f)
 
-    with pytest.raises(FileNotFoundError, match=f'Section {deleted_section} not found'):
+    with pytest.raises(ValueError, match='Section input_datasets not found'):
         BABSCheckSetup(babs_project_sessionlevel)
 
 
