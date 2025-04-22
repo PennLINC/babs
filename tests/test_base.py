@@ -11,7 +11,7 @@ from babs.base import CONFIG_SECTIONS
 from babs.utils import read_yaml
 
 
-def check_missing_config_parts(babs_project_sessionlevel):
+def test_missing_config_parts(babs_project_sessionlevel):
     """Test that missing config parts raise an error."""
 
     babs_proj = BABSCheckSetup(babs_project_sessionlevel)
