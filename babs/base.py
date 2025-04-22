@@ -1,9 +1,12 @@
 """This is the main module."""
 
+import os
 import os.path as op
 import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
+
+import datalad.api as dlapi
 
 from babs.input_datasets import InputDatasets
 from babs.system import validate_queue
@@ -82,7 +85,7 @@ class BABS:
         self.project_root = str(project_root)
 
         self.analysis_path = op.join(self.project_root, 'analysis')
-        self.analysis_datalad_handle = None
+        self._analysis_datalad_handle = None
 
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
 
@@ -195,3 +198,55 @@ class BABS:
             self.analysis_dataset_id = (
                 proc_analysis_dataset_id.stdout.decode('utf-8').strip().lstrip("'").rstrip("'")
             )
+
+    @property
+    def analysis_datalad_handle(self):
+        """Cached property of `analysis_datalad_handle`."""
+        if self._analysis_datalad_handle is None:
+            self._analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
+        return self._analysis_datalad_handle
+
+    def datalad_save(self, path, message=None, filter_files=None):
+        """
+        Save the current status of datalad dataset `analysis`
+        Also checks that all the statuses returned are "ok" (or "notneeded")
+
+        Parameters
+        ----------
+        path: str or list of str
+            the path to the file(s) or folder(s) to save
+        message: str or None
+            commit message in `datalad save`
+        filter_files: list of str or None
+            list of filenames to exclude from saving
+            if None, no files will be filtered
+
+        Notes
+        -----
+        If the path does not exist, the status will be "notneeded", and won't be error message
+            And there won't be a commit with that message
+        """
+        if filter_files is not None:
+            # Create a temporary .gitignore file to exclude specified files
+            gitignore_path = op.join(self.analysis_path, '.gitignore')
+            with open(gitignore_path, 'w') as f:
+                for file in filter_files:
+                    f.write(f'{file}\n')
+
+            try:
+                statuses = self.analysis_datalad_handle.save(path=path, message=message)
+            finally:
+                # Clean up the temporary .gitignore file
+                if op.exists(gitignore_path):
+                    os.remove(gitignore_path)
+        else:
+            statuses = self.analysis_datalad_handle.save(path=path, message=message)
+
+        # ^^ number of dicts in list `statuses` = len(path)
+        # check that all statuses returned are "okay":
+        # below is from cubids
+        saved_status = {status['status'] for status in statuses}
+        if not saved_status.issubset({'ok', 'notneeded'}):
+            # exists element in `saved_status` that is not "ok" or "notneeded"
+            # ^^ "notneeded": nothing to save
+            raise Exception('`datalad save` failed!')

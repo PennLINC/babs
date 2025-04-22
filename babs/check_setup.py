@@ -5,8 +5,6 @@ import os.path as op
 import time
 from urllib.parse import urlparse
 
-import datalad.api as dlapi
-
 from babs.base import BABS
 from babs.constants import CHECK_MARK
 from babs.scheduler import (
@@ -57,9 +55,6 @@ class BABSCheckSetup(BABS):
                 "Folder 'analysis' does not exist in this BABS project!"
                 ' Current path to analysis folder: ' + self.analysis_path
             )
-        # update `analysis_datalad_handle`:
-        if self.analysis_datalad_handle is None:
-            self.analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
         print(CHECK_MARK + ' All good!')
 
         # Check `analysis` datalad dataset: ----------------------
@@ -67,11 +62,7 @@ class BABSCheckSetup(BABS):
         # Are there anything unsaved? ref: CuBIDS function
         analysis_statuses = {
             status['state']
-            for status in self.analysis_datalad_handle.status(
-                eval_subdataset_state='commit'
-                # not to fully eval subdataset (e.g. input ds) status
-                # otherwise, would take too long..
-            )
+            for status in self.analysis_datalad_handle.status(eval_subdataset_state='commit')
         }
 
         # statuses should be all "clean", without anything else e.g., "modified":
@@ -83,6 +74,7 @@ class BABSCheckSetup(BABS):
             ]
             raise ValueError(
                 "Analysis DataLad dataset's status is not clean. "
+                'Consider running `babs sync-code` to save any edited code. '
                 'There are the following issues:' + str(problem_statuses)
             )
 

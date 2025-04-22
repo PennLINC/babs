@@ -544,12 +544,66 @@ def babs_merge_main(
     babs_proj.babs_merge(chunk_size, trial_run)
 
 
+def _parse_sync_code():
+    """Create and configure the argument parser for the `babs sync-code` command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+
+    parser = argparse.ArgumentParser(
+        description='Save and push code changes to input dataset.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    parser.add_argument(
+        'project_root',
+        nargs='?',
+        default=Path.cwd(),
+        help=(
+            'Absolute path to the root of BABS project. '
+            "For example, '/path/to/my_BABS_project/' "
+            '(default is current working directory).'
+        ),
+    )
+
+    parser.add_argument(
+        '-m',
+        '--message',
+        help='Commit message for datalad save',
+        default='[babs] sync code changes',
+    )
+
+    return parser
+
+
+def babs_sync_code_main(project_root: str, commit_message: str):
+    """This is the core function of babs sync-code.
+
+    Parameters
+    ----------
+    project_root: str
+        absolute path to the directory of BABS project
+    commit_message: str
+        commit message for datalad save
+
+    """
+
+    from babs import BABSUpdate
+    # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
+
+    babs_proj = BABSUpdate(project_root)
+    babs_proj.babs_sync_code(commit_message=commit_message)
+
+
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
     ('submit', _parse_submit, babs_submit_main),
     ('status', _parse_status, babs_status_main),
     ('merge', _parse_merge, babs_merge_main),
+    ('sync-code', _parse_sync_code, babs_sync_code_main),
 ]
 
 
