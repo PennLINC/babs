@@ -143,7 +143,7 @@ def test_babs_update_input_data(
     babs_status_main(project_root=project_root)
 
     finished = False
-    for waitnum in [5, 8, 10, 15, 30, 60]:
+    for waitnum in [5, 8, 10, 15, 30, 60, 120]:
         time.sleep(waitnum)
         print(f'Waiting {waitnum} seconds...')
         df = squeue_to_pandas()

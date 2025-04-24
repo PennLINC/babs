@@ -158,7 +158,7 @@ quote-style = "single"
 exclude = ["docs/conf.py"]
 
 [tool.pytest.ini_options]
-addopts = '-m "not integration"'
+addopts = '-m "not integration" --setup-command="sacctmgr --immediate modify user root set MaxJobs=2"'
 markers = []
 env = ["RUNNING_PYTEST = 1"]
 

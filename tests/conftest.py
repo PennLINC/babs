@@ -374,7 +374,7 @@ def get_babs_project(
         return babs_bootstrap
 
 
-@pytest.fixture()
+@pytest.fixture
 def babs_project_subjectlevel(
     tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_singlesession
 ):
@@ -388,7 +388,7 @@ def babs_project_subjectlevel(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def babs_project_subjectlevel_babsobject(
     tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_singlesession
 ):
@@ -402,7 +402,7 @@ def babs_project_subjectlevel_babsobject(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def babs_project_sessionlevel(
     tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_multisession
 ):
@@ -416,7 +416,7 @@ def babs_project_sessionlevel(
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def babs_project_sessionlevel_babsobject(
     tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_multisession
 ):
