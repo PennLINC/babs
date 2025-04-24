@@ -4,7 +4,6 @@ import datalad.api as dlapi
 import pandas as pd
 
 from babs.base import BABS
-from babs.utils import get_results_branches
 
 EMPTY_JOB_STATUS_DF = pd.DataFrame(
     columns=['sub_id', 'ses_id', 'task_id', 'job_id', 'has_results']
@@ -41,7 +40,7 @@ class BABSUpdate(BABS):
         dataset_to_update = self.input_datasets[dataset_name]
 
         # Check that there are no results branches: if there are you need to merge first
-        results_branches = get_results_branches(self.output_ria_data_dir)
+        results_branches = self._get_results_branches()
         if results_branches:
             raise ValueError('You must run `babs merge` before updating input data.')
 

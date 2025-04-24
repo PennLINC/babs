@@ -14,6 +14,8 @@ import pandas as pd
 class InputDataset:
     """Represent an input dataset."""
 
+    _is_input_dataset = True
+
     def __init__(
         self,
         name,
@@ -78,7 +80,11 @@ class InputDataset:
         """Get the path to this input dataset in the BABS project analysis directory."""
         if self._babs_project_analysis_path is None:
             raise ValueError('BABS project analysis path is not set.')
-        return os.path.join(self._babs_project_analysis_path, self.path_in_babs)
+        if self._is_input_dataset:
+            return os.path.join(self._babs_project_analysis_path, self.path_in_babs)
+        else:
+            # If this is an output dataset, the path is the analysis directory
+            return self._babs_project_analysis_path
 
     @property
     def is_up_to_date(self):
@@ -143,11 +149,13 @@ class InputDataset:
             print('Using the subjects (sessions) provided in the initial inclusion list.')
             inclu_df = initial_inclu_df
         else:
-            print(
-                'Did not provide an initial inclusion list.'
-                f' Examining input dataset {self.name}'
-                ' to get an initial inclusion list.'
-            )
+            if self._is_input_dataset:
+                print(
+                    'Did not provide an initial inclusion list.'
+                    f' Examining input dataset {self.name}'
+                    ' to get an initial inclusion list.'
+                )
+
             if self.is_zipped:
                 inclu_df = self._get_sub_ses_from_zipped_input()
             else:
@@ -164,10 +172,11 @@ class InputDataset:
         sub_ses_df: pandas DataFrame
             A pandas DataFrame with the subjects and sessions available in the input dataset
         """
+        zip_name = self.name if self._is_input_dataset else ''
         zip_pattern = (
-            f'sub-*_ses-*_{self.name}*.zip'
+            f'sub-*_ses-*_{zip_name}*.zip'
             if self.processing_level == 'session'
-            else f'sub-*_{self.name}*.zip'
+            else f'sub-*_{zip_name}*.zip'
         )
         found_zip_files = sorted(glob(os.path.join(self.babs_project_analysis_path, zip_pattern)))
 
@@ -401,6 +410,8 @@ def validate_nonzipped_input_contents(
 class OutputDataset(InputDataset):
     """Represent an output dataset."""
 
+    _is_input_dataset = False
+
     def __init__(self, input_dataset):
         # Store the raw value from input_dataset
         self._babs_project_analysis_path = input_dataset._babs_project_analysis_path
@@ -409,16 +420,10 @@ class OutputDataset(InputDataset):
         self.name = input_dataset.name
         self.origin_url = input_dataset.origin_url
         self.path_in_babs = input_dataset.path_in_babs
-        self.is_zipped = input_dataset.is_zipped
+        # All output datasets are zipped
+        self.is_zipped = True
         self.unzipped_path_containing_subject_dirs = (
             input_dataset.unzipped_path_containing_subject_dirs
         )
         self.required_files = input_dataset.required_files
         self.processing_level = input_dataset.processing_level
-
-    @property
-    def babs_project_analysis_path(self):
-        """zip files are in the analysis directory - override the parent class."""
-        if self._babs_project_analysis_path is None:
-            raise ValueError('BABS project analysis path is not set.')
-        return self._babs_project_analysis_path

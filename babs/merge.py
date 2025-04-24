@@ -8,7 +8,7 @@ import warnings
 import datalad.api as dlapi
 
 from babs.base import BABS
-from babs.utils import get_git_show_ref_shasum, get_results_branches
+from babs.utils import get_git_show_ref_shasum
 
 
 class BABSMerge(BABS):
@@ -61,7 +61,7 @@ class BABSMerge(BABS):
 
         # List all branches in output RIA:
         print('\nListing all branches in output RIA...')
-        list_branches_jobs = get_results_branches(self.output_ria_data_dir)
+        list_branches_jobs = self._get_results_branches()
 
         if len(list_branches_jobs) == 0:
             raise ValueError(

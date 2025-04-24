@@ -80,6 +80,7 @@ def test_babs_update_input_data(
     """
     This is to test `babs init` on raw BIDS data.
     """
+    from babs import BABSUpdate
 
     # Check the container dataset
     assert op.exists(simbids_container_ds)
@@ -164,3 +165,7 @@ def test_babs_update_input_data(
     babs_merge_main(project_root=project_root, chunk_size=200, trial_run=False)
 
     babs_update_input_data_main(project_root=project_root, dataset_name='BIDS')
+
+    bbs = BABSUpdate(project_root=project_root)
+    assert bbs._get_results_branches() == []
+    assert 0

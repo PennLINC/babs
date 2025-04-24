@@ -21,7 +21,7 @@ NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
 
 
 @pytest.fixture(scope='session', autouse=True)
-def setup_before_all_tests():
+def _setup_before_all_tests():
     print('Setting up Slurm MaxJobs limit...')
     result = subprocess.run(
         ['sacctmgr', '-i', 'modify', 'user', 'root', 'set', 'MaxJobs=200'],
