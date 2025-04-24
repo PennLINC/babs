@@ -137,7 +137,7 @@ def test_babs_update_input_data(
     assert 'Input dataset BIDS is up to date.' in captured.out
 
     # Submit a single job with the initial input data
-    babs_submit_main(project_root=project_root, select=None, inclusion_file=None, count=2)
+    babs_submit_main(project_root=project_root, select=None, inclusion_file=None, count=1)
 
     # babs status:
     babs_status_main(project_root=project_root)

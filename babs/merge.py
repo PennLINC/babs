@@ -171,9 +171,7 @@ class BABSMerge(BABS):
             # Prepend 'origin/' to each branch name
             remote_branches = ['origin/' + branch for branch in joined_by_space.split(' ')]
             cmd = ['git', 'merge', '-m', commit_msg] + remote_branches
-            proc_git_merge = subprocess.run(
-                cmd, cwd=merge_ds_path, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
-            )
+            proc_git_merge = subprocess.run(cmd, cwd=merge_ds_path, capture_output=True, text=True)
             if proc_git_merge.returncode != 0:
                 print(f'Git merge failed with error:\n{proc_git_merge.stderr}')
                 proc_git_merge.check_returncode()
