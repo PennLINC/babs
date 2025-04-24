@@ -20,6 +20,24 @@ TEMPLATEFLOW_HOME = '/root/TEMPLATEFLOW_HOME_TEMP'
 NOTEBOOKS_DIR = Path(__file__).parent.parent / 'notebooks'
 
 
+@pytest.fixture(scope='session', autouse=True)
+def setup_before_all_tests():
+    print('Setting up Slurm MaxJobs limit...')
+    result = subprocess.run(
+        ['sacctmgr', '-i', 'modify', 'user', 'root', 'set', 'MaxJobs=200'],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f'Failed to set Slurm MaxJobs limit:\n'
+            f'Command failed with return code {result.returncode}\n'
+            f'stderr: {result.stderr}\n'
+            f'stdout: {result.stdout}'
+        )
+    print('Successfully set Slurm MaxJobs limit')
+
+
 @pytest.fixture(scope='session')
 def squeue_available():
     """Fixture to check if squeue is available and skip tests if not."""
