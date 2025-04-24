@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import datalad.api as dlapi
 
-from babs.input_datasets import InputDatasets
+from babs.input_datasets import InputDatasets, OutputDatasets
 from babs.system import validate_queue
 from babs.utils import (
     read_yaml,
@@ -149,6 +149,11 @@ class BABS:
 
         self.input_datasets = InputDatasets(self.processing_level, config_yaml['input_datasets'])
         self.input_datasets.update_abs_paths(Path(self.project_root) / 'analysis')
+
+    def _get_merged_results_from_analysis_dir(self):
+        """Get the results from the analysis directory."""
+        output_datasets = OutputDatasets(self.input_datasets)
+        return output_datasets.generate_inclusion_dataframe()
 
     def wtf_key_info(self, flag_output_ria_only=False):
         """

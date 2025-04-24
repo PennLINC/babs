@@ -1,7 +1,7 @@
 import datalad.api as dlapi
 import pytest
 
-from babs.input_dataset import InputDataset
+from babs.input_dataset import InputDataset, OutputDataset
 from babs.input_datasets import InputDatasets
 
 
@@ -227,3 +227,59 @@ def test_input_datasets_session_level(
     assert inclu_df.shape[0] == 3
     assert 'sub_id' in inclu_df
     assert 'ses_id' in inclu_df
+
+
+@pytest.mark.parametrize(
+    ('session_type', 'processing_level'),
+    [
+        ('nosessions', 'subject'),
+        ('sessions', 'session'),
+        ('sessions', 'subject'),
+    ],
+)
+def test_output_dataset(
+    tmp_path_factory,
+    fmriprep_multises_derivative_files_zipped_at_session,
+    fmriprep_noses_derivative_files_zipped_at_subject,
+    fmriprep_multises_derivative_files_zipped_at_subject,
+    session_type,
+    processing_level,
+):
+    """Test the OutputDatasets class with a single session BIDS dataset."""
+
+    if session_type == 'nosessions':
+        origin_url = fmriprep_noses_derivative_files_zipped_at_subject
+    elif session_type == 'sessions':
+        if processing_level == 'session':
+            origin_url = fmriprep_multises_derivative_files_zipped_at_session
+        else:
+            origin_url = fmriprep_multises_derivative_files_zipped_at_subject
+    else:
+        raise ValueError(f'Invalid session type: {session_type}')
+
+    clone_path = tmp_path_factory.mktemp('cloned_input_dataset')
+    dlapi.clone(origin_url, path=clone_path)
+
+    input_dataset = InputDataset(
+        name='fmriprep',
+        origin_url=clone_path,
+        path_in_babs='',
+        babs_project_analysis_path=str(clone_path.absolute()),
+        is_zipped=True,
+        unzipped_path_containing_subject_dirs='fmriprep',
+        processing_level=processing_level,
+    )
+    assert input_dataset.verify_input_status() is None
+
+    # Create an output dataset
+    output_dataset = OutputDataset(input_dataset)
+
+    assert output_dataset.verify_input_status() is None
+
+    # Get the inclusion dataframe, do some checks
+    inclusion_df = input_dataset.generate_inclusion_dataframe()
+    assert inclusion_df.shape[0] > 1
+    assert 'sub_id' in inclusion_df
+
+    # check that the output dataset has the same inclusion dataframe
+    assert output_dataset.generate_inclusion_dataframe().equals(inclusion_df)

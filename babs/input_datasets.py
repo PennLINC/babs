@@ -1,6 +1,6 @@
 """This module is for input dataset(s)."""
 
-from babs.input_dataset import InputDataset
+from babs.input_dataset import InputDataset, OutputDataset
 from babs.utils import combine_inclusion_dataframes, validate_sub_ses_processing_inclusion
 
 
@@ -132,3 +132,25 @@ class InputDatasets:
     def as_records(self):
         """Return the input datasets as a list of dictionaries."""
         return [in_ds.as_dict() for in_ds in self._datasets]
+
+
+class OutputDatasets(InputDatasets):
+    """Represent a collection of output datasets."""
+
+    def __init__(self, input_datasets):
+        """Initialize `OutputDatasets` class.
+
+        Parameters
+        ----------
+        input_datasets: InputDatasets
+            The input datasets to use for the output datasets.
+        """
+        self._datasets = []
+        self._dataset_dict = {}
+
+        # change the `datasets` from dictionary to a pandas dataframe:
+        for in_ds in input_datasets:
+            self._datasets.append(OutputDataset(in_ds))
+            self._dataset_dict[in_ds.name] = self._datasets[-1]
+        self.initial_inclu_df = None
+        self.processing_level = input_datasets.processing_level
