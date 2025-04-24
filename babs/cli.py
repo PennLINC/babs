@@ -597,6 +597,52 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     babs_proj.babs_sync_code(commit_message=commit_message)
 
 
+def _parse_update_input_data():
+    """Create and configure the argument parser for the `babs update-input-data` command.
+
+    Returns
+    -------
+    argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(
+        description='Update the input data in a BABS project.',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    parser.add_argument(
+        'project_root',
+        nargs='?',
+        default=Path.cwd(),
+        help=(
+            'Absolute path to the root of BABS project. '
+            "For example, '/path/to/my_BABS_project/' "
+            '(default is current working directory).'
+        ),
+    )
+
+    parser.add_argument(
+        '--dataset-name',
+        help='Name of the dataset to update.',
+        default='BIDS',
+    )
+
+    return parser
+
+
+def babs_update_input_data_main(project_root: str, dataset_name: str):
+    """This is the core function of babs update-input-data.
+
+    Parameters
+    ----------
+    project_root: str
+        absolute path to the directory of BABS project
+    """
+    from babs import BABSUpdate
+
+    babs_proj = BABSUpdate(project_root)
+    babs_proj.babs_update_input_data(dataset_name)
+
+
 COMMANDS = [
     ('init', _parse_init, babs_init_main),
     ('check-setup', _parse_check_setup, babs_check_setup_main),
@@ -604,6 +650,7 @@ COMMANDS = [
     ('status', _parse_status, babs_status_main),
     ('merge', _parse_merge, babs_merge_main),
     ('sync-code', _parse_sync_code, babs_sync_code_main),
+    ('update-input-data', _parse_update_input_data, babs_update_input_data_main),
 ]
 
 

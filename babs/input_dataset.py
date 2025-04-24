@@ -80,6 +80,21 @@ class InputDataset:
             raise ValueError('BABS project analysis path is not set.')
         return os.path.join(self._babs_project_analysis_path, self.path_in_babs)
 
+    @property
+    def is_up_to_date(self):
+        """Check if the input dataset is up to date."""
+        in_babs_ds = dlapi.Dataset(self.babs_project_analysis_path)
+        babs_sha = in_babs_ds.repo.get_hexsha()
+
+        origin_ds = dlapi.Dataset(self.origin_url)
+        origin_sha = origin_ds.repo.get_hexsha()
+
+        if not babs_sha == origin_sha:
+            print(f'Input dataset {self.name} is not up to date.')
+            print(f'BABS SHA: {babs_sha}')
+            print(f'Origin SHA: {origin_sha}')
+        return babs_sha == origin_sha
+
     def verify_input_status(self, inclusion_df=None):
         """
         Verify that this dataset is indeed zipped or unzipped, and check that

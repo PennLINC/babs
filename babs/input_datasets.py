@@ -40,13 +40,19 @@ class InputDatasets:
         """
 
         self._datasets = []
+        self._dataset_dict = {}
 
         # change the `datasets` from dictionary to a pandas dataframe:
         for dataset_name, dataset_config in datasets.items():
             dataset_config['processing_level'] = processing_level
             self._datasets.append(InputDataset(name=dataset_name, **dataset_config))
+            self._dataset_dict[dataset_name] = self._datasets[-1]
         self.initial_inclu_df = None
         self.processing_level = processing_level
+
+    def __getitem__(self, key):
+        """Get the input dataset by name."""
+        return self._dataset_dict[key]
 
     def __len__(self):
         """Get the number of input datasets."""
