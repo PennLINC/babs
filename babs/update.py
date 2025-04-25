@@ -32,7 +32,9 @@ class BABSUpdate(BABS):
         self.analysis_datalad_handle.push(to='input')
         self.analysis_datalad_handle.push(to='output')
 
-    def babs_update_input_data(self, dataset_name='BIDS'):
+    def babs_update_input_data(
+        self, dataset_name='BIDS', initial_inclusion_df: pd.DataFrame | None = None
+    ):
         """
         This function updates the input data in the BABS project.
         """
@@ -62,3 +64,6 @@ class BABSUpdate(BABS):
         self.analysis_datalad_handle.save(
             message=f'Update {dataset_name} from origin',
         )
+
+        # Update the inclusion dataframe
+        self._update_inclusion_dataframe(initial_inclusion_df)

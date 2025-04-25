@@ -5,6 +5,8 @@ import warnings
 from functools import partial
 from pathlib import Path
 
+import pandas as pd
+
 from babs.utils import (
     RUNNING_PYTEST,
     validate_sub_ses_processing_inclusion,
@@ -626,21 +628,33 @@ def _parse_update_input_data():
         default='BIDS',
     )
 
+    parser.add_argument(
+        '--initial-inclusion-df',
+        help='Path to a CSV file that lists the subjects (and sessions) to analyze.',
+        type=str,
+    )
+
     return parser
 
 
-def babs_update_input_data_main(project_root: str, dataset_name: str):
+def babs_update_input_data_main(
+    project_root: str, dataset_name: str, initial_inclusion_df: pd.DataFrame | None = None
+):
     """This is the core function of babs update-input-data.
 
     Parameters
     ----------
     project_root: str
         absolute path to the directory of BABS project
+    dataset_name: str
+        name of the dataset to update
+    initial_inclusion_df: pd.DataFrame | None
+        initial inclusion dataframe to use
     """
     from babs import BABSUpdate
 
     babs_proj = BABSUpdate(project_root)
-    babs_proj.babs_update_input_data(dataset_name)
+    babs_proj.babs_update_input_data(dataset_name, initial_inclusion_df)
 
 
 COMMANDS = [

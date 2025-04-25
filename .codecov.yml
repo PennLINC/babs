@@ -1,9 +1,0 @@
-codecov:
-  require_ci_to_pass: yes
-
-ignore:
-  - "*/tests/*"
-  - "*/__init__.py"
-  - "*/conftest.py"
-  - "babs/_version.py"
-  - "babs/template_test_job.py"

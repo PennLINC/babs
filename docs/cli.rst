@@ -18,7 +18,6 @@ Set up a BABS project
    babs-init
    babs-check-setup
    babs-sync-code
-   babs-update-input-data
 
 Submit jobs and check job status
 ================================
@@ -36,3 +35,4 @@ After jobs have finished
    :maxdepth: 1
 
    babs-merge
+   babs-update-input-data
