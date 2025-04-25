@@ -167,5 +167,13 @@ def test_babs_update_input_data(
     babs_update_input_data_main(project_root=project_root, dataset_name='BIDS')
 
     bbs = BABSUpdate(project_root=project_root)
+
+    # The results branch should have been deleted after the merge happened
     assert bbs._get_results_branches() == []
-    assert 0
+    # But there should be a merged zip file
+    merged_zip_file = bbs._get_merged_results_from_analysis_dir()
+    assert not merged_zip_file.empty
+
+    # Check that the job completion dataframe has the new subject
+    job_completion_df = bbs.get_job_status_df()
+    assert job_completion_df['has_results'].sum() > 0

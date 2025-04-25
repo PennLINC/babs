@@ -26,6 +26,10 @@ class BABSMerge(BABS):
             Whether to run as a trial run which won't push the merging actions back to output RIA.
             This option should only be used by developers for testing purpose.
         """
+
+        # First, make sure all the results branches are reflected in the results dataframe
+        self._update_results_status()
+
         warning_encountered = False
         self.wtf_key_info()  # get `self.analysis_dataset_id`
         # path to `merge_ds`:

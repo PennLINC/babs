@@ -502,12 +502,12 @@ def update_results_status(
 
     # If we have a merged zip completion dataframe,
     # we need to concatenate it with the job completion dataframe
-    if merged_zip_completion_df is not None:
+    if merged_zip_completion_df is not None and not merged_zip_completion_df.empty:
         merged_df = merged_zip_completion_df.copy()
         merged_df['has_results'] = True
         merged_df['task_id'] = pd.NA
         merged_df['job_id'] = pd.NA
-        job_completion_df = pd.concat([job_completion_df, merged_df])
+        job_completion_df = pd.concat([job_completion_df, merged_df], axis=0, ignore_index=True)
 
     # The job and task ids all need to be cleared out and replaced with the new ones
     # from the job_completion_df, which is based on the latest results branches
@@ -527,8 +527,12 @@ def update_results_status(
         ]
 
     # Fill NaN values with appropriate defaults
-    updated_results_df['has_results'] = updated_results_df['has_results'].fillna(False)
-    updated_results_df['submitted'] = updated_results_df['submitted'].fillna(False)
+    updated_results_df['has_results'] = (
+        updated_results_df['has_results'].astype('boolean').fillna(False)
+    )
+    updated_results_df['submitted'] = (
+        updated_results_df['submitted'].astype('boolean').fillna(False)
+    )
     updated_results_df['state'] = updated_results_df['state'].fillna('')
 
     # Now compute is_failed with NaN-safe operations
@@ -536,6 +540,11 @@ def update_results_status(
         updated_results_df['submitted']
         & ~updated_results_df['has_results']
         & ~updated_results_df['state'].isin(['PD', 'R'])
+    )
+
+    # Drop the completion columns
+    updated_results_df = updated_results_df.drop(
+        columns=['job_id_completion', 'task_id_completion']
     )
 
     return updated_results_df

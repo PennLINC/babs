@@ -301,7 +301,9 @@ class BABS:
         # Part 2: Update which jobs are running
         currently_running_df = self.get_currently_running_jobs_df()
         current_status_df = update_job_batch_status(current_status_df, currently_running_df)
-        current_status_df['has_results'].fillna(False)
+        current_status_df['has_results'] = (
+            current_status_df['has_results'].astype('boolean').fillna(False)
+        )
         current_status_df.to_csv(self.job_status_path_abs, index=False)
 
     def get_latest_submitted_jobs_df(self):
@@ -368,6 +370,6 @@ class BABS:
         for column_name in results_status_columns:
             df[column_name] = df[column_name].astype(status_dtypes[column_name])
 
-        df['has_results'] = df['has_results'].fillna(False)
+        df['has_results'] = df['has_results'].astype('boolean').fillna(False)
 
         return df

@@ -161,6 +161,13 @@ class InputDataset:
             else:
                 inclu_df = self._get_sub_ses_from_nonzipped_input()
 
+        if inclu_df.empty:
+            if self.processing_level == 'session':
+                columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
+            else:
+                columns = ['job_id', 'task_id', 'sub_id', 'has_results']
+            return pd.DataFrame(columns=columns)
+
         return inclu_df
 
     def _get_sub_ses_from_zipped_input(self):
