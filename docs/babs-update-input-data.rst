@@ -51,5 +51,19 @@ We need to make this change in the BABS project as well.
 ..  code-block:: console
 
     $ cd ~/babs_demo/my_BABS_project
-    $ datalad update-input-data --dataset-name BIDS
+    $ babs update-input-data --dataset-name BIDS
+
+First, take a look at the analysis directory.
+You will see that the already-completed jobs are now present as zip files.
+This is because we needed to merge the previous results into the project before we could update the input data.
+For very large projects, this can add a lot of zip files and possible make running the next batch of jobs take longer.
+
+..  code-block:: console
+
+    $ ls analysis/
+    CHANGELOG.md  README.md  code  containers  inputs  logs  sub-0001_fmriprep_anat-24-1-1.zip  sub-0002_fmriprep_anat-24-1-1.zip
+
+
+
+
 

@@ -137,6 +137,11 @@ def test_babs_update_input_data(
     captured = capsys.readouterr()
     assert 'Input dataset BIDS is up to date.' in captured.out
 
+    # Check the original inclusion dataframe:
+    babs_proj = BABSUpdate(project_root=project_root)
+    original_inclusion_df = babs_proj.inclusion_dataframe.copy()
+    assert not original_inclusion_df.empty
+
     # Submit a single job with the initial input data
     babs_submit_main(project_root=project_root, select=None, inclusion_file=None, count=1)
 
@@ -163,7 +168,9 @@ def test_babs_update_input_data(
     assert new_commit_hash != original_commit_hash
 
     babs_merge_main(project_root=project_root, chunk_size=200, trial_run=False)
+    pre_update_job_status_df = babs_proj.get_job_status_df().copy()
 
+    # Perform the input data update
     babs_update_input_data_main(project_root=project_root, dataset_name='BIDS')
 
     bbs = BABSUpdate(project_root=project_root)
@@ -177,3 +184,7 @@ def test_babs_update_input_data(
     # Check that the job completion dataframe has the new subject
     job_completion_df = bbs.get_job_status_df()
     assert job_completion_df['has_results'].sum() > 0
+
+    # Check that the job status dataframe has the new subject
+    post_update_job_status_df = bbs.get_job_status_df()
+    assert post_update_job_status_df.shape[0] > pre_update_job_status_df.shape[0]

@@ -258,6 +258,11 @@ class BABS:
             self._analysis_datalad_handle = dlapi.Dataset(self.analysis_path)
         return self._analysis_datalad_handle
 
+    @property
+    def inclusion_dataframe(self) -> pd.DataFrame:
+        """Cached property of `inclusion_dataframe`."""
+        return pd.read_csv(self.list_sub_path_abs)
+
     def datalad_save(
         self, path: str, message: str | None = None, filter_files: list[str] | None = None
     ) -> None:
