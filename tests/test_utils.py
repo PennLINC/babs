@@ -196,7 +196,7 @@ def test_results_branch_dataframe(tmp_path_factory, branch_list):
     if not len(branch_list) == len(branch_list):
         raise ValueError('branch_list should have the same length as the number of branches')
 
-    df = results_branch_dataframe(branch_list)
+    df = results_branch_dataframe(branch_list, 'subject')
 
     assert df.shape[0] == len(branch_list)
 

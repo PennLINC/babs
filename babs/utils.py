@@ -380,7 +380,7 @@ def get_results_branches(ria_directory):
     return branches
 
 
-def results_branch_dataframe(branches):
+def results_branch_dataframe(branches, processing_level) -> pd.DataFrame:
     """
     Create a dataframe from a list of branches.
 
@@ -388,6 +388,8 @@ def results_branch_dataframe(branches):
     --------------
     branches: list
         list of branches
+    processing_level: str
+        processing level
 
     Returns:
     -------------
@@ -431,10 +433,10 @@ def results_branch_dataframe(branches):
             result_data.append(result)
 
     df = pd.DataFrame(result_data)
-    if df['ses_id'].isna().all():
-        columns = ['job_id', 'task_id', 'sub_id', 'has_results']
-    else:
+    if processing_level == 'session':
         columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
+    else:
+        columns = ['job_id', 'task_id', 'sub_id', 'has_results']
 
     if df.empty:
         return pd.DataFrame(columns=columns)
@@ -474,7 +476,9 @@ def identify_running_jobs(last_submitted_jobs_df, currently_running_df):
         )
 
 
-def update_results_status(previous_job_completion_df, job_completion_df):
+def update_results_status(
+    previous_job_completion_df, job_completion_df, merged_zip_completion_df=None
+):
     """
     Update a status dataframe with a results branch dataframe.
 
@@ -484,6 +488,8 @@ def update_results_status(previous_job_completion_df, job_completion_df):
         previous job completion dataframe
     job_completion_df: pd.DataFrame
         job completion dataframe from results_branch_dataframe()
+    merged_zip_completion_df: pd.DataFrame or None
+        job completion dataframe from BABS._get_merged_results_from_analysis_dir()
 
     Returns:
     -------------
@@ -494,18 +500,46 @@ def update_results_status(previous_job_completion_df, job_completion_df):
     use_sesid = 'ses_id' in previous_job_completion_df and 'ses_id' in job_completion_df
     merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
 
+    # If we have a merged zip completion dataframe,
+    # we need to concatenate it with the job completion dataframe
+    if merged_zip_completion_df is not None and not merged_zip_completion_df.empty:
+        merged_df = merged_zip_completion_df.copy()
+        merged_df['has_results'] = True
+        merged_df['task_id'] = pd.NA
+        merged_df['job_id'] = pd.NA
+
+        # Ensure both dataframes have the same columns before concatenation
+        if job_completion_df.empty:
+            job_completion_df = pd.DataFrame(columns=merged_df.columns)
+        elif merged_df.empty:
+            merged_df = pd.DataFrame(columns=job_completion_df.columns)
+
+        job_completion_df = pd.concat([job_completion_df, merged_df], axis=0, ignore_index=True)
+
     # The job and task ids all need to be cleared out and replaced with the new ones
     # from the job_completion_df, which is based on the latest results branches
     updated_results_df = pd.merge(
-        previous_job_completion_df.drop(columns=['has_results', 'job_id', 'task_id']),
+        previous_job_completion_df.drop(columns=['has_results']),
         job_completion_df,
         on=merge_on,
         how='left',
+        suffixes=('', '_completion'),
     )
 
+    # Update the job_id and task_id columns
+    for col in ['job_id', 'task_id']:
+        update_mask = updated_results_df[col + '_completion'].notna()
+        updated_results_df.loc[update_mask, col] = updated_results_df.loc[
+            update_mask, col + '_completion'
+        ]
+
     # Fill NaN values with appropriate defaults
-    updated_results_df['has_results'] = updated_results_df['has_results'].fillna(False)
-    updated_results_df['submitted'] = updated_results_df['submitted'].fillna(False)
+    updated_results_df['has_results'] = (
+        updated_results_df['has_results'].astype('boolean').fillna(False)
+    )
+    updated_results_df['submitted'] = (
+        updated_results_df['submitted'].astype('boolean').fillna(False)
+    )
     updated_results_df['state'] = updated_results_df['state'].fillna('')
 
     # Now compute is_failed with NaN-safe operations
@@ -513,6 +547,11 @@ def update_results_status(previous_job_completion_df, job_completion_df):
         updated_results_df['submitted']
         & ~updated_results_df['has_results']
         & ~updated_results_df['state'].isin(['PD', 'R'])
+    )
+
+    # Drop the completion columns
+    updated_results_df = updated_results_df.drop(
+        columns=['job_id_completion', 'task_id_completion']
     )
 
     return updated_results_df

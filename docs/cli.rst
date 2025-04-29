@@ -35,3 +35,4 @@ After jobs have finished
    :maxdepth: 1
 
    babs-merge
+   babs-update-input-data

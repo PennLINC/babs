@@ -45,3 +45,9 @@ for all subjects (and sessions). You can access the contents of one zip file via
 And you can unzip it via::
 
     unzip zip_file_name.zip
+
+What if my input data changes?
+==============================
+
+If your input data changes, you can use ``babs update-input-data`` to update the job status dataframe.
+See :doc:`babs-update-input-data` for details.

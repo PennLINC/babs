@@ -1,10 +1,11 @@
+import math
 import os.path as op
 import re
+import shutil
 import subprocess
 import warnings
 
 import datalad.api as dlapi
-import numpy as np
 
 from babs.base import BABS
 from babs.utils import get_git_show_ref_shasum
@@ -13,7 +14,7 @@ from babs.utils import get_git_show_ref_shasum
 class BABSMerge(BABS):
     """BABSMerge is for merging results and provenance from finished jobs."""
 
-    def babs_merge(self, chunk_size, trial_run):
+    def babs_merge(self, chunk_size=1000, trial_run=False):
         """
         This function merges results and provenance from all successfully finished jobs.
 
@@ -25,6 +26,10 @@ class BABSMerge(BABS):
             Whether to run as a trial run which won't push the merging actions back to output RIA.
             This option should only be used by developers for testing purpose.
         """
+
+        # First, make sure all the results branches are reflected in the results dataframe
+        self._update_results_status()
+
         warning_encountered = False
         self.wtf_key_info()  # get `self.analysis_dataset_id`
         # path to `merge_ds`:
@@ -60,28 +65,10 @@ class BABSMerge(BABS):
 
         # List all branches in output RIA:
         print('\nListing all branches in output RIA...')
-        # get all branches:
-        proc_git_branch_all = subprocess.run(
-            ['git', 'branch', '-a'], cwd=merge_ds_path, stdout=subprocess.PIPE
-        )
-        proc_git_branch_all.check_returncode()
-        msg = proc_git_branch_all.stdout.decode('utf-8')
-        list_branches_all = msg.split()
-
-        # only keep those having pattern `job-`:
-        list_branches_jobs = [ele for ele in list_branches_all if 'job-' in ele]
-        # ^^ ["remotes/origin/job-xxx", "remotes/origin/job-xxx", ...]
-        #   it's normal and necessary to have `remotes/origin`. See notes below.
-        # NOTE: our original bash script for merging: `merge_outputs_postscript.sh`:
-        #   run `git branch -a | grep job- | sort` in `merge_ds`
-        #   --> should get all branches whose names contain `*job-*`
-        #   e.g., `remotes/origin/job-xxx`   # as run in `merge_ds`
-        # Should not run in output RIA data dir, as you'll get branches without `remotes/origin`
-        #   --> raise error of "merge: job-xxxx - not something we can merge"
-        #   i.e., cannot find the branch to merge.
+        list_branches_jobs = self._get_results_branches()
 
         if len(list_branches_jobs) == 0:
-            raise Exception(
+            raise ValueError(
                 'There is no successfully finished job yet. Please run `babs submit` first.'
             )
 
@@ -157,15 +144,16 @@ class BABSMerge(BABS):
         # Merge valid branches chunk by chunk:
         print('\nMerging valid job branches chunk by chunk...')
         print('Total number of job branches to merge = ' + str(len(list_branches_with_results)))
-        print('Chunk size (number of job branches per chunk) = ' + str(chunk_size))
-        # turn the list into numpy array:
-        arr = np.asarray(list_branches_with_results)
-        # ^^ e.g., array([1, 7, 0, 6, 2, 5, 6])   # but with `dtype='<U24'`
-        # split into several chunks:
-        num_chunks = ceildiv(len(arr), chunk_size)
-        print('--> Number of chunks = ' + str(num_chunks))
-        all_chunks = np.array_split(arr, num_chunks)
-        # ^^ e.g., [array([1, 7, 0]), array([6, 2]), array([5, 6])]
+        print(f'Chunk size (number of job branches per chunk) = {chunk_size}')
+
+        # Split into chunks of size chunk_size
+        num_chunks = math.ceil(len(list_branches_with_results) / chunk_size)
+        print(f'--> Number of chunks = {num_chunks}')
+        all_chunks = [
+            list_branches_with_results[i : i + chunk_size]
+            for i in range(0, len(list_branches_with_results), chunk_size)
+        ]
+        # ^^ e.g., [['1', '7', '0'], ['6', '2'], ['5', '6']]
 
         # iterate across chunks:
         for i_chunk in range(0, num_chunks):
@@ -183,116 +171,123 @@ class BABSMerge(BABS):
             commit_msg = 'merge results chunk ' + str(i_chunk + 1) + '/' + str(num_chunks)
             # ^^ okay to not to be quoted,
             #   as in `subprocess.run` this is a separate element in the `cmd` list
-            cmd = ['git', 'merge', '-m', commit_msg] + joined_by_space.split(' ')  # split by space
-            proc_git_merge = subprocess.run(cmd, cwd=merge_ds_path, stdout=subprocess.PIPE)
-            proc_git_merge.check_returncode()
-            print(proc_git_merge.stdout.decode('utf-8'))
+
+            # Prepend 'origin/' to each branch name
+            remote_branches = ['origin/' + branch for branch in joined_by_space.split(' ')]
+            cmd = ['git', 'merge', '-m', commit_msg] + remote_branches
+            proc_git_merge = subprocess.run(cmd, cwd=merge_ds_path, capture_output=True, text=True)
+            if proc_git_merge.returncode != 0:
+                print(f'Git merge failed with error:\n{proc_git_merge.stderr}')
+                proc_git_merge.check_returncode()
+            print(proc_git_merge.stdout)
 
         # Push merging actions back to output RIA:
-        if not trial_run:
-            print('\nPushing merging actions to output RIA...')
-            # `git push`:
-            proc_git_push = subprocess.run(
-                ['git', 'push'], cwd=merge_ds_path, stdout=subprocess.PIPE
-            )
-            proc_git_push.check_returncode()
-            print(proc_git_push.stdout.decode('utf-8'))
-
-            # Get file availability information: which is very important!
-            # `git annex fsck --fast -f output-storage`:
-            #   `git annex fsck` = file system check
-            #   We've done the git merge of the symlinks of the files,
-            #   now we need to match the symlinks with the data content in `output-storage`.
-            #   `--fast`: just use the existing MD5, not to re-create a new one
-            proc_git_annex_fsck = subprocess.run(
-                ['git', 'annex', 'fsck', '--fast', '-f', 'output-storage'],
-                cwd=merge_ds_path,
-                stdout=subprocess.PIPE,
-            )
-            proc_git_annex_fsck.check_returncode()
-            # if printing the returned msg,
-            #   will be a long list of "fsck xxx.zip (fixing location log) ok"
-            #   or "fsck xxx.zip ok"
-            # instead, save it into a text file:
-            with open(fn_msg_fsck, 'w') as f:
-                f.write(
-                    '# Below are printed messages from'
-                    ' `git annex fsck --fast -f output-storage`:\n\n'
-                )
-                f.write(proc_git_annex_fsck.stdout.decode('utf-8'))
-                f.write('\n')
-            # now we can delete `proc_git_annex_fsck` to save memory:
-            del proc_git_annex_fsck
-
-            # Double check: there should not be file content that's not in `output-storage`:
-            #   This should not print anything - we never has this error before
-            # `git annex find --not --in output-storage`
-            proc_git_annex_find_missing = subprocess.run(
-                ['git', 'annex', 'find', '--not', '--in', 'output-storage'],
-                cwd=merge_ds_path,
-                stdout=subprocess.PIPE,
-            )
-            proc_git_annex_find_missing.check_returncode()
-            msg = proc_git_annex_find_missing.stdout.decode('utf-8')
-            # `msg` should be empty:
-            if msg != '':  # if not empty:
-                # save into a file:
-                with open(fn_list_content_missing, 'w') as f:
-                    f.write(msg)
-                    f.write('\n')
-                raise Exception(
-                    'Unable to find file content for some file(s).'
-                    " The information has been saved to this text file: '"
-                    + fn_list_content_missing
-                    + "'."
-                )
-
-            # `git annex dead here`:
-            #   stop tracking clone `merge_ds`,
-            #   i.e., not to get data from this `merge_ds` sibling:
-            proc_git_annex_dead_here = subprocess.run(
-                ['git', 'annex', 'dead', 'here'],
-                cwd=merge_ds_path,
-                stdout=subprocess.PIPE,
-            )
-            proc_git_annex_dead_here.check_returncode()
-            print(proc_git_annex_dead_here.stdout.decode('utf-8'))
-
-            # Final `datalad push` to output RIA:
-            # `datalad push --data nothing`:
-            #   pushing to `git` branch in output RIA: has done with `git push`;
-            #   pushing to `git-annex` branch in output RIA: hasn't done after `git annex fsck`
-            #   `--data nothing`: don't transfer data from this local annex `merge_ds`
-            proc_datalad_push = subprocess.run(
-                ['datalad', 'push', '--data', 'nothing'],
-                cwd=merge_ds_path,
-                stdout=subprocess.PIPE,
-            )
-            proc_datalad_push.check_returncode()
-            print(proc_datalad_push.stdout.decode('utf-8'))
-
-            # Done:
-            if warning_encountered:
-                print(
-                    '\n`babs merge` has finished but had warning(s)!'
-                    ' Please check out the warning message(s) above!'
-                )
-            else:
-                print('\n`babs merge` was successful!')
-
-        else:  # `--trial-run` is on:
+        if trial_run:
             print('')  # new empty line
             warnings.warn(
                 '`--trial-run` was requested, not to push merging actions to output RIA.',
                 stacklevel=2,
             )
             print('\n`babs merge` did not fully finish yet!')
+            return
 
+        print('\nPushing merging actions to output RIA...')
+        # `git push`:
+        proc_git_push = subprocess.run(['git', 'push'], cwd=merge_ds_path, stdout=subprocess.PIPE)
+        proc_git_push.check_returncode()
+        print(proc_git_push.stdout.decode('utf-8'))
 
-def ceildiv(a, b):
-    """
-    This is to calculate the ceiling of division of a/b.
-    ref: https://stackoverflow.com/questions/14822184/...
-      ...is-there-a-ceiling-equivalent-of-operator-in-python
-    """
-    return -(a // -b)
+        # Get file availability information: which is very important!
+        # `git annex fsck --fast -f output-storage`:
+        #   `git annex fsck` = file system check
+        #   We've done the git merge of the symlinks of the files,
+        #   now we need to match the symlinks with the data content in `output-storage`.
+        #   `--fast`: just use the existing MD5, not to re-create a new one
+        proc_git_annex_fsck = subprocess.run(
+            ['git', 'annex', 'fsck', '--fast', '-f', 'output-storage'],
+            cwd=merge_ds_path,
+            stdout=subprocess.PIPE,
+        )
+        proc_git_annex_fsck.check_returncode()
+        # if printing the returned msg,
+        #   will be a long list of "fsck xxx.zip (fixing location log) ok"
+        #   or "fsck xxx.zip ok"
+        # instead, save it into a text file:
+        with open(fn_msg_fsck, 'w') as f:
+            f.write(
+                '# Below are printed messages from `git annex fsck --fast -f output-storage`:\n\n'
+            )
+            f.write(proc_git_annex_fsck.stdout.decode('utf-8'))
+            f.write('\n')
+        # now we can delete `proc_git_annex_fsck` to save memory:
+        del proc_git_annex_fsck
+
+        # Double check: there should not be file content that's not in `output-storage`:
+        #   This should not print anything - we never has this error before
+        # `git annex find --not --in output-storage`
+        proc_git_annex_find_missing = subprocess.run(
+            ['git', 'annex', 'find', '--not', '--in', 'output-storage'],
+            cwd=merge_ds_path,
+            stdout=subprocess.PIPE,
+        )
+        proc_git_annex_find_missing.check_returncode()
+        msg = proc_git_annex_find_missing.stdout.decode('utf-8')
+        # `msg` should be empty:
+        if msg != '':  # if not empty:
+            # save into a file:
+            with open(fn_list_content_missing, 'w') as f:
+                f.write(msg)
+                f.write('\n')
+            raise Exception(
+                'Unable to find file content for some file(s).'
+                " The information has been saved to this text file: '"
+                + fn_list_content_missing
+                + "'."
+            )
+
+        # `git annex dead here`:
+        #   stop tracking clone `merge_ds`,
+        #   i.e., not to get data from this `merge_ds` sibling:
+        proc_git_annex_dead_here = subprocess.run(
+            ['git', 'annex', 'dead', 'here'],
+            cwd=merge_ds_path,
+            stdout=subprocess.PIPE,
+        )
+        proc_git_annex_dead_here.check_returncode()
+        print(proc_git_annex_dead_here.stdout.decode('utf-8'))
+
+        # Final `datalad push` to output RIA:
+        # `datalad push --data nothing`:
+        #   pushing to `git` branch in output RIA: has done with `git push`;
+        #   pushing to `git-annex` branch in output RIA: hasn't done after `git annex fsck`
+        #   `--data nothing`: don't transfer data from this local annex `merge_ds`
+        proc_datalad_push = subprocess.run(
+            ['datalad', 'push', '--data', 'nothing'],
+            cwd=merge_ds_path,
+            stdout=subprocess.PIPE,
+        )
+        proc_datalad_push.check_returncode()
+        print(proc_datalad_push.stdout.decode('utf-8'))
+
+        # Done:
+        if warning_encountered:
+            print(
+                '\n`babs merge` has finished but had warning(s)!'
+                ' Please check out the warning message(s) above!'
+            )
+        else:
+            print('\n`babs merge` was successful!')
+
+        # delete the merge_ds folder
+        shutil.rmtree(merge_ds_path)
+
+        # Delete all the merged branches from the output RIA
+        for n_chunk, chunk in enumerate(all_chunks):
+            print(f'Deleting merged branches for chunk #{n_chunk + 1}...')
+            proc_git_branch_delete = subprocess.run(
+                ['git', 'branch', '--delete'] + chunk,
+                cwd=self.output_ria_data_dir,
+                stdout=subprocess.PIPE,
+            )
+            proc_git_branch_delete.check_returncode()
+            print(proc_git_branch_delete.stdout.decode('utf-8'))
