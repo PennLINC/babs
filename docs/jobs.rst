@@ -18,7 +18,7 @@ List of included subjects (and sessions) to process
     * If not, BABS will list the subjects and sessions from the first input dataset, and use it as initial list
 
 #. Filter the initial list: Remove subjects (and sessions) which do not have the required files
-   that are defined in :ref:`required_files` in ``--container-config``
+   that are defined in ``required_files`` in ``--container-config``
    provided when running ``babs init``.
 
 Now, BABS gets the final included subjects (and sessions) to process.
@@ -114,7 +114,6 @@ section **alert_log_messages** in the container's configuration YAML file.
         --container-config /path/to/updated_yaml_file.yaml
 
   to ask BABS to find updated list of alert messages.
-* For more details about this section, please refer to :ref:`alert_log_messages`.
 
 .. developer's note: cannot use relative path like: `here <../../notebooks/README.md>`_
 ..  After render by readthedocs online, "https://pennlinc-babs--103.org.readthedocs.build/" would be added to this path
