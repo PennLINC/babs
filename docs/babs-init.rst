@@ -26,7 +26,7 @@ Detailed description
 How do I prepare the input dataset, container, and container's YAML file?
 -------------------------------------------------------------------------
 
-Please see document :ref:`preparation` for how to prepare these inputs.
+Please see document :doc:`preparation` for how to prepare these inputs.
 
 .. _how-to-define-name-of-input-dataset:
 
@@ -34,7 +34,7 @@ Please see document :ref:`preparation` for how to prepare these inputs.
 How do I define the input datasets in the YAML config file?
 -----------------------------------------------------------
 
-Please see section :ref:`preparation_config_yaml_file` for how to define the input datasets in the YAML config file.
+Please see document :doc:`preparation_config_yaml_file` for how to define the input datasets in the YAML config file.
 
 ------------------------------------------------------
 How is the list of subjects (and sessions) determined?
