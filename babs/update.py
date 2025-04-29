@@ -92,6 +92,10 @@ class BABSUpdate(BABS):
 
         self._update_job_status_with_new_inclusion(added_rows, removed_rows)
 
+        # Send the results to input and output rias
+        self.analysis_datalad_handle.push(to='input')
+        self.analysis_datalad_handle.push(to='output')
+
     def _update_job_status_with_new_inclusion(
         self, added_rows: pd.DataFrame, removed_rows: pd.DataFrame
     ):

@@ -507,6 +507,13 @@ def update_results_status(
         merged_df['has_results'] = True
         merged_df['task_id'] = pd.NA
         merged_df['job_id'] = pd.NA
+
+        # Ensure both dataframes have the same columns before concatenation
+        if job_completion_df.empty:
+            job_completion_df = pd.DataFrame(columns=merged_df.columns)
+        elif merged_df.empty:
+            merged_df = pd.DataFrame(columns=job_completion_df.columns)
+
         job_completion_df = pd.concat([job_completion_df, merged_df], axis=0, ignore_index=True)
 
     # The job and task ids all need to be cleared out and replaced with the new ones
