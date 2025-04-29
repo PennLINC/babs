@@ -1,5 +1,16 @@
 # What's New
 
+## Version 0.5.0
+
+This version got test coverage over 80% and adds the `update-input-data` action. 
+It adds back the `sync-code` function too.
+
+* Add more CI tests by @mattcieslak in https://github.com/PennLINC/babs/pull/292
+* add back sync-code by @mattcieslak in https://github.com/PennLINC/babs/pull/293
+* add babs update-input-data by @mattcieslak in https://github.com/PennLINC/babs/pull/294
+
+
+
 ## Version 0.4.0
 
 Arguments and default behavior for `babs submit` and `babs status` have changed.
