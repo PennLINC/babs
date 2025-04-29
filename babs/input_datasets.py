@@ -12,8 +12,11 @@ class InputDatasets:
 
         Parameters
         ----------
-        datasets : dict
-            see CLI `babs init --datasets` for more
+        processing_level: {'subject', 'session'}
+            whether processing is done on a subject-wise or session-wise basis
+        datasets: dict
+            The section of the yaml file for input datasets.
+            See `preparation_config_yaml_file.rst <preparation_config_yaml_file.rst>`_ for more.
 
         Attributes
         ----------

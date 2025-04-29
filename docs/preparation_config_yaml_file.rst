@@ -19,6 +19,7 @@ Overview of the configuration YAML file structure
 Sections in the configuration YAML file
 -----------------------------------------
 
+* **input_datasets**: the input datasets to be used in this BABS project
 * **cluster_resources**: how much cluster resources are needed to run this BIDS App?
 * **script_preamble**: the preamble in the script to run a participant's job;
 * **job_compute_space**: where to run the jobs?
@@ -70,6 +71,49 @@ Below is an example "section" in a YAML file::
 In a section, the string before ``:`` is called ``key``, the string after ``:`` is called ``value``.
 
 Below are the details for each section in this configuration YAML file.
+
+
+Section ``input_datasets``
+==========================
+
+This section is required. 
+It defines the input datasets to be used in this BABS project.
+Note that the ``origin_url`` is the path to the input dataset on your local machine.
+The ``--datasets`` argument is no longer allowed in ``babs init`` and is replaced by this section.
+
+
+Example section **input_datasets**
+----------------------------------
+
+..  code-block:: yaml
+
+    input_datasets:
+        BIDS:
+            required_files:
+                - "dwi/*_dwi.nii*"
+                - "anat/*_T1w.nii*"
+            is_zipped: false
+            origin_url: "/path/to/BIDS"
+            path_in_babs: inputs/data/BIDS
+        FreeSurfer:
+            required_files:
+                - "*freesuefer*.zip"
+            is_zipped: true
+            origin_url: "/path/to/FreeSurfer"
+            unzipped_path_containing_subject_dirs: "freesurfer"
+            path_in_babs: inputs/data/freesurfer
+
+This example shows two input datasets: 
+one is a raw BIDS dataset, and the other is a zipped FreeSurfer results from another BABS project.
+Previously, the commandline to use something like this would have required::
+
+  babs init --datasets BIDS=/path/to/BIDS --datasets freesurfer=/path/to/FreeSurfer
+
+You can see that the dataset names are specified as ``BIDS`` and ``freesurfer``
+in the yaml file such that the name is the key and the path to the dataset is in ``origin_url``.
+
+``required_files`` is currently not implemented but will be soon.
+This section is defined per input.
 
 Section ``singularity_args``
 ============================
@@ -295,47 +339,7 @@ Advanced - Manual of writing section ``bids_app_args``
 .. developer's note: for SLURM: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
 
-* When **more than one** input BIDS dataset: You need to specify which dataset goes to the positional argument
-  ``input_dataset`` in the BIDS App, which dataset goes to another named argument.
 
-  * Use ``$INPUT_PATH`` to specify for the positional argument ``input_dataset`` in the BIDS App:
-
-    * ``$INPUT_PATH`` is a key placeholder recognized by BABS
-    * We recommend using ``$INPUT_PATH`` as the first key in this section **bids_app_args**,
-      i.e., before other arguments.
-
-  * How do you write the path to the input dataset? Here we use an example configuration YAML file of
-    fMRIPrep with existing FreeSurfer results ingressed - you can find this example YAML file
-    `here <https://github.com/PennLINC/babs/blob/main/notebooks/README.md>`_.
-
-    * For the positional argument ``input_dataset``, say we want to use (unzipped) raw BIDS dataset called ``BIDS``;
-
-        * Then we can specify: ``$INPUT_PATH: inputs/data/BIDS``
-          which means that we want to use input BIDS dataset named ``BIDS`` for this positional argument ``input_dataset``.
-        * Note that you need to add ``inputs/data/`` before the dataset's name, and what you'll use for
-          ``<name>`` when calling ``babs init --datasets <name>=/path/to/BIDS`` should also be ``BIDS``.
-
-    * For the named argument ``--fs-subjects-dir``, say we want to use *zipped* BIDS derivates of FreeSurfer called ``freesurfer``;
-
-        * For fMRIPrep version < 21.0, then we can specify: ``--fs-subjects-dir: inputs/data/freesurfer/freesurfer``.
-        * As mentioned above, ``freesurfer`` should also show up as a dataset's name (``<name>``)
-          in ``babs init --datasets <name>=/path/to/freesurfer_dataset``
-        * Note that, as this is a zipped dataset, you need to repeat ``freesurfer`` twice.
-
-            * .. dropdown:: Why we need to repeat it twice?
-
-                  This is because, ``freesurfer`` dataset will locate at ``inputs/data/freesurfer``, and after unzipping
-                  a subject's (or a session's) freesurfer zipped folder, there will be
-                  another folder called ``freesurfer``, so the path to the unzipped folder will be ``inputs/data/freesurfer/freesurfer``.
-
-        * For fMRIPrep version >= 21.0, please refer to example YAML files for examples.
-
-    * :octicon:`alert-fill` :bdg-warning:`warning` Please check :ref:`how-to-define-name-of-input-dataset` for
-      restrictions in naming each dataset when calling ``babs init``!
-
-.. Note to developers: It's probably not a good idea to use information from ``babs_proj_config.yaml``,
-   e.g., ``unzipped_path_containing_subject_dirs`` to determine the path, as for zipped folder it will be ``inputs/data/freesurfer``,
-   instead of ``inputs/data/freesurfer/freesurfer`` that user needs to specify here.
 
 * ``--bids-filter-file``: When will BABS automatically add it?
 
@@ -769,96 +773,4 @@ Notes:
 
 .. _required_files:
 
-Section ``required_files``
-==========================
-This section is optional.
 
-You may have a dataset where not all the subjects (and sessions) have the required files for
-running the BIDS App. You can simply provide this list of required files, and BABS will exclude those
-subjects and sessions who don't have any of listed required files.
-
-Example section **required_files** for ``fMRIPrep``:
-
-..  code-block:: yaml
-
-    required_files:
-        $INPUT_DATASET_#1:
-            - "func/*_bold.nii*"
-            - "anat/*_T1w.nii*"
-
-In this example case, we specify that for the input raw BIDS dataset,
- which is also input dataset #1, each subject (and session) must have:
-
-#. At least one BOLD file (``*_bold.nii*``) in folder ``func``;
-#. At least one T1-weighted file (``*_T1w.nii*``) in folder ``anat``.
-
-
-Notes:
-
-* If needed, you can change ``$INPUT_DATASET_#1`` to other index of input dataset
-  (e.g., ``$INPUT_DATASET_#2``);
-* To determine the index of the input dataset to specify,
-  please check the order of the datasets when you call ``babs init --datasets``.
-  This index starts from 1, and is a positive integer.
-
-    * For example, to use ``fMRIPrep`` with FreeSurfer results ingressed, you want to call command below,
-      and you hope to filter subjects based on files in raw BIDS data (here named ``BIDS``),
-      then you should specify ``$INPUT_DATASET_#1``.
-
-      .. code-block::
-
-            babs init \
-                ...
-                --datasets \
-                BIDS=/path/to/BIDS \
-                freesurfer=/path/to/freesurfer_outputs \
-                ...
-
-* We recommend adding ``*`` after ``.nii`` as there might only be unzipped NIfTI file
-  (e.g., ``.nii`` instead of ``.nii.gz``) in the input dataset;
-* :octicon:`alert-fill` :bdg-warning:`warning` Currently we only support checking required files
-  in unzipped input dataset (e.g., raw BIDS dataset).
-
-
-.. _alert_log_messages:
-
-Section ``alert_log_messages``
-==============================
-This section is optional.
-
-This section is to define a list of alert messages to be searched in log files,
-and these messages may indicates failure of a job.
-
-Example section **alert_log_messages** for fMRIPrep:
-
-..  code-block:: yaml
-
-    alert_log_messages:
-        stdout:
-            - "Exception: No T1w images found for"  # not needed if setting T1w in `required_files`
-            - "Excessive topologic defect encountered"
-            - "Cannot allocate memory"
-            - "mris_curvature_stats: Could not open file"
-            - "Numerical result out of range"
-            - "fMRIPrep failed"
-        stderr:
-            - "xxxxx"    # change this to any messages to be found in `stderr` file; if there is no messages for `stderr` file, delete line `stderr:` and this line
-
-
-Usually there are two log files that are useful for debugging purpose, ``stdout`` and ``stderr``,
-for example, ``<jobname>.o<jobid>`` and ``<jobname>.e<jobid>``.
-You can define alert messages in either or both files, i.e., by filling out ``stdout`` section
-(for ``stdout`` file) and/or ``stderr`` section (for ``stderr`` file).
-
-Detection of the message is performed in the order provided by the user.
-If ``stdout`` is former (e.g., in example above), then detection of it will be performed earlier;
-if a message is former, then that will be checked earlier.
-BABS also follows "detect and break" rule, i.e., for each job:
-
-* If any message is detected, the detected message will be thrown into the ``job_status.csv``,
-  and BABS won't detect any further message down in the list in **alert_log_messages**.
-* If a message has been detected in the first file (``stdout`` for above example),
-  then won't detect any message in the other log file (``stderr`` for above example).
-
-.. warning::
-    Detecting the messages in the log files by BABS is case-sensitive! So please make sure the cases of messages are in the way you hope.
