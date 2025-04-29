@@ -57,7 +57,7 @@ We need to make this change in the BABS project as well.
         sub_id
     2   sub-0003
 
-You can see that sub-0003 that wee created is now in the job status dataframe.
+You can see that sub-0003 that we created is now in the job status dataframe.
 Let's take a look at the analysis directory.
 You will see that the already-completed jobs are now present as zip files.
 This is because we needed to merge the previous results into the project before we could update the input data.
