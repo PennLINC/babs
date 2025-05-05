@@ -1,5 +1,10 @@
 # What's New
 
+## Version 0.5.1
+
+*  Fix sync-code by @smeisler in  https://github.com/PennLINC/babs/pull/297
+
+
 ## Version 0.5.0
 
 This version got test coverage over 80% and adds the `update-input-data` action. 
