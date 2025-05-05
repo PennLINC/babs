@@ -596,7 +596,7 @@ def babs_sync_code_main(project_root: str, message: str):
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
 
     babs_proj = BABSUpdate(project_root)
-    babs_proj.babs_sync_code(message=message)
+    babs_proj.babs_sync_code(commit_message=message)
 
 
 def _parse_update_input_data():
