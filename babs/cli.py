@@ -580,14 +580,14 @@ def _parse_sync_code():
     return parser
 
 
-def babs_sync_code_main(project_root: str, commit_message: str):
+def babs_sync_code_main(project_root: str, message: str):
     """This is the core function of babs sync-code.
 
     Parameters
     ----------
     project_root: str
         absolute path to the directory of BABS project
-    commit_message: str
+    message: str
         commit message for datalad save
 
     """
@@ -596,7 +596,7 @@ def babs_sync_code_main(project_root: str, commit_message: str):
     # Get class `BABS` based on saved `analysis/code/babs_proj_config.yaml`:
 
     babs_proj = BABSUpdate(project_root)
-    babs_proj.babs_sync_code(commit_message=commit_message)
+    babs_proj.babs_sync_code(message=message)
 
 
 def _parse_update_input_data():
