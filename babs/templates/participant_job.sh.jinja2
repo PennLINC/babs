@@ -87,7 +87,7 @@ datalad run \
 	-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
 	-m "{{ container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
-    "bash ./code/{{ container_name }}_zip.sh ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %}${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+    "bash ./code/{{ container_name }}_zip.sh ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 
 # Finish up:
 # push result file content to output RIA storage:
