@@ -30,6 +30,7 @@ class BABSUpdate(BABS):
         )
 
         self.analysis_datalad_handle.push(to='input')
+        self.analysis_datalad_handle.push(to='output')
 
     def babs_update_input_data(
         self, dataset_name='BIDS', initial_inclusion_df: pd.DataFrame | None = None
