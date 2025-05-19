@@ -1,6 +1,6 @@
 # What's New
 
-## Version 0.5.1
+## Version 0.5.2
 
 * Fix `babs sync-code` by @smeisler in https://github.com/PennLINC/babs/pull/299
 * Fix jinja space rendering issue for `participant_job.sh` by @tientong98 in https://github.com/PennLINC/babs/pull/301
