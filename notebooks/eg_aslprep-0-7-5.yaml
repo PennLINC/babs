@@ -47,7 +47,7 @@ cluster_resources:
     interpreting_shell: "/bin/bash"
     hard_memory_limit: 60G
     temporary_disk_space: 200G
-    hard_runtime_limit: "200:00:00"
+    hard_runtime_limit: "7:00:00"
     customized_text: |
         #SBATCH -p all
         #SBATCH --nodes=1
