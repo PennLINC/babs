@@ -13,6 +13,7 @@ from babs.input_datasets import InputDatasets, OutputDatasets
 from babs.scheduler import (
     request_all_job_status,
 )
+from babs.status import StatusCollection
 from babs.system import validate_queue
 from babs.utils import (
     combine_inclusion_dataframes,
@@ -132,6 +133,7 @@ class BABS:
           - queue
           - container
           - input_datasets
+          - status_collection
 
         """
         # Sanity check: the path `project_root` exists:
@@ -166,6 +168,18 @@ class BABS:
 
         self.input_datasets = InputDatasets(self.processing_level, config_yaml['input_datasets'])
         self.input_datasets.update_abs_paths(Path(self.project_root) / 'analysis')
+
+        self._update_status_collection()
+
+    def _update_status_collection(self) -> None:
+        """
+        Update the status collection.
+        """
+        self.status_collection = StatusCollection(
+            self.list_sub_path_abs,
+            jobs=self.job_status_path_abs,
+            results=self.job_status_path_abs,
+        )
 
     def _update_inclusion_dataframe(
         self, initial_inclusion_df: pd.DataFrame | None = None
