@@ -15,7 +15,7 @@ dependencies = [
     "filelock >= 3.8.0",
     "nibabel >=2.2.1",
     "niworkflows",
-    "numpy",
+    "numpy < 2.1",
     "pandas",
     "pyyaml >= 6.0",
     "regex",
