@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs", "nipreps-versions", "cython", "numpy"]
+requires = ["hatchling", "hatch-vcs", "nipreps-versions", "cython", "numpy < 2.0"]
 build-backend = "hatchling.build"
 
 [project]
@@ -15,7 +15,7 @@ dependencies = [
     "filelock >= 3.8.0",
     "nibabel >=2.2.1",
     "niworkflows",
-    "numpy",
+    "numpy < 2.0",
     "pandas",
     "pyyaml >= 6.0",
     "regex",

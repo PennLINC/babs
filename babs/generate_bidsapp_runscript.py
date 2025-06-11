@@ -216,6 +216,8 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
 
         elif key == '$SUBJECT_SELECTION_FLAG':
             subject_selection_flag = value
+        elif key == '$SESSION_SELECTION_FLAG':
+            cmds.append(f'{value} $sesid')
 
         else:  # check on values:
             if value in ('', None, 'Null', 'NULL'):  # a flag, without value
