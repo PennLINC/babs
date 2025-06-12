@@ -66,7 +66,7 @@ singularity run \
         {{ bids_app_arg }} \
 {% endif %}
 {% endfor %}
-        --participant-label "${subid}"
+        {{ subject_selection_flag }} "${subid}"
 
 {{ cmd_zip }}
 rm -rf {{ OUTPUT_MAIN_FOLDERNAME }} .git/tmp/wkdir
