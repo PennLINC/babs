@@ -34,7 +34,7 @@ We have a `yaml` file on our repo for easily installing BABS and its dependencie
     wget https://raw.githubusercontent.com/PennLINC/babs/refs/heads/main/environment_hpc.yml
 
     # Install into a new environment called babs:
-    mamba create -f evironment_hpc.yml
+    mamba create -f environment_hpc.yml
 
     # Activate the environment:
     mamba activate babs
