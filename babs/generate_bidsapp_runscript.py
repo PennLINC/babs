@@ -59,6 +59,7 @@ def generate_bidsapp_runscript(
         flag_fs_license = False
         path_fs_license = None
         singuRun_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
+        subject_selection_flag = '--participant-label'  # default value
     else:
         # read config from the yaml file:
         (
@@ -103,6 +104,7 @@ def generate_bidsapp_runscript(
         cmd_zip=cmd_zip,
         OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
         singularity_flags=singularity_args,
+        subject_selection_flag=subject_selection_flag,
     )
 
 
