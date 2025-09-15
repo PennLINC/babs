@@ -722,7 +722,6 @@ def parse_select_arg(select_arg):
 
 
     """
-    
     # argparse with action='append' and nargs='+' produces a list of lists.
     # Flatten here so downstream logic can assume a flat list.
     if isinstance(select_arg, str):
