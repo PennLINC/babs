@@ -747,7 +747,12 @@ def parse_select_arg(select_arg):
             ' the subject ID must come first'
         )
 
-    selection_df = pd.DataFrame({'sub_id': flat_list[::2], 'ses_id': flat_list[1::2]})
+    selection_df = pd.DataFrame(
+        {
+            'sub_id': flat_list[::2],
+            'ses_id': flat_list[1::2],
+        }
+    )
 
     # Check all items in the sub_id column start with sub-
     if not all(selection_df['sub_id'].str.startswith('sub-')):

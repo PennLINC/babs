@@ -61,7 +61,9 @@ class BABSInteraction(BABS):
         df_needs_submit['task_id'] = np.arange(1, df_needs_submit.shape[0] + 1)
         # Columns to write before we know the job_id (pre-submit)
         pre_submit_cols = (
-            ['sub_id', 'ses_id', 'task_id'] if self.processing_level == 'session' else ['sub_id', 'task_id']
+            ['sub_id', 'ses_id', 'task_id']
+            if self.processing_level == 'session'
+            else ['sub_id', 'task_id']
         )
         # Write the job submission dataframe to a csv file before submitting
         df_needs_submit[pre_submit_cols].to_csv(self.job_submit_path_abs, index=False)
