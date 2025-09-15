@@ -59,13 +59,12 @@ class BABSInteraction(BABS):
 
         # We know task_id ahead of time, so we can add it to the dataframe
         df_needs_submit['task_id'] = np.arange(1, df_needs_submit.shape[0] + 1)
-        submit_cols = (
-            ['sub_id', 'ses_id', 'job_id', 'task_id']
-            if self.processing_level == 'session'
-            else ['sub_id', 'job_id', 'task_id']
+        # Columns to write before we know the job_id (pre-submit)
+        pre_submit_cols = (
+            ['sub_id', 'ses_id', 'task_id'] if self.processing_level == 'session' else ['sub_id', 'task_id']
         )
-        # Write the job submission dataframe to a csv file
-        df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
+        # Write the job submission dataframe to a csv file before submitting
+        df_needs_submit[pre_submit_cols].to_csv(self.job_submit_path_abs, index=False)
         job_id = submit_array(
             self.analysis_path,
             self.queue,
@@ -75,6 +74,11 @@ class BABSInteraction(BABS):
         df_needs_submit['job_id'] = job_id
         # Update the job submission dataframe with the new job id
         print(f'Submitting the following jobs:\n{df_needs_submit}')
+        submit_cols = (
+            ['sub_id', 'ses_id', 'job_id', 'task_id']
+            if self.processing_level == 'session'
+            else ['sub_id', 'job_id', 'task_id']
+        )
         df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
 
         # Update the results df
