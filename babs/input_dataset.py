@@ -3,6 +3,7 @@
 import fnmatch
 import os
 import re
+import subprocess
 import warnings
 import zipfile
 from collections import defaultdict
@@ -207,6 +208,20 @@ class InputDataset:
         keep_indices = []
 
         if not self.is_zipped:
+            # Try to use git to list tracked files for robust matching without fetching content
+            tracked_files: list[str] | None = None
+            try:
+                proc = subprocess.run(
+                    ['git', 'ls-files'],
+                    cwd=self.babs_project_analysis_path,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                tracked_files = proc.stdout.splitlines()
+            except Exception:
+                tracked_files = None
+
             # Non-zipped dataset: check files exist under subject/session directory
             for idx, row in inclu_df.iterrows():
                 if (
@@ -227,11 +242,33 @@ class InputDataset:
                 all_patterns_present = True
                 for pattern in required_patterns:
                     # Patterns are relative to base_dir
-                    search_pattern = os.path.join(base_dir, pattern)
-                    matches = glob(search_pattern)
-                    if len(matches) == 0:
-                        all_patterns_present = False
-                        break
+                    if tracked_files is not None:
+                        # Use tracked files for matching
+                        subject_rel = os.path.relpath(base_dir, self.babs_project_analysis_path)
+                        # Ensure trailing slash to avoid partial matches
+                        if not subject_rel.endswith(os.sep):
+                            subject_rel = subject_rel + os.sep
+                        # Collect files under the subject/session directory
+                        files_under_subject = [
+                            f for f in tracked_files if f.startswith(subject_rel)
+                        ]
+                        # Compute path relative to subject/session directory before fnmatch
+                        pattern_rel = pattern
+                        any_match = any(
+                            fnmatch.fnmatch(
+                                os.path.relpath(f, subject_rel), pattern_rel
+                            )
+                            for f in files_under_subject
+                        )
+                        if not any_match:
+                            all_patterns_present = False
+                            break
+                    else:
+                        search_pattern = os.path.join(base_dir, pattern)
+                        matches = glob(search_pattern)
+                        if len(matches) == 0:
+                            all_patterns_present = False
+                            break
 
                 if all_patterns_present:
                     keep_indices.append(idx)
