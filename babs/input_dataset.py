@@ -12,6 +12,7 @@ import datalad.api as dlapi
 import pandas as pd
 
 
+
 class InputDataset:
     """Represent an input dataset."""
 
