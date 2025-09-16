@@ -1,6 +1,7 @@
 """This module is for input dataset(s)."""
 
 import os
+import fnmatch
 import re
 import warnings
 import zipfile
@@ -161,6 +162,9 @@ class InputDataset:
             else:
                 inclu_df = self._get_sub_ses_from_nonzipped_input()
 
+        # Apply required_files filtering, if specified
+        inclu_df = self._filter_inclusion_by_required_files(inclu_df)
+
         if inclu_df.empty:
             if self.processing_level == 'session':
                 columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
@@ -169,6 +173,94 @@ class InputDataset:
             return pd.DataFrame(columns=columns)
 
         return inclu_df
+
+    def _filter_inclusion_by_required_files(self, inclu_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Filter the inclusion dataframe using the dataset's required_files patterns, if any.
+
+        For non-zipped datasets, required file patterns are treated as paths relative to the
+        subject/session directory and matched using glob semantics.
+
+        For zipped datasets, required file patterns are matched against the zip filename(s).
+
+        Parameters
+        ----------
+        inclu_df : pd.DataFrame
+            DataFrame containing at least a 'sub_id' column, and optionally 'ses_id'.
+
+        Returns
+        -------
+        pd.DataFrame
+            Filtered inclusion dataframe.
+        """
+        if not self.required_files:
+            return inclu_df
+        if inclu_df.empty:
+            return inclu_df
+
+        # Normalize patterns to strings
+        required_patterns = [str(pat) for pat in self.required_files if pat is not None]
+        if not required_patterns:
+            return inclu_df
+
+        keep_indices = []
+
+        if not self.is_zipped:
+            # Non-zipped dataset: check files exist under subject/session directory
+            for idx, row in inclu_df.iterrows():
+                if self.processing_level == 'session' and 'ses_id' in row and pd.notna(row['ses_id']):
+                    base_dir = os.path.join(
+                        self.babs_project_analysis_path, row['sub_id'], row['ses_id']
+                    )
+                else:
+                    base_dir = os.path.join(self.babs_project_analysis_path, row['sub_id'])
+
+                # Subject/session directory must exist
+                if not os.path.isdir(base_dir):
+                    continue
+
+                all_patterns_present = True
+                for pattern in required_patterns:
+                    # Patterns are relative to base_dir
+                    search_pattern = os.path.join(base_dir, pattern)
+                    matches = glob(search_pattern)
+                    if len(matches) == 0:
+                        all_patterns_present = False
+                        break
+
+                if all_patterns_present:
+                    keep_indices.append(idx)
+        else:
+            # Zipped dataset: match required patterns against the zip filename(s) for the row
+            for idx, row in inclu_df.iterrows():
+                if self.processing_level == 'session' and 'ses_id' in row and pd.notna(row['ses_id']):
+                    zip_specific_pattern = f"{row['sub_id']}_{row['ses_id']}_*{self.name}*.zip"
+                else:
+                    zip_specific_pattern = f"{row['sub_id']}_*{self.name}*.zip"
+
+                candidate_zips = glob(os.path.join(self.babs_project_analysis_path, zip_specific_pattern))
+                if not candidate_zips:
+                    # No zip found for this row; exclude
+                    continue
+
+                all_patterns_present = True
+                for pattern in required_patterns:
+                    # Compare against basename of the zip files
+                    any_match = any(
+                        fnmatch.fnmatch(os.path.basename(zip_path), pattern) for zip_path in candidate_zips
+                    )
+                    if not any_match:
+                        all_patterns_present = False
+                        break
+
+                if all_patterns_present:
+                    keep_indices.append(idx)
+
+        if not keep_indices:
+            # Nothing matched; return empty frame with appropriate columns
+            return inclu_df.iloc[0:0]
+
+        return inclu_df.loc[keep_indices].reset_index(drop=True)
 
     def _get_sub_ses_from_zipped_input(self):
         """Find the subjects (and sessions) available as zip files in the input dataset.
