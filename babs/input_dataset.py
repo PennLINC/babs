@@ -1,17 +1,16 @@
 """This module is for input dataset(s)."""
 
-from collections import defaultdict
-from glob import glob
 import fnmatch
 import os
 import re
 import subprocess
 import warnings
 import zipfile
+from collections import defaultdict
+from glob import glob
 
 import datalad.api as dlapi
 import pandas as pd
-
 
 
 class InputDataset:
@@ -281,9 +280,7 @@ class InputDataset:
                         # Direct relative pattern
                         matches.extend(glob(os.path.join(base_dir, pattern)))
                         # Recursive search to find pattern at any depth (subject-level use-case)
-                        matches.extend(
-                            glob(os.path.join(base_dir, '**', pattern), recursive=True)
-                        )
+                        matches.extend(glob(os.path.join(base_dir, '**', pattern), recursive=True))
                         if len(matches) == 0:
                             all_patterns_present = False
                             break
