@@ -295,9 +295,9 @@ class InputDataset:
                     and 'ses_id' in row
                     and pd.notna(row['ses_id'])
                 ):
-                    zip_specific_pattern = f"{row['sub_id']}_{row['ses_id']}_*{self.name}*.zip"
+                    zip_specific_pattern = f'{row["sub_id"]}_{row["ses_id"]}_*{self.name}*.zip'
                 else:
-                    zip_specific_pattern = f"{row['sub_id']}_*{self.name}*.zip"
+                    zip_specific_pattern = f'{row["sub_id"]}_*{self.name}*.zip'
 
                 candidate_zips = glob(
                     os.path.join(self.babs_project_analysis_path, zip_specific_pattern)
