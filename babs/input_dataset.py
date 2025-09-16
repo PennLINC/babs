@@ -167,11 +167,10 @@ class InputDataset:
         inclu_df = self._filter_inclusion_by_required_files(inclu_df)
 
         if inclu_df.empty:
-            # Return an empty dataframe with only the inclusion columns
             if self.processing_level == 'session':
-                columns = ['sub_id', 'ses_id']
+                columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
             else:
-                columns = ['sub_id']
+                columns = ['job_id', 'task_id', 'sub_id', 'has_results']
             return pd.DataFrame(columns=columns)
 
         return inclu_df
