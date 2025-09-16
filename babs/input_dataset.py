@@ -1,12 +1,12 @@
 """This module is for input dataset(s)."""
 
-from collections import defaultdict
-from glob import glob
 import fnmatch
 import os
 import re
 import warnings
 import zipfile
+from collections import defaultdict
+from glob import glob
 
 import datalad.api as dlapi
 import pandas as pd
