@@ -241,7 +241,8 @@ class InputDataset:
                 all_patterns_present = True
                 for pattern in required_patterns:
                     # Patterns are relative to base_dir
-                    if tracked_files is not None:
+                    use_tracked = tracked_files is not None and len(tracked_files) > 0
+                    if use_tracked:
                         subject_rel = os.path.relpath(base_dir, self.babs_project_analysis_path)
                         if subject_rel == '.':
                             subject_rel = ''
