@@ -168,10 +168,11 @@ class InputDataset:
         inclu_df = self._filter_inclusion_by_required_files(inclu_df)
 
         if inclu_df.empty:
+            # Return an empty dataframe with only the inclusion columns
             if self.processing_level == 'session':
-                columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
+                columns = ['sub_id', 'ses_id']
             else:
-                columns = ['job_id', 'task_id', 'sub_id', 'has_results']
+                columns = ['sub_id']
             return pd.DataFrame(columns=columns)
 
         return inclu_df
@@ -243,29 +244,47 @@ class InputDataset:
                 for pattern in required_patterns:
                     # Patterns are relative to base_dir
                     if tracked_files is not None:
-                        # Use tracked files for matching
                         subject_rel = os.path.relpath(base_dir, self.babs_project_analysis_path)
-                        # Ensure trailing slash to avoid partial matches
-                        if not subject_rel.endswith(os.sep):
+                        if subject_rel == '.':
+                            subject_rel = ''
+                        if subject_rel and not subject_rel.endswith(os.sep):
                             subject_rel = subject_rel + os.sep
-                        # Collect files under the subject/session directory
                         files_under_subject = [
-                            f for f in tracked_files if f.startswith(subject_rel)
+                            f for f in tracked_files if not subject_rel or f.startswith(subject_rel)
                         ]
-                        # Compute path relative to subject/session directory before fnmatch
-                        pattern_rel = pattern
-                        any_match = any(
-                            fnmatch.fnmatch(
-                                os.path.relpath(f, subject_rel), pattern_rel
-                            )
-                            for f in files_under_subject
-                        )
+
+                        def _rel_from_subject(path: str) -> str:
+                            return path[len(subject_rel) :] if subject_rel else path
+
+                        any_match = False
+                        for f in files_under_subject:
+                            rel_path = _rel_from_subject(f)
+                            # Direct relative match (session-level)
+                            if fnmatch.fnmatch(rel_path, pattern):
+                                any_match = True
+                                break
+                            # Subject-level: attempt matching the pattern at any depth
+                            parts = rel_path.split(os.sep)
+                            for i in range(len(parts)):
+                                suffix = os.path.join(*parts[i:]) if i > 0 else rel_path
+                                if fnmatch.fnmatch(suffix, pattern):
+                                    any_match = True
+                                    break
+                            if any_match:
+                                break
+
                         if not any_match:
                             all_patterns_present = False
                             break
                     else:
-                        search_pattern = os.path.join(base_dir, pattern)
-                        matches = glob(search_pattern)
+                        # Filesystem glob; include recursive scan for subject-level hierarchies
+                        matches = []
+                        # Direct relative pattern
+                        matches.extend(glob(os.path.join(base_dir, pattern)))
+                        # Recursive search to find pattern at any depth (subject-level use-case)
+                        matches.extend(
+                            glob(os.path.join(base_dir, '**', pattern), recursive=True)
+                        )
                         if len(matches) == 0:
                             all_patterns_present = False
                             break
