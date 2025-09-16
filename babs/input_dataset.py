@@ -1,12 +1,12 @@
 """This module is for input dataset(s)."""
 
-import os
+from collections import defaultdict
+from glob import glob
 import fnmatch
+import os
 import re
 import warnings
 import zipfile
-from collections import defaultdict
-from glob import glob
 
 import datalad.api as dlapi
 import pandas as pd
@@ -208,7 +208,11 @@ class InputDataset:
         if not self.is_zipped:
             # Non-zipped dataset: check files exist under subject/session directory
             for idx, row in inclu_df.iterrows():
-                if self.processing_level == 'session' and 'ses_id' in row and pd.notna(row['ses_id']):
+                if (
+                    self.processing_level == 'session'
+                    and 'ses_id' in row
+                    and pd.notna(row['ses_id'])
+                ):
                     base_dir = os.path.join(
                         self.babs_project_analysis_path, row['sub_id'], row['ses_id']
                     )
@@ -233,12 +237,18 @@ class InputDataset:
         else:
             # Zipped dataset: match required patterns against the zip filename(s) for the row
             for idx, row in inclu_df.iterrows():
-                if self.processing_level == 'session' and 'ses_id' in row and pd.notna(row['ses_id']):
+                if (
+                    self.processing_level == 'session'
+                    and 'ses_id' in row
+                    and pd.notna(row['ses_id'])
+                ):
                     zip_specific_pattern = f"{row['sub_id']}_{row['ses_id']}_*{self.name}*.zip"
                 else:
                     zip_specific_pattern = f"{row['sub_id']}_*{self.name}*.zip"
 
-                candidate_zips = glob(os.path.join(self.babs_project_analysis_path, zip_specific_pattern))
+                candidate_zips = glob(
+                    os.path.join(self.babs_project_analysis_path, zip_specific_pattern)
+                )
                 if not candidate_zips:
                     # No zip found for this row; exclude
                     continue
@@ -247,7 +257,8 @@ class InputDataset:
                 for pattern in required_patterns:
                     # Compare against basename of the zip files
                     any_match = any(
-                        fnmatch.fnmatch(os.path.basename(zip_path), pattern) for zip_path in candidate_zips
+                        fnmatch.fnmatch(os.path.basename(zip_path), pattern)
+                        for zip_path in candidate_zips
                     )
                     if not any_match:
                         all_patterns_present = False
