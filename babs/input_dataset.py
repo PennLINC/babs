@@ -1,13 +1,13 @@
 """This module is for input dataset(s)."""
 
+from collections import defaultdict
+from glob import glob
 import fnmatch
 import os
 import re
 import subprocess
 import warnings
 import zipfile
-from collections import defaultdict
-from glob import glob
 
 import datalad.api as dlapi
 import pandas as pd
@@ -250,15 +250,14 @@ class InputDataset:
                         if subject_rel and not subject_rel.endswith(os.sep):
                             subject_rel = subject_rel + os.sep
                         files_under_subject = [
-                            f for f in tracked_files if not subject_rel or f.startswith(subject_rel)
+                            f
+                            for f in tracked_files
+                            if (not subject_rel) or f.startswith(subject_rel)
                         ]
-
-                        def _rel_from_subject(path: str) -> str:
-                            return path[len(subject_rel) :] if subject_rel else path
 
                         any_match = False
                         for f in files_under_subject:
-                            rel_path = _rel_from_subject(f)
+                            rel_path = f[len(subject_rel) :] if subject_rel else f
                             # Direct relative match (session-level)
                             if fnmatch.fnmatch(rel_path, pattern):
                                 any_match = True
