@@ -1,0 +1,77 @@
+# Example pipeline configuration: nordic denoising -> fMRIPrep
+
+# Input datasets configuration
+input_datasets:
+  BIDS:
+    required_files:
+      - "func/*_bold.nii*"
+      - "anat/*_T1w.nii*"
+    is_zipped: false
+    origin_url: "/path/to/BIDS"
+    path_in_babs: inputs/data/BIDS
+    unzipped_path_containing_subject_dirs: inputs/data/BIDS
+
+# Pipeline configuration - ordered list of BIDS app steps
+pipeline:
+  # Step 1: nordic denoising (modifies input BIDS in-place)
+  - container_name: 'nordic-0-0-1'
+    config:
+      zip_foldernames:
+        nordic_outputs: '0-0-1'
+      bids_app_args:
+        $SUBJECT_SELECTION_FLAG: "--participant-label"
+        --skip-bids-validation: ""
+      singularity_args:
+        - '--cleanenv'
+    inter_step_cmds: |
+      # Delete rec-nonordic files (original data with new names)
+      echo "Deleting rec-nonordic files (original data)..."
+      find "${PWD}/inputs/data/BIDS" -name "*rec-nonordic*" -delete
+      echo "Original data with rec-nonordic entity removed"
+
+  # Step 2: fMRIPrep (uses cleaned nordic output as input)
+  - container_name: 'fmriprep-25.0.0'
+    config:
+      zip_foldernames:
+        fmriprep_func: "25-0-0"
+      bids_app_args:
+        $SUBJECT_SELECTION_FLAG: "--participant-label"
+        -w: "$BABS_TMPDIR"
+        --stop-on-first-crash: ""
+        --fs-license-file: "/path/to/license.txt"
+        --output-spaces: "func T1w MNI152NLin6Asym:res-2"
+        --force: bbr
+        --skip-bids-validation: ""
+        -vv: ""
+        --cifti-output: "91k"
+        --n_cpus: "4"
+        --mem-mb: "30000"
+      singularity_args:
+        - --containall
+        - --writable-tmpfs
+
+# For compatibility with single-app interfaces expecting top-level outputs,
+# provide the final outputs to be zipped (same as last step's outputs)
+zip_foldernames:
+  fmriprep_func: "25-0-0"
+
+# Cluster resources configuration
+cluster_resources:
+    interpreting_shell: "/bin/bash"
+    hard_runtime_limit: "10:00:00"
+    temporary_disk_space: 200G
+    customized_text: |
+        #SBATCH -p all
+        #SBATCH --nodes=1
+        #SBATCH --ntasks=1
+        #SBATCH --cpus-per-task=4
+        #SBATCH --mem=30G
+        #SBATCH --propagate=NONE
+
+# Script preamble (optional)
+script_preamble: |
+    eval "$(micromamba shell hook --shell bash)"
+    micromamba activate babs
+
+# Where to run the jobs:
+job_compute_space: "${TMP}" # [FIX ME] replace "/path/to/temporary_compute_space" with yours

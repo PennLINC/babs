@@ -161,11 +161,70 @@ class BABS:
         self.queue = validate_queue(config_yaml['queue'])
         self.container = config_yaml['container']
 
+        # Check for pipeline configuration (optional)
+        self.pipeline = config_yaml.get('pipeline', None)
+        if self.pipeline is not None:
+            self._validate_pipeline_config()
+
         # Check the output RIA:
         self.wtf_key_info(flag_output_ria_only=True)
 
         self.input_datasets = InputDatasets(self.processing_level, config_yaml['input_datasets'])
         self.input_datasets.update_abs_paths(Path(self.project_root) / 'analysis')
+
+    def _validate_pipeline_config(self) -> None:
+        """Validate the pipeline configuration if present.
+
+        Raises
+        ------
+        ValueError
+            If the pipeline configuration is invalid.
+        """
+        if not isinstance(self.pipeline, list):
+            raise ValueError('Pipeline configuration must be a list of steps')
+
+        if len(self.pipeline) == 0:
+            raise ValueError('Pipeline configuration cannot be empty')
+
+        print(f'\nValidating pipeline configuration with {len(self.pipeline)} steps...')
+
+        for i, step in enumerate(self.pipeline):
+            if not isinstance(step, dict):
+                raise ValueError(f'Pipeline step {i} must be a dictionary')
+
+            required_fields = ['container_name']
+            for field in required_fields:
+                if field not in step:
+                    raise ValueError(f'Pipeline step {i} missing required field: {field}')
+
+            step_name = step['container_name']
+            print(f'  Step {i + 1}: {step_name}')
+
+            # Validate step configuration
+            step_config = step.get('config', {})
+            if step_config:
+                print(f'    Config: {len(step_config)} configuration items')
+
+                # Check for step-specific cluster resources
+                cluster_resources = step_config.get('cluster_resources', {})
+                if cluster_resources:
+                    print(f'    Cluster resources: {list(cluster_resources.keys())}')
+
+                # Check for step-specific bids_app_args
+                bids_app_args = step_config.get('bids_app_args', {})
+                if bids_app_args:
+                    print(f'    BIDS app args: {len(bids_app_args)} arguments')
+
+                # Check for step-specific singularity_args
+                singularity_args = step_config.get('singularity_args', [])
+                if singularity_args:
+                    print(f'    Singularity args: {len(singularity_args)} arguments')
+
+            # Check for inter-step commands
+            if 'inter_step_cmds' in step:
+                print('    Inter-step commands: present')
+
+        print('Pipeline configuration validation complete!')
 
     def _update_inclusion_dataframe(
         self, initial_inclusion_df: pd.DataFrame | None = None

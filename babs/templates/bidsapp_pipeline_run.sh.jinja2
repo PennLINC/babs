@@ -9,15 +9,17 @@ sesid="$2"
 {{ input_ds['name'].upper() }}_ZIP="${{ loop.index + (2 if processing_level == 'session' else 1) }}"
 {% endfor %}
 
-{% if flag_filterfile %}
+{% set steps_with_filter = processed_steps | selectattr('flag_filterfile') | list %}
+{% if steps_with_filter %}
 # Create a filter file that only allows this session
 filterfile="${PWD}/${sesid}_filter.json"
 {% raw %}{{% endraw %}
     echo "{"
     echo "'fmap': {'datatype': 'fmap'},"
-{% if 'fmriprep' in container_name.lower() %}
+{% set first_filter_step = steps_with_filter[0] %}
+{% if 'fmriprep' in first_filter_step['container_name'].lower() %}
     echo "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'},"
-{% elif 'qsiprep' in container_name.lower() %}
+{% elif 'qsiprep' in first_filter_step['container_name'].lower() %}
     echo "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'},"
 {% endif %}
     echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'},"
@@ -33,6 +35,7 @@ sed -i "s/'/\"/g" "${filterfile}"
 sed -i "s/ses-//g" "${filterfile}"
 
 {% endif %}
+
 {% if cmd_unzip_inputds %}
 {{ cmd_unzip_inputds }}
 {% endif %}
@@ -41,35 +44,44 @@ mkdir -p "${PWD}/.git/tmp/wkdir"
 mkdir -p {{ templateflow_home_on_disk }}
 {% endif %}
 
-mkdir -p "{{ bids_app_output_dir }}"
+{% for step in processed_steps %}
+echo "# Running step: {{ step['container_name'] }}"
+mkdir -p "{{ step['bids_app_output_dir'] }}"
+
 singularity run \
     -B "${PWD}" \
 {% if templateflow_home_on_disk %}
     -B "{{ templateflow_home_on_disk }}":"{{ templateflow_in_container }}" \
     --env "TEMPLATEFLOW_HOME={{ templateflow_in_container }}" \
 {% endif %}
-{% if flag_fs_license %}
-    -B "{{ path_fs_license }}":"{{ PATH_FS_LICENSE_IN_CONTAINER }}" \
+{% if step['flag_fs_license'] %}
+    -B "{{ step['path_fs_license'] }}":"{{ PATH_FS_LICENSE_IN_CONTAINER }}" \
 {% endif %}
-{% for singularity_flag in singularity_flags %}
+{% for singularity_flag in step['singularity_flags'] %}
     {{ singularity_flag }} \
 {% endfor %}
-    "{{ container_path_relToAnalysis }}" \
-        "${PWD}/{{ bids_app_input_dir }}" \
-        "${PWD}/{{ bids_app_output_dir }}" \
+    "{{ step['container_path_relToAnalysis'] }}" \
+        "${PWD}/{{ step['bids_app_input_dir'] }}" \
+        "${PWD}/{{ step['bids_app_output_dir'] }}" \
         participant \
-{% if flag_filterfile %}
+{% if step['flag_filterfile'] %}
         --bids-filter-file "${filterfile}" \
 {% endif %}
-{% for bids_app_arg in bids_app_args %}
+{% for bids_app_arg in step['bids_app_args'] %}
 {% if bids_app_arg %}
         {{ bids_app_arg }} \
 {% endif %}
 {% endfor %}
-        {{ subject_selection_flag }} "${subid}"
+        {{ step['subject_selection_flag'] }} "${subid}"
+
+{% if step.get('inter_step_cmds') %}
+{{ step['inter_step_cmds'] }}
+{% endif %}
+
+{% endfor %}
 
 {{ cmd_zip }}
 rm -rf {{ OUTPUT_MAIN_FOLDERNAME }} .git/tmp/wkdir
-{% if flag_filterfile %}
+{% if steps_with_filter %}
 rm -f "${filterfile}"
 {% endif %}
