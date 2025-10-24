@@ -144,6 +144,11 @@ def test_submit_test_job(babs_project_sessionlevel, monkeypatch):
     # Run the test job submission
     babs_proj._submit_test_job()
 
+    # Debug: Print all captured messages to see what's actually being printed
+    print('DEBUG: All captured printed messages:')
+    for i, msg in enumerate(printed_messages):
+        print(f'  {i}: {repr(msg)}')
+
     # Check expected messages and behavior
     assert any('Submitting a test job' in msg for msg in printed_messages)
     assert any('Test job has been submitted' in msg for msg in printed_messages)
