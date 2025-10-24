@@ -16,8 +16,6 @@ pipeline:
   # Step 1: nordic denoising (modifies input BIDS in-place)
   - container_name: 'nordic-0-0-1'
     config:
-      zip_foldernames:
-        nordic_outputs: '0-0-1'
       bids_app_args:
         $SUBJECT_SELECTION_FLAG: "--participant-label"
         --skip-bids-validation: ""
@@ -30,30 +28,30 @@ pipeline:
       echo "Original data with rec-nonordic entity removed"
 
   # Step 2: fMRIPrep (uses cleaned nordic output as input)
-  - container_name: 'fmriprep-25.0.0'
+  - container_name: 'fmriprep-25-0-0'
     config:
-      zip_foldernames:
-        fmriprep_func: "25-0-0"
       bids_app_args:
         $SUBJECT_SELECTION_FLAG: "--participant-label"
         -w: "$BABS_TMPDIR"
         --stop-on-first-crash: ""
         --fs-license-file: "/path/to/license.txt"
-        --output-spaces: "func T1w MNI152NLin6Asym:res-2"
+        --output-spaces: "MNI152NLin6Asym:res-2"
         --force: bbr
         --skip-bids-validation: ""
         -vv: ""
         --cifti-output: "91k"
         --n_cpus: "4"
         --mem-mb: "30000"
+        --fs-no-reconall: ""
       singularity_args:
         - --containall
         - --writable-tmpfs
 
 # For compatibility with single-app interfaces expecting top-level outputs,
 # provide the final outputs to be zipped (same as last step's outputs)
+all_results_in_one_zip: true
 zip_foldernames:
-  fmriprep_func: "25-0-0"
+  fmriprep: "25-0-0"
 
 # Cluster resources configuration
 cluster_resources:

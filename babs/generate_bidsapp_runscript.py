@@ -325,6 +325,7 @@ def generate_pipeline_runscript(
     processing_level,
     input_datasets,
     templateflow_home=None,
+    final_zip_foldernames=None,
 ):
     """Generate a bash script that runs an ordered pipeline of BIDS Apps.
 
@@ -334,7 +335,7 @@ def generate_pipeline_runscript(
         Ordered list of pipeline step configurations. Each step must include:
           - container_name: str
           - config: dict containing:
-            - zip_foldernames: dict (for intermediate outputs, not used for final zip)
+            - zip_foldernames: dict (optional for individual steps, handled at pipeline level)
             - bids_app_args: dict (same format as single bidsapp)
             - singularity_args: list
           - inter_step_cmds: Optional[str] bash snippet executed after step
@@ -347,6 +348,10 @@ def generate_pipeline_runscript(
 
     templateflow_home: str, optional
         TEMPLATEFLOW_HOME on disk, if any, to add a bind mount
+
+    final_zip_foldernames: dict, optional
+        Top-level zip_foldernames configuration for final output zipping.
+        If None, falls back to last step's config for backward compatibility.
 
     Returns
     -------
@@ -392,14 +397,16 @@ def generate_pipeline_runscript(
         flag_filterfile = processing_level == 'session' and 'prep' in container_name.lower()
 
         # Determine output directory consistent with single-app behavior
-        dict_zip_foldernames_step, bids_app_output_dir = app_output_settings_from_config(
-            step_config
-        )
+        # Only call app_output_settings_from_config if the step has zip_foldernames
+        if 'zip_foldernames' in step_config:
+            _, bids_app_output_dir = app_output_settings_from_config(step_config)
+        else:
+            # Step doesn't have zip_foldernames (e.g., nordic that modifies in-place)
+            bids_app_output_dir = OUTPUT_MAIN_FOLDERNAME
 
         # Special handling: nordic modifies BIDS in-place
         if 'nordic' in container_name.lower():
             bids_app_output_dir = bids_app_input_dir
-            dict_zip_foldernames_step = {}
 
         # For step 0, use the original input; subsequent steps chain from previous output
         step_input_dir = (
@@ -423,9 +430,11 @@ def generate_pipeline_runscript(
         }
         processed_steps.append(processed_step)
 
-        # Track final zip settings from the last step
-        if i == len(pipeline_config) - 1:
-            final_zip_foldernames = dict_zip_foldernames_step
+    # Use provided final zip foldernames or fall back to last step's config
+    if final_zip_foldernames is None:
+        # Fallback: get from last step's config (for backward compatibility)
+        last_step_config = pipeline_config[-1].get('config', {})
+        final_zip_foldernames, _ = app_output_settings_from_config(last_step_config)
 
     # Generate the final zip command using existing helper for consistency
     cmd_zip = get_output_zipping_cmds(final_zip_foldernames, processing_level)

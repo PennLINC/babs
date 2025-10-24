@@ -177,6 +177,7 @@ def test_generate_pipeline_runscript():
         processing_level='subject',
         input_datasets=input_datasets_prep,
         templateflow_home='/path/to/templateflow_home',
+        final_zip_foldernames=config.get('zip_foldernames', {}),
     )
 
     out_fn = Path('.') / f'{config_path.name}_pipeline.sh'

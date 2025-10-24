@@ -88,6 +88,8 @@ class BABSBootstrap(BABS):
         # Detect optional pipeline configuration from the provided YAML
         # Store on self so downstream bootstrap logic can branch accordingly
         self.pipeline = babs_config.get('pipeline')
+        # Store top-level zip_foldernames for pipeline use
+        self.zip_foldernames = babs_config.get('zip_foldernames', {})
         datasets = babs_config.get('input_datasets')
         if not datasets:
             raise ValueError('No input datasets found in the container config file.')
@@ -418,11 +420,8 @@ class BABSBootstrap(BABS):
             f'containers/.datalad/environments/{s["container_name"]}/image' for s in self.pipeline
         ]
 
-        # Compute final zip foldernames from the last step's config
-        from babs.utils import app_output_settings_from_config
-
-        last_step_config = self.pipeline[-1].get('config', {})
-        final_zip_foldernames, _ = app_output_settings_from_config(last_step_config)
+        # Use top-level zip_foldernames for pipeline final output
+        final_zip_foldernames = self.zip_foldernames
 
         # Generate pipeline run script using unified pipeline generator
         pipeline_script_path = op.join(self.analysis_path, 'code', 'pipeline_zip.sh')
@@ -433,6 +432,7 @@ class BABSBootstrap(BABS):
             processing_level=self.processing_level,
             input_datasets=self.input_datasets.as_records(),
             templateflow_home=templateflow_home,
+            final_zip_foldernames=final_zip_foldernames,
         )
 
         with open(pipeline_script_path, 'w') as f:
@@ -452,17 +452,18 @@ class BABSBootstrap(BABS):
         print('This bash script will be named as `participant_job.sh`')
         bash_path = op.join(self.analysis_path, 'code', 'participant_job.sh')
 
-        # Get system config for submit script
-        system_config = system.get_cluster_resources_config()
+        # Load user configuration
+        with open(container_config) as f:
+            user_config = yaml.safe_load(f)
 
-        # Aggregate resource requirements from all pipeline steps
-        aggregated_resources = self._aggregate_pipeline_resources(system_config)
+        # Get user's cluster resources configuration (same as single-app case)
+        cluster_resources_config = user_config.get('cluster_resources', {})
 
         participant_job_content = generate_submit_script(
             queue_system=self.queue,
-            cluster_resources_config=aggregated_resources,
-            script_preamble=system_config.get('script_preamble', ''),
-            job_scratch_directory=system_config.get('job_compute_space', '/tmp'),
+            cluster_resources_config=cluster_resources_config,
+            script_preamble=user_config.get('script_preamble', ''),
+            job_scratch_directory=user_config.get('job_compute_space', '/tmp'),
             input_datasets=self.input_datasets.as_records(),
             processing_level=self.processing_level,
             container_name='pipeline',  # placeholder
@@ -490,65 +491,6 @@ class BABSBootstrap(BABS):
             step_check_setup = op.join(path_check_setup, f'step_{i + 1}_{step_container_name}')
             os.makedirs(step_check_setup, exist_ok=True)
             step_container.generate_bash_test_job(step_check_setup, system)
-
-    def _aggregate_pipeline_resources(self, base_system_config):
-        """
-        Aggregate resource requirements from all pipeline steps.
-
-        Parameters
-        ----------
-        base_system_config : dict
-            Base system configuration
-
-        Returns
-        -------
-        dict
-            Aggregated resource configuration
-        """
-        aggregated = base_system_config.copy()
-
-        # Track maximum resource requirements across all steps
-        max_cpus = 0
-        max_memory = 0
-        max_runtime = 0
-
-        print(f'\nAggregating resource requirements from {len(self.pipeline)} pipeline steps...')
-
-        for i, step in enumerate(self.pipeline):
-            step_config = step.get('config', {})
-            cluster_resources = step_config.get('cluster_resources', {})
-            step_name = step['container_name']
-
-            print(f'  Step {i + 1} ({step_name}):')
-
-            # Extract numeric values for comparison
-            step_cpus = cluster_resources.get('cpus', 0)
-            step_memory = cluster_resources.get('memory', 0)
-            step_runtime = cluster_resources.get('runtime', 0)
-
-            if step_cpus:
-                max_cpus = max(max_cpus, int(step_cpus))
-                print(f'    CPUs: {step_cpus}')
-            if step_memory:
-                max_memory = max(max_memory, int(step_memory))
-                print(f'    Memory: {step_memory}')
-            if step_runtime:
-                max_runtime = max(max_runtime, int(step_runtime))
-                print(f'    Runtime: {step_runtime}')
-
-        # Update aggregated config with maximum values
-        if max_cpus > 0:
-            aggregated['cpus'] = max_cpus
-            print('\nFinal aggregated resources:')
-            print(f'  CPUs: {max_cpus}')
-        if max_memory > 0:
-            aggregated['memory'] = max_memory
-            print(f'  Memory: {max_memory}')
-        if max_runtime > 0:
-            aggregated['runtime'] = max_runtime
-            print(f'  Runtime: {max_runtime}')
-
-        return aggregated
 
     def _init_import_files(self, file_list):
         """
