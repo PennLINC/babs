@@ -402,16 +402,16 @@ def generate_pipeline_runscript(
         flag_filterfile = processing_level == 'session' and 'prep' in container_name.lower()
 
         # Determine output directory consistent with single-app behavior
-        # Only call app_output_settings_from_config if the step has zip_foldernames
-        if 'zip_foldernames' in step_config:
-            _, bids_app_output_dir = app_output_settings_from_config(step_config)
-        else:
-            # Step doesn't have zip_foldernames (e.g., nordic that modifies in-place)
-            bids_app_output_dir = OUTPUT_MAIN_FOLDERNAME
-
         # Special handling: nordic modifies BIDS in-place
         if 'nordic' in container_name.lower():
             bids_app_output_dir = bids_app_input_dir
+        else:
+            # For non-nordic steps, check if step has zip_foldernames
+            if 'zip_foldernames' in step_config:
+                _, bids_app_output_dir = app_output_settings_from_config(step_config)
+            else:
+                # Step doesn't have zip_foldernames, use default
+                bids_app_output_dir = OUTPUT_MAIN_FOLDERNAME
 
         # For step 0, use the original input; subsequent steps chain from previous output
         step_input_dir = (
@@ -440,6 +440,13 @@ def generate_pipeline_runscript(
         # Fallback: get from last step's config (for backward compatibility)
         last_step_config = pipeline_config[-1].get('config', {})
         final_zip_foldernames, _ = app_output_settings_from_config(last_step_config)
+
+    # Update the last step's output directory to match the final zip configuration
+    if processed_steps and final_zip_foldernames:
+        # Create a temporary config with the final zip_foldernames to get the correct output path
+        temp_config = {'zip_foldernames': final_zip_foldernames, 'all_results_in_one_zip': True}
+        _, final_output_dir = app_output_settings_from_config(temp_config)
+        processed_steps[-1]['bids_app_output_dir'] = final_output_dir
 
     # Generate the final zip command using existing helper for consistency
     cmd_zip = get_output_zipping_cmds(final_zip_foldernames, processing_level)

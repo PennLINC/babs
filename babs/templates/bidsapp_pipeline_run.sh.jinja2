@@ -46,7 +46,9 @@ mkdir -p {{ templateflow_home_on_disk }}
 
 {% for step in processed_steps %}
 echo "# Running step: {{ step['container_name'] }}"
+{% if step['bids_app_output_dir'] != step['bids_app_input_dir'] %}
 mkdir -p "{{ step['bids_app_output_dir'] }}"
+{% endif %}
 
 singularity run \
     -B "${PWD}" \

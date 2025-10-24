@@ -8,6 +8,7 @@ import datalad.api as dlapi
 import pytest
 
 from babs import BABSCheckSetup
+from babs.constants import CHECK_MARK
 
 
 def add_commit_to_ria(ria_path, temp_path):
@@ -151,10 +152,10 @@ def test_submit_test_job(babs_project_sessionlevel, monkeypatch):
         sys.stdout.write(f'  {i}: {repr(msg)}\n')
     sys.stdout.flush()
 
-    # # Check expected messages and behavior
-    # assert any('Submitting a test job' in msg for msg in printed_messages)
-    # assert any('Test job has been submitted' in msg for msg in printed_messages)
-    # assert any(f'{CHECK_MARK} All good in test job!' in msg for msg in printed_messages)
+    # Check expected messages and behavior
+    assert any('Submitting a test job' in msg for msg in printed_messages)
+    assert any('Test job has been submitted' in msg for msg in printed_messages)
+    assert any(f'{CHECK_MARK} All good in test job!' in msg for msg in printed_messages)
 
 
 def test_check_setup_with_non_clean_status(babs_project_sessionlevel):

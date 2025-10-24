@@ -40,8 +40,8 @@ pipeline:
         --skip-bids-validation: ""
         -vv: ""
         --cifti-output: "91k"
-        --n_cpus: "4"
-        --mem-mb: "30000"
+        --n_cpus: "8"
+        --mem-mb: "60000"
         --fs-no-reconall: ""
       singularity_args:
         - --containall
@@ -56,14 +56,14 @@ zip_foldernames:
 # Cluster resources configuration
 cluster_resources:
     interpreting_shell: "/bin/bash"
-    hard_runtime_limit: "10:00:00"
+    hard_runtime_limit: "24:00:00"
     temporary_disk_space: 200G
     customized_text: |
         #SBATCH -p all
         #SBATCH --nodes=1
         #SBATCH --ntasks=1
-        #SBATCH --cpus-per-task=4
-        #SBATCH --mem=30G
+        #SBATCH --cpus-per-task=8
+        #SBATCH --mem=60G
         #SBATCH --propagate=NONE
 
 # Script preamble (optional)
