@@ -430,7 +430,7 @@ class BABSBootstrap(BABS):
         pipeline_script_content = generate_pipeline_runscript(
             pipeline_config=self.pipeline,
             processing_level=self.processing_level,
-            input_datasets=self.input_datasets.as_records(),
+            input_datasets=self.input_datasets,
             templateflow_home=templateflow_home,
             final_zip_foldernames=final_zip_foldernames,
         )
@@ -464,7 +464,7 @@ class BABSBootstrap(BABS):
             cluster_resources_config=cluster_resources_config,
             script_preamble=user_config.get('script_preamble', ''),
             job_scratch_directory=user_config.get('job_compute_space', '/tmp'),
-            input_datasets=self.input_datasets.as_records(),
+            input_datasets=self.input_datasets,
             processing_level=self.processing_level,
             container_name='pipeline',  # placeholder
             zip_foldernames=final_zip_foldernames,

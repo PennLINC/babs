@@ -43,8 +43,8 @@ def generate_submit_script(
         Script preamble commands.
     job_scratch_directory : str
         Directory for job scratch space.
-    input_datasets : list
-        List of input dataset configurations.
+    input_datasets : InputDatasets or list
+        InputDatasets object or list of input dataset configurations.
     processing_level : str
         Processing level ('subject' or 'session').
     container_name : str
@@ -63,6 +63,11 @@ def generate_submit_script(
     bidsapp_run_script: str
         The contents of the bash script that runs the BIDS App singularity image.
     """
+    # Handle both InputDatasets objects and lists for consistency
+    if hasattr(input_datasets, 'as_records'):
+        # It's an InputDatasets object, convert to records
+        input_datasets = input_datasets.as_records()
+
     env = Environment(
         loader=PackageLoader('babs', 'templates'),
         trim_blocks=True,

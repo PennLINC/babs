@@ -343,8 +343,8 @@ def generate_pipeline_runscript(
     processing_level: {'subject', 'session'}
         Whether processing is done on a subject-wise or session-wise basis
 
-    input_datasets: list of dicts
-        Each dict contains information of an input dataset
+    input_datasets: InputDatasets or list of dicts
+        InputDatasets object or list of dicts containing information of input datasets
 
     templateflow_home: str, optional
         TEMPLATEFLOW_HOME on disk, if any, to add a bind mount
@@ -361,6 +361,11 @@ def generate_pipeline_runscript(
 
     from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
     from .utils import app_output_settings_from_config
+
+    # Handle both InputDatasets objects and lists of dicts for consistency
+    if hasattr(input_datasets, 'as_records'):
+        # It's an InputDatasets object, convert to records
+        input_datasets = input_datasets.as_records()
 
     # Process each step similar to how generate_bidsapp_runscript processes single steps
     processed_steps = []
