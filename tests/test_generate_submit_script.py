@@ -161,7 +161,6 @@ def test_generate_submit_script_pipeline(tmp_path):
             'containers/.datalad/environments/nordic-0-0-1/image',
             'containers/.datalad/environments/fmriprep-25.0.0/image',
         ],
-        outputs_zip_foldernames={'pipeline': '0-0-1'},
         datalad_run_message='nordic-fmriprep pipeline',
     )
 
