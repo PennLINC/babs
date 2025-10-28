@@ -1,7 +1,9 @@
 """This module is for input dataset(s)."""
 
+import fnmatch
 import os
 import re
+import subprocess
 import warnings
 import zipfile
 from collections import defaultdict
@@ -161,6 +163,9 @@ class InputDataset:
             else:
                 inclu_df = self._get_sub_ses_from_nonzipped_input()
 
+        # Apply required_files filtering, if specified
+        inclu_df = self._filter_inclusion_by_required_files(inclu_df)
+
         if inclu_df.empty:
             if self.processing_level == 'session':
                 columns = ['job_id', 'task_id', 'sub_id', 'ses_id', 'has_results']
@@ -169,6 +174,157 @@ class InputDataset:
             return pd.DataFrame(columns=columns)
 
         return inclu_df
+
+    def _filter_inclusion_by_required_files(self, inclu_df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Filter the inclusion dataframe using the dataset's required_files patterns, if any.
+
+        For non-zipped datasets, required file patterns are treated as paths relative to the
+        subject/session directory and matched using glob semantics.
+
+        For zipped datasets, required file patterns are matched against the zip filename(s).
+
+        Parameters
+        ----------
+        inclu_df : pd.DataFrame
+            DataFrame containing at least a 'sub_id' column, and optionally 'ses_id'.
+
+        Returns
+        -------
+        pd.DataFrame
+            Filtered inclusion dataframe.
+        """
+        if not self.required_files:
+            return inclu_df
+        if inclu_df.empty:
+            return inclu_df
+
+        # Normalize patterns to strings
+        required_patterns = [str(pat) for pat in self.required_files if pat is not None]
+        if not required_patterns:
+            return inclu_df
+
+        keep_indices = []
+
+        if not self.is_zipped:
+            # Try to use git to list tracked files for robust matching without fetching content
+            tracked_files: list[str] | None = None
+            try:
+                proc = subprocess.run(
+                    ['git', 'ls-files'],
+                    cwd=self.babs_project_analysis_path,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                )
+                tracked_files = proc.stdout.splitlines()
+            except Exception:
+                tracked_files = None
+
+            # Non-zipped dataset: check files exist under subject/session directory
+            for idx, row in inclu_df.iterrows():
+                if (
+                    self.processing_level == 'session'
+                    and 'ses_id' in row
+                    and pd.notna(row['ses_id'])
+                ):
+                    base_dir = os.path.join(
+                        self.babs_project_analysis_path, row['sub_id'], row['ses_id']
+                    )
+                else:
+                    base_dir = os.path.join(self.babs_project_analysis_path, row['sub_id'])
+
+                # Subject/session directory must exist
+                if not os.path.isdir(base_dir):
+                    continue
+
+                all_patterns_present = True
+                for pattern in required_patterns:
+                    # Patterns are relative to base_dir
+                    use_tracked = tracked_files is not None and len(tracked_files) > 0
+                    if use_tracked:
+                        subject_rel = os.path.relpath(base_dir, self.babs_project_analysis_path)
+                        if subject_rel == '.':
+                            subject_rel = ''
+                        if subject_rel and not subject_rel.endswith(os.sep):
+                            subject_rel = subject_rel + os.sep
+                        files_under_subject = [
+                            f
+                            for f in tracked_files
+                            if (not subject_rel) or f.startswith(subject_rel)
+                        ]
+
+                        any_match = False
+                        for f in files_under_subject:
+                            rel_path = f[len(subject_rel) :] if subject_rel else f
+                            # Direct relative match (session-level)
+                            if fnmatch.fnmatch(rel_path, pattern):
+                                any_match = True
+                                break
+                            # Subject-level: attempt matching the pattern at any depth
+                            parts = rel_path.split(os.sep)
+                            for i in range(len(parts)):
+                                suffix = os.path.join(*parts[i:]) if i > 0 else rel_path
+                                if fnmatch.fnmatch(suffix, pattern):
+                                    any_match = True
+                                    break
+                            if any_match:
+                                break
+
+                        if not any_match:
+                            all_patterns_present = False
+                            break
+                    else:
+                        # Filesystem glob; include recursive scan for subject-level hierarchies
+                        matches = []
+                        # Direct relative pattern
+                        matches.extend(glob(os.path.join(base_dir, pattern)))
+                        # Recursive search to find pattern at any depth (subject-level use-case)
+                        matches.extend(glob(os.path.join(base_dir, '**', pattern), recursive=True))
+                        if len(matches) == 0:
+                            all_patterns_present = False
+                            break
+
+                if all_patterns_present:
+                    keep_indices.append(idx)
+        else:
+            # Zipped dataset: match required patterns against the zip filename(s) for the row
+            for idx, row in inclu_df.iterrows():
+                if (
+                    self.processing_level == 'session'
+                    and 'ses_id' in row
+                    and pd.notna(row['ses_id'])
+                ):
+                    zip_specific_pattern = f'{row["sub_id"]}_{row["ses_id"]}_*{self.name}*.zip'
+                else:
+                    zip_specific_pattern = f'{row["sub_id"]}_*{self.name}*.zip'
+
+                candidate_zips = glob(
+                    os.path.join(self.babs_project_analysis_path, zip_specific_pattern)
+                )
+                if not candidate_zips:
+                    # No zip found for this row; exclude
+                    continue
+
+                all_patterns_present = True
+                for pattern in required_patterns:
+                    # Compare against basename of the zip files
+                    any_match = any(
+                        fnmatch.fnmatch(os.path.basename(zip_path), pattern)
+                        for zip_path in candidate_zips
+                    )
+                    if not any_match:
+                        all_patterns_present = False
+                        break
+
+                if all_patterns_present:
+                    keep_indices.append(idx)
+
+        if not keep_indices:
+            # Nothing matched; return empty frame with appropriate columns
+            return inclu_df.iloc[0:0]
+
+        return inclu_df.loc[keep_indices].reset_index(drop=True)
 
     def _get_sub_ses_from_zipped_input(self):
         """Find the subjects (and sessions) available as zip files in the input dataset.
