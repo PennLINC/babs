@@ -44,36 +44,38 @@ Submitting a certain amount of jobs
 Change ``N`` to the number of jobs to be submitted.
 
 
-Submit all remaining jobs
--------------------------
-To submit jobs for remaining subjects (and sessions) whose jobs haven't been submitted yet:
-
-.. code-block:: bash
-
-    babs submit \
-        /path/to/my_BABS_project \
-        --all
-
-
 Submit jobs for specific subjects (and sessions)
 ------------------------------------------------
-For single-session dataset, say you'd like to submit jobs for ``sub-01`` and ``sub-02``:
+For single-session datasets, select subjects with ``--select``. You can repeat the flag
+or pass multiple values in one flag (argparse appends and supports nargs):
 
 .. code-block:: bash
 
     babs submit \
         /path/to/my_BABS_project \
-        --job sub-01 \
-        --job sub-02
+        --select sub-01 \
+        --select sub-02
 
-For multi-session dataset, say you'd like to submit jobs for ``sub-01, ses-A`` and ``sub-02, ses-B``:
+For multi-session datasets, include both ``sub-XX`` and ``ses-YY`` pairs:
 
 .. code-block:: bash
 
     babs submit \
         /path/to/my_BABS_project \
-        --job sub-01 ses-A \
-        --job sub-02 ses-B
+        --select sub-01 ses-A \
+        --select sub-02 ses-B
+
+You may also pass multiple values per flag:
+
+.. code-block:: bash
+
+    babs submit \
+        /path/to/my_BABS_project \
+        --select sub-01 sub-02
+
+.. note::
+    If there are jobs currently running, ``babs submit`` will refuse to submit new jobs
+    until the running jobs finish or are cancelled. Use ``babs status`` to check progress.
 
 
 ********
