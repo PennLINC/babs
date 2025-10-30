@@ -25,7 +25,7 @@ bids_app_args:
     -w: "$BABS_TMPDIR"
     --stop-on-first-crash: ""
     --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
-    --fs-subjects-dir: inputs/data/fmriprep_anat/fmriprep_anat/sourcedata/freesurfer #replace with path to your freesurfer results from fmriprep_anat
+    --fs-subjects-dir: '"$PWD"/inputs/data/fmriprep_anat/fmriprep_anat/sourcedata/freesurfer' #replace with path to your freesurfer results from fmriprep_anat
 
 # Arguments that are passed directly to singularity/apptainer:
 singularity_args:
