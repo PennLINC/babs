@@ -65,13 +65,6 @@ Run this (in BABS project root) to resubmit all the failed jobs:
     babs submit
 
 **********************
-Notes
-**********************
-
-For argument ``--resubmit-job``, please provide the subject ID (and session ID) whose job you'd like to resubmit.
-You should not provide the job ID. See examples above.
-
-**********************
 See also
 **********************
 :doc:`jobs`
