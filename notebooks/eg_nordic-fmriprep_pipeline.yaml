@@ -18,7 +18,6 @@ pipeline:
     config:
       bids_app_args:
         $SUBJECT_SELECTION_FLAG: "--participant-label"
-        --skip-bids-validation: ""
       singularity_args:
         - '--cleanenv'
     inter_step_cmds: |
@@ -39,7 +38,6 @@ pipeline:
         --force: bbr
         --skip-bids-validation: ""
         -vv: ""
-        --cifti-output: "91k"
         --n_cpus: "8"
         --mem-mb: "60000"
         --fs-no-reconall: ""
