@@ -55,38 +55,14 @@ without alert messages in log files:
 
 Job resubmission
 ------------------
-By using commands such as those above, you might see that some jobs are pending or failed,
+By running ``babs status``, you might see that some jobs are pending or failed,
 and you'd like to resubmit them.
 
-Resubmit all the failed jobs:
+Run this (in BABS project root) to resubmit all the failed jobs:
 
 .. code-block:: bash
 
-    babs status \
-        /path/to/my_BABS_project \
-        --resubmit failed
-
-Resubmit specific jobs that failed or are pending:
-
-For a single-session dataset, assume the jobs running ``sub-01`` and ``sub-02`` failed,
-and you hope to resubmit them:
-
-.. code-block:: bash
-
-    babs status \
-        /path/to/my_BABS_project \
-        --resubmit-job sub-01 \
-        --resubmit-job sub-02
-
-For a multi-session dataset, assume the jobs running ``sub-01, ses-A`` and ``sub-02, ses-B`` failed,
-and you hope to resubmit them:
-
-.. code-block:: bash
-
-    babs status \
-        /path/to/my_BABS_project \
-        --resubmit-job sub-01 ses-A \
-        --resubmit-job sub-02 ses-B
+    babs submit
 
 **********************
 Notes
