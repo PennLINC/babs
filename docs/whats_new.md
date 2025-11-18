@@ -1,5 +1,11 @@
 # What's New
 
+## Version 0.5.3
+
+* Fix `subject_selection_flag` by @tientong98 in https://github.com/PennLINC/babs/pull/308
+* Add freesurfer-post support by @tientong98 in https://github.com/PennLINC/babs/pull/306
+* Update documentation and example configurations
+
 ## Version 0.5.2
 
 * Fix `babs sync-code` by @smeisler in https://github.com/PennLINC/babs/pull/299
