@@ -139,3 +139,36 @@ def run_shellcheck(script_path):
         return False, e.output
     except Exception as e:
         return False, str(e)
+
+
+def test_generate_submit_script_pipeline(tmp_path):
+    """Test submit script generation for pipeline configuration."""
+    # Use same pattern as single-app tests: read from existing YAML config
+    config_path = NOTEBOOKS_DIR / 'eg_nordic-fmriprep_pipeline.yaml'
+    config = read_yaml(config_path)
+
+    script_content = generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config=config['cluster_resources'],
+        script_preamble=config['script_preamble'],
+        job_scratch_directory=config['job_compute_space'],
+        input_datasets=input_datasets_prep,
+        processing_level='subject',
+        container_name='pipeline',  # placeholder
+        zip_foldernames=config['zip_foldernames'],
+        run_script_relpath='code/pipeline_zip.sh',
+        container_images=[
+            'containers/.datalad/environments/nordic-0-0-1/image',
+            'containers/.datalad/environments/fmriprep-25.0.0/image',
+        ],
+        datalad_run_message='nordic-fmriprep pipeline',
+    )
+
+    # Write script to file and run shellcheck (same as single-app tests)
+    out_fn = tmp_path / 'participant_job.sh'
+    with open(out_fn, 'w') as f:
+        f.write(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(script_content)
+    assert passed, status

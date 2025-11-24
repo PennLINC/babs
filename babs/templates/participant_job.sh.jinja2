@@ -69,7 +69,7 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 
 # datalad run:
 datalad run \
-	-i "code/{{ container_name }}_zip.sh" \
+	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
 	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
@@ -78,16 +78,24 @@ datalad run \
 	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
+{% if container_images %}
+{% for image_path in container_images %}
+	-i "{{ image_path }}" \
+{% endfor %}
+{% elif not run_script_relpath %}
 	-i "containers/.datalad/environments/{{container_name}}/image" \
+{% endif %}
 {% if datalad_expand_inputs %}
 	--expand inputs \
 {% endif %}
 	--explicit \
+{% if zip_foldernames is not none %}
 {% for key, value in zip_foldernames.items() %}
 	-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
-	-m "{{ container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
-    "bash ./code/{{ container_name }}_zip.sh ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+{% endif %}
+	-m "{{ datalad_run_message if datalad_run_message is defined else container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
+    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 
 # Finish up:
 # push result file content to output RIA storage:
