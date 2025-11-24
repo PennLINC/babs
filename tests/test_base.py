@@ -46,3 +46,31 @@ def test_missing_directories(tmp_path_factory):
     not_exists = Path('/does/not/exist')
     with pytest.raises(FileNotFoundError, match='project_root` does not exist!'):
         BABSCheckSetup(not_exists)
+
+
+def test_validate_pipeline_config(babs_project_sessionlevel):
+    """Test _validate_pipeline_config method."""
+    from babs.base import BABS
+
+    babs_proj = BABS(babs_project_sessionlevel)
+
+    # Test valid config
+    babs_proj.pipeline = [{'container_name': 'test-app'}]
+    babs_proj._validate_pipeline_config()  # Should not raise
+
+    # Test invalid configs
+    babs_proj.pipeline = {'not': 'a list'}
+    with pytest.raises(ValueError, match='Pipeline configuration must be a list'):
+        babs_proj._validate_pipeline_config()
+
+    babs_proj.pipeline = []
+    with pytest.raises(ValueError, match='Pipeline configuration cannot be empty'):
+        babs_proj._validate_pipeline_config()
+
+    babs_proj.pipeline = ['not a dict']
+    with pytest.raises(ValueError, match='Pipeline step 0 must be a dictionary'):
+        babs_proj._validate_pipeline_config()
+
+    babs_proj.pipeline = [{'missing': 'container_name'}]
+    with pytest.raises(ValueError, match='Pipeline step 0 missing required field: container_name'):
+        babs_proj._validate_pipeline_config()

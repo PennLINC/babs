@@ -26,19 +26,48 @@ def generate_submit_script(
     processing_level,
     container_name,
     zip_foldernames,
+    run_script_relpath=None,
+    container_images=None,
+    datalad_run_message=None,
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
 
     Parameters
     ----------
-
+    queue_system : str
+        The queue system to use (Only accepts 'slurm').
+    cluster_resources_config : dict
+        Configuration for cluster resources.
+    script_preamble : str
+        Script preamble commands.
+    job_scratch_directory : str
+        Directory for job scratch space.
+    input_datasets : InputDatasets or list
+        InputDatasets object or list of input dataset configurations.
+    processing_level : str
+        Processing level ('subject' or 'session').
+    container_name : str
+        Name of the container.
+    zip_foldernames : dict
+        Dictionary mapping output names to versions.
+    run_script_relpath : str, optional
+        Path to script executed by datalad run. None for single-app mode.
+    container_images : list, optional
+        List of container image paths. None for single-app mode.
+    datalad_run_message : str, optional
+        Custom message for datalad run. None uses container name.
 
     Returns
     -------
     bidsapp_run_script: str
         The contents of the bash script that runs the BIDS App singularity image.
     """
+    # Handle both InputDatasets objects and lists for consistency
+    if hasattr(input_datasets, 'as_records'):
+        # It's an InputDatasets object, convert to records
+        input_datasets = input_datasets.as_records()
+
     env = Environment(
         loader=PackageLoader('babs', 'templates'),
         trim_blocks=True,
@@ -84,6 +113,9 @@ def generate_submit_script(
         datalad_expand_inputs=any(
             not input_dataset['is_zipped'] for input_dataset in input_datasets
         ),
+        run_script_relpath=run_script_relpath,
+        container_images=container_images,
+        datalad_run_message=datalad_run_message,
     )
 
 
