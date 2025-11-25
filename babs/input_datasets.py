@@ -130,6 +130,10 @@ class InputDatasets:
             # Merge all these dataframes so that only rows present in each are kept:
             inclu_df = combine_inclusion_dataframes(initial_inclusion_dfs)
 
+        # Apply required_files filtering for each dataset, regardless of the source
+        for dataset in self._datasets:
+            inclu_df = dataset._filter_inclusion_by_required_files(inclu_df)
+
         return validate_sub_ses_processing_inclusion(inclu_df, self.processing_level)
 
     def as_records(self):
