@@ -5,7 +5,6 @@ dependencies:
   - python=3.11
   - git
   - git-annex
-  - apptainer
   - p7zip
   - pip
   # Core packages from conda-forge when available
