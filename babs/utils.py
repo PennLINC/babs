@@ -722,20 +722,36 @@ def parse_select_arg(select_arg):
 
 
     """
+    # argparse with action='append' and nargs='+' produces a list of lists.
+    # Flatten here so downstream logic can assume a flat list.
+    if isinstance(select_arg, str):
+        flat_list = [select_arg]
+    else:
+        flat_list = []
+        for element in select_arg:
+            if isinstance(element, (list, tuple)):
+                flat_list.extend(list(element))
+            else:
+                flat_list.append(element)
 
-    all_subjects = all(item.startswith('sub-') for item in select_arg)
+    all_subjects = all(item.startswith('sub-') for item in flat_list)
 
     if all_subjects:
-        return pd.DataFrame({'sub_id': select_arg})
+        return pd.DataFrame({'sub_id': flat_list})
 
-    if len(select_arg) % 2 == 1:
+    if len(flat_list) % 2 == 1:
         raise ValueError(
             'When selecting specific sessions, include the subject ID and session ID'
             ' separated by a space. Even if selecting multiple sessions per subject '
             ' the subject ID must come first'
         )
 
-    selection_df = pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})
+    selection_df = pd.DataFrame(
+        {
+            'sub_id': flat_list[::2],
+            'ses_id': flat_list[1::2],
+        }
+    )
 
     # Check all items in the sub_id column start with sub-
     if not all(selection_df['sub_id'].str.startswith('sub-')):

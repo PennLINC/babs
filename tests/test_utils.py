@@ -439,6 +439,22 @@ def test_parse_select_arg():
         pd.DataFrame({'sub_id': select_arg[::2], 'ses_id': select_arg[1::2]})
     )
 
+    # argparse with action='append' and nargs='+' produces list-of-lists
+    nested_subjects = [['sub-0001'], ['sub-0002']]
+    assert parse_select_arg(nested_subjects).equals(
+        pd.DataFrame({'sub_id': ['sub-0001', 'sub-0002']})
+    )
+
+    nested_sub_ses = [['sub-0001', 'ses-01'], ['sub-0002', 'ses-02']]
+    assert parse_select_arg(nested_sub_ses).equals(
+        pd.DataFrame(
+            {
+                'sub_id': ['sub-0001', 'sub-0002'],
+                'ses_id': ['ses-01', 'ses-02'],
+            }
+        )
+    )
+
     with pytest.raises(ValueError, match='When selecting specific sessions'):
         parse_select_arg(['sub-0001', 'ses-01', 'sub-0002'])
 

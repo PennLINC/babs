@@ -319,10 +319,14 @@ def _parse_submit():
         '--select',
         action='append',  # append each `--job` as a list;
         nargs='+',
-        help='The subject ID (and session ID) whose job to be submitted.'
-        ' Can repeat to submit more than one job.'
-        ' Format would be `--job sub-xx` for single-session dataset,'
-        ' and `--job sub-xx ses-yy` for multiple-session dataset.',
+        help=(
+            'Select specific jobs to submit by subject and optionally session. '
+            'Use as `--select sub-XX [ses-YY]` and repeat the flag to submit multiple jobs, '
+            'or provide multiple values per flag (argparse appends and supports nargs). '
+            'Examples: `--select sub-01`, `--select sub-01 ses-01`, '
+            '`--select sub-01 --select sub-02`, '
+            '`--select sub-01 ses-01 --select sub-02 ses-02`.'
+        ),
     )
 
     group.add_argument(
