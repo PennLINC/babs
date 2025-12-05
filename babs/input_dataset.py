@@ -347,22 +347,16 @@ class InputDataset:
         bool
             True if all required files are present, False otherwise
         """
-        # Build the base path to the subject/session directory
+        # Build the base path to the subject/session directory.
+        # For non-zipped datasets, subjects live directly under the dataset root,
+        # i.e., `self.babs_project_analysis_path/sub-XX[/ses-YY]`.
+
         if ses_id is not None:
             # Session-level: path/to/dataset/sub-01/ses-01
-            base_path = os.path.join(
-                self.babs_project_analysis_path,
-                self.unzipped_path_containing_subject_dirs,
-                sub_id,
-                ses_id,
-            )
+            base_path = os.path.join(self.babs_project_analysis_path, sub_id, ses_id)
         else:
             # Subject-level: path/to/dataset/sub-01
-            base_path = os.path.join(
-                self.babs_project_analysis_path,
-                self.unzipped_path_containing_subject_dirs,
-                sub_id,
-            )
+            base_path = os.path.join(self.babs_project_analysis_path, sub_id)
 
         # Check each required file pattern
         for pattern in self.required_files:
@@ -648,5 +642,7 @@ class OutputDataset(InputDataset):
         self.unzipped_path_containing_subject_dirs = (
             input_dataset.unzipped_path_containing_subject_dirs
         )
-        self.required_files = input_dataset.required_files
+        # `required_files` is only meaningful for *input* datasets.
+        #  Disable required_files-based filtering for output datasets.
+        self.required_files = None
         self.processing_level = input_dataset.processing_level
