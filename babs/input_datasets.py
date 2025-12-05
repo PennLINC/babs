@@ -122,6 +122,14 @@ class InputDatasets:
         if self.initial_inclu_df is not None:
             print('Using the subjects (sessions) provided in the initial inclusion list.')
             inclu_df = self.initial_inclu_df
+            # Filter the initial inclusion list based on required_files for each dataset
+            for dataset in self._datasets:
+                if dataset.required_files:
+                    print(
+                        f'Filtering initial inclusion list based on required_files '
+                        f'in dataset {dataset.name}...'
+                    )
+                    inclu_df = dataset.filter_by_required_files(inclu_df)
         else:
             initial_inclusion_dfs = [
                 dataset.generate_inclusion_dataframe() for dataset in self._datasets

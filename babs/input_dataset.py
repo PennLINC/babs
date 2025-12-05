@@ -1,5 +1,6 @@
 """This module is for input dataset(s)."""
 
+import fnmatch
 import os
 import re
 import warnings
@@ -159,7 +160,7 @@ class InputDataset:
             if self.is_zipped:
                 inclu_df = self._get_sub_ses_from_zipped_input()
             else:
-                inclu_df = self._get_sub_ses_from_nonzipped_input()
+                inclu_df = self.get_sub_ses_from_nonzipped_input()
 
         if inclu_df.empty:
             if self.processing_level == 'session':
@@ -167,6 +168,15 @@ class InputDataset:
             else:
                 columns = ['job_id', 'task_id', 'sub_id', 'has_results']
             return pd.DataFrame(columns=columns)
+
+        # Filter based on required_files if specified
+        if self.required_files:
+            if self._is_input_dataset:
+                print(
+                    f'Filtering subjects (sessions) based on required_files '
+                    f'in dataset {self.name}...'
+                )
+            inclu_df = self.filter_by_required_files(inclu_df)
 
         return inclu_df
 
@@ -208,7 +218,7 @@ class InputDataset:
 
         return pd.DataFrame(found_sub_ses)
 
-    def _get_sub_ses_from_nonzipped_input(self):
+    def get_sub_ses_from_nonzipped_input(self):
         """Find the subjects (and sessions) available as directories in the input dataset.
         No validation is done on the directories.
 
@@ -253,6 +263,212 @@ class InputDataset:
             df = pd.DataFrame({'sub_id': sub_ids})
 
         return df
+
+    def filter_by_required_files(self, inclu_df):
+        """
+        Filter inclusion dataframe to only include subjects/sessions that have all required files.
+
+        Parameters
+        ----------
+        inclu_df: pandas DataFrame
+            DataFrame with columns 'sub_id' and optionally 'ses_id'
+
+        Returns
+        -------
+        filtered_df: pandas DataFrame
+            Filtered DataFrame containing only subjects/sessions with all required files
+        """
+        if inclu_df.empty:
+            return inclu_df
+
+        if not self.required_files:
+            return inclu_df
+
+        # Track which rows to keep
+        keep_mask = []
+
+        for _, row in inclu_df.iterrows():
+            sub_id = row['sub_id']
+            ses_id = row.get('ses_id', None)
+
+            if self.has_required_files(sub_id, ses_id):
+                keep_mask.append(True)
+            else:
+                keep_mask.append(False)
+
+        filtered_df = inclu_df[keep_mask].copy()
+
+        if len(filtered_df) < len(inclu_df):
+            excluded_count = len(inclu_df) - len(filtered_df)
+            print(
+                f'Excluded {excluded_count} subject(s)/session(s) '
+                f'that do not have all required files.'
+            )
+
+        return filtered_df
+
+    def has_required_files(self, sub_id, ses_id=None):
+        """
+        Check if a subject/session has all required files.
+
+        Parameters
+        ----------
+        sub_id: str
+            Subject ID (e.g., 'sub-01')
+        ses_id: str or None
+            Session ID (e.g., 'ses-01') or None for subject-level processing
+
+        Returns
+        -------
+        bool
+            True if all required files are present, False otherwise
+        """
+        if not self.required_files:
+            return True
+
+        if self.is_zipped:
+            return self.check_required_files_in_zip(sub_id, ses_id)
+        else:
+            return self.check_required_files_in_dir(sub_id, ses_id)
+
+    def check_required_files_in_dir(self, sub_id, ses_id=None):
+        """
+        Check if required files exist in the unzipped dataset directory.
+
+        Parameters
+        ----------
+        sub_id: str
+            Subject ID (e.g., 'sub-01')
+        ses_id: str or None
+            Session ID (e.g., 'ses-01') or None for subject-level processing
+
+        Returns
+        -------
+        bool
+            True if all required files are present, False otherwise
+        """
+        # Build the base path to the subject/session directory
+        if ses_id is not None:
+            # Session-level: path/to/dataset/sub-01/ses-01
+            base_path = os.path.join(
+                self.babs_project_analysis_path,
+                self.unzipped_path_containing_subject_dirs,
+                sub_id,
+                ses_id,
+            )
+        else:
+            # Subject-level: path/to/dataset/sub-01
+            base_path = os.path.join(
+                self.babs_project_analysis_path,
+                self.unzipped_path_containing_subject_dirs,
+                sub_id,
+            )
+
+        # Check each required file pattern
+        for pattern in self.required_files:
+            # Pattern is relative to the subject/session directory
+            # e.g., "func/*_bold.nii*" or "anat/*_T1w.nii*"
+            search_path = os.path.join(base_path, pattern)
+            matches = glob(search_path)
+            if not matches:
+                return False
+
+        return True
+
+    def check_required_files_in_zip(self, sub_id, ses_id=None):
+        """
+        Check if required files exist in the zipped dataset.
+
+        Parameters
+        ----------
+        sub_id: str
+            Subject ID (e.g., 'sub-01')
+        ses_id: str or None
+            Session ID (e.g., 'ses-01') or None for subject-level processing
+
+        Returns
+        -------
+        bool
+            True if all required files are present, False otherwise
+        """
+        # Find the zip file for this subject/session
+        zip_name = self.name if self._is_input_dataset else ''
+        if ses_id is not None:
+            zip_pattern = f'{sub_id}_{ses_id}_{zip_name}*.zip'
+        else:
+            zip_pattern = f'{sub_id}_{zip_name}*.zip'
+
+        zip_files = glob(os.path.join(self.babs_project_analysis_path, zip_pattern))
+
+        if not zip_files:
+            return False
+
+        # Use the first matching zip file (should only be one per subject/session)
+        zip_file = zip_files[0]
+
+        # Get the zip file from datalad if needed
+        try:
+            dlapi.get(path=zip_file, dataset=self.babs_project_analysis_path)
+        except Exception as e:
+            # If we can't get the file, assume it doesn't exist
+            print(f'Warning: Could not get zip file {zip_file} from datalad: {e}')
+            return False
+
+        try:
+            # Check each required file pattern
+            with zipfile.ZipFile(zip_file) as zf:
+                zip_contents = zf.namelist()
+
+                # Determine the base path within the zip file
+                # For zipped datasets, there's usually a root directory (e.g., dataset name)
+                # followed by subject/session directories
+                if ses_id is not None:
+                    # Session-level: dataset_name/sub-01/ses-01/
+                    base_prefix = f'{self.name}/{sub_id}/{ses_id}/'
+                else:
+                    # Subject-level: dataset_name/sub-01/
+                    base_prefix = f'{self.name}/{sub_id}/'
+
+                # Check each required file pattern
+                for pattern in self.required_files:
+                    # Pattern is relative to the subject/session directory
+                    # e.g., "func/*_bold.nii*" or "anat/*_T1w.nii*"
+                    # We need to search within the zip contents
+                    search_pattern = base_prefix + pattern
+
+                    # Use fnmatch to match glob patterns
+                    matches = [
+                        name for name in zip_contents if fnmatch.fnmatch(name, search_pattern)
+                    ]
+
+                    # Also try without the dataset name prefix (in case zip structure is different)
+                    if not matches:
+                        if ses_id is not None:
+                            alt_prefix = f'{sub_id}/{ses_id}/'
+                        else:
+                            alt_prefix = f'{sub_id}/'
+                        alt_pattern = alt_prefix + pattern
+                        matches = [
+                            name for name in zip_contents if fnmatch.fnmatch(name, alt_pattern)
+                        ]
+
+                    if not matches:
+                        return False
+
+            return True
+        except Exception as e:
+            # If there's an error reading the zip, assume files don't exist
+            print(f'Warning: Error reading zip file {zip_file} to check required files: {e}')
+            return False
+        finally:
+            # Clean up: drop the zip file from datalad
+            # Ignore errors during cleanup to avoid masking the actual result
+            try:
+                dlapi.drop(path=zip_file, dataset=self.babs_project_analysis_path)
+            except Exception as e:  # noqa: S110
+                print(
+                    f'Warning: Could not drop zip file {zip_file} from datalad during cleanup: {e}'
+                )
 
     def as_dict(self):
         """Return the input dataset as a dictionary."""
