@@ -8,7 +8,7 @@ import warnings
 import datalad.api as dlapi
 
 from babs.base import BABS
-from babs.utils import get_git_show_ref_shasum
+from babs.utils import get_git_show_ref_shasum, get_results_branches
 
 
 class BABSMerge(BABS):
@@ -63,9 +63,21 @@ class BABSMerge(BABS):
         # clone: `datalad clone ${outputsource} merge_ds`
         dlapi.clone(source=output_ria_source, path=merge_ds_path)
 
+        # Fetch all remote branches from origin in the cloned repository:
+        # Note: We fetch from 'origin' only, not '--all', because 'output-storage'
+        # is a git-annex special remote, not a git remote, and would cause fetch to fail.
+        print('\nFetching all remote branches...')
+        proc_git_fetch = subprocess.run(
+            ['git', 'fetch', 'origin'],
+            cwd=merge_ds_path,
+            capture_output=True,
+        )
+        proc_git_fetch.check_returncode()
+
         # List all branches in output RIA:
         print('\nListing all branches in output RIA...')
-        list_branches_jobs = self._get_results_branches()
+        # Use the cloned merge_ds directory to get branches instead of the original RIA
+        list_branches_jobs = get_results_branches(merge_ds_path)
 
         if len(list_branches_jobs) == 0:
             raise ValueError(
