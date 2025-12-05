@@ -363,19 +363,24 @@ def get_results_branches(ria_directory):
 
     """
     branch_output = subprocess.run(
-        ['git', 'branch', '--list'],
+        ['git', 'branch', '-a', '--list'],
         cwd=ria_directory,
         capture_output=True,
         text=True,
     )
 
-    # Filter to just branches starting with 'job-'
-    branches = [
-        # Remove leading and trailing asterisks and spaces
-        b.strip().replace('* ', '')
-        for b in branch_output.stdout.strip().split('\n')
-        if b.strip().replace('* ', '').startswith('job-')
-    ]
+    raw_lines = [b for b in branch_output.stdout.strip().split('\n') if b.strip()]
+
+    branches: list[str] = []
+    for line in raw_lines:
+        # Remove leading marker for current branch, if any
+        name = line.strip().replace('* ', '')
+        # For remote branches we may see e.g. 'remotes/origin/job-0000-sub-0000';
+        # keep only the final path component so downstream code consistently
+        # works with bare branch names like 'job-0000-sub-0000'.
+        name = name.split('/')[-1]
+        if name.startswith('job-') and name not in branches:
+            branches.append(name)
 
     return branches
 
