@@ -158,7 +158,7 @@ class InputDataset:
                 )
 
             if self.is_zipped:
-                inclu_df = self._get_sub_ses_from_zipped_input()
+                inclu_df = self.get_sub_ses_from_zipped_input()
             else:
                 inclu_df = self.get_sub_ses_from_nonzipped_input()
 
@@ -180,7 +180,7 @@ class InputDataset:
 
         return inclu_df
 
-    def _get_sub_ses_from_zipped_input(self):
+    def get_sub_ses_from_zipped_input(self):
         """Find the subjects (and sessions) available as zip files in the input dataset.
         No validation is done on the zip files.
 
@@ -189,12 +189,16 @@ class InputDataset:
         sub_ses_df: pandas DataFrame
             A pandas DataFrame with the subjects and sessions available in the input dataset
         """
-        zip_name = self.name if self._is_input_dataset else ''
-        zip_pattern = (
-            f'sub-*_ses-*_{zip_name}*.zip'
-            if self.processing_level == 'session'
-            else f'sub-*_{zip_name}*.zip'
-        )
+
+        if self._is_input_dataset:
+            zip_name = self.name
+            zip_pattern = (
+                f'sub-*_ses-*_{zip_name}*.zip'
+                if self.processing_level == 'session'
+                else f'sub-*_{zip_name}*.zip'
+            )
+        else:
+            zip_pattern = 'sub-*_ses-*.zip' if self.processing_level == 'session' else 'sub-*.zip'
         found_zip_files = sorted(glob(os.path.join(self.babs_project_analysis_path, zip_pattern)))
 
         found_sub_ses = []
@@ -347,24 +351,59 @@ class InputDataset:
         bool
             True if all required files are present, False otherwise
         """
-        # Build the base path to the subject/session directory.
-        # For non-zipped datasets, subjects live directly under the dataset root,
-        # i.e., `self.babs_project_analysis_path/sub-XX[/ses-YY]`.
+        # Build candidate base paths to the subject/session directory.
+        # We try both the dataset root and (if defined)
+        # ``unzipped_path_containing_subject_dirs`` under that root.
+        base_paths = []
 
+        # 1) Dataset root: subjects live directly under babs_project_analysis_path
         if ses_id is not None:
             # Session-level: path/to/dataset/sub-01/ses-01
-            base_path = os.path.join(self.babs_project_analysis_path, sub_id, ses_id)
+            base_paths.append(os.path.join(self.babs_project_analysis_path, sub_id, ses_id))
         else:
             # Subject-level: path/to/dataset/sub-01
-            base_path = os.path.join(self.babs_project_analysis_path, sub_id)
+            base_paths.append(os.path.join(self.babs_project_analysis_path, sub_id))
+
+        # 2) Optional extra prefix for historical configs
+        if self.unzipped_path_containing_subject_dirs:
+            if ses_id is not None:
+                base_paths.append(
+                    os.path.join(
+                        self.babs_project_analysis_path,
+                        self.unzipped_path_containing_subject_dirs,
+                        sub_id,
+                        ses_id,
+                    )
+                )
+            else:
+                base_paths.append(
+                    os.path.join(
+                        self.babs_project_analysis_path,
+                        self.unzipped_path_containing_subject_dirs,
+                        sub_id,
+                    )
+                )
+
+        # De-duplicate while preserving order
+        seen = set()
+        unique_base_paths = []
+        for bp in base_paths:
+            if bp not in seen:
+                seen.add(bp)
+                unique_base_paths.append(bp)
 
         # Check each required file pattern
         for pattern in self.required_files:
-            # Pattern is relative to the subject/session directory
-            # e.g., "func/*_bold.nii*" or "anat/*_T1w.nii*"
-            search_path = os.path.join(base_path, pattern)
-            matches = glob(search_path)
-            if not matches:
+            has_match_for_pattern = False
+            for base_path in unique_base_paths:
+                # Pattern is relative to the subject/session directory
+                # e.g., "func/*_bold.nii*" or "anat/*_T1w.nii*"
+                search_path = os.path.join(base_path, pattern)
+                if glob(search_path):
+                    has_match_for_pattern = True
+                    break
+
+            if not has_match_for_pattern:
                 return False
 
         return True
