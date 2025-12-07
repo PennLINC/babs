@@ -11,5 +11,5 @@ docker run -it \
         --cov-report=xml \
         --cov=babs \
         --pdb \
-        /babs/tests/test_update_input_data.py
+        /babs/tests/
     
