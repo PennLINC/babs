@@ -206,7 +206,6 @@ def submit_array(analysis_path, queue, maxarray):
     template_yaml_path = op.join(analysis_path, 'code', 'submit_job_template.yaml')
     with open(template_yaml_path) as f:
         templates = yaml.safe_load(f)
-    f.close()
     # sections in this template yaml file:
     cmd_template = templates['cmd_template']
     cmd = cmd_template.replace('${max_array}', f'{maxarray}')
@@ -253,7 +252,6 @@ def submit_one_test_job(analysis_path, queue):
     )
     with open(template_yaml_path) as f:
         templates = yaml.safe_load(f)
-    f.close()
     # sections in this template yaml file:
     cmd = templates['cmd_template']
 

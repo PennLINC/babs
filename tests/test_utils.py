@@ -348,7 +348,7 @@ def test_combine_inclusion_dataframes():
         combine_inclusion_dataframes([])
 
 
-def test_update_currently_running_jobs_df():
+def test_running_jobs():
     # This is the list of the most recently submitted jobs
     last_submitted_jobs_df = pd.DataFrame(
         {
@@ -483,3 +483,246 @@ def test_update_submitted_job_ids():
     job_submit_df = pd.read_csv(io.StringIO(job_submit))
     updated_df = update_submitted_job_ids(job_status_df, job_submit_df)
     assert updated_df['submitted'].all()
+
+
+def test_read_yaml_timeout(tmp_path, monkeypatch):
+    """Test read_yaml with filelock timeout."""
+    from unittest.mock import MagicMock, patch
+
+    from filelock import Timeout
+
+    yaml_file = tmp_path / 'test.yaml'
+    yaml_file.write_text('key: value')
+
+    with patch('babs.utils.FileLock') as mock_lock:
+        mock_lock_instance = MagicMock()
+        mock_lock.return_value = mock_lock_instance
+        mock_lock_instance.acquire.side_effect = Timeout(lock_file=str(yaml_file) + '.lock')
+        result = read_yaml(str(yaml_file), use_filelock=True)
+        assert result == {'key': 'value'}
+
+
+def test_repo_hashes_mismatch(tmp_path):
+    """Test compare_repo_commit_hashes when hashes don't match."""
+    import warnings
+
+    from babs.utils import compare_repo_commit_hashes
+
+    repo1_path = tmp_path / 'repo1'
+    repo2_path = tmp_path / 'repo2'
+
+    for repo_path in [repo1_path, repo2_path]:
+        repo_path.mkdir()
+        subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True)
+        subprocess.run(['git', 'config', 'user.name', 'Test'], cwd=repo_path, capture_output=True)
+        subprocess.run(
+            ['git', 'config', 'user.email', 'test@test.com'],
+            cwd=repo_path,
+            capture_output=True,
+        )
+        (repo_path / 'file.txt').write_text('content')
+        subprocess.run(['git', 'add', 'file.txt'], cwd=repo_path, capture_output=True)
+        subprocess.run(['git', 'commit', '-m', 'Initial'], cwd=repo_path, capture_output=True)
+
+    (repo2_path / 'file2.txt').write_text('content2')
+    subprocess.run(['git', 'add', 'file2.txt'], cwd=repo2_path, capture_output=True)
+    subprocess.run(['git', 'commit', '-m', 'Second'], cwd=repo2_path, capture_output=True)
+
+    with pytest.raises(ValueError, match='does not match'):
+        compare_repo_commit_hashes(
+            str(repo1_path), str(repo2_path), 'repo1', 'repo2', raise_error=True
+        )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        result = compare_repo_commit_hashes(
+            str(repo1_path), str(repo2_path), 'repo1', 'repo2', raise_error=False
+        )
+        assert result is False
+        assert len(w) > 0
+        assert any('does not match' in str(warning.message) for warning in w)
+
+
+def test_parse_select_string():
+    """Test parse_select_arg with string input."""
+    result = parse_select_arg('sub-0001')
+    expected = pd.DataFrame({'sub_id': ['sub-0001']})
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_parse_select_nested():
+    """Test parse_select_arg with deeply nested lists."""
+    nested = [[['sub-0001']], [['sub-0002']]]
+    result = parse_select_arg(nested)
+    expected = pd.DataFrame({'sub_id': ['sub-0001', 'sub-0002']})
+    pd.testing.assert_frame_equal(result, expected)
+
+
+def test_results_merged_zip():
+    """Test update_results_status with merged_zip_completion_df."""
+    previous_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0002'],
+            'ses_id': ['ses-01', 'ses-01'],
+            'job_id': [-1, -1],
+            'task_id': [-1, -1],
+            'submitted': [False, False],
+            'has_results': [False, False],
+            'state': ['', ''],
+            'is_failed': [False, False],
+        }
+    )
+
+    job_completion_df = pd.DataFrame(
+        columns=['sub_id', 'ses_id', 'job_id', 'task_id', 'has_results']
+    )
+
+    merged_zip_completion_df = pd.DataFrame({'sub_id': ['sub-0001'], 'ses_id': ['ses-01']})
+
+    result = update_results_status(previous_df, job_completion_df, merged_zip_completion_df)
+
+    assert result.shape[0] == 2
+    assert result.loc[0, 'has_results'] is True
+    assert pd.isna(result.loc[0, 'job_id'])
+    assert pd.isna(result.loc[0, 'task_id'])
+
+
+def test_results_empty_previous():
+    """Test update_results_status with empty previous dataframe."""
+    previous_df = pd.DataFrame(
+        columns=['sub_id', 'ses_id', 'job_id', 'task_id', 'submitted', 'has_results', 'state']
+    )
+
+    job_completion_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001'],
+            'ses_id': ['ses-01'],
+            'job_id': [1],
+            'task_id': [1],
+            'has_results': [True],
+        }
+    )
+
+    result = update_results_status(previous_df, job_completion_df)
+    assert result.shape[0] == 0
+
+
+def test_validate_inclusion_df():
+    """Test validate_sub_ses_processing_inclusion with DataFrame input."""
+    from babs.utils import validate_sub_ses_processing_inclusion
+
+    df = pd.DataFrame({'sub_id': ['sub-0001', 'sub-0002'], 'ses_id': ['ses-01', 'ses-01']})
+    result = validate_sub_ses_processing_inclusion(df, 'session')
+    pd.testing.assert_frame_equal(result, df)
+
+
+def test_inclusion_missing_ses():
+    """Test validate_sub_ses_processing_inclusion with missing ses_id."""
+    from babs.utils import validate_sub_ses_processing_inclusion
+
+    df = pd.DataFrame({'sub_id': ['sub-0001', 'sub-0002']})
+
+    with pytest.raises(Exception, match="There is no 'ses_id' column"):
+        validate_sub_ses_processing_inclusion(df, 'session')
+
+
+def test_inclusion_dup_subject():
+    """Test validate_sub_ses_processing_inclusion with duplicated subjects."""
+    from babs.utils import validate_sub_ses_processing_inclusion
+
+    df = pd.DataFrame({'sub_id': ['sub-0001', 'sub-0001']})
+
+    with pytest.raises(Exception, match="There are repeated 'sub_id'"):
+        validate_sub_ses_processing_inclusion(df, 'subject')
+
+
+def test_inclusion_dup_session():
+    """Test validate_sub_ses_processing_inclusion with duplicated sessions."""
+    from babs.utils import validate_sub_ses_processing_inclusion
+
+    df = pd.DataFrame({'sub_id': ['sub-0001', 'sub-0001'], 'ses_id': ['ses-01', 'ses-01']})
+
+    with pytest.raises(Exception, match='There are repeated combinations'):
+        validate_sub_ses_processing_inclusion(df, 'session')
+
+
+def test_inclusion_invalid_file(tmp_path):
+    """Test validate_sub_ses_processing_inclusion with invalid file path."""
+    from babs.utils import validate_sub_ses_processing_inclusion
+
+    invalid_path = tmp_path / 'does_not_exist.csv'
+    with pytest.raises(FileNotFoundError):
+        validate_sub_ses_processing_inclusion(str(invalid_path), 'subject')
+
+
+def test_inclusion_invalid_csv(tmp_path):
+    """Test validate_sub_ses_processing_inclusion with invalid CSV file."""
+    from babs.utils import validate_sub_ses_processing_inclusion
+
+    invalid_csv = tmp_path / 'invalid.csv'
+    invalid_csv.write_text('not,valid,csv\nbroken,file')
+
+    with pytest.raises(Exception, match='Error reading'):
+        validate_sub_ses_processing_inclusion(str(invalid_csv), 'subject')
+
+
+def test_identify_running_jobs_error():
+    """Test identify_running_jobs when merge fails."""
+    last_submitted_df = pd.DataFrame({'sub_id': ['sub-0001'], 'job_id': [1], 'task_id': [1]})
+
+    currently_running_df = pd.DataFrame({'job_id': [2], 'state': ['R']})
+
+    with pytest.raises(ValueError, match='Error merging'):
+        identify_running_jobs(last_submitted_df, currently_running_df)
+
+
+def test_branch_no_matches():
+    """Test results_branch_dataframe with branches that don't match pattern."""
+    branches = ['not-a-job-branch', 'also-not-matching', 'master']
+    df = results_branch_dataframe(branches, 'subject')
+
+    assert df.empty
+    assert list(df.columns) == ['job_id', 'task_id', 'sub_id', 'has_results']
+
+
+def test_branch_session_level():
+    """Test results_branch_dataframe with session-level processing."""
+    branches = [
+        'job-123-1-sub-0001-ses-01',
+        'job-123-2-sub-0001-ses-02',
+        'job-124-1-sub-0002-ses-01',
+    ]
+    df = results_branch_dataframe(branches, 'session')
+
+    assert df.shape[0] == 3
+    assert 'ses_id' in df.columns
+    assert all(df['has_results'])
+
+
+def test_submitted_multiple_jobs():
+    """Test update_submitted_job_ids with multiple job IDs."""
+    results_df = pd.DataFrame(
+        {
+            'sub_id': ['sub-0001', 'sub-0002'],
+            'job_id': [-1, -1],
+            'task_id': [-1, -1],
+            'submitted': [False, False],
+        }
+    )
+
+    submitted_df = pd.DataFrame(
+        {'sub_id': ['sub-0001', 'sub-0002'], 'job_id': [1, 2], 'task_id': [1, 1]}
+    )
+
+    with pytest.raises(ValueError, match='There should be only one job id'):
+        update_submitted_job_ids(results_df, submitted_df)
+
+
+def test_submitted_missing_sub_id():
+    """Test update_submitted_job_ids with missing sub_id column."""
+    results_df = pd.DataFrame({'sub_id': ['sub-0001'], 'job_id': [-1], 'task_id': [-1]})
+
+    submitted_df = pd.DataFrame({'job_id': [1], 'task_id': [1]})
+
+    with pytest.raises(ValueError, match='job_submit_df must have a sub_id column'):
+        update_submitted_job_ids(results_df, submitted_df)
