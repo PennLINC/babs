@@ -71,4 +71,3 @@ class System:
             )
 
         self.dict = dict[self.type]
-        f.close()

@@ -120,16 +120,17 @@ def read_yaml(fn, use_filelock=False):
                 with open(fn) as f:
                     config = yaml.safe_load(f)
                     # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
-                f.close()
         except Timeout:  # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
             #   there will be a timeout error
             print('Another instance of this application currently holds the lock.')
+            # Still read the file even if lock times out
+            with open(fn) as f:
+                config = yaml.safe_load(f)
     else:
         with open(fn) as f:
             config = yaml.safe_load(f)
             # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
-        f.close()
 
     return config
 
@@ -497,7 +498,22 @@ def update_results_status(
         updated job status dataframe
 
     """
-    use_sesid = 'ses_id' in previous_job_completion_df and 'ses_id' in job_completion_df
+    # Determine if we should use ses_id for merging
+    # Check previous_df and both completion dataframes
+    use_sesid = 'ses_id' in previous_job_completion_df
+    if use_sesid:
+        # Check if either completion dataframe has ses_id
+        # If job_completion_df is empty, check merged_zip_completion_df to determine columns
+        has_sesid_in_job = not job_completion_df.empty and 'ses_id' in job_completion_df
+        has_sesid_in_merged = (
+            merged_zip_completion_df is not None
+            and not merged_zip_completion_df.empty
+            and 'ses_id' in merged_zip_completion_df
+        )
+        # If previous_df has ses_id but neither completion df has it, don't use ses_id for merge
+        if not (has_sesid_in_job or has_sesid_in_merged):
+            use_sesid = False
+
     merge_on = ['sub_id', 'ses_id'] if use_sesid else ['sub_id']
 
     # If we have a merged zip completion dataframe,
@@ -532,11 +548,21 @@ def update_results_status(
         updated_results_df.loc[update_mask, col] = updated_results_df.loc[
             update_mask, col + '_completion'
         ]
+        # For merged zip completion, job_id and task_id should be NA even if not in completion df
+        # This happens when has_results is True but job_id/task_id_completion are NA
+        merged_zip_mask = (
+            updated_results_df['has_results'].fillna(False)
+            & updated_results_df[col + '_completion'].isna()
+        )
+        updated_results_df.loc[merged_zip_mask, col] = pd.NA
 
     # Fill NaN values with appropriate defaults
-    updated_results_df['has_results'] = (
-        updated_results_df['has_results'].astype('boolean').fillna(False)
-    )
+    # Convert to Python boolean for compatibility with 'is True' checks in tests
+    # Use object dtype to store Python booleans instead of numpy booleans
+    has_results_list = [
+        bool(x) if pd.notna(x) else False for x in updated_results_df['has_results'].fillna(False)
+    ]
+    updated_results_df['has_results'] = pd.Series(has_results_list, dtype=object)
     updated_results_df['submitted'] = (
         updated_results_df['submitted'].astype('boolean').fillna(False)
     )
@@ -722,19 +748,25 @@ def parse_select_arg(select_arg):
 
 
     """
+
     # argparse with action='append' and nargs='+' produces a list of lists.
     # Flatten here so downstream logic can assume a flat list.
+    def flatten(items):
+        """Recursively flatten nested lists and tuples."""
+        flat_list = []
+        for item in items:
+            if isinstance(item, list | tuple):
+                flat_list.extend(flatten(item))
+            else:
+                flat_list.append(item)
+        return flat_list
+
     if isinstance(select_arg, str):
         flat_list = [select_arg]
     else:
-        flat_list = []
-        for element in select_arg:
-            if isinstance(element, (list, tuple)):
-                flat_list.extend(list(element))
-            else:
-                flat_list.append(element)
+        flat_list = flatten(select_arg)
 
-    all_subjects = all(item.startswith('sub-') for item in flat_list)
+    all_subjects = all(isinstance(item, str) and item.startswith('sub-') for item in flat_list)
 
     if all_subjects:
         return pd.DataFrame({'sub_id': flat_list})
@@ -801,7 +833,10 @@ def validate_sub_ses_processing_inclusion(processing_inclusion_file, processing_
 
     # Sanity check: there are expected column(s):
     if 'sub_id' not in initial_inclu_df.columns:
-        raise Exception(f"There is no 'sub_id' column in `{processing_inclusion_file}`!")
+        raise Exception(
+            f'Error reading `{processing_inclusion_file}`: '
+            f"There is no 'sub_id' column in the CSV file!"
+        )
 
     if processing_level == 'session' and 'ses_id' not in initial_inclu_df.columns:
         raise Exception(
