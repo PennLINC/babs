@@ -19,7 +19,7 @@ pipeline:
       bids_app_args:
         $SUBJECT_SELECTION_FLAG: "--participant-label"
       singularity_args:
-        - '--cleanenv'
+        - '--containall'
     inter_step_cmds: |
       # Delete rec-nonordic files (original data with new names)
       echo "Deleting rec-nonordic files (original data)..."
@@ -27,20 +27,23 @@ pipeline:
       echo "Original data with rec-nonordic entity removed"
 
   # Step 2: fMRIPrep (uses cleaned nordic output as input)
-  - container_name: 'fmriprep-25-0-0'
+  - container_name: 'fmriprep-25-2-3'
     config:
       bids_app_args:
         $SUBJECT_SELECTION_FLAG: "--participant-label"
         -w: "$BABS_TMPDIR"
         --stop-on-first-crash: ""
         --fs-license-file: "/path/to/license.txt"
-        --output-spaces: "MNI152NLin6Asym:res-2"
+        --output-spaces: "func T1w MNI152NLin6Asym:res-2"
         --force: bbr
         --skip-bids-validation: ""
         -vv: ""
         --n_cpus: "8"
         --mem-mb: "60000"
-        --fs-no-reconall: ""
+        --cifti-output: "91k"
+        --me-output-echos: ""
+        --project-goodvoxels: ""
+
       singularity_args:
         - --containall
         - --writable-tmpfs
