@@ -104,6 +104,14 @@ a SLURM cluster:
         --queue slurm \
         /path/to/a/folder/holding/BABS/project/my_BABS_project
 
+.. note::
+    **Throttling SLURM array jobs**: If you want to limit the number of simultaneously running
+    array tasks, you can add the ``--throttle`` option. For example, ``--throttle 10`` will
+    limit SLURM to run at most 10 array tasks at the same time. This is useful when you have
+    many jobs but want to avoid overwhelming the cluster or hitting resource limits.
+    The throttle value will be added to the array specification as ``%<throttle>``,
+    e.g., ``--array=1-${max_array}%10``.
+
 
 *********
 Debugging

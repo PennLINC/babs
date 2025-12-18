@@ -118,6 +118,14 @@ def _parse_init():
         " Please refer to section below 'What if ``babs init`` fails?' for details.",
         #      ^^ in `babs init.rst`, pointed to below section for more
     )
+    parser.add_argument(
+        '--throttle',
+        type=int,
+        help='Optional throttle value for SLURM array jobs. '
+        'This limits the number of simultaneously running array tasks. '
+        'The value will be added to the array specification as ``%%<throttle>``. '
+        'Example: ``--throttle 10`` will result in ``--array=1-${max_array}%%10``.',
+    )
 
     return parser
 
@@ -148,6 +156,7 @@ def babs_init_main(
     processing_level: str,
     queue: str,
     keep_if_failed: bool,
+    throttle: int | None = None,
 ):
     """This is the core function of babs init.
 
@@ -175,6 +184,11 @@ def babs_init_main(
         sge or slurm
     keep_if_failed: bool
         If `babs init` failed with error, whether to keep the created BABS project.
+    throttle: int or None, optional
+        Optional throttle value for SLURM array jobs. This limits the number of
+        simultaneously running array tasks. The value will be added to the array
+        specification as `%<throttle>`. Example: `10` will result in
+        `--array=1-${max_array}%10`.
     """
 
     from babs import BABSBootstrap
@@ -188,6 +202,7 @@ def babs_init_main(
             container_name,
             container_config,
             list_sub_file,
+            throttle=throttle,
         )
     except Exception as exc:
         print('\n`babs init` failed! Below is the error message:')
