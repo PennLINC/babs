@@ -1,7 +1,9 @@
 """Test the check_setup functionality."""
 
+import os
 import os.path as op
 import random
+import re
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -202,3 +204,54 @@ def test_key_info_full(babs_project_sessionlevel):
     babs_proj.wtf_key_info(flag_output_ria_only=False)
     assert babs_proj.output_ria_data_dir is not None
     assert babs_proj.analysis_dataset_id is not None
+
+
+@pytest.mark.parametrize(
+    ('throttle_value', 'expected_in_template'),
+    [(10, True), (None, False)],
+)
+def test_throttle_in_job_template(
+    tmp_path_factory,
+    templateflow_home,
+    simbids_container_ds,
+    bids_data_singlesession,
+    throttle_value,
+    expected_in_template,
+):
+    """Test that throttle value is correctly included in job submission template."""
+    from conftest import get_config_simbids_path, update_yaml_for_run
+
+    from babs.bootstrap import BABSBootstrap
+
+    os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
+
+    project_base = tmp_path_factory.mktemp('project')
+    project_root = project_base / f'my_babs_project_{throttle_value or "none"}'
+    container_config = update_yaml_for_run(
+        project_base,
+        get_config_simbids_path().name,
+        {'BIDS': bids_data_singlesession},
+    )
+
+    babs_bootstrap = BABSBootstrap(project_root=project_root)
+    babs_bootstrap.babs_bootstrap(
+        processing_level='subject',
+        queue='slurm',
+        container_ds=simbids_container_ds,
+        container_name='simbids-0-0-3',
+        container_config=container_config,
+        initial_inclusion_df=None,
+        throttle=throttle_value,
+    )
+
+    assert babs_bootstrap.throttle == throttle_value
+
+    template_path = op.join(babs_bootstrap.analysis_path, 'code', 'submit_job_template.yaml')
+    with open(template_path) as f:
+        cmd_template = yaml.safe_load(f)['cmd_template']
+
+    assert '--array=1-${max_array}' in cmd_template
+    if expected_in_template:
+        assert f'%{throttle_value}' in cmd_template
+    else:
+        assert not re.search(r'%\d+', cmd_template)

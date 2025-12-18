@@ -274,6 +274,9 @@ class Container:
                 array_args = '--array=1'
             else:  # need max_array for for `submit_job_template.yaml`
                 array_args = '--array=1-${max_array}'
+                # Add throttle if specified
+                if hasattr(babs, 'throttle') and babs.throttle is not None:
+                    array_args += f'%{babs.throttle}'
 
         # Render the template
         env = Environment(
