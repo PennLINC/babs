@@ -37,6 +37,7 @@ class BABSBootstrap(BABS):
         container_name,
         container_config,
         initial_inclusion_df=None,
+        throttle=None,
     ):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
@@ -57,6 +58,11 @@ class BABSBootstrap(BABS):
             of how to run the BIDS App container
         initial_inclusion_df: pd.DataFrame
             initial inclusion dataframe of subjects/sessions to analyze
+        throttle: int or None, optional
+            Optional throttle value for SLURM array jobs. This limits the number of
+            simultaneously running array tasks. The value will be added to the array
+            specification as `%<throttle>`. Example: `10` will result in
+            `--array=1-${max_array}%10`.
         """
         if op.exists(self.project_root):
             raise FileExistsError(
@@ -78,6 +84,9 @@ class BABSBootstrap(BABS):
             )
 
         os.makedirs(self.project_root)
+
+        # Store throttle value for job submission template
+        self.throttle = throttle
 
         # validate `processing_level`:
         self.processing_level = validate_processing_level(processing_level)
