@@ -33,8 +33,8 @@ def robust_rm_dir(path, max_retries=3, retry_delay=1):
     if not op.exists(path):
         return
 
-    # Check if it's a datalad dataset (has .datalad or .git directory)
-    is_datalad_dataset = op.exists(op.join(path, '.datalad')) or op.exists(op.join(path, '.git'))
+    # Check if it's a datalad dataset (presence of a `.datalad` directory).
+    is_datalad_dataset = op.exists(op.join(path, '.datalad'))
 
     # For datalad datasets, try datalad remove first
     if is_datalad_dataset:
