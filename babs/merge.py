@@ -39,7 +39,7 @@ def robust_rm_dir(path, max_retries=3, retry_delay=1):
     # For datalad datasets, try datalad remove first
     if is_datalad_dataset:
         try:
-            dlapi.remove(path=path, reckless='availability')
+            dlapi.remove(path=path, dataset=path, reckless='availability')
             # datalad remove might not remove everything, check if path still exists
             if not op.exists(path):
                 return

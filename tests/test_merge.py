@@ -107,10 +107,10 @@ def test_rm_dir_datalad_ok(tmp_path, monkeypatch):
     (test_dir / 'file.txt').write_text('test')
 
     # Mock datalad.remove to succeed
-    def mock_remove(path, **kwargs):
+    def mock_remove(path=None, dataset=None, **kwargs):
         import shutil
 
-        shutil.rmtree(path)
+        shutil.rmtree(dataset or path)
 
     monkeypatch.setattr(dlapi, 'remove', mock_remove)
 
@@ -127,7 +127,7 @@ def test_rm_dir_datalad_fail(tmp_path, monkeypatch):
     (test_dir / 'file.txt').write_text('test')
 
     # Mock datalad.remove to raise an exception
-    def mock_remove(path, **kwargs):
+    def mock_remove(path=None, dataset=None, **kwargs):
         raise Exception('datalad remove failed')
 
     monkeypatch.setattr(dlapi, 'remove', mock_remove)
@@ -145,7 +145,7 @@ def test_rm_dir_datalad_partial(tmp_path, monkeypatch):
     (test_dir / 'file.txt').write_text('test')
 
     # Mock datalad.remove to succeed but not remove everything
-    def mock_remove(path, **kwargs):
+    def mock_remove(path=None, dataset=None, **kwargs):
         # Remove some files but leave the directory
         (test_dir / 'file.txt').unlink()
         # Don't actually remove the directory
