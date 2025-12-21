@@ -18,7 +18,6 @@ from babs.cli import (
     babs_submit_main,
     babs_update_input_data_main,
 )
-from babs.scheduler import squeue_to_pandas
 
 
 def manually_add_new_subject_to_input_data(input_data_path: str):
@@ -152,9 +151,9 @@ def test_babs_update_input_data(
     for waitnum in [5, 8, 10, 15, 30, 60, 120]:
         time.sleep(waitnum)
         print(f'Waiting {waitnum} seconds...')
-        df = squeue_to_pandas()
-        print(df)
-        if df.empty:
+        currently_running_df = babs_proj.get_currently_running_jobs_df()
+        print(currently_running_df)
+        if currently_running_df.empty:
             finished = True
             break
 
