@@ -270,8 +270,6 @@ def test_merge_no_head(babs_project_sessionlevel, tmp_path, monkeypatch):
     """Test babs_merge when there's no HEAD branch."""
     babs_proj = BABSMerge(babs_project_sessionlevel)
 
-    merge_ds_path = tmp_path / 'merge_ds'
-    merge_ds_path.mkdir()
     monkeypatch.setattr(babs_proj, 'project_root', str(tmp_path))
 
     def set_analysis_id():
@@ -282,7 +280,12 @@ def test_merge_no_head(babs_project_sessionlevel, tmp_path, monkeypatch):
 
     from babs.merge import dlapi
 
-    monkeypatch.setattr(dlapi, 'clone', lambda source, path: None)
+    def mock_clone(source, path):
+        # Create the directory so subsequent git commands can run
+        os.makedirs(path, exist_ok=True)
+        return None
+
+    monkeypatch.setattr(dlapi, 'clone', mock_clone)
 
     def mock_remote_show(cmd, **kwargs):
         if 'remote' in cmd and 'show' in cmd:
@@ -294,5 +297,5 @@ def test_merge_no_head(babs_project_sessionlevel, tmp_path, monkeypatch):
 
     monkeypatch.setattr('babs.merge.subprocess.run', mock_remote_show)
 
-    with pytest.raises(Exception, match='There is no HEAD branch in output RIA'):
+    with pytest.raises(Exception, match='There is no HEAD branch in output RIA!'):
         babs_proj.babs_merge()
