@@ -39,6 +39,14 @@ def robust_rm_dir(path, max_retries=3, retry_delay=1):
     # For datalad datasets, try datalad remove first
     if is_datalad_dataset:
         try:
+            # Untracked files in merge_ds can block `datalad remove`, so discard untracked.
+            if op.exists(op.join(path, '.git')):
+                subprocess.run(
+                    ['git', 'clean', '-fdx'],
+                    cwd=path,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
             dlapi.remove(path=path, dataset=path, reckless='availability')
             # datalad remove might not remove everything, check if path still exists
             if not op.exists(path):
