@@ -1,14 +1,99 @@
 import math
+import os
 import os.path as op
 import re
 import shutil
+import stat
 import subprocess
+import time
 import warnings
 
 import datalad.api as dlapi
 
 from babs.base import BABS
 from babs.utils import get_git_show_ref_shasum
+
+
+def robust_rm_dir(path, max_retries=3, retry_delay=1):
+    """
+    Robustly remove a directory tree, handling filesystem quirks and locked files.
+
+    For datalad datasets, this function prioritizes `datalad remove`.
+    Falls back to shutil.rmtree() with retries if needed.
+
+    Parameters
+    ----------
+    path : str
+        Path to the directory to remove
+    max_retries : int
+        Maximum number of retry attempts for shutil.rmtree()
+    retry_delay : float
+        Delay in seconds between retries
+    """
+    if not op.exists(path):
+        return
+
+    # Check if it's a datalad dataset (presence of a `.datalad` directory).
+    is_datalad_dataset = op.exists(op.join(path, '.datalad'))
+
+    # For datalad datasets, try datalad remove first
+    if is_datalad_dataset:
+        try:
+            # Untracked files in merge_ds can block `datalad remove`, so discard untracked.
+            if op.exists(op.join(path, '.git')):
+                subprocess.run(
+                    ['git', 'clean', '-fdx'],
+                    cwd=path,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            dlapi.remove(path=path, dataset=path, reckless='availability')
+            # datalad remove might not remove everything, check if path still exists
+            if not op.exists(path):
+                return
+            # If path still exists, fall through to shutil.rmtree() below
+        except Exception as e:
+            print(f'Warning: datalad remove failed for {path}: {e}')
+            print('Falling back to shutil.rmtree()...')
+
+    # Fallback: use shutil.rmtree() with error handling and retries
+    def handle_remove_readonly(func, path, _exc):
+        """
+        Error handler for shutil.rmtree that attempts to fix permission issues.
+        """
+        # Change file to be writable, readable, and executable
+        os.chmod(path, stat.S_IWRITE | stat.S_IREAD | stat.S_IEXEC)
+        try:
+            func(path)
+        except Exception as e:
+            # If still fails, try to remove as file
+            print(f'Warning: Failed to remove {path} after fixing permissions: {e}')
+            try:
+                os.remove(path)
+            except Exception as e2:
+                print(f'Warning: Failed to remove {path} as file: {e2}')
+
+    # Try shutil.rmtree() with retries
+    for attempt in range(max_retries):
+        try:
+            shutil.rmtree(path, onerror=handle_remove_readonly)
+            return
+        except OSError as e:
+            if attempt < max_retries - 1:
+                print(
+                    f'Warning: Failed to remove {path} (attempt {attempt + 1}/{max_retries}): {e}'
+                )
+                time.sleep(retry_delay)
+                continue
+            else:
+                # All retries failed, warn but don't crash since merge was successful
+                warnings.warn(
+                    f"Failed to remove temporary directory '{path}' after {max_retries} attempts. "
+                    f'Error: {e}. '
+                    'The merge was successful, but you may need to manually remove '
+                    'this directory. You can safely delete it with: rm -rf ' + path,
+                    stacklevel=2,
+                )
 
 
 class BABSMerge(BABS):
@@ -279,7 +364,8 @@ class BABSMerge(BABS):
             print('\n`babs merge` was successful!')
 
         # delete the merge_ds folder
-        shutil.rmtree(merge_ds_path)
+        print('\nCleaning up merge_ds directory...')
+        robust_rm_dir(merge_ds_path)
 
         # Delete all the merged branches from the output RIA
         for n_chunk, chunk in enumerate(all_chunks):
