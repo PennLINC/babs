@@ -67,35 +67,50 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 
 {{ zip_locator_text }}
 
-# datalad run:
-datalad run \
-	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
+# Step 1: Run BIDS app via containers-run
+mkdir -p {{ bids_app_output_dir }}
+mkdir -p "${PWD}/.git/tmp/wkdir"
+datalad containers-run \
+	-n {{ container_name }} \
+	-m "{{ container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
-	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/*json" \
+	--input "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
+	--input "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/*json" \
 {% else %}
-	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
+	--input "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
-{% if container_images %}
-{% for image_path in container_images %}
-	-i "{{ image_path }}" \
-{% endfor %}
-{% elif not run_script_relpath %}
-	-i "containers/.datalad/environments/{{container_name}}/image" \
-{% endif %}
+	--output "{{ bids_app_output_dir }}" \
 {% if datalad_expand_inputs %}
 	--expand inputs \
 {% endif %}
 	--explicit \
-{% if zip_foldernames is not none %}
-{% for key, value in zip_foldernames.items() %}
-	-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
-{% endfor %}
+	-- \
+	{{ bids_app_input_dir }} \
+	{{ bids_app_output_dir }} \
+	participant \
+{% for bids_app_arg in bids_app_args %}
+{% if bids_app_arg %}
+	{{ bids_app_arg }} \
 {% endif %}
-	-m "{{ datalad_run_message if datalad_run_message is defined else container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
-    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+{% endfor %}
+	{{ subject_selection_flag }} "${subid}"
+
+# Step 2: Zip outputs
+{% set str_sesid = '_${sesid}' if processing_level == 'session' else '' %}
+datalad run \
+	-m "Zip ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
+	--input "{{ bids_app_output_dir }}" \
+{% for key, value in zip_foldernames.items() %}
+	--output "${subid}{{ str_sesid }}_{{ key }}-{{ value }}.zip" \
+{% endfor %}
+	-- \
+	bash -c 'cd {{ output_main_foldername }} && {% for key, value in zip_foldernames.items() %}7z a "../${subid}{{ str_sesid }}_{{ key }}-{{ value }}.zip" "{{ key }}" && {% endfor %}cd ..'
+
+# Step 3: Remove raw outputs
+git rm -rf {{ output_main_foldername }}
+git commit -m "Remove raw outputs for ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %} (zipped)"
 
 # Finish up:
 # push result file content to output RIA storage:

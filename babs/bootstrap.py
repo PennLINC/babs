@@ -223,6 +223,48 @@ class BABSBootstrap(BABS):
         )
         # into `analysis/containers` folder
 
+        # Register container at analysis level for datalad containers-run
+        print('\nRegistering container at analysis level...')
+        containers_path = op.join(self.analysis_path, 'containers')
+
+        # Query subdataset for container image path
+        container_list_result = dlapi.containers_list(
+            dataset=containers_path,
+            result_renderer='disabled',
+        )
+        # Find the container matching container_name
+        image_path = None
+        for container_info in container_list_result:
+            if container_info.get('name') == container_name:
+                # Path is absolute, we need relative to subdataset
+                abs_path = container_info.get('path')
+                image_path = op.relpath(abs_path, containers_path)
+                break
+
+        if image_path is None:
+            raise ValueError(
+                f"Container '{container_name}' not found in container dataset. "
+                f"Available containers: {[c.get('name') for c in container_list_result]}"
+            )
+
+        # Build call-fmt from user's singularity_args
+        # TODO: $PWD binds the dataset root so container can access input/output data.
+        # Alternatives if shell expansion doesn't work:
+        #   - Use '.' (Singularity resolves relative to cwd)
+        #   - Inject self.analysis_path directly as a string
+        #   - See freeze_versions in repronim/containers for {img_dspath} path rewriting
+        singularity_args = babs_config.get('singularity_args', [])
+        args_str = ' '.join(singularity_args)
+        call_fmt = f"singularity run -B $PWD {args_str} {{img}} {{cmd}}"
+
+        # Register at analysis level
+        dlapi.containers_add(
+            dataset=self.analysis_path,
+            name=container_name,
+            image=op.join('containers', image_path),
+            call_fmt=call_fmt,
+        )
+
         # Create initial container for sanity check
         container = Container(container_ds, container_name, container_config)
 
@@ -389,18 +431,6 @@ class BABSBootstrap(BABS):
     ):
         """Bootstrap scripts for single BIDS app configuration."""
         container = Container(container_ds, container_name, container_config)
-
-        # Generate `<containerName>_zip.sh`: ----------------------------------
-        # which is a bash script of singularity run + zip
-        # in folder: `analysis/code`
-        print('\nGenerating a bash script for running container and zipping the outputs...')
-        print('This bash script will be named as `' + container_name + '_zip.sh`')
-        bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
-        container.generate_bash_run_bidsapp(bash_path, self.input_datasets, self.processing_level)
-        self.datalad_save(
-            path='code/' + container_name + '_zip.sh',
-            message='Generate script of running container',
-        )
 
         # make another folder within `code` for test jobs:
         os.makedirs(op.join(self.analysis_path, 'code/check_setup'), exist_ok=True)

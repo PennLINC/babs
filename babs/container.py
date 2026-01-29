@@ -6,7 +6,6 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
 from babs.utils import app_output_settings_from_config
 
@@ -101,50 +100,6 @@ class Container:
             + "'."
         )
 
-    def generate_bash_run_bidsapp(self, bash_path, input_ds, processing_level):
-        """
-        This is to generate a bash script that runs the BIDS App singularity image.
-
-        Parameters
-        ----------
-        bash_path: str
-            The path to the bash file to be generated. It should be in the `analysis/code` folder.
-        input_ds: class `InputDatasets`
-            input dataset(s) information
-        processing_level : {'subject', 'session'}
-            whether processing is done on a subject-wise or session-wise basis
-        """
-
-        # Check if the folder exist; if not, create it:
-        bash_dir = op.dirname(bash_path)
-        if not op.exists(bash_dir):
-            os.makedirs(bash_dir)
-
-        input_datasets = input_ds.as_records()
-        templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
-
-        # What should the outputs look like?
-        dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(self.config)
-
-        script_content = generate_bidsapp_runscript(
-            input_datasets,
-            processing_level,
-            container_name=self.container_name,
-            relative_container_path=self.container_path_relToAnalysis,
-            bids_app_output_dir=bids_app_output_dir,
-            dict_zip_foldernames=dict_zip_foldernames,
-            bids_app_args=self.config.get('bids_app_args', None),
-            singularity_args=self.config.get('singularity_args', []),
-            templateflow_home=templateflow_home,
-        )
-
-        with open(bash_path, 'w') as f:
-            f.write(script_content)
-        os.chmod(bash_path, 0o700)  # rwx------ (owner only)
-
-        print('Below is the generated BIDS App run script:')
-        print(script_content)
-
     def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
         """Generate bash script for participant job.
 
@@ -159,16 +114,39 @@ class Container:
         system: class `System`
             information on cluster management system
         """
+        from babs.generate_bidsapp_runscript import bids_app_args_from_config
+        from babs.utils import app_output_settings_from_config
+
+        input_datasets = input_ds.as_records()
+        raw_bids_app_args = self.config.get('bids_app_args', None)
+        dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(self.config)
+
+        if raw_bids_app_args is None:
+            bids_app_args = ''
+            subject_selection_flag = '--participant-label'
+            bids_app_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
+        else:
+            (
+                bids_app_args,
+                subject_selection_flag,
+                _flag_fs_license,
+                _path_fs_license,
+                bids_app_input_dir,
+            ) = bids_app_args_from_config(raw_bids_app_args, input_datasets)
 
         script_content = generate_submit_script(
             queue_system=system.type,
             cluster_resources_config=self.config['cluster_resources'],
             script_preamble=self.config['script_preamble'],
             job_scratch_directory=self.config['job_compute_space'],
-            input_datasets=input_ds.as_records(),
+            input_datasets=input_datasets,
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
+            bids_app_args=bids_app_args,
+            bids_app_input_dir=bids_app_input_dir,
+            bids_app_output_dir=bids_app_output_dir,
+            subject_selection_flag=subject_selection_flag,
         )
 
         with open(bash_path, 'w') as f:
