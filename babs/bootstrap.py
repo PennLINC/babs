@@ -78,7 +78,11 @@ class BABSBootstrap(BABS):
             )
 
         # check if parent directory is writable:
-        if not os.access(parent_dir, os.W_OK):
+        try:
+            import tempfile
+            with tempfile.TemporaryFile(dir=parent_dir):
+                pass
+        except OSError:
             raise ValueError(
                 f"The parent folder '{parent_dir}' is not writable! `babs init` won't proceed."
             )
