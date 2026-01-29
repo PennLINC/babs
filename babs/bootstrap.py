@@ -252,14 +252,11 @@ class BABSBootstrap(BABS):
             )
 
         # Build call-fmt from user's singularity_args
-        # TODO: $PWD binds the dataset root so container can access input/output data.
-        # Alternatives if shell expansion doesn't work:
-        #   - Use '.' (Singularity resolves relative to cwd)
-        #   - Inject self.analysis_path directly as a string
-        #   - See freeze_versions in repronim/containers for {img_dspath} path rewriting
+        # -B $PWD: bind dataset root so container can access input/output data
+        # --pwd $PWD: set working directory inside container (--containall defaults to $HOME)
         singularity_args = babs_config.get('singularity_args', [])
         args_str = ' '.join(singularity_args)
-        call_fmt = f"singularity run -B $PWD {args_str} {{img}} {{cmd}}"
+        call_fmt = f"singularity run -B $PWD --pwd $PWD {args_str} {{img}} {{cmd}}"
 
         # Register at analysis level
         dlapi.containers_add(
