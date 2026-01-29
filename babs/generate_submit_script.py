@@ -33,6 +33,7 @@ def generate_submit_script(
     bids_app_input_dir=None,
     bids_app_output_dir=None,
     subject_selection_flag=None,
+    container_image_path=None,
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
@@ -125,6 +126,7 @@ def generate_submit_script(
         bids_app_output_dir=bids_app_output_dir or '',
         subject_selection_flag=subject_selection_flag or '--participant-label',
         output_main_foldername='outputs',
+        container_image_path=container_image_path or '',
     )
 
 

@@ -67,6 +67,9 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 
 {{ zip_locator_text }}
 
+# Fetch container image (not resolved automatically through RIA clone chain)
+datalad get "{{ container_image_path }}"
+
 # Step 1: Run BIDS app via containers-run
 mkdir -p {{ bids_app_output_dir }}
 mkdir -p "${PWD}/.git/tmp/wkdir"

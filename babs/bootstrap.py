@@ -292,8 +292,10 @@ class BABSBootstrap(BABS):
             # Use first container for compatibility with existing code
             container = containers[0]
         else:
+            container_image_path = op.join('containers', image_path)
             self._bootstrap_single_app_scripts(
-                container_ds, container_name, container_config, system
+                container_ds, container_name, container_config, system,
+                container_image_path=container_image_path,
             )
             container = Container(container_ds, container_name, container_config)
 
@@ -428,7 +430,8 @@ class BABSBootstrap(BABS):
         print('`babs init` was successful!')
 
     def _bootstrap_single_app_scripts(
-        self, container_ds, container_name, container_config, system
+        self, container_ds, container_name, container_config, system,
+        container_image_path=None,
     ):
         """Bootstrap scripts for single BIDS app configuration."""
         container = Container(container_ds, container_name, container_config)
@@ -441,7 +444,8 @@ class BABSBootstrap(BABS):
         print('This bash script will be named as `participant_job.sh`')
         bash_path = op.join(self.analysis_path, 'code', 'participant_job.sh')
         container.generate_bash_participant_job(
-            bash_path, self.input_datasets, self.processing_level, system
+            bash_path, self.input_datasets, self.processing_level, system,
+            container_image_path=container_image_path,
         )
 
         # also, generate a bash script of a test job used by `babs check-setup`:

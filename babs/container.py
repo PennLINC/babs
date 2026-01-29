@@ -100,7 +100,10 @@ class Container:
             + "'."
         )
 
-    def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
+    def generate_bash_participant_job(
+        self, bash_path, input_ds, processing_level, system,
+        container_image_path=None,
+    ):
         """Generate bash script for participant job.
 
         Parameters
@@ -113,6 +116,8 @@ class Container:
             whether processing is done on a subject-wise or session-wise basis
         system: class `System`
             information on cluster management system
+        container_image_path: str or None
+            Path to container image relative to analysis dir (from containers-list).
         """
         from babs.generate_bidsapp_runscript import bids_app_args_from_config
         from babs.utils import app_output_settings_from_config
@@ -147,6 +152,7 @@ class Container:
             bids_app_input_dir=bids_app_input_dir,
             bids_app_output_dir=bids_app_output_dir,
             subject_selection_flag=subject_selection_flag,
+            container_image_path=container_image_path,
         )
 
         with open(bash_path, 'w') as f:
