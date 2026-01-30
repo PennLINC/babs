@@ -51,6 +51,9 @@ git checkout -b "${BRANCH}"
 # Start of the application-specific code: ------------------------------
 
 # pull down input data (but don't retrieve the data content) and remove other sub's data:
+# TODO: verify this pruning is necessary (limit misbehaving BIDS apps from running all
+# subjects? reduce inode usage on scratch?). Note: this dirties the input subdataset,
+# which requires --explicit on all subsequent datalad run/containers-run commands.
 echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
@@ -99,12 +102,12 @@ datalad containers-run \
 {% endfor %}
 	{{ subject_selection_flag }} "${subid}"
 
-# TODO: remove after confirming clean dataset between steps
-datalad status
-
 # Step 2: Zip outputs
+# --explicit: input subdataset is dirty from subject pruning (rm -rf) above;
+# without --explicit, datalad run refuses to start on a dirty dataset.
 {% set str_sesid = '_${sesid}' if processing_level == 'session' else '' %}
 datalad run \
+	--explicit \
 	-m "Zip ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
 	--input "{{ bids_app_output_dir }}" \
 {% for key, value in zip_foldernames.items() %}
