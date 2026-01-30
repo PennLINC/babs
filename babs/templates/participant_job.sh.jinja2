@@ -71,7 +71,6 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 datalad get "{{ container_image_path }}"
 
 # Step 1: Run BIDS app via containers-run
-mkdir -p {{ bids_app_output_dir }}
 mkdir -p "${PWD}/.git/tmp/wkdir"
 datalad containers-run \
 	-n {{ container_name }} \
@@ -99,6 +98,9 @@ datalad containers-run \
 {% endif %}
 {% endfor %}
 	{{ subject_selection_flag }} "${subid}"
+
+# TODO: remove after confirming clean dataset between steps
+datalad status
 
 # Step 2: Zip outputs
 {% set str_sesid = '_${sesid}' if processing_level == 'session' else '' %}
