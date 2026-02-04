@@ -33,10 +33,17 @@ class BABSInteraction(BABS):
         # Check if there are still jobs running
         currently_running_df = self.get_currently_running_jobs_df()
         if currently_running_df.shape[0] > 0:
-            raise Exception(
-                'There are still jobs running. Please wait for them to finish or cancel them.'
-                f' Current running jobs:\n{currently_running_df}'
+            non_cg_states = (
+                currently_running_df['state'].fillna('').ne('CG')
+                if 'state' in currently_running_df
+                else np.array([True] * currently_running_df.shape[0])
             )
+            if non_cg_states.any():
+                raise Exception(
+                    'There are still jobs running. Please wait for them to finish or cancel them.'
+                    f' Current running jobs:\n{currently_running_df}'
+                )
+            print('All currently running jobs are in CG state; proceeding with submission.')
 
         # Find the rows that don't have results yet
         status_df = self.get_job_status_df()
