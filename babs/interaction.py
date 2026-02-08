@@ -15,7 +15,7 @@ from babs.utils import (
 class BABSInteraction(BABS):
     """Implement interactions with a BABS project - submitting jobs and checking status."""
 
-    def babs_submit(self, count=None, submit_df=None, skip_failed=False):
+    def babs_submit(self, count=None, submit_df=None, skip_failed=False, skip_running_jobs=False):
         """
         This function submits jobs that don't have results yet and prints out job status.
 
@@ -28,10 +28,13 @@ class BABSInteraction(BABS):
         submit_df: pd.DataFrame
             dataframe of jobs to be submitted
             default: None
+        skip_running_jobs: bool
+            whether to allow submission when there are running/pending jobs
         """
 
         # Check if there are still jobs running
         currently_running_df = self.get_currently_running_jobs_df()
+        running_pending_df = currently_running_df.copy()
         if currently_running_df.shape[0] > 0:
             non_cg_states = (
                 currently_running_df['state'].fillna('').ne('CG')
@@ -39,11 +42,20 @@ class BABSInteraction(BABS):
                 else np.array([True] * currently_running_df.shape[0])
             )
             if non_cg_states.any():
-                raise Exception(
-                    'There are still jobs running. Please wait for them to finish or cancel them.'
-                    f' Current running jobs:\n{currently_running_df}'
-                )
-            print('All currently running jobs are in CG state; proceeding with submission.')
+                if not skip_running_jobs:
+                    raise Exception(
+                        'There are still jobs running. '
+                        'Please wait for them to finish or cancel them. '
+                        'Current running jobs:\n'
+                        f'{currently_running_df}'
+                    )
+                if 'state' in currently_running_df:
+                    running_pending_df = currently_running_df[
+                        currently_running_df['state'].isin(['PD', 'R'])
+                    ]
+            else:
+                running_pending_df = currently_running_df.iloc[0:0]
+                print('All currently running jobs are in CG state; proceeding with submission.')
 
         # Find the rows that don't have results yet
         status_df = self.get_job_status_df()
@@ -53,6 +65,38 @@ class BABSInteraction(BABS):
 
         if submit_df is not None:
             df_needs_submit = submit_df
+
+        if skip_running_jobs and not running_pending_df.empty:
+            # Build (sub_id,) or (sub_id, ses_id) keys for set lookup
+            if self.processing_level == 'session':
+                running_keys = set(
+                    zip(
+                        running_pending_df['sub_id'],
+                        running_pending_df['ses_id'],
+                        strict=False,
+                    )
+                )
+                submit_keys = list(
+                    zip(df_needs_submit['sub_id'], df_needs_submit['ses_id'], strict=False)
+                )
+            else:
+                running_keys = set(running_pending_df['sub_id'].tolist())
+                submit_keys = df_needs_submit['sub_id'].tolist()
+
+            # Mark which of the to-submit rows are still running/pending
+            if running_keys:
+                skip_mask = [key in running_keys for key in submit_keys]
+            else:
+                skip_mask = [False] * len(submit_keys)
+
+            if any(skip_mask):
+                # Report skipped job IDs and filter them out of the submission list
+                skip_job_ids = sorted(running_pending_df['job_id'].dropna().unique().tolist())
+                print(
+                    'Skipping running/pending jobs from job IDs: '
+                    + ', '.join(str(job_id) for job_id in skip_job_ids)
+                )
+                df_needs_submit = df_needs_submit.loc[~np.array(skip_mask)].reset_index(drop=True)
 
         # only run `babs submit` when there are subjects/sessions not yet submitted
         if df_needs_submit.empty:
