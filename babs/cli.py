@@ -356,7 +356,7 @@ def _parse_submit():
         action='store_true',
         help=(
             'Allow submission when there are running/pending jobs by skipping '
-            'those jobs instead of raising errrors.'
+            'those jobs instead of raising errors.'
         ),
     )
 

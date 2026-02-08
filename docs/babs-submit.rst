@@ -76,6 +76,10 @@ You may also pass multiple values per flag:
 .. note::
     If there are jobs currently running, ``babs submit`` will refuse to submit new jobs
     until the running jobs finish or are cancelled. Use ``babs status`` to check progress.
+    
+    To resubmit only failed jobs while others are still running or pending, 
+    use ``babs submit --skip-running-jobs``; it will skip running/pending
+    jobs and list the skipped job IDs.
 
 
 ********
