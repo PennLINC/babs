@@ -351,6 +351,14 @@ def _parse_submit():
         ' If this flag is specified, it will override the `--select` flag.',
         type=PathExists,
     )
+    parser.add_argument(
+        '--skip-running-jobs',
+        action='store_true',
+        help=(
+            'Allow submission when there are running/pending jobs by skipping '
+            'those jobs instead of raising errors.'
+        ),
+    )
 
     return parser
 
@@ -376,6 +384,7 @@ def babs_submit_main(
     count: int | None,
     select: list | None,
     inclusion_file: Path | None,
+    skip_running_jobs: bool = False,
 ):
     """This is the core function of ``babs submit``.
 
@@ -389,6 +398,8 @@ def babs_submit_main(
         list of subject IDs and session IDs to be submitted.
     inclusion_file: Path
         path to a CSV file that lists the subjects (and sessions) to analyze.
+    skip_running_jobs: bool
+        whether to allow submission when there are running/pending jobs
     """
     import pandas as pd
 
@@ -406,7 +417,11 @@ def babs_submit_main(
     else:
         df_job_specified = None
 
-    babs_proj.babs_submit(count=count, submit_df=df_job_specified)
+    babs_proj.babs_submit(
+        count=count,
+        submit_df=df_job_specified,
+        skip_running_jobs=skip_running_jobs,
+    )
 
 
 def _parse_status():

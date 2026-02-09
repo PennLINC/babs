@@ -99,7 +99,11 @@ def test_babs_init_raw_bids(
 
     # babs submit:
     babs_submit_opts = argparse.Namespace(
-        project_root=project_root, select=None, inclusion_file=None, count=1
+        project_root=project_root,
+        select=None,
+        inclusion_file=None,
+        count=1,
+        skip_running_jobs=False,
     )
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
         _enter_submit()
@@ -124,7 +128,11 @@ def test_babs_init_raw_bids(
 
     # Submit the last job:
     babs_submit_opts = argparse.Namespace(
-        project_root=project_root, select=None, inclusion_file=None, count=None
+        project_root=project_root,
+        select=None,
+        inclusion_file=None,
+        count=None,
+        skip_running_jobs=False,
     )
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
         _enter_submit()
