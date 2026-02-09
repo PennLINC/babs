@@ -23,6 +23,7 @@ from babs.utils import (
     read_yaml,
     results_branch_dataframe,
     results_status_columns,
+    scheduler_status_columns,
     status_dtypes,
     update_job_batch_status,
     update_results_status,
@@ -460,15 +461,51 @@ class BABS:
         Index: []
 
         """
+
+        def _empty_running():
+            cols = scheduler_status_columns + ['sub_id']
+            if self.processing_level == 'session':
+                cols = cols + ['ses_id']
+            return pd.DataFrame(columns=cols)
+
+        job_status_df = self.get_job_status_df()
         last_submitted_jobs_df = self.get_latest_submitted_jobs_df()
-        if last_submitted_jobs_df.empty:
-            return EMPTY_JOB_SUBMIT_DF
-        job_ids = last_submitted_jobs_df['job_id'].unique()
-        if not len(job_ids) == 1:
-            raise Exception(f'Expected 1 job id, got {len(job_ids)}')
-        job_id = job_ids[0]
-        currently_running_df = request_all_job_status(self.queue, job_id)
-        return identify_running_jobs(last_submitted_jobs_df, currently_running_df)
+
+        # Rows that are submitted but don't have results yet (candidates for "running")
+        if not job_status_df.empty:
+            sub = job_status_df['submitted'].fillna(False)
+            no_res = ~job_status_df['has_results'].fillna(False)
+            job_status_df = job_status_df.loc[sub & no_res].copy()
+
+        # Use status rows (submitted, no results) or last submit file for job_id -> sub/ses
+        mapping_df = job_status_df if not job_status_df.empty else last_submitted_jobs_df.copy()
+        if mapping_df.empty:
+            return _empty_running()
+
+        # Keep only columns needed to join scheduler output with subject/session
+        mapping_cols = ['job_id', 'task_id', 'sub_id']
+        if 'ses_id' in mapping_df:
+            mapping_cols.append('ses_id')
+        mapping_df = mapping_df[mapping_cols].copy()
+        # Drop rows with missing or invalid job/task ids so we only query real jobs
+        mapping_df = mapping_df[
+            mapping_df['job_id'].notna()
+            & mapping_df['task_id'].notna()
+            & (mapping_df['job_id'] > 0)
+            & (mapping_df['task_id'] > 0)
+        ]
+        if mapping_df.empty:
+            return _empty_running()
+
+        # Ask scheduler for each distinct job_id, keep only non-empty responses
+        job_ids = sorted({int(j) for j in mapping_df['job_id'].unique()})
+        running_dfs = [request_all_job_status(self.queue, j) for j in job_ids]
+        running_dfs = [d for d in running_dfs if not d.empty]
+        if not running_dfs:
+            return _empty_running()
+
+        # Attach sub_id (and ses_id) to scheduler rows and return
+        return identify_running_jobs(mapping_df, pd.concat(running_dfs, ignore_index=True))
 
     def get_job_status_df(self):
         """
