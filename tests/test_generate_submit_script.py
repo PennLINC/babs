@@ -172,3 +172,39 @@ def test_generate_submit_script_pipeline(tmp_path):
     if not passed:
         print(script_content)
     assert passed, status
+
+
+def test_generate_submit_script_contains_overlay_guidance(tmp_path):
+    """Ensure overlay mode hooks and helper-image guidance are rendered."""
+    config_path = NOTEBOOKS_DIR / 'eg_aslprep-0-7-5.yaml'
+    config = read_yaml(config_path)
+
+    script_content = generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config=config['cluster_resources'],
+        script_preamble=config['script_preamble'],
+        job_scratch_directory=config['job_compute_space'],
+        input_datasets=input_datasets_prep,
+        processing_level='subject',
+        container_name='aslprep-0-7-5',
+        zip_foldernames=config['zip_foldernames'],
+    )
+
+    assert 'BABS_USE_INPUT_OVERLAY="${BABS_USE_INPUT_OVERLAY:-0}"' in script_content
+    assert 'BABS_OVERLAY_HELPER_IMAGE="${BABS_OVERLAY_HELPER_IMAGE:-}"' in script_content
+    assert 'BABS_OVERLAY_KEEP="${BABS_OVERLAY_KEEP:-0}"' in script_content
+    assert 'singularity exec \\' in script_content
+    assert '--overlay "${BABS_INPUT_OVERLAY_PATH}"' in script_content
+    assert (
+        'Build a helper image once from this repo using docker/babs-input-overlay-helper.def'
+        in script_content
+    )
+    assert 'BABS_OVERLAY_HELPER_IMAGE' in script_content
+
+    out_fn = tmp_path / 'participant_job_overlay.sh'
+    with open(out_fn, 'w') as f:
+        f.write(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(script_content)
+    assert passed, status

@@ -771,6 +771,77 @@ Notes:
     * The "path where intermediate results should be stored" (e.g., ``-w``) is directly used by BIDS Apps.
       It is also a sub-folder of the space specified in this section.
 
+.. _input-overlay-mode:
+
+Input materialization overlay mode (optional, advanced)
+=======================================================
+
+For large studies on HPC, ``datalad clone`` / ``datalad get`` can overwhelm
+shared filesystems (many tiny file creates/stats/deletes across many concurrent jobs).
+BABS supports an optional overlay-based participant job mode to isolate these operations.
+
+When enabled, participant jobs run DataLad-heavy steps through::
+
+    singularity exec --overlay <ext3_overlay.img> <helper_image.sif> <command>
+
+The helper image is a **runtime image for BABS job plumbing** (not your BIDS App image).
+It must contain at least:
+
+* ``datalad``
+* ``git``
+* ``git-annex``
+* ``singularity`` (or a compatible ``singularity`` command in the helper image)
+* basic shell/coreutils
+
+Build your helper image once from this repository
+-------------------------------------------------
+
+BABS includes an Apptainer definition file for this helper image at:
+
+* ``docker/babs-input-overlay-helper.def``
+
+Build it once (from the root of this repo). Use ``--test`` so the definition's
+``%test`` section runs and verifies required commands (bash, datalad, git,
+git-annex, singularity/apptainer)::
+
+    cd /path/to/babs
+    apptainer build --test "${HOME}/apptainer/babs-overlay-helper.sif" docker/babs-input-overlay-helper.def
+
+Then point ``BABS_OVERLAY_HELPER_IMAGE`` to this image path in your jobs.
+
+.. note::
+
+    BABS does **not** build this helper image automatically during jobs.
+    Build it once before running overlay-mode jobs.
+
+User-side job configuration
+---------------------------
+
+Set these variables in ``script_preamble`` (or your scheduler environment)::
+
+    script_preamble: |
+        source "${CONDA_PREFIX}"/bin/activate babs
+        export BABS_USE_INPUT_OVERLAY=1
+        export BABS_OVERLAY_HELPER_IMAGE="${HOME}/apptainer/babs-overlay-helper.sif"
+        export BABS_OVERLAY_SIZE_GB=20
+        # Optional: keep ext3 overlay + branch dir for debugging
+        # export BABS_OVERLAY_KEEP=1
+
+Variable meanings:
+
+* ``BABS_USE_INPUT_OVERLAY``: enable (``1``) / disable (``0``) overlay mode.
+* ``BABS_OVERLAY_HELPER_IMAGE``: absolute path to helper image (required when enabled).
+* ``BABS_OVERLAY_SIZE_GB``: ext3 overlay size in GiB (default: ``20``).
+* ``BABS_OVERLAY_KEEP``: keep overlay and branch directory for debugging (default: ``0``).
+
+Expected runtime messages
+-------------------------
+
+When enabled, jobs print helper image path, overlay path, and overlay size at startup.
+If helper image is missing/unreadable, jobs fail fast with a message instructing users
+to build the helper image once from ``docker/babs-input-overlay-helper.def`` and set
+``BABS_OVERLAY_HELPER_IMAGE`` correctly.
+
 .. _required_files:
 
 

@@ -35,8 +35,70 @@ BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%en
 mkdir "${BRANCH}"
 cd "${BRANCH}"
 
+# Optional overlay mode for input materialization-heavy operations.
+# Recommended for HPC: site admins publish one helper image with
+# datalad/git/git-annex/singularity available.
+BABS_USE_INPUT_OVERLAY="${BABS_USE_INPUT_OVERLAY:-0}"
+BABS_OVERLAY_SIZE_GB="${BABS_OVERLAY_SIZE_GB:-20}"
+BABS_OVERLAY_KEEP="${BABS_OVERLAY_KEEP:-0}"
+BABS_OVERLAY_WORKDIR="${BABS_OVERLAY_WORKDIR:-/home/babs-overlay-work}"
+BABS_OVERLAY_HELPER_IMAGE="${BABS_OVERLAY_HELPER_IMAGE:-}"
+BABS_INPUT_OVERLAY_PATH="${BABS_INPUT_OVERLAY_PATH:-${PWD}/input-materialization.ext3}"
+
+if [ "${BABS_USE_INPUT_OVERLAY}" = "1" ]; then
+	echo "# BABS input overlay mode is enabled."
+	echo "# Helper image: ${BABS_OVERLAY_HELPER_IMAGE:-<unset>}"
+	echo "# Overlay image: ${BABS_INPUT_OVERLAY_PATH}"
+	echo "# Overlay size (GiB): ${BABS_OVERLAY_SIZE_GB}"
+	echo "# Overlay workdir in helper: ${BABS_OVERLAY_WORKDIR}"
+
+	if [ -z "${BABS_OVERLAY_HELPER_IMAGE}" ] || [ ! -r "${BABS_OVERLAY_HELPER_IMAGE}" ]; then
+		echo "ERROR: BABS_USE_INPUT_OVERLAY=1 but BABS_OVERLAY_HELPER_IMAGE is unset or unreadable." >&2
+		echo "Build a helper image once from this repo using docker/babs-input-overlay-helper.def," >&2
+		echo "then set BABS_OVERLAY_HELPER_IMAGE to that .sif path in your job environment." >&2
+		exit 2
+	fi
+
+	if ! command -v singularity >/dev/null 2>&1; then
+		echo "ERROR: singularity command not found, but overlay mode requires it." >&2
+		exit 2
+	fi
+
+	if [ ! -e "${BABS_INPUT_OVERLAY_PATH}" ]; then
+		echo "# Creating overlay file at ${BABS_INPUT_OVERLAY_PATH}"
+		truncate -s "${BABS_OVERLAY_SIZE_GB}g" "${BABS_INPUT_OVERLAY_PATH}"
+		if ! mkfs.ext3 -F -t ext -m 0 -q -E root_owner "${BABS_INPUT_OVERLAY_PATH}"; then
+			echo "# mkfs.ext3 with -E root_owner failed; retrying without it."
+			mkfs.ext3 -F -t ext -m 0 -q "${BABS_INPUT_OVERLAY_PATH}"
+		fi
+	fi
+
+	if ! singularity exec \
+		--overlay "${BABS_INPUT_OVERLAY_PATH}" \
+		"${BABS_OVERLAY_HELPER_IMAGE}" \
+		bash -lc "command -v datalad >/dev/null 2>&1 && command -v git >/dev/null 2>&1 && command -v git-annex >/dev/null 2>&1 && command -v singularity >/dev/null 2>&1"; then
+		echo "ERROR: helper image is missing required commands (datalad, git, git-annex, singularity)." >&2
+		echo "Please ask your admins to build/update the site helper image and retry." >&2
+		exit 2
+	fi
+
+	singularity exec \
+		--overlay "${BABS_INPUT_OVERLAY_PATH}" \
+		"${BABS_OVERLAY_HELPER_IMAGE}" \
+		env \
+		dssource="${dssource}" \
+		pushgitremote="${pushgitremote}" \
+		subid="${subid}" \
+		BRANCH="${BRANCH}" \
+{% if processing_level == 'session' %}
+		sesid="${sesid}" \
+{% endif %}
+		BABS_OVERLAY_WORKDIR="${BABS_OVERLAY_WORKDIR}" \
+		bash -s <<'BABS_OVERLAY_JOB_EOF'
 # datalad clone the input ria:
 echo '# Clone the data from input RIA:'
+mkdir -p "${BABS_OVERLAY_WORKDIR}"
+cd "${BABS_OVERLAY_WORKDIR}"
 datalad clone "${dssource}" ds
 cd ds
 
@@ -110,9 +172,97 @@ flock "${DSLOCKFILE}" git push outputstore
 datalad drop -r . --reckless availability --reckless modification
 
 git annex dead here
+BABS_OVERLAY_JOB_EOF
+
+	if [ "${BABS_OVERLAY_KEEP}" = "1" ]; then
+		echo "# Keeping overlay file for debugging: ${BABS_INPUT_OVERLAY_PATH}"
+	else
+		rm -f "${BABS_INPUT_OVERLAY_PATH}"
+	fi
+else
+	# datalad clone the input ria:
+	echo '# Clone the data from input RIA:'
+	datalad clone "${dssource}" ds
+	cd ds
+
+	# set up the result deposition:
+	echo '# Register output RIA as remote for result deposition:'
+	git remote add outputstore "${pushgitremote}"
+
+	# set up a new branch:
+	echo "# Create a new branch for this job's results:"
+	git checkout -b "${BRANCH}"
+
+	# Start of the application-specific code: ------------------------------
+
+	# pull down input data (but don't retrieve the data content) and remove other sub's data:
+	echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
+{% for input_dataset in input_datasets %}
+{% if not input_dataset['is_zipped'] %}
+	datalad get -n "{{ input_dataset['path_in_babs'] }}/${subid}"
+	(cd {{ input_dataset['path_in_babs'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs rm -rf)
+{% if processing_level == 'session' %}
+	(cd {{ input_dataset['path_in_babs'] }}/"${subid}" && find . -type d -name 'ses*' | grep -v "$sesid" | xargs rm -rf)
+{% endif %}
+{% else %}
+	datalad get -n "{{ input_dataset['path_in_babs'] }}"
+	(cd {{ input_dataset['path_in_babs'] }} && find . -type f -name 'sub*.zip' | grep -v "$subid" | xargs rm -f)
+{% endif %}
+{% endfor %}
+
+{{ zip_locator_text }}
+
+	# datalad run:
+	datalad run \
+		-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
+{% for input_dataset in input_datasets %}
+{% if not input_dataset['is_zipped'] %}
+		-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
+		-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/*json" \
+{% else %}
+		-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
+{% endif %}
+{% endfor %}
+{% if container_images %}
+{% for image_path in container_images %}
+		-i "{{ image_path }}" \
+{% endfor %}
+{% elif not run_script_relpath %}
+		-i "containers/.datalad/environments/{{container_name}}/image" \
+{% endif %}
+{% if datalad_expand_inputs %}
+		--expand inputs \
+{% endif %}
+		--explicit \
+{% if zip_foldernames is not none %}
+{% for key, value in zip_foldernames.items() %}
+		-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
+{% endfor %}
+{% endif %}
+		-m "{{ datalad_run_message if datalad_run_message is defined else container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
+		"bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+
+	# Finish up:
+	# push result file content to output RIA storage:
+	echo '# Push result file content to output RIA storage:'
+	datalad push --to output-storage
+
+	# push the output branch:
+	echo '# Push the branch with provenance records:'
+	flock "${DSLOCKFILE}" git push outputstore
+
+	# Delete:
+	datalad drop -r . --reckless availability --reckless modification
+
+	git annex dead here
+fi
 
 # cd out of $BRANCH:
 cd ../..
-rm -rf "${BRANCH}"
+if [ "${BABS_USE_INPUT_OVERLAY}" = "1" ] && [ "${BABS_OVERLAY_KEEP}" = "1" ]; then
+	echo "# Keeping ${BRANCH} because BABS_OVERLAY_KEEP=1."
+else
+	rm -rf "${BRANCH}"
+fi
 
 echo SUCCESS

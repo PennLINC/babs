@@ -1,0 +1,48 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Author babs
+    Description BABS helper image for overlay-mode DataLad operations
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends \
+        bash \
+        ca-certificates \
+        coreutils \
+        datalad \
+        git \
+        git-annex \
+        gnupg \
+        lsb-release \
+        python3 \
+        python3-pip \
+        sed \
+        util-linux
+
+    # Try to provide Apptainer/Singularity in the helper image.
+    # We normalize on "singularity" because participant_job.sh calls singularity.
+    if apt-cache show apptainer >/dev/null 2>&1; then
+        apt-get install -y --no-install-recommends apptainer
+        ln -sf /usr/bin/apptainer /usr/local/bin/singularity
+    elif apt-cache show singularity-container >/dev/null 2>&1; then
+        apt-get install -y --no-install-recommends singularity-container
+    fi
+
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+%environment
+    export LC_ALL=C
+    export LANG=C
+
+%test
+    set -e
+    command -v bash
+    command -v datalad
+    command -v git
+    command -v git-annex
+    command -v singularity || command -v apptainer

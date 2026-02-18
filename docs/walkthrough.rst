@@ -308,6 +308,24 @@ There are several lines (highlighted above) that require customization based on 
 
     * For more, please see: :ref:`script-preamble`.
 
+    * Optional (recommended for very large job arrays on shared filesystems):
+      enable input materialization overlay mode.
+      This routes DataLad-heavy steps through a persistent ext3 overlay and reduces
+      metadata pressure on shared storage.
+      Example::
+
+            script_preamble: |
+                source "${CONDA_PREFIX}"/bin/activate babs
+                module load singularity
+                export BABS_USE_INPUT_OVERLAY=1
+                export BABS_OVERLAY_HELPER_IMAGE="${HOME}/apptainer/babs-overlay-helper.sif"
+                export BABS_OVERLAY_SIZE_GB=20
+
+      The helper image above should be built once from this repo (definition file:
+      ``docker/babs-input-overlay-helper.def``) and should include
+      ``datalad``, ``git``, ``git-annex``, and ``singularity``.
+      See :ref:`input-overlay-mode` for full details.
+
 * Section ``input_datasets``:
     * Describe the inputs to the BIDS App here.
     * Specify the original location of the data.
