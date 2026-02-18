@@ -23,13 +23,24 @@ From: ubuntu:22.04
         sed \
         util-linux
 
-    # Try to provide Apptainer/Singularity in the helper image.
-    # We normalize on "singularity" because participant_job.sh calls singularity.
+    # Try to provide Apptainer/Singularity in the helper image. We normalize on
+    # "singularity" because participant_job.sh calls singularity.
+    # 1) Default repos (e.g. Neurodebian, or distro that ships apptainer).
     if apt-cache show apptainer >/dev/null 2>&1; then
-        apt-get install -y --no-install-recommends apptainer
-        ln -sf /usr/bin/apptainer /usr/local/bin/singularity
+        apt-get install -y --no-install-recommends apptainer && \
+            ln -sf /usr/bin/apptainer /usr/local/bin/singularity || true
     elif apt-cache show singularity-container >/dev/null 2>&1; then
-        apt-get install -y --no-install-recommends singularity-container
+        apt-get install -y --no-install-recommends singularity-container || true
+    fi
+    # 2) Fallback: install from official Apptainer PPA when not in default repos.
+    if ! command -v singularity >/dev/null 2>&1 && ! command -v apptainer >/dev/null 2>&1; then
+        ( set +e
+          apt-get install -y --no-install-recommends software-properties-common
+          add-apt-repository -y ppa:apptainer/ppa
+          apt-get update
+          apt-get install -y --no-install-recommends apptainer
+          ln -sf /usr/bin/apptainer /usr/local/bin/singularity
+        ) || true
     fi
 
     apt-get clean

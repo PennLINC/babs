@@ -800,12 +800,14 @@ BABS includes an Apptainer definition file for this helper image at:
 
 * ``docker/babs-input-overlay-helper.def``
 
-Build it once (from the root of this repo). Use ``--test`` so the definition's
-``%test`` section runs and verifies required commands (bash, datalad, git,
-git-annex, singularity/apptainer)::
+Build it once (from the root of this repo). The definition's ``%test`` section
+runs by default after build. It runs inside the image and checks that required
+executables exist (``command -v`` for bash, datalad, git, git-annex, and
+singularity or apptainer); the build fails if any are missing. Do not use
+``--notest`` if you want that check::
 
     cd /path/to/babs
-    apptainer build --test "${HOME}/apptainer/babs-overlay-helper.sif" docker/babs-input-overlay-helper.def
+    apptainer build "${HOME}/apptainer/babs-overlay-helper.sif" docker/babs-input-overlay-helper.def
 
 Then point ``BABS_OVERLAY_HELPER_IMAGE`` to this image path in your jobs.
 
