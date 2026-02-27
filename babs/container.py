@@ -145,7 +145,9 @@ class Container:
         print('Below is the generated BIDS App run script:')
         print(script_content)
 
-    def generate_bash_participant_job(self, bash_path, input_ds, processing_level, system):
+    def generate_bash_participant_job(
+        self, bash_path, input_ds, processing_level, system, project_root=None
+    ):
         """Generate bash script for participant job.
 
         Parameters
@@ -158,6 +160,9 @@ class Container:
             whether processing is done on a subject-wise or session-wise basis
         system: class `System`
             information on cluster management system
+        project_root : str, optional
+            Absolute path to the BABS project root (parent of `analysis/`).
+            Shown in the script error message when PROJECT_ROOT is unset.
         """
 
         script_content = generate_submit_script(
@@ -169,6 +174,7 @@ class Container:
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
+            project_root=project_root,
         )
 
         with open(bash_path, 'w') as f:

@@ -14,11 +14,13 @@ sesid="$2"
 filterfile="${PWD}/${sesid}_filter.json"
 {% raw %}{{% endraw %}
     echo "{"
-    echo "'fmap': {'datatype': 'fmap'},"
+    echo "'fmap': {'datatype': 'fmap', 'session': '$sesid'},"
 {% if 'fmriprep' in container_name.lower() %}
     echo "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'},"
 {% elif 'qsiprep' in container_name.lower() %}
     echo "'dwi': {'datatype': 'dwi', 'session': '$sesid', 'suffix': 'dwi'},"
+{% elif 'aslprep' in container_name.lower() %}
+    echo "'asl': {'datatype': 'perf', 'session': '$sesid', 'suffix': 'asl'},"
 {% endif %}
     echo "'sbref': {'datatype': 'func', 'session': '$sesid', 'suffix': 'sbref'},"
     echo "'flair': {'datatype': 'anat', 'session': '$sesid', 'suffix': 'FLAIR'},"

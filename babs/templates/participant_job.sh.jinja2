@@ -32,12 +32,24 @@ BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%en
 BRANCH="job-${%raw%}{{%endraw%}{{varname_jobid}}{%raw%}}{%endraw%}-${%raw%}{{%endraw%}{{varname_taskid}}{%raw%}}{%endraw%}-${subid}"
 {% endif %}
 
+cleanup() {
+  set +e
+  if [ -d "{{ job_scratch_directory }}/{% raw %}${BRANCH}{% endraw %}/ds" ]; then
+    cd "{{ job_scratch_directory }}/{% raw %}${BRANCH}{% endraw %}/ds" 2>/dev/null || true
+    datalad drop -r . --reckless availability --reckless modification >/dev/null 2>&1 || true
+    git annex dead here >/dev/null 2>&1 || true
+  fi
+  cd "{{ job_scratch_directory }}" 2>/dev/null || true
+  rm -rf "{{ job_scratch_directory }}/{% raw %}${BRANCH}{% endraw %}" >/dev/null 2>&1 || true
+}
+trap cleanup EXIT
+
 mkdir "${BRANCH}"
 cd "${BRANCH}"
 
 # datalad clone the input ria:
 echo '# Clone the data from input RIA:'
-datalad clone "${dssource}" ds
+datalad clone "${dssource}" ds -- --no-checkout
 cd ds
 
 # set up the result deposition:
@@ -48,32 +60,69 @@ git remote add outputstore "${pushgitremote}"
 echo "# Create a new branch for this job's results:"
 git checkout -b "${BRANCH}"
 
+# always use sparse-checkout, print error when not available
+if ! git sparse-checkout init --cone; then
+    echo "ERROR: git sparse-checkout is not available (or failed to initialize) on this system." 1>&2
+    exit 1
+fi
+
+git sparse-checkout set \
+  code \
+  containers \
+{% for input_dataset in input_datasets %}
+  {{ input_dataset['path_in_babs'] }}{% if not loop.last %} \
+{% endif %}
+{% endfor %}
+
+git checkout -f
+
 # Start of the application-specific code: ------------------------------
 
-# pull down input data (but don't retrieve the data content) and remove other sub's data:
-echo "# Pull down the input subject (or dataset) but don't retrieve data contents:"
+# pull down only needed session path and explicit dataset-level metadata:
+echo "# Pull down the input session but don't retrieve data contents:"
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-datalad get -n "{{ input_dataset['path_in_babs'] }}/${subid}"
-(cd {{ input_dataset['path_in_babs'] }} && find . -type d -name 'sub*' | grep -v "$subid" | xargs rm -rf)
-{% if processing_level == 'session' %}
-(cd {{ input_dataset['path_in_babs'] }}/"${subid}" && find . -type d -name 'ses*' | grep -v "$sesid" | xargs rm -rf)
-{% endif %}
+datalad get -n "{{ input_dataset['path_in_babs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"
+
+datalad get -n \
+  "{{ input_dataset['path_in_babs'] }}/dataset_description.json" \
+  "{{ input_dataset['path_in_babs'] }}/participants.tsv" \
+  "{{ input_dataset['path_in_babs'] }}/participants.json" || true
 {% else %}
 datalad get -n "{{ input_dataset['path_in_babs'] }}"
-(cd {{ input_dataset['path_in_babs'] }} && find . -type f -name 'sub*.zip' | grep -v "$subid" | xargs rm -f)
 {% endif %}
 {% endfor %}
 
 {{ zip_locator_text }}
+
+# Link to shared container image so each job does not re-clone the same image
+PROJECT_ROOT="${PROJECT_ROOT:?ERROR: PROJECT_ROOT env var must be set to {{ project_root | default('{project_root}') }}}"
+CONTAINER_SHARED="${PROJECT_ROOT}/analysis/containers/.datalad/environments/{{ container_name }}/image"
+CONTAINER_JOB="containers/.datalad/environments/{{ container_name }}/image"
+
+if [ ! -e "${CONTAINER_SHARED}" ]; then
+  echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" 1>&2
+  exit 1
+fi
+
+mkdir -p "containers/.datalad/environments/{{ container_name }}"
+# Replace any existing path (e.g. sparse-checkout placeholder or annex pointer) with symlink to shared image
+ln -sf "${CONTAINER_SHARED}" "${CONTAINER_JOB}"
+
+if [ ! -e "${CONTAINER_JOB}" ]; then
+  echo "ERROR: failed to create symlink ${CONTAINER_JOB}" 1>&2
+  exit 1
+fi
 
 # datalad run:
 datalad run \
 	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" \
-	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/*json" \
+	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
+	-i "{{ input_dataset['path_in_babs'] }}/dataset_description.json" \
+	-i "{{ input_dataset['path_in_babs'] }}/participants.tsv" \
+	-i "{{ input_dataset['path_in_babs'] }}/participants.json" \
 {% else %}
 	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
@@ -82,7 +131,7 @@ datalad run \
 {% for image_path in container_images %}
 	-i "{{ image_path }}" \
 {% endfor %}
-{% elif not run_script_relpath %}
+{% else %}
 	-i "containers/.datalad/environments/{{container_name}}/image" \
 {% endif %}
 {% if datalad_expand_inputs %}
@@ -91,11 +140,11 @@ datalad run \
 	--explicit \
 {% if zip_foldernames is not none %}
 {% for key, value in zip_foldernames.items() %}
-	-o "${subid}{% if processing_level == 'session' %}_${sesid}{% endif %}_{{ key }}-{{ value }}.zip" \
+	-o "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}_{% raw %}${sesid}{% endraw %}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
 {% endif %}
-	-m "{{ datalad_run_message if datalad_run_message is defined else container_name }} ${subid}{% if processing_level == 'session' %} ${sesid}{% endif %}" \
-    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} ${subid} {% if processing_level == 'session' %} ${sesid}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
+    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 
 # Finish up:
 # push result file content to output RIA storage:
@@ -105,14 +154,5 @@ datalad push --to output-storage
 # push the output branch:
 echo '# Push the branch with provenance records:'
 flock "${DSLOCKFILE}" git push outputstore
-
-# Delete:
-datalad drop -r . --reckless availability --reckless modification
-
-git annex dead here
-
-# cd out of $BRANCH:
-cd ../..
-rm -rf "${BRANCH}"
 
 echo SUCCESS
