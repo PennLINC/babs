@@ -185,8 +185,9 @@ class BABSMerge(BABS):
         list_branches_no_results = []
         list_branches_with_results = []
         for branch_job in list_branches_jobs:
-            # get the job's `git show-ref`:
-            git_ref_branch_job, _ = get_git_show_ref_shasum(branch_job, merge_ds_path)
+            # get the job's `git show-ref` (in merge_ds clone refs are remote: origin/job-*):
+            branch_ref = 'origin/' + branch_job
+            git_ref_branch_job, _ = get_git_show_ref_shasum(branch_ref, merge_ds_path)
             if git_ref_branch_job == git_ref:  # no new commit --> no results in this branch
                 list_branches_no_results.append(branch_job)
             else:  # has results:
