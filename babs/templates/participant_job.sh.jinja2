@@ -111,19 +111,17 @@ fi
 CONTAINER_SHARED="${PROJECT_ROOT}/analysis/containers/.datalad/environments/{{ container_name }}/image"
 CONTAINER_JOB="containers/.datalad/environments/{{ container_name }}/image"
 
-if [ -e "${CONTAINER_SHARED}" ]; then
-  mkdir -p "containers/.datalad/environments/{{ container_name }}"
-  ln -sf "${CONTAINER_SHARED}" "${CONTAINER_JOB}"
-else
-  echo "Shared container not at ${CONTAINER_SHARED}; retrieving in job clone..."
-  datalad get "${CONTAINER_JOB}" || {
-    echo "ERROR: container image not found at ${CONTAINER_SHARED} and could not get ${CONTAINER_JOB}" 1>&2
-    exit 1
-  }
+if [ ! -L "${CONTAINER_SHARED}" ]; then
+  echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2
+  exit 1
 fi
 
-if [ ! -e "${CONTAINER_JOB}" ]; then
-  echo "ERROR: container image not available at ${CONTAINER_JOB}" 1>&2
+mkdir -p "$(dirname "${CONTAINER_JOB}")"
+rm -f "${CONTAINER_JOB}"
+ln -s "${CONTAINER_SHARED}" "${CONTAINER_JOB}" || exit 1
+
+if [ ! -L "${CONTAINER_JOB}" ]; then
+  echo "ERROR: failed to create symlink ${CONTAINER_JOB}" >&2
   exit 1
 fi
 

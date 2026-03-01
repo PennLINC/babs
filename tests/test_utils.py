@@ -2,6 +2,7 @@ import getpass
 import io
 import subprocess
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import datalad.api as dlapi
 import pandas as pd
@@ -15,6 +16,8 @@ from babs.utils import (
     get_immediate_subdirectories,
     get_repo_hash,
     get_results_branches,
+    get_results_branches_from_clone,
+    get_results_branches_from_ria,
     get_username,
     identify_running_jobs,
     parse_select_arg,
@@ -199,6 +202,40 @@ def test_results_branch_dataframe(tmp_path_factory, branch_list):
     df = results_branch_dataframe(branch_list, 'subject')
 
     assert df.shape[0] == len(branch_list)
+
+
+def test_get_results_branches_from_clone(tmp_path):
+    """get_results_branches_from_clone returns job-* branches, skips HEAD and non-job refs."""
+    with patch('babs.utils.subprocess.run') as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout=(
+                '  origin/HEAD -> origin/main\n  origin/job-0001-sub-01\n'
+                '  origin/job-0002-sub-02\n  origin/other\n'
+            ),
+            stderr='',
+        )
+        mock_run.return_value.check_returncode = MagicMock()
+        result = get_results_branches_from_clone(str(tmp_path))
+    assert result == ['job-0001-sub-01', 'job-0002-sub-02']
+    mock_run.assert_called_once_with(
+        ['git', 'branch', '-r'],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_get_results_branches_from_ria(tmp_path):
+    """get_results_branches_from_ria returns job-* branch names from ls-remote output."""
+    with patch('babs.utils.subprocess.run') as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout=('abc123\trefs/heads/job-0001-sub-01\n def456\trefs/heads/job-0002-sub-02\n'),
+            stderr='',
+        )
+        result = get_results_branches_from_ria(str(tmp_path))
+    assert result == ['job-0001-sub-01', 'job-0002-sub-02']
 
 
 def test_get_immediate_subdirectories(tmp_path):

@@ -23,7 +23,7 @@ from babs.cli import (
     babs_submit_main,
     babs_update_input_data_main,
 )
-from babs.utils import get_results_branches_via_ls_remote
+from babs.utils import get_results_branches_from_ria
 
 
 def _gather_result_branch_diagnostics(project_root, babs_proj):
@@ -202,7 +202,7 @@ def test_babs_update_input_data(
     for waitnum in [5, 8, 10, 15, 30, 60]:
         time.sleep(waitnum)
         print(f'Waiting {waitnum} seconds for result branch in output RIA...')
-        result_branches = get_results_branches_via_ls_remote(babs_proj.output_ria_data_dir)
+        result_branches = get_results_branches_from_ria(babs_proj.output_ria_data_dir)
         print(f'Result branches: {result_branches}')
         if result_branches:
             branches_appeared = True
@@ -233,7 +233,7 @@ def test_babs_update_input_data(
     bbs = BABSUpdate(project_root=project_root)
 
     # The results branch should have been deleted after the merge happened
-    assert get_results_branches_via_ls_remote(bbs.output_ria_data_dir) == []
+    assert get_results_branches_from_ria(bbs.output_ria_data_dir) == []
     # But there should be a merged zip file
     merged_zip_file = bbs._get_merged_results_from_analysis_dir()
     assert not merged_zip_file.empty

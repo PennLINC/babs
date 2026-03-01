@@ -414,7 +414,7 @@ def get_results_branches_from_clone(clone_path):
     return branches
 
 
-def get_results_branches_via_ls_remote(ria_data_dir, timeout=30):
+def get_results_branches_from_ria(ria_data_dir, timeout=30):
     """
     List job-* branches in output RIA via git ls-remote (avoids hang in CI).
 
