@@ -58,6 +58,10 @@ babs init \
 
 echo "PASSED: babs init"
 
+pushd "test_project/analysis"
+datalad get "containers/.datalad/environments/simbids-0-0-3/image"
+popd
+
 pushd "${PWD}/test_project"
 
 echo "Check setup, without job"
@@ -120,6 +124,10 @@ babs init \
     --queue slurm \
     --keep-if-failed \
     "${PWD}/${TEST2_NAME}"
+
+pushd "${PWD}/${TEST2_NAME}/analysis"
+datalad get "containers/.datalad/environments/simbids-0-0-3/image"
+popd
 
 pushd "${PWD}/${TEST2_NAME}"
 

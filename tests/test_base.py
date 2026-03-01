@@ -221,18 +221,19 @@ def test_key_info_resolves_ria_alias_symlink(babs_project_sessionlevel):
 
     # Mock git remote get-url to return RIA store root (no .git there), so alias resolution runs
     ria_root_url = 'ria+file://' + output_ria_path + '\n'
+    real_subprocess_run = subprocess.run
 
     def mock_run(cmd, *args, **kwargs):
         # Intercept only the call that asks for the output RIA push URL. It looks like:
-        #   cmd = ['git', '-C', '<path>', 'remote', 'get-url', '--push', 'outputstore']
-        # So cmd[3:5] is ['get-url', '--push'].
-        if len(cmd) >= 5 and cmd[0] == 'git' and cmd[3:5] == ['get-url', '--push']:
+        #   cmd = ['git', '--git-dir', <path>, 'remote', 'get-url', '--push', 'output']
+        # So cmd[4:6] is ['get-url', '--push'].
+        if len(cmd) >= 6 and cmd[0] == 'git' and cmd[4:6] == ['get-url', '--push']:
             proc = MagicMock()
             proc.stdout = ria_root_url.encode() if isinstance(ria_root_url, str) else ria_root_url
             proc.returncode = 0
             proc.check_returncode = MagicMock()
             return proc
-        return subprocess.run(cmd, *args, **kwargs)
+        return real_subprocess_run(cmd, *args, **kwargs)
 
     with patch('babs.base.subprocess.run', side_effect=mock_run):
         babs_proj.wtf_key_info(flag_output_ria_only=True)
