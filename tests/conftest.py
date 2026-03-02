@@ -337,6 +337,70 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     return new_yaml_path
 
 
+def gather_slurm_job_diagnostics(
+    project_root,
+    log_glob='*',
+    max_logs=5,
+    tail_lines=30,
+):
+    """
+    Gather sacct output and job log content from analysis/logs for debugging.
+
+    Used when e2e tests fail (e.g. merge "no successfully finished job", or
+    no result branches in output RIA) to include in the error message.
+    """
+    project_root = Path(project_root)
+    lines = []
+    try:
+        out = subprocess.run(
+            [
+                'sacct',
+                '-u',
+                os.environ.get('USER', 'root'),
+                '--format=JobID,State,ExitCode,Elapsed',
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        lines.append(f'sacct stdout:\n{out.stdout or "(none)"}')
+        if out.stderr:
+            lines.append(f'sacct stderr: {out.stderr}')
+    except Exception as e:
+        lines.append(f'sacct failed: {e}')
+    logs_dir = project_root / 'analysis' / 'logs'
+    if logs_dir.exists():
+        log_files = sorted(logs_dir.glob(log_glob))
+        if max_logs is not None:
+            log_files = log_files[:max_logs]
+        for log_path in log_files:
+            try:
+                content = log_path.read_text(errors='replace')
+                if tail_lines is not None:
+                    tail = content.strip().splitlines()[-tail_lines:] if content else []
+                    lines.append(f'--- tail of {log_path.name} ---\n' + '\n'.join(tail))
+                else:
+                    lines.append(f'--- {log_path.name} ---\n{content}')
+            except Exception as e:
+                lines.append(f'--- {log_path.name} (read error: {e}) ---')
+    else:
+        lines.append(f'analysis/logs does not exist: {logs_dir}')
+    return '\n'.join(lines)
+
+
+def ensure_container_image(project_root, container_name='simbids-0-0-3'):
+    """Ensure container image content is present so jobs can find it at runtime."""
+    project_root = Path(project_root)
+    containers_path = project_root / 'analysis' / 'containers'
+    image_abs = containers_path / '.datalad' / 'environments' / container_name / 'image'
+    if containers_path.exists():
+        try:
+            dlapi.get(path=str(image_abs), dataset=str(containers_path))
+        except Exception as e:
+            if not image_abs.exists():
+                raise RuntimeError(f'Failed to get container image for tests: {e}') from e
+
+
 def get_babs_project(
     tmp_path_factory,
     templateflow_home,
@@ -385,6 +449,8 @@ def get_babs_project(
         container_config=container_config,
         initial_inclusion_df=None,
     )
+
+    ensure_container_image(project_root, container_name)
 
     if return_path:
         return project_root

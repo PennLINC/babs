@@ -8,10 +8,17 @@ from pathlib import Path
 from unittest import mock
 
 import pytest
-from conftest import get_config_simbids_path, update_yaml_for_run
+from conftest import (
+    ensure_container_image,
+    gather_slurm_job_diagnostics,
+    get_config_simbids_path,
+    update_yaml_for_run,
+)
 
+from babs import base as babs_base
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
 from babs.scheduler import squeue_to_pandas
+from babs.utils import get_results_branches_from_clone
 
 
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
@@ -97,6 +104,8 @@ def test_babs_init_raw_bids(
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
         _enter_status()
 
+    ensure_container_image(project_root, container_name)
+
     # babs submit:
     babs_submit_opts = argparse.Namespace(
         project_root=project_root,
@@ -126,7 +135,12 @@ def test_babs_init_raw_bids(
     if not finished:
         raise RuntimeError('Jobs did not finish in time')
 
-    # Submit the last job:
+    # Refresh status so has_results is set from output RIA branches before submitting
+    # remaining jobs (otherwise the same subject would be submitted again).
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
+        _enter_status()
+
+    # Submit the remaining job(s):
     babs_submit_opts = argparse.Namespace(
         project_root=project_root,
         select=None,
@@ -137,11 +151,47 @@ def test_babs_init_raw_bids(
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_submit_opts):
         _enter_submit()
 
+    # Wait for all submitted jobs to finish before merging
+    finished = False
+    for waitnum in [5, 8, 10, 15, 30, 60, 120]:
+        time.sleep(waitnum)
+        print(f'Waiting for remaining jobs {waitnum} seconds...')
+        df = squeue_to_pandas()
+        print(df)
+        if df.empty:
+            finished = True
+            break
+
+    if not finished:
+        raise RuntimeError('Remaining jobs did not finish in time')
+
     babs_merge_opts = argparse.Namespace(
         project_root=project_root, chunk_size=2000, trial_run=False
     )
+
+    # Avoid running `git branch --list` in the RIA store (can hang in CI). When
+    # merge_ds exists (after clone in babs_merge), list remote branches there.
+    _orig_get_results_branches_method = babs_base.BABS._get_results_branches
+
+    def _get_results_branches_use_merge_ds_when_exists(self):
+        merge_ds = Path(self.project_root) / 'merge_ds'
+        if merge_ds.exists():
+            return get_results_branches_from_clone(str(merge_ds))
+        return _orig_get_results_branches_method(self)
+
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
-        _enter_merge()
+        with mock.patch.object(
+            babs_base.BABS, '_get_results_branches', _get_results_branches_use_merge_ds_when_exists
+        ):
+            try:
+                _enter_merge()
+            except ValueError as e:
+                if 'no successfully finished job' in str(e).lower():
+                    diag = gather_slurm_job_diagnostics(
+                        project_root, log_glob='sim.*', max_logs=None, tail_lines=None
+                    )
+                    raise ValueError(f'{e}\nJob accounting (sacct):\n{diag}') from e
+                raise
 
 
 def test_bootstrap_cleanup(babs_project_sessionlevel_babsobject):

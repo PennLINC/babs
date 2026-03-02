@@ -313,6 +313,13 @@ class BABS:
             proc_output_ria_data_dir.stdout.decode('utf-8')
         ).path.strip()
 
+        # If the URL points to the RIA store root (no .git there), resolve to the
+        # actual dataset git dir via the alias symlink (e.g. output_ria/alias/data -> XX/xxx-uuid).
+        if not op.exists(op.join(self.output_ria_data_dir, '.git')):
+            alias_link = op.join(self.output_ria_path, 'alias', 'data')
+            if op.exists(alias_link) and os.path.islink(alias_link):
+                self.output_ria_data_dir = op.realpath(alias_link)
+
         if not flag_output_ria_only:  # also want other information:
             # Get the dataset ID of `analysis`, i.e., `analysis_dataset_id`:
             # way #2: command line of datalad:

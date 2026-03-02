@@ -9,6 +9,9 @@ export RUNNING_PYTEST=1
 echo "Git user: $(git config user.name)"
 echo "Git email: $(git config user.email)"
 
+# use BABS from the mounted repo/local development copy
+pip install -e /tests
+
 if [ ! -f "/singularity_images/simbids_0.0.3.sif" ]; then
     mkdir -p /singularity_images
     apptainer build /singularity_images/simbids_0.0.3.sif docker://pennlinc/simbids:0.0.3
@@ -16,6 +19,13 @@ fi
 
 # This will be mounted in the container to hold the test artifacts
 pushd /test-temp
+
+# Clean leftover dirs from a previous run so datalad create does not see a non-empty directory
+rm -rf \
+    simbids-container \
+    simbids \
+    test_project \
+    multiinput_test
 
 # Singularity image created by root, then chowned to this user, and datalad must be run as this user
 datalad create -D "simbids" simbids-container
@@ -37,9 +47,6 @@ datalad create -D "empty BIDS dataset" --force /test-temp/simbids
 datalad save -m "add empty files" -d /test-temp/simbids
 
 cd /test-temp
-if [ -d "test_project" ]; then
-    rm -rf test_project
-fi
 babs init \
     --container_ds "${PWD}"/simbids-container \
     --container_name simbids-0-0-3 \
@@ -50,6 +57,10 @@ babs init \
     "${PWD}/test_project"
 
 echo "PASSED: babs init"
+
+pushd "test_project/analysis"
+datalad get "containers/.datalad/environments/simbids-0-0-3/image"
+popd
 
 pushd "${PWD}/test_project"
 
@@ -81,6 +92,18 @@ sacct -u "$USER"
 if sacct -u "$USER" --noheader | grep -q "FAILED"; then
     echo "========================================================================="
     echo "There are failed jobs."
+    LOGS_DIR="analysis/logs"
+    if [ -d "$LOGS_DIR" ]; then
+        echo "========================================================================="
+        echo "Failed job / task logs from $LOGS_DIR:"
+        for f in "$LOGS_DIR"/*; do
+            if [ -f "$f" ]; then
+                echo "---------- $f ----------"
+                cat "$f"
+                echo ""
+            fi
+        done
+    fi
     exit 1 # Exit with failure status
 else
     echo "========================================================================="
@@ -101,6 +124,10 @@ babs init \
     --queue slurm \
     --keep-if-failed \
     "${PWD}/${TEST2_NAME}"
+
+pushd "${PWD}/${TEST2_NAME}/analysis"
+datalad get "containers/.datalad/environments/simbids-0-0-3/image"
+popd
 
 pushd "${PWD}/${TEST2_NAME}"
 

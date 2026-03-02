@@ -426,7 +426,11 @@ class BABSBootstrap(BABS):
         print('This bash script will be named as `participant_job.sh`')
         bash_path = op.join(self.analysis_path, 'code', 'participant_job.sh')
         container.generate_bash_participant_job(
-            bash_path, self.input_datasets, self.processing_level, system
+            bash_path,
+            self.input_datasets,
+            self.processing_level,
+            system,
+            project_root=op.dirname(self.analysis_path),
         )
 
         # also, generate a bash script of a test job used by `babs check-setup`:
@@ -496,6 +500,7 @@ class BABSBootstrap(BABS):
             run_script_relpath='code/pipeline_zip.sh',
             container_images=container_images,
             datalad_run_message='pipeline',
+            project_root=op.dirname(self.analysis_path),
         )
 
         with open(bash_path, 'w') as f:
