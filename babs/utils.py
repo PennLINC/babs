@@ -381,6 +381,78 @@ def get_results_branches(ria_directory):
     return branches
 
 
+def get_results_branches_from_clone(clone_path):
+    """
+    Get job branch names from a clone using remote refs (git branch -r).
+
+    Use this instead of get_results_branches(ria_directory) when you have
+    a clone of the output RIA (e.g. merge_ds). Listing branches in the RIA
+    store can hang in CI; listing from the clone is fast and reliable.
+
+    Parameters
+    ----------
+    clone_path : str
+        Path to the clone (e.g. project_root/merge_ds).
+
+    Returns
+    -------
+    list of str
+        Branch names (e.g. job-0001-sub-01) without the "origin/" prefix.
+    """
+    out = subprocess.run(
+        ['git', 'branch', '-r'],
+        cwd=clone_path,
+        capture_output=True,
+        text=True,
+    )
+    out.check_returncode()
+    branches = []
+    for line in (out.stdout or '').strip().splitlines():
+        line = line.strip()
+        if line.startswith('origin/job-') and '->' not in line:
+            branches.append(line.replace('origin/', '', 1))
+    return branches
+
+
+def get_results_branches_from_ria(ria_data_dir, timeout=30):
+    """
+    List job-* branches in output RIA via git ls-remote (avoids hang in CI).
+
+    Use this instead of get_results_branches(ria_directory) when listing
+    branches in the RIA store can hang (e.g. in CI). Does not require
+    a clone or changing into the RIA directory.
+
+    Parameters
+    ----------
+    ria_data_dir : str
+        Path or URL to the output RIA (git repo).
+    timeout : int, optional
+        Timeout in seconds for the git ls-remote call.
+
+    Returns
+    -------
+    list of str
+        Branch names (e.g. job-0001-sub-01).
+    """
+    out = subprocess.run(
+        ['git', 'ls-remote', '--heads', ria_data_dir],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if out.returncode != 0:
+        return []
+    branches = []
+    for line in (out.stdout or '').strip().splitlines():
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        ref = parts[1]
+        if ref.startswith('refs/heads/job-'):
+            branches.append(ref.replace('refs/heads/', ''))
+    return branches
+
+
 def results_branch_dataframe(branches, processing_level) -> pd.DataFrame:
     """
     Create a dataframe from a list of branches.
@@ -551,7 +623,7 @@ def update_results_status(
         # For merged zip completion, job_id and task_id should be NA even if not in completion df
         # This happens when has_results is True but job_id/task_id_completion are NA
         merged_zip_mask = (
-            updated_results_df['has_results'].fillna(False)
+            updated_results_df['has_results'].fillna(False).infer_objects(copy=False).astype(bool)
             & updated_results_df[col + '_completion'].isna()
         )
         updated_results_df.loc[merged_zip_mask, col] = pd.NA
@@ -559,9 +631,10 @@ def update_results_status(
     # Fill NaN values with appropriate defaults
     # Convert to Python boolean for compatibility with 'is True' checks in tests
     # Use object dtype to store Python booleans instead of numpy booleans
-    has_results_list = [
-        bool(x) if pd.notna(x) else False for x in updated_results_df['has_results'].fillna(False)
-    ]
+    has_results_filled = (
+        updated_results_df['has_results'].fillna(False).infer_objects(copy=False).astype(bool)
+    )
+    has_results_list = [bool(x) if pd.notna(x) else False for x in has_results_filled]
     updated_results_df['has_results'] = pd.Series(has_results_list, dtype=object)
     updated_results_df['submitted'] = (
         updated_results_df['submitted'].astype('boolean').fillna(False)

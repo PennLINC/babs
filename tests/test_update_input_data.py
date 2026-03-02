@@ -8,7 +8,12 @@ from pathlib import Path
 
 import datalad.api as dl
 import pytest
-from conftest import get_config_simbids_path, update_yaml_for_run
+from conftest import (
+    ensure_container_image,
+    gather_slurm_job_diagnostics,
+    get_config_simbids_path,
+    update_yaml_for_run,
+)
 
 from babs.cli import (
     babs_check_setup_main,
@@ -18,6 +23,27 @@ from babs.cli import (
     babs_submit_main,
     babs_update_input_data_main,
 )
+from babs.utils import get_results_branches_from_ria
+
+
+def _gather_result_branch_diagnostics(project_root, babs_proj):
+    """Gather diagnostics when result branches never appear (for error message and logs)."""
+    project_root = Path(project_root)
+    lines = []
+
+    # output RIA path and existence
+    ria_dir = getattr(babs_proj, 'output_ria_data_dir', None)
+    lines.append(f'output_ria_data_dir={ria_dir!r}')
+    if ria_dir:
+        lines.append(f'output_ria_data_dir exists={op.exists(ria_dir)}')
+        if op.exists(ria_dir):
+            lines.append(f'output_ria_data_dir is_dir={op.isdir(ria_dir)}')
+            git_dir = op.join(ria_dir, '.git')
+            has_git = op.exists(ria_dir) and (op.exists(git_dir) or op.isfile(git_dir))
+            lines.append(f'has .git (or is bare)={has_git}')
+
+    lines.append(gather_slurm_job_diagnostics(project_root))
+    return '\n'.join(lines)
 
 
 def manually_add_new_subject_to_input_data(input_data_path: str):
@@ -141,16 +167,19 @@ def test_babs_update_input_data(
     original_inclusion_df = babs_proj.inclusion_dataframe.copy()
     assert not original_inclusion_df.empty
 
+    ensure_container_image(project_root, 'simbids-0-0-3')
+
     # Submit a single job with the initial input data
     babs_submit_main(project_root=project_root, select=None, inclusion_file=None, count=1)
 
-    # babs status:
+    # babs status (same as workflow tests)
     babs_status_main(project_root=project_root)
 
+    # Wait until queue is empty
     finished = False
     for waitnum in [5, 8, 10, 15, 30, 60, 120]:
         time.sleep(waitnum)
-        print(f'Waiting {waitnum} seconds...')
+        print(f'Waiting {waitnum} seconds for job queue to empty...')
         currently_running_df = babs_proj.get_currently_running_jobs_df()
         print(currently_running_df)
         if currently_running_df.empty:
@@ -159,6 +188,35 @@ def test_babs_update_input_data(
 
     if not finished:
         raise RuntimeError('Jobs did not finish in time')
+
+    # Refresh status from output RIA so we see pushed branches (same as workflow tests)
+    babs_status_main(project_root=project_root)
+
+    # Wait until at least one result branch exists before merge (ensures job completed and pushed).
+    # Use git ls-remote to list branches; git branch --list in RIA store can hang in CI.
+    babs_proj = BABSUpdate(project_root=project_root)
+    ria_dir = babs_proj.output_ria_data_dir
+    exists = op.exists(ria_dir) if ria_dir else False
+    print(f'[DEBUG] Checking result branches at output_ria_data_dir={ria_dir!r} exists={exists}')
+    branches_appeared = False
+    for waitnum in [5, 8, 10, 15, 30, 60]:
+        time.sleep(waitnum)
+        print(f'Waiting {waitnum} seconds for result branch in output RIA...')
+        result_branches = get_results_branches_from_ria(babs_proj.output_ria_data_dir)
+        print(f'Result branches: {result_branches}')
+        if result_branches:
+            branches_appeared = True
+            break
+
+    if not branches_appeared:
+        diag = _gather_result_branch_diagnostics(project_root, babs_proj)
+        print('[DEBUG] No result branches in output RIA. Diagnostics:\n' + diag)
+        msg = (
+            'No result branches appeared in output RIA after job queue emptied. '
+            'Job may have failed; run babs status and check analysis/logs.\n'
+            'Diagnostics:\n' + diag
+        )
+        raise RuntimeError(msg)
 
     # Now update the input data manually:
     new_commit_hash = manually_add_new_subject_to_input_data(
@@ -175,7 +233,7 @@ def test_babs_update_input_data(
     bbs = BABSUpdate(project_root=project_root)
 
     # The results branch should have been deleted after the merge happened
-    assert bbs._get_results_branches() == []
+    assert get_results_branches_from_ria(bbs.output_ria_data_dir) == []
     # But there should be a merged zip file
     merged_zip_file = bbs._get_merged_results_from_analysis_dir()
     assert not merged_zip_file.empty

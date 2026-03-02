@@ -4,8 +4,9 @@ import os
 import os.path as op
 import random
 import re
+import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -204,6 +205,40 @@ def test_key_info_full(babs_project_sessionlevel):
     babs_proj.wtf_key_info(flag_output_ria_only=False)
     assert babs_proj.output_ria_data_dir is not None
     assert babs_proj.analysis_dataset_id is not None
+
+
+def test_key_info_resolves_ria_alias_symlink(babs_project_sessionlevel):
+    """When the output remote URL points at the RIA store root (no .git there),
+    wtf_key_info should set output_ria_data_dir to the path resolved from
+    output_ria/alias/data (the symlink to the actual dataset directory).
+    """
+    babs_proj = BABS(babs_project_sessionlevel)
+    output_ria_path = babs_proj.output_ria_path
+    alias_link = op.join(output_ria_path, 'alias', 'data')
+    if not op.exists(alias_link) or not os.path.islink(alias_link):
+        pytest.skip('output_ria/alias/data symlink not present (e.g. bootstrap not run)')
+    expected_resolved = op.realpath(alias_link)
+
+    # Mock git remote get-url to return RIA store root (no .git there), so alias resolution runs
+    ria_root_url = 'ria+file://' + output_ria_path + '\n'
+    real_subprocess_run = subprocess.run
+
+    def mock_run(cmd, *args, **kwargs):
+        # Intercept only the call that asks for the output RIA push URL. It looks like:
+        #   cmd = ['git', '--git-dir', <path>, 'remote', 'get-url', '--push', 'output']
+        # So cmd[4:6] is ['get-url', '--push'].
+        if len(cmd) >= 6 and cmd[0] == 'git' and cmd[4:6] == ['get-url', '--push']:
+            proc = MagicMock()
+            proc.stdout = ria_root_url.encode() if isinstance(ria_root_url, str) else ria_root_url
+            proc.returncode = 0
+            proc.check_returncode = MagicMock()
+            return proc
+        return real_subprocess_run(cmd, *args, **kwargs)
+
+    with patch('babs.base.subprocess.run', side_effect=mock_run):
+        babs_proj.wtf_key_info(flag_output_ria_only=True)
+
+    assert babs_proj.output_ria_data_dir == expected_resolved
 
 
 @pytest.mark.parametrize(
