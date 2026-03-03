@@ -9,10 +9,12 @@ dependencies:
   - pip
   # Core packages from conda-forge when available
   - numpy
+  - scipy
   - pandas
   - pyyaml>=6.0
   - jinja2
   - nibabel
+  - niworkflows
   - tqdm
   - regex
   # Testing packages
@@ -26,7 +28,6 @@ dependencies:
       - datalad-osf
       - filelock>=3.8.0
       - backoff
-      - niworkflows
       - qstat>=0.0.5
       - pytest-cov>=5.0.0
       - pytest-env>=1.1.0
