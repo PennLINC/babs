@@ -83,7 +83,6 @@ Step 2.1.2: Testing ``babs submit``
 Comprehensive test checklist (please add ``project_root``):
 
 - [ ] ``babs submit`` (to submit one job)
-- [ ] ``babs submit --job``
 - [ ] ``babs submit --count``
 
 -----------------------------------
