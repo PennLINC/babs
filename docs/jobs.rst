@@ -57,11 +57,9 @@ Tips of ``babs submit``
 =======================
 You have several choices when running ``babs submit``:
 
-* Submit one or several specific jobs by ``--job``;
+* By default, ``babs submit`` will submit all jobs that haven't been submitted yet.
+  After that, the only thing you need to do is run ``babs status`` once in a while, until all jobs finish.
 * Submit N jobs (from the top of the list, jobs haven't been submitted yet) by ``--count N``;
-* If your clusters allow, and you're confident to run BIDS App on all remaining subjects (and sessions),
-  you may submit all remaining jobs by ``--all``.
-  After then, only thing you need to do is to run ``babs status`` once a while until all jobs finish.
 
 =======================
 Tips of ``babs status``
