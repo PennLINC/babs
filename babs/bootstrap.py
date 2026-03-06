@@ -256,8 +256,13 @@ class BABSBootstrap(BABS):
 
         # Copy in any other files needed:
         self._init_import_files(container.config.get('imported_files', []))
-        # Create the inclusion file
-        self._update_inclusion_dataframe(initial_inclusion_df)
+        # _update_inclusion_dataframe() expects a DataFrame (or None).
+        # If --list_sub_file was provided, use the parsed DataFrame
+        # stored in initial_inclu_df by set_inclusion_dataframe() above.
+        inclusion_df_for_update = (
+            self.input_datasets.initial_inclu_df if initial_inclusion_df is not None else None
+        )
+        self._update_inclusion_dataframe(inclusion_df_for_update)
 
         # Generate the template of job submission: --------------------------------
         print('\nGenerating templates for job submission calls...')
