@@ -8,7 +8,7 @@ docker run -it \
     pennlinc/slurm-docker-ci:0.14 \
         bash -c "pip install -e .[tests] && pytest -svx \
         --cov-report=term-missing \
-        --cov-report=xml \
+        --cov-report=xml:/tmp/coverage.xml \
         --cov=babs \
         --pdb \
         /babs/tests/"
