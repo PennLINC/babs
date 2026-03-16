@@ -166,7 +166,7 @@ datalad run \
 	bash ./code/{{ container_name }}_zip.sh "{% raw %}${subid}{% endraw %}"{% if processing_level == 'session' %} "{% raw %}${sesid}{% endraw %}"{% endif %}
 
 # Step 3: Remove raw outputs (datalad run --explicit doesn't track deletions)
-git rm -rf {{ bids_app_output_dir }}
+git rm -rf --sparse {{ bids_app_output_dir }}
 git commit -m "Remove raw outputs for {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %} (zipped)"
 
 # Finish up:
