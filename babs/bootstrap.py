@@ -3,6 +3,7 @@
 import os
 import os.path as op
 import subprocess
+import tempfile
 from pathlib import Path
 
 import datalad.api as dlapi
@@ -77,8 +78,11 @@ class BABSBootstrap(BABS):
                 f"The parent folder '{parent_dir}' does not exist! `babs init` won't proceed."
             )
 
-        # check if parent directory is writable:
-        if not os.access(parent_dir, os.W_OK):
+        # check if parent directory is writable (os.access unreliable on NFS/ACL):
+        try:
+            with tempfile.TemporaryFile(dir=parent_dir):
+                pass
+        except OSError:
             raise ValueError(
                 f"The parent folder '{parent_dir}' is not writable! `babs init` won't proceed."
             )
