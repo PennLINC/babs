@@ -6,7 +6,10 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
+from babs.generate_bidsapp_runscript import (
+    bids_app_args_from_config,
+    generate_bidsapp_runscript,
+)
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
 from babs.utils import app_output_settings_from_config
 
@@ -164,16 +167,34 @@ class Container:
             Shown in the script error message when PROJECT_ROOT is unset.
         """
 
+        input_datasets = input_ds.as_records()
+        _, bids_app_output_dir = app_output_settings_from_config(self.config)
+
+        raw_bids_app_args = self.config.get('bids_app_args', None)
+        if raw_bids_app_args:
+            bids_app_args, subject_selection_flag, _, _, bids_app_input_dir = (
+                bids_app_args_from_config(raw_bids_app_args, input_datasets)
+            )
+        else:
+            bids_app_args = []
+            subject_selection_flag = '--participant-label'
+            bids_app_input_dir = input_datasets[0]['unzipped_path_containing_subject_dirs']
+
         script_content = generate_submit_script(
             queue_system=system.type,
             cluster_resources_config=self.config['cluster_resources'],
             script_preamble=self.config['script_preamble'],
             job_scratch_directory=self.config['job_compute_space'],
-            input_datasets=input_ds.as_records(),
+            input_datasets=input_datasets,
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
             project_root=project_root,
+            container_image_path=self.container_path_relToAnalysis,
+            bids_app_args=bids_app_args,
+            bids_app_input_dir=bids_app_input_dir,
+            bids_app_output_dir=bids_app_output_dir,
+            subject_selection_flag=subject_selection_flag,
         )
 
         with open(bash_path, 'w') as f:
