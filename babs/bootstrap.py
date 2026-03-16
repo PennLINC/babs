@@ -257,6 +257,14 @@ class BABSBootstrap(BABS):
             call_fmt=call_fmt,
         )
 
+        # Fetch container image so the PROJECT_ROOT symlink at job time
+        # resolves to actual content, not a dangling annex pointer:
+        print('\nFetching container image...')
+        dlapi.get(
+            dataset=self.analysis_path,
+            path=op.join(self.analysis_path, container_image_path),
+        )
+
         container = Container(container_ds, container_name, container_config,
                               container_image_path=container_image_path)
         container.sanity_check(self.analysis_path)
