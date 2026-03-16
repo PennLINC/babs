@@ -428,15 +428,14 @@ class BABSBootstrap(BABS):
                               container_image_path=container_image_path)
 
         # Generate `<containerName>_zip.sh`: ----------------------------------
-        # which is a bash script of singularity run + zip
-        # in folder: `analysis/code`
-        print('\nGenerating a bash script for running container and zipping the outputs...')
-        print('This bash script will be named as `' + container_name + '_zip.sh`')
+        # Zip-only script (container execution is now handled by containers-run
+        # in participant_job.sh)
+        print('\nGenerating zip script: ' + container_name + '_zip.sh')
         bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
-        container.generate_bash_run_bidsapp(bash_path, self.input_datasets, self.processing_level)
+        container.generate_bash_zip_outputs(bash_path, self.processing_level)
         self.datalad_save(
             path='code/' + container_name + '_zip.sh',
-            message='Generate script of running container',
+            message='Generate zip script',
         )
 
         # make another folder within `code` for test jobs:

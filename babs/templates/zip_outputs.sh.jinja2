@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e -u -x
+
+subid="$1"
+{% if processing_level == 'session' %}
+sesid="$2"
+{% endif %}
+
+{{ cmd_zip }}
