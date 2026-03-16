@@ -14,7 +14,8 @@ from babs.utils import app_output_settings_from_config
 class Container:
     """This class is for the BIDS App Container"""
 
-    def __init__(self, container_ds, container_name, config_yaml_file):
+    def __init__(self, container_ds, container_name, config_yaml_file,
+                 container_image_path=None):
         """
         This is to initialize Container class.
 
@@ -67,9 +68,7 @@ class Container:
         with open(self.config_yaml_file) as f:
             self.config = yaml.safe_load(f)
 
-        self.container_path_relToAnalysis = op.join(
-            'containers', '.datalad', 'environments', self.container_name, 'image'
-        )
+        self.container_path_relToAnalysis = container_image_path
 
     def sanity_check(self, analysis_path):
         """

@@ -223,10 +223,38 @@ class BABSBootstrap(BABS):
         )
         # into `analysis/containers` folder
 
-        # Create initial container for sanity check
-        container = Container(container_ds, container_name, container_config)
+        # Discover container image path from the container dataset:
+        containers_path = op.join(self.analysis_path, 'containers')
+        result = dlapi.containers_list(dataset=containers_path, result_renderer='disabled')
+        container_info = [r for r in result
+                          if r['action'] == 'containers' and r['name'] == container_name]
+        if not container_info:
+            available = [r['name'] for r in result if r['action'] == 'containers']
+            raise ValueError(
+                f"Container '{container_name}' not found in container dataset. "
+                f"Available: {available}"
+            )
+        image_path_in_ds = op.relpath(container_info[0]['path'], containers_path)
+        container_image_path = op.join('containers', image_path_in_ds)
 
-        # sanity check of container ds:
+        # Build call_fmt from user's singularity_args:
+        with open(container_config) as f:
+            user_config = yaml.safe_load(f)
+        singularity_args = user_config.get('singularity_args', [])
+        singularity_args_str = ' '.join(singularity_args) if singularity_args else ''
+        call_fmt = f'singularity run -B $PWD --pwd $PWD {singularity_args_str} {{img}} {{cmd}}'
+
+        # Register container at analysis level so datalad containers-run works:
+        print(f'\nRegistering container at analysis level: {container_image_path}')
+        dlapi.containers_add(
+            dataset=self.analysis_path,
+            name=container_name,
+            image=container_image_path,
+            call_fmt=call_fmt,
+        )
+
+        container = Container(container_ds, container_name, container_config,
+                              container_image_path=container_image_path)
         container.sanity_check(self.analysis_path)
 
         # ==============================================================
@@ -250,9 +278,11 @@ class BABSBootstrap(BABS):
             container = containers[0]
         else:
             self._bootstrap_single_app_scripts(
-                container_ds, container_name, container_config, system
+                container_ds, container_name, container_config, system,
+                container_image_path=container_image_path,
             )
-            container = Container(container_ds, container_name, container_config)
+            container = Container(container_ds, container_name, container_config,
+                                  container_image_path=container_image_path)
 
         # Copy in any other files needed:
         self._init_import_files(container.config.get('imported_files', []))
@@ -390,10 +420,12 @@ class BABSBootstrap(BABS):
         print('`babs init` was successful!')
 
     def _bootstrap_single_app_scripts(
-        self, container_ds, container_name, container_config, system
+        self, container_ds, container_name, container_config, system,
+        container_image_path=None,
     ):
         """Bootstrap scripts for single BIDS app configuration."""
-        container = Container(container_ds, container_name, container_config)
+        container = Container(container_ds, container_name, container_config,
+                              container_image_path=container_image_path)
 
         # Generate `<containerName>_zip.sh`: ----------------------------------
         # which is a bash script of singularity run + zip
