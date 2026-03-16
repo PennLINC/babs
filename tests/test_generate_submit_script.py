@@ -91,7 +91,7 @@ testing_pairs = [
 
 
 @pytest.mark.parametrize(('input_datasets', 'config_file', 'processing_level'), testing_pairs)
-def test_generate_submit_script(input_datasets, config_file, processing_level):
+def test_generate_submit_script(input_datasets, config_file, processing_level, tmp_path):
     """Test that the bidsapp runscript is generated correctly."""
     config_path = NOTEBOOKS_DIR / config_file
     container_name = config_file.split('_')[1]
@@ -107,7 +107,7 @@ def test_generate_submit_script(input_datasets, config_file, processing_level):
         zip_foldernames=config['zip_foldernames'],
     )
 
-    out_fn = Path('.') / f'participant_job_{config_path.name}_{processing_level}.sh'
+    out_fn = tmp_path / f'participant_job_{config_path.name}_{processing_level}.sh'
     with open(out_fn, 'w') as f:
         f.write(script_content)
     passed, status = run_shellcheck(str(out_fn))
