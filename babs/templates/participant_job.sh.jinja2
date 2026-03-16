@@ -70,6 +70,7 @@ if ! git sparse-checkout init --cone; then
 fi
 
 git sparse-checkout set \
+  .datalad \
   code \
   containers \
 {% for input_dataset in input_datasets %}
