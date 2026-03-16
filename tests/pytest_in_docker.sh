@@ -1,15 +1,14 @@
 #!/bin/bash
-docker build --platform linux/amd64 -t pennlinc/slurm-docker-ci:unstable -f Dockerfile_testing .
 docker run -it \
     --platform linux/amd64 \
     -h slurmctl --cap-add sys_admin \
     --privileged \
-    -v "${HOME}"/projects/babs:/babs \
-    pennlinc/slurm-docker-ci:unstable \
-        pytest -svx \
+    -v "$(pwd)":/babs \
+    -w /babs \
+    pennlinc/slurm-docker-ci:0.14 \
+        bash -c "pip install -e .[tests] && pytest -svx \
         --cov-report=term-missing \
         --cov-report=xml \
         --cov=babs \
         --pdb \
-        /babs/tests/
-    
+        /babs/tests/"
