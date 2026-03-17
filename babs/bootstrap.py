@@ -230,13 +230,14 @@ class BABSBootstrap(BABS):
         # Discover container image path from the container dataset:
         containers_path = op.join(self.analysis_path, 'containers')
         result = dlapi.containers_list(dataset=containers_path, result_renderer='disabled')
-        container_info = [r for r in result
-                          if r['action'] == 'containers' and r['name'] == container_name]
+        container_info = [
+            r for r in result if r['action'] == 'containers' and r['name'] == container_name
+        ]
         if not container_info:
             available = [r['name'] for r in result if r['action'] == 'containers']
             raise ValueError(
                 f"Container '{container_name}' not found in container dataset. "
-                f"Available: {available}"
+                f'Available: {available}'
             )
         image_path_in_ds = op.relpath(container_info[0]['path'], containers_path)
         container_image_path = op.join('containers', image_path_in_ds)
@@ -265,8 +266,12 @@ class BABSBootstrap(BABS):
             path=op.join(self.analysis_path, container_image_path),
         )
 
-        container = Container(container_ds, container_name, container_config,
-                              container_image_path=container_image_path)
+        container = Container(
+            container_ds,
+            container_name,
+            container_config,
+            container_image_path=container_image_path,
+        )
         container.sanity_check(self.analysis_path)
 
         # ==============================================================
@@ -290,11 +295,18 @@ class BABSBootstrap(BABS):
             container = containers[0]
         else:
             self._bootstrap_single_app_scripts(
-                container_ds, container_name, container_config, system,
+                container_ds,
+                container_name,
+                container_config,
+                system,
                 container_image_path=container_image_path,
             )
-            container = Container(container_ds, container_name, container_config,
-                                  container_image_path=container_image_path)
+            container = Container(
+                container_ds,
+                container_name,
+                container_config,
+                container_image_path=container_image_path,
+            )
 
         # Copy in any other files needed:
         self._init_import_files(container.config.get('imported_files', []))
@@ -432,12 +444,20 @@ class BABSBootstrap(BABS):
         print('`babs init` was successful!')
 
     def _bootstrap_single_app_scripts(
-        self, container_ds, container_name, container_config, system,
+        self,
+        container_ds,
+        container_name,
+        container_config,
+        system,
         container_image_path=None,
     ):
         """Bootstrap scripts for single BIDS app configuration."""
-        container = Container(container_ds, container_name, container_config,
-                              container_image_path=container_image_path)
+        container = Container(
+            container_ds,
+            container_name,
+            container_config,
+            container_image_path=container_image_path,
+        )
 
         # Generate `<containerName>_zip.sh`: ----------------------------------
         # Zip-only script (container execution is now handled by containers-run

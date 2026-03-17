@@ -18,8 +18,7 @@ from babs.utils import app_output_settings_from_config
 class Container:
     """This class is for the BIDS App Container"""
 
-    def __init__(self, container_ds, container_name, config_yaml_file,
-                 container_image_path=None):
+    def __init__(self, container_ds, container_name, config_yaml_file, container_image_path=None):
         """
         This is to initialize Container class.
 
