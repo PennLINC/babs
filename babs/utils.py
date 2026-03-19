@@ -648,10 +648,12 @@ def update_results_status(
         & ~updated_results_df['state'].isin(['PD', 'R'])
     )
 
-    # Drop the completion columns
-    updated_results_df = updated_results_df.drop(
-        columns=['job_id_completion', 'task_id_completion']
-    )
+    # Drop all completion columns (job_id, task_id, and any other overlapping
+    # columns like ses_id_completion when use_sesid was False in a prior run)
+    completion_suffix_columns = [
+        col for col in updated_results_df.columns if col.endswith('_completion')
+    ]
+    updated_results_df = updated_results_df.drop(columns=completion_suffix_columns)
 
     return updated_results_df
 
