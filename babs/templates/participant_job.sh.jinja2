@@ -164,6 +164,6 @@ datalad push --to output-storage
 echo '# Push the branch with provenance records:'
 # DSLOCKFILE set by sbatch --export= in container.py
 # shellcheck disable=SC2154
-flock "${DSLOCKFILE}" git push outputstore
+flock "${DSLOCKFILE}" git push outputstore "${BRANCH}"
 
 echo SUCCESS
