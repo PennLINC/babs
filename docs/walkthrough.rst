@@ -354,6 +354,13 @@ and results and provenance are saved. An example command of ``babs init`` is as 
         --queue slurm \
         "${HOME}/babs_demo/my_BABS_project"
 
+Retrieve the container:
+
+..  code-block:: console
+
+    $ cd "${HOME}/babs_demo/my_BABS_project/analysis"
+    $ datalad get -r containers
+
 .. note::
     **Optional: Throttling array jobs**: If you have many jobs and want to limit how many
     run simultaneously, you can add ``--throttle <number>`` to the command above.
