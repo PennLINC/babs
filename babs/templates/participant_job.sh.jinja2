@@ -70,6 +70,7 @@ if ! git sparse-checkout init --cone; then
 fi
 
 git sparse-checkout set \
+  .datalad \
   code \
   containers \
 {% for input_dataset in input_datasets %}
@@ -107,9 +108,8 @@ fi
 {{ zip_locator_text }}
 
 # Link to shared container image so each job does not re-clone the same image.
-# If shared path is not available (e.g. Slurm Docker workers), retrieve image in this clone.
-CONTAINER_SHARED="${PROJECT_ROOT}/analysis/containers/.datalad/environments/{{ container_name }}/image"
-CONTAINER_JOB="containers/.datalad/environments/{{ container_name }}/image"
+CONTAINER_SHARED="${PROJECT_ROOT}/analysis/{{ container_image_path }}"
+CONTAINER_JOB="{{ container_image_path }}"
 
 if [ ! -L "${CONTAINER_SHARED}" ]; then
   echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2
@@ -125,35 +125,49 @@ if [ ! -L "${CONTAINER_JOB}" ]; then
   exit 1
 fi
 
-# datalad run:
-datalad run \
-	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
+# Step 1: Run BIDS app via containers-run
+datalad containers-run \
+	-n {{ container_name }} \
+	--explicit \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
-	-i "{{ input_dataset['path_in_babs'] }}/dataset_description.json" \
+	--input "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
+	--input "{{ input_dataset['path_in_babs'] }}/dataset_description.json" \
 {% else %}
-	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
+	--input "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
-{% if container_images %}
-{% for image_path in container_images %}
-	-i "{{ image_path }}" \
-{% endfor %}
-{% else %}
-	-i "containers/.datalad/environments/{{container_name}}/image" \
-{% endif %}
 {% if datalad_expand_inputs %}
 	--expand inputs \
 {% endif %}
+	--output "{{ bids_app_output_dir }}" \
+	-m "{{ container_name }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
+	-- \
+	{{ bids_app_input_dir }} \
+	{{ bids_app_output_dir }} \
+	participant \
+{% for bids_app_arg in bids_app_args %}
+{% if bids_app_arg %}
+	{{ bids_app_arg }} \
+{% endif %}
+{% endfor %}
+	{{ subject_selection_flag }} "{% raw %}${subid}{% endraw %}"
+
+# Step 2: Zip outputs
+datalad run \
 	--explicit \
 {% if zip_foldernames is not none %}
 {% for key, value in zip_foldernames.items() %}
 	-o "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}_{% raw %}${sesid}{% endraw %}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
 {% endif %}
-	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
-    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+	-m "Zip {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
+	-- \
+	bash ./code/{{ container_name }}_zip.sh "{% raw %}${subid}{% endraw %}"{% if processing_level == 'session' %} "{% raw %}${sesid}{% endraw %}"{% endif %}
+
+# Step 3: Remove raw outputs (datalad run --explicit doesn't track deletions)
+git rm -rf --sparse {{ bids_app_output_dir }}
+git commit -m "Remove raw outputs for {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %} (zipped)"
 
 # Finish up:
 # push result file content to output RIA storage:
