@@ -52,7 +52,7 @@ cd "${BRANCH}"
 
 # datalad clone the input ria:
 echo '# Clone the data from input RIA:'
-datalad clone "${dssource}" ds -- --no-checkout
+datalad clone "${dssource}" ds -- --no-checkout --shared
 cd ds
 
 # set up the result deposition:
@@ -87,16 +87,32 @@ git checkout -f
 
 # Input datasets: ``datalad clone --no-checkout``, sparse paths, ``git checkout -f``.
 #
-# ensure_input_submodule: if $1 is nonempty and not already a Git repo, clone it as a
-# DataLad subdataset using .gitmodules (prefer datalad-url, else url). Plain absolute
-# paths are converted to file:// URLs. Uses --no-checkout. No-op if already present;
+# is_installed_repo_root: true only when $1 is the root of an installed Git repo
+is_installed_repo_root() {
+  local mount="$1"
+  local mount_abs top
+
+  [ -n "${mount}" ] || return 1
+  [ -d "${mount}" ] || return 1
+
+  mount_abs="$(cd "${mount}" 2>/dev/null && pwd -P)" || return 1
+  top="$(git -C "${mount}" rev-parse --show-toplevel 2>/dev/null)" || return 1
+
+  [ "${top}" = "${mount_abs}" ]
+}
+
+# ensure_input_submodule: if $1 is nonempty and not already an installed Git repo root,
+# clone it as a DataLad subdataset using .gitmodules (prefer datalad-url, else url). Plain
+# absolute paths are converted to file:// URLs. Uses --no-checkout. No-op if already present;
 # exits if no URL is configured.
 ensure_input_submodule() {
   local mount="$1"
   [ -n "${mount}" ] || return 0
-  if git -C "${mount}" rev-parse --git-dir >/dev/null 2>&1; then
+
+  if is_installed_repo_root "${mount}"; then
     return 0
   fi
+
   local src
   src="$(git config -f .gitmodules --get "submodule.${mount}.datalad-url" 2>/dev/null)" \
     || src="$(git config -f .gitmodules --get "submodule.${mount}.url" 2>/dev/null)" \
@@ -105,22 +121,24 @@ ensure_input_submodule() {
     case "${src}" in
       /*) src="file://${src}" ;;
     esac
-    datalad clone -d . "${src}" "${mount}" -- --no-checkout
+    datalad clone --reckless ephemeral -d . "${src}" "${mount}" -- --no-checkout --shared
   else
     echo "ERROR: no submodule URL in .gitmodules for ${mount}" 1>&2
     exit 1
   fi
 }
 
-# sparse_checkout_input: if $1 is nonempty and points to a Git repo (e.g. a submodule path
-# from .gitmodules such as inputs/data/BIDS), initialize sparse-checkout in non-cone mode,
-# set patterns from remaining args (one path per line via --stdin), and checkout -f.
-# Uses git -C so cwd stays the job superdataset. No-op if $1 is empty or not a Git repo.
+# sparse_checkout_input: if $1 is nonempty and is the root of an installed Git repo
+# (for example, a submodule path from .gitmodules such as inputs/data/BIDS), initialize
+# sparse-checkout in non-cone mode, set patterns from remaining args (one path per line
+# via --stdin), and checkout -f. Uses git -C to not change working directory.
+# No-op if $1 is empty or not an installed
+# Git repo root.
 sparse_checkout_input() {
   local mount="$1"
   shift
   [ -n "${mount}" ] || return 0
-  git -C "${mount}" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  is_installed_repo_root "${mount}" || return 0
 
   git -C "${mount}" sparse-checkout init --no-cone
   printf '%s\n' "$@" | git -C "${mount}" sparse-checkout set --stdin
