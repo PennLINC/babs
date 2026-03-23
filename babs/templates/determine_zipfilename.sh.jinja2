@@ -28,7 +28,7 @@ find_single_zip_in_git_tree() {{ '{' }}
 {% if input_dataset['is_zipped'] %}
 {% set u = input_dataset['name'] | upper %}
 {{ u }}_ZIP_REL="$(find_single_zip_in_git_tree {{ input_dataset['path_in_babs'] }} {{ input_dataset['name'] }})"
-{{ u }}_ZIP="{{ input_dataset['path_in_babs'] }}/${%raw%}${{{%endraw%}{{ u }}_ZIP_REL{%raw%}}{%endraw%}"
+{{ u }}_ZIP="{{ input_dataset['path_in_babs'] }}/{% raw %}${{% endraw %}{{ u }}_ZIP_REL{% raw %}}{% endraw %}"
 echo 'found {{ input_dataset['name'] }} zipfile:'
 echo "${%raw%}{{%endraw%}{{ u }}_ZIP{%raw%}}{%endraw%}"
 {% endif %}
