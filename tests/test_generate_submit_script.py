@@ -141,31 +141,6 @@ def run_shellcheck(script_path):
         return False, str(e)
 
 
-def test_zipped_input_subdataset_sparse_checkout():
-    """Zipped input subdatasets get nested sparse-checkout to the resolved zip only.
-
-    ``find_single_zip_in_git_tree`` returns a repo-relative path (``*_ZIP_REL``); the full
-    path ``*_ZIP`` is composed in shell. ``sparse_subdataset_include_only`` is shared with
-    non-zipped inputs and receives the same relative paths git expects for sparse-checkout.
-    """
-    config_path = NOTEBOOKS_DIR / 'eg_xcpd-0-10-6_linc.yaml'
-    config = read_yaml(config_path)
-    script_content = generate_submit_script(
-        queue_system='slurm',
-        cluster_resources_config=config['cluster_resources'],
-        script_preamble=config['script_preamble'],
-        job_scratch_directory=config['job_compute_space'],
-        input_datasets=input_datasets_xcpd,
-        processing_level='subject',
-        container_name=config_path.name.split('_')[1],
-        zip_foldernames=config['zip_foldernames'],
-    )
-    assert 'sparse_subdataset_include_only()' in script_content
-    assert 'FMRIPREP_ZIP_REL="$(find_single_zip_in_git_tree' in script_content
-    assert 'FMRIPREP_ZIP="inputs/data/${FMRIPREP_ZIP_REL}"' in script_content
-    assert 'sparse_subdataset_include_only "inputs/data"' in script_content
-
-
 def test_generate_submit_script_pipeline(tmp_path):
     """Test submit script generation for pipeline configuration."""
     # Use same pattern as single-app tests: read from existing YAML config

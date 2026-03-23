@@ -71,55 +71,80 @@ fi
 
 git sparse-checkout set \
   code \
-  containers \
-{% for input_dataset in input_datasets %}
-  {{ input_dataset['path_in_babs'] }}{% if not loop.last %} \
-{% endif %}
-{% endfor %}
+  containers
 
 git checkout -f
 
 # Start of the application-specific code: ------------------------------
 
-# Limit a nested input subdataset checkout to specific paths (relative to that repo root).
-# Used for BIDS trees (subject[/session] + dataset_description) and for zipped inputs
-# (single repo-relative zip path in ``*_ZIP_REL``, set by zip_locator_text below).
-sparse_subdataset_include_only() {
-  local repo="$1"
-  shift
-  [ -n "${repo}" ] && [ -d "${repo}/.git" ] || return 0
-  ( cd "${repo}" && \
-    git sparse-checkout init --no-cone 2>/dev/null && \
-    printf '%s\n' "$@" | git sparse-checkout set --stdin 2>/dev/null ) || true
-}
-
-# pull down only needed session path and explicit dataset-level metadata:
-echo "# Pull down the input session but don't retrieve data contents:"
-{% for input_dataset in input_datasets %}
-{% if not input_dataset['is_zipped'] %}
-datalad get -n "{{ input_dataset['path_in_babs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"
-
-datalad get -n "{{ input_dataset['path_in_babs'] }}/dataset_description.json"
-{% else %}
-datalad get -n "{{ input_dataset['path_in_babs'] }}"
-{% endif %}
-{% endfor %}
-
 {{ zip_locator_text }}
 
-# Restrict each input subdataset worktree: BIDS → this subject[/session] only (so e.g. pybids
-# does not scan other subjects); zipped → only the one zip file for this job (see *_ZIP_REL).
+# Input datasets: ``datalad clone --no-checkout``, sparse paths, ``git checkout -f``.
+ensure_input_submodule() {
+  local mount="$1"
+  [ -n "${mount}" ] || return 0
+  if git -C "${mount}" rev-parse --git-dir >/dev/null 2>&1; then
+    return 0
+  fi
+  local src
+  src="$(git config -f .gitmodules --get "submodule.${mount}.datalad-url" 2>/dev/null)" \
+    || src="$(git config -f .gitmodules --get "submodule.${mount}.url" 2>/dev/null)" \
+    || src=""
+  if [ -n "${src}" ]; then
+    datalad clone -d . "${src}" "${mount}" -- --no-checkout
+  else
+    echo "ERROR: no submodule URL in .gitmodules for ${mount}" 1>&2
+    exit 1
+  fi
+}
+
+sparse_checkout_input() {
+  local mount="$1"
+  shift
+  [ -n "${mount}" ] || return 0
+  git -C "${mount}" rev-parse --git-dir >/dev/null 2>&1 || return 0
+  ( cd "${mount}" && \
+    git sparse-checkout init --no-cone && \
+    printf '%s\n' "$@" | git sparse-checkout set --stdin && \
+    git checkout -f )
+}
+
+echo "# Install input datasets (sparse worktrees)"
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-sparse_subdataset_include_only "{{ input_dataset['path_in_babs'] }}" \
+ensure_input_submodule "{{ input_dataset['path_in_babs'] }}"
+sparse_checkout_input "{{ input_dataset['path_in_babs'] }}" \
   "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
   "dataset_description.json"
-{% else %}
-{% set u = input_dataset['name'] | upper %}
-sparse_subdataset_include_only "{{ input_dataset['path_in_babs'] }}" \
-  "${%raw%}{{%endraw%}{{ u }}_ZIP_REL{%raw%}}{%endraw%}"
+
+datalad get -n \
+  "{{ input_dataset['path_in_babs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
+  "{{ input_dataset['path_in_babs'] }}/dataset_description.json"
 {% endif %}
 {% endfor %}
+
+{% if input_datasets | selectattr('is_zipped') | list %}
+{% for mount, group in (input_datasets | selectattr('is_zipped') | list | groupby('path_in_babs')) %}
+ensure_input_submodule "{{ mount }}"
+{% for input_dataset in group %}
+{% set u = input_dataset['name'] | upper %}
+{{ u }}_ZIP_REL="$(find_single_zip_in_git_tree {{ mount }} {{ input_dataset['name'] }})"
+{{ u }}_ZIP="{{ mount }}/{% raw %}${{% endraw %}{{ u }}_ZIP_REL{% raw %}}{% endraw %}"
+echo 'found {{ input_dataset['name'] }} zipfile:'
+echo "${%raw%}{{%endraw%}{{ u }}_ZIP{%raw%}}{%endraw%}"
+{% endfor %}
+sparse_checkout_input "{{ mount }}" \
+{% for input_dataset in group %}
+  "${%raw%}{{%endraw%}{{ input_dataset['name'] | upper }}_ZIP_REL{%raw%}}{%endraw%}"{% if not loop.last %} \
+{% endif %}
+{% endfor %}
+
+{% for input_dataset in group %}
+{% set u = input_dataset['name'] | upper %}
+datalad get -n "${%raw%}{{%endraw%}{{ u }}_ZIP{%raw%}}{%endraw%}"
+{% endfor %}
+{% endfor %}
+{% endif %}
 
 # Link to shared container image so each job does not re-clone the same image.
 # If shared path is not available (e.g. Slurm Docker workers), retrieve image in this clone.

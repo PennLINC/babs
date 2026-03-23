@@ -93,14 +93,9 @@ def generate_submit_script(
         varname_taskid = 'SLURM_ARRAY_TASK_ID'
         varname_jobid = 'SLURM_ARRAY_JOB_ID'
 
-    # If any input dataset is zipped, get the setup for the zipfile locator:
-    zip_locator_template = env.get_template('determine_zipfilename.sh.jinja2')
-    zip_locator_text = zip_locator_template.render(
+    zip_locator_text = env.get_template('determine_zipfilename.sh.jinja2').render(
         input_datasets=input_datasets,
         processing_level=processing_level,
-        has_a_zipped_input_dataset=any(
-            input_dataset['is_zipped'] for input_dataset in input_datasets
-        ),
     )
 
     return participant_job_template.render(

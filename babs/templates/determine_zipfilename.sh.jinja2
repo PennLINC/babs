@@ -1,12 +1,17 @@
+{% if input_datasets | selectattr('is_zipped') | list %}
 # shellcheck disable=SC1091
-{% if has_a_zipped_input_dataset %}
 find_single_zip_in_git_tree() {{ '{' }}
   local zip_search_path="$1"
   local name="$2"
   local hits count
 
+  # Bounded listing: ``ls-files --with-tree=HEAD`` supports ``:(glob)`` (works with no-checkout clone); grep applies session filter.
   hits="$(
-    git -C "${zip_search_path}" ls-tree -r --name-only HEAD \
+    git -C "${zip_search_path}" ls-files --with-tree=HEAD -- \
+      "${subid}" \
+      ":(glob)${subid}_*" \
+      ":(glob)${subid}.*" \
+      2>/dev/null | sed '/^$/d' | sort -u \
       | grep -E "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}{% raw %}.*${sesid}{% endraw %}{% endif %}{% raw %}.*${name}.*\.zip${% endraw %}" \
       || true
   )"
@@ -24,13 +29,4 @@ find_single_zip_in_git_tree() {{ '{' }}
   printf '%s\n' "${hits}"
 {{ '}' }}
 
-{% for input_dataset in input_datasets %}
-{% if input_dataset['is_zipped'] %}
-{% set u = input_dataset['name'] | upper %}
-{{ u }}_ZIP_REL="$(find_single_zip_in_git_tree {{ input_dataset['path_in_babs'] }} {{ input_dataset['name'] }})"
-{{ u }}_ZIP="{{ input_dataset['path_in_babs'] }}/{% raw %}${{% endraw %}{{ u }}_ZIP_REL{% raw %}}{% endraw %}"
-echo 'found {{ input_dataset['name'] }} zipfile:'
-echo "${%raw%}{{%endraw%}{{ u }}_ZIP{%raw%}}{%endraw%}"
-{% endif %}
-{% endfor %}
 {% endif %}
