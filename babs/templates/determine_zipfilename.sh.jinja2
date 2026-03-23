@@ -5,14 +5,20 @@ find_single_zip_in_git_tree() {{ '{' }}
   local name="$2"
   local hits count
 
-  # Bounded listing: ``ls-files --with-tree=HEAD`` supports ``:(glob)`` (works with no-checkout clone); grep applies session filter.
+  # Bounded listing: ``ls-files --with-tree=HEAD`` supports ``:(glob)`` (works with no-checkout clone).
+  # Session jobs: require ``_${sesid}_`` in the filename.
+  # Subject jobs: do not use ``${sesid}`` in the pattern.
   hits="$(
     git -C "${zip_search_path}" ls-files --with-tree=HEAD -- \
       "${subid}" \
       ":(glob)${subid}_*" \
       ":(glob)${subid}.*" \
       2>/dev/null | sed '/^$/d' | sort -u \
-      | grep -E "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}{% raw %}.*${sesid}{% endraw %}{% endif %}{% raw %}.*${name}.*\.zip${% endraw %}" \
+{% if processing_level == 'session' %}
+      | grep -E "{% raw %}^${subid}_${sesid}_${name}.*\.zip${% endraw %}" \
+{% else %}
+      | grep -E "{% raw %}^${subid}_.*${name}.*\.zip${% endraw %}" \
+{% endif %}
       || true
   )"
 

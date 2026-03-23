@@ -69,9 +69,15 @@ if ! git sparse-checkout init --cone; then
     exit 1
 fi
 
+{% set _sparse_input_paths = input_datasets | map(attribute='path_in_babs') | unique | list %}
 git sparse-checkout set \
   code \
-  containers
+  containers{% if _sparse_input_paths %} \
+{% for p in _sparse_input_paths %}
+  {{ p }}{% if not loop.last %} \
+{% endif %}
+{% endfor %}
+{% endif %}
 
 git checkout -f
 
@@ -106,19 +112,19 @@ ensure_input_submodule() {
   fi
 }
 
-# sparse_checkout_input: if $1 is nonempty and points to a Git repo, enter that repo,
-# initialize sparse-checkout in non-cone mode, set the sparse-checkout patterns from the
-# remaining arguments (passed one per line to `git sparse-checkout set --stdin`), and then
-# force a checkout with `git checkout -f`. No-op if $1 is empty or not a Git repo.
+# sparse_checkout_input: if $1 is nonempty and points to a Git repo (e.g. a submodule path
+# from .gitmodules such as inputs/data/BIDS), initialize sparse-checkout in non-cone mode,
+# set patterns from remaining args (one path per line via --stdin), and checkout -f.
+# Uses git -C so cwd stays the job superdataset. No-op if $1 is empty or not a Git repo.
 sparse_checkout_input() {
   local mount="$1"
   shift
   [ -n "${mount}" ] || return 0
   git -C "${mount}" rev-parse --git-dir >/dev/null 2>&1 || return 0
-  ( cd "${mount}" && \
-    git sparse-checkout init --no-cone && \
-    printf '%s\n' "$@" | git sparse-checkout set --stdin && \
-    git checkout -f )
+
+  git -C "${mount}" sparse-checkout init --no-cone
+  printf '%s\n' "$@" | git -C "${mount}" sparse-checkout set --stdin
+  git -C "${mount}" checkout -f
 }
 
 echo "# Install input datasets (sparse worktrees)"
@@ -159,7 +165,6 @@ datalad get -n "${%raw%}{{%endraw%}{{ u }}_ZIP{%raw%}}{%endraw%}"
 {% endif %}
 
 # Link to shared container image so each job does not re-clone the same image.
-# If shared path is not available (e.g. Slurm Docker workers), retrieve image in this clone.
 CONTAINER_SHARED="${PROJECT_ROOT}/analysis/containers/.datalad/environments/{{ container_name }}/image"
 CONTAINER_JOB="containers/.datalad/environments/{{ container_name }}/image"
 
