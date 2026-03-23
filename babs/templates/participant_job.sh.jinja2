@@ -80,6 +80,11 @@ git checkout -f
 {{ zip_locator_text }}
 
 # Input datasets: ``datalad clone --no-checkout``, sparse paths, ``git checkout -f``.
+#
+# ensure_input_submodule: if $1 is nonempty and not already a Git repo, clone it as a
+# DataLad subdataset using .gitmodules (prefer datalad-url, else url). Plain absolute
+# paths are converted to file:// URLs. Uses --no-checkout. No-op if already present;
+# exits if no URL is configured.
 ensure_input_submodule() {
   local mount="$1"
   [ -n "${mount}" ] || return 0
@@ -91,6 +96,9 @@ ensure_input_submodule() {
     || src="$(git config -f .gitmodules --get "submodule.${mount}.url" 2>/dev/null)" \
     || src=""
   if [ -n "${src}" ]; then
+    case "${src}" in
+      /*) src="file://${src}" ;;
+    esac
     datalad clone -d . "${src}" "${mount}" -- --no-checkout
   else
     echo "ERROR: no submodule URL in .gitmodules for ${mount}" 1>&2
@@ -98,6 +106,10 @@ ensure_input_submodule() {
   fi
 }
 
+# sparse_checkout_input: if $1 is nonempty and points to a Git repo, enter that repo,
+# initialize sparse-checkout in non-cone mode, set the sparse-checkout patterns from the
+# remaining arguments (passed one per line to `git sparse-checkout set --stdin`), and then
+# force a checkout with `git checkout -f`. No-op if $1 is empty or not a Git repo.
 sparse_checkout_input() {
   local mount="$1"
   shift
