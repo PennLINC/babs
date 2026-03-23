@@ -81,6 +81,18 @@ git checkout -f
 
 # Start of the application-specific code: ------------------------------
 
+# Limit a nested input subdataset checkout to specific paths (relative to that repo root).
+# Used for BIDS trees (subject[/session] + dataset_description) and for zipped inputs
+# (single repo-relative zip path in ``*_ZIP_REL``, set by zip_locator_text below).
+sparse_subdataset_include_only() {
+  local repo="$1"
+  shift
+  [ -n "${repo}" ] && [ -d "${repo}/.git" ] || return 0
+  ( cd "${repo}" && \
+    git sparse-checkout init --no-cone 2>/dev/null && \
+    printf '%s\n' "$@" | git sparse-checkout set --stdin 2>/dev/null ) || true
+}
+
 # pull down only needed session path and explicit dataset-level metadata:
 echo "# Pull down the input session but don't retrieve data contents:"
 {% for input_dataset in input_datasets %}
@@ -93,18 +105,21 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 {% endif %}
 {% endfor %}
 
-# Restrict each BIDS input subdataset to the current subject so BIDS apps that index the full dataset (e.g. pybids BIDSLayout) don't try to read other subjects' files, which may not be retrieved
+{{ zip_locator_text }}
+
+# Restrict each input subdataset worktree: BIDS → this subject[/session] only (so e.g. pybids
+# does not scan other subjects); zipped → only the one zip file for this job (see *_ZIP_REL).
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-if [ -d "{{ input_dataset['path_in_babs'] }}/.git" ]; then
-  ( cd "{{ input_dataset['path_in_babs'] }}" && \
-    ( git sparse-checkout init --no-cone 2>/dev/null && \
-      { echo "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"; echo 'dataset_description.json'; } | git sparse-checkout set --stdin 2>/dev/null ) ) || true
-fi
+sparse_subdataset_include_only "{{ input_dataset['path_in_babs'] }}" \
+  "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
+  "dataset_description.json"
+{% else %}
+{% set u = input_dataset['name'] | upper %}
+sparse_subdataset_include_only "{{ input_dataset['path_in_babs'] }}" \
+  "${%raw%}{{%endraw%}{{ u }}_ZIP_REL{%raw%}}{%endraw%}"
 {% endif %}
 {% endfor %}
-
-{{ zip_locator_text }}
 
 # Link to shared container image so each job does not re-clone the same image.
 # If shared path is not available (e.g. Slurm Docker workers), retrieve image in this clone.
