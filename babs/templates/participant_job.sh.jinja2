@@ -153,6 +153,9 @@ datalad containers-run \
 {% endfor %}
 	{{ subject_selection_flag }} "{% raw %}${subid}{% endraw %}"
 
+# Unlock outputs so zip gets real content, not annex symlinks
+datalad unlock {{ bids_app_output_dir }}
+
 # Step 2: Zip outputs
 datalad run \
 	--explicit \
