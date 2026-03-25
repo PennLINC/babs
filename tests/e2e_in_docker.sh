@@ -1,17 +1,12 @@
 #!/bin/bash
-mkdir -p "${HOME}"/projects/e2e-testing
-docker build --platform linux/amd64 \
-    -t pennlinc/slurm-docker-ci:unstable \
-    -f Dockerfile_testing .
+E2E_DIR="${E2E_DIR:-$(mktemp -d /tmp/babs-e2e-XXXXXX)}"
+mkdir -p "${E2E_DIR}"
+echo "E2E_DIR=${E2E_DIR}"
 docker run -it \
     --platform linux/amd64 \
-    -v "${HOME}"/projects/babs:/tests \
-    -v "${HOME}"/projects/e2e-testing:/test-temp:rw \
+    -v "$(pwd)":/tests \
+    -v "${E2E_DIR}":/test-temp:rw \
     -h slurmctl --cap-add sys_admin \
     --privileged \
-    pennlinc/slurm-docker-ci:unstable #\
-        #/babs/tests/e2e-slurm/container/walkthrough-tests.sh
-
-
-    #pytest -svx --pdb \
-    #/babs/tests
+    pennlinc/slurm-docker-ci:0.14 \
+        /tests/tests/e2e-slurm/container/walkthrough-tests.sh
