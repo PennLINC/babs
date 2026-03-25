@@ -1,5 +1,8 @@
 """This is the main module."""
 
+import sys
+import time
+
 import numpy as np
 
 from babs.base import BABS
@@ -148,3 +151,43 @@ class BABSInteraction(BABS):
         currently_running_df = self.get_currently_running_jobs_df()
         current_results_df = self.get_job_status_df()
         report_job_status(current_results_df, currently_running_df, self.analysis_path)
+
+    def babs_status_wait(self, interval=300):
+        """Poll job status until all submitted jobs complete or fail.
+
+        Parameters
+        ----------
+        interval: int
+            Seconds between status checks.
+        """
+        try:
+            while True:
+                self._update_results_status()
+                currently_running_df = self.get_currently_running_jobs_df()
+                current_results_df = self.get_job_status_df()
+                report_job_status(current_results_df, currently_running_df, self.analysis_path)
+
+                submitted = current_results_df[current_results_df['submitted'].fillna(False)]
+                if submitted.empty:
+                    # TODO: reconsider exit code for idempotent workflows
+                    # (e.g., submit-if-needed then wait-if-any)
+                    print('No jobs have been submitted.')
+                    sys.exit(1)
+
+                done = submitted['has_results'].fillna(False) | submitted['is_failed'].fillna(
+                    False
+                )
+                if done.all():
+                    n_results = submitted['has_results'].fillna(False).sum()
+                    n_failed = submitted['is_failed'].fillna(False).sum()
+                    print(
+                        f'\nAll submitted jobs finished: {n_results} succeeded, {n_failed} failed.'
+                    )
+                    if n_failed > 0:
+                        sys.exit(1)
+                    return
+
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print('\nInterrupted by user.')
+            sys.exit(130)
