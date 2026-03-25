@@ -112,7 +112,7 @@ def test_get_input_unipping_cmds():
 
 
 @pytest.mark.parametrize(('input_datasets', 'config_file', 'processing_level'), testing_pairs)
-def test_generate_bidsapp_runscript(input_datasets, config_file, processing_level):
+def test_generate_bidsapp_runscript(input_datasets, config_file, processing_level, tmp_path):
     """Test that the bidsapp runscript is generated correctly."""
     config_path = NOTEBOOKS_DIR / config_file
     container_name = config_file.split('_')[1]
@@ -130,7 +130,7 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
         templateflow_home='/path/to/templateflow_home',
     )
 
-    out_fn = Path('.') / f'{config_path.name}_{processing_level}.sh'
+    out_fn = tmp_path / f'{config_path.name}_{processing_level}.sh'
     with open(out_fn, 'w') as f:
         f.write(script_content)
     passed, status = run_shellcheck(str(out_fn))
@@ -164,7 +164,7 @@ def run_shellcheck(script_path):
         return False, str(e)
 
 
-def test_generate_pipeline_runscript():
+def test_generate_pipeline_runscript(tmp_path):
     """Test that the pipeline runscript is generated correctly."""
     config_path = NOTEBOOKS_DIR / 'eg_nordic-fmriprep_pipeline.yaml'
     config = read_yaml(config_path)
@@ -180,7 +180,7 @@ def test_generate_pipeline_runscript():
         final_zip_foldernames=config.get('zip_foldernames', {}),
     )
 
-    out_fn = Path('.') / f'{config_path.name}_pipeline.sh'
+    out_fn = tmp_path / f'{config_path.name}_pipeline.sh'
     with open(out_fn, 'w') as f:
         f.write(script_content)
     passed, status = run_shellcheck(str(out_fn))

@@ -25,8 +25,25 @@ Manually run pytest
 
 The easiest way to run pytest is to run the ``tests/pytest_in_docker.sh`` script
 from the root directory of BABS.
-This will build a docker container that has a running SLURM job scheduler system.
-It will also install the local copy of BABS and run the pytests in the container.
+This runs the tests inside a Docker container that has a running SLURM job scheduler system,
+and installs the local copy of BABS at runtime via volume mount.
+
+.. code-block:: bash
+
+   bash tests/pytest_in_docker.sh
+
+To run the end-to-end walkthrough tests (``babs init`` → ``submit`` → ``merge``):
+
+.. code-block:: bash
+
+   bash tests/e2e_in_docker.sh
+
+By default, e2e test artifacts go to a temporary directory under ``/tmp``.
+To specify a location (e.g., for inspection after the run):
+
+.. code-block:: bash
+
+   E2E_DIR=/path/to/output bash tests/e2e_in_docker.sh
 
 -----------------------------
 Automatic pytest via CircleCI
