@@ -176,11 +176,18 @@ class BABS:
         self.queue = validate_queue(config_yaml['queue'])
         self.container = config_yaml['container']
 
+        if 'input_ria_path' in config_yaml:
+            self.input_ria_path = config_yaml['input_ria_path']
+            self.input_ria_url = 'ria+file://' + self.input_ria_path
+        if 'output_ria_path' in config_yaml:
+            self.output_ria_path = config_yaml['output_ria_path']
+            self.output_ria_url = 'ria+file://' + self.output_ria_path
+
         # Check the output RIA:
         self.wtf_key_info(flag_output_ria_only=True)
 
         self.input_datasets = InputDatasets(self.processing_level, config_yaml['input_datasets'])
-        self.input_datasets.update_abs_paths(Path(self.project_root) / 'analysis')
+        self.input_datasets.update_abs_paths(Path(self.analysis_path))
 
     def _update_inclusion_dataframe(
         self, initial_inclusion_df: pd.DataFrame | None = None

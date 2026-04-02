@@ -94,12 +94,19 @@ class BABSBootstrap(BABS):
 
         # Override analysis_path if analysis_dirname is specified in container_config:
         analysis_dirname = babs_config.get('analysis_dirname', 'analysis')
-        print(f'Analysis path: {op.join(self.project_root, analysis_dirname)}')
         self.analysis_path = op.join(self.project_root, analysis_dirname)
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
         self.list_sub_path_abs = op.join(self.analysis_path, self.list_sub_path_rel)
         self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
         self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
+
+        # Override input/output RIA paths if specified in container_config:
+        if 'input_ria' in babs_config:
+            self.input_ria_path = babs_config['input_ria']
+            self.input_ria_url = 'ria+file://' + self.input_ria_path
+        if 'output_ria' in babs_config:
+            self.output_ria_path = babs_config['output_ria']
+            self.output_ria_url = 'ria+file://' + self.output_ria_path
 
         # Create `analysis` folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
@@ -154,6 +161,8 @@ class BABSBootstrap(BABS):
                     processing_level=self.processing_level,
                     queue=self.queue,
                     analysis_dirname=analysis_dirname,
+                    input_ria_path=self.input_ria_path,
+                    output_ria_path=self.output_ria_path,
                     input_ds=self.input_datasets,
                     container_name=container_name,
                     container_ds=container_ds,
