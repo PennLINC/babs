@@ -29,6 +29,19 @@ from babs.utils import (
 )
 
 CONFIG_SECTIONS = ['processing_level', 'queue', 'input_datasets', 'container']
+
+
+def _find_analysis_dirname(project_root, default='analysis'):
+    """Find the analysis directory name inside project_root.
+
+    Scans project_root for a subdirectory containing code/babs_proj_config.yaml.
+    Falls back to the default if none is found (e.g. during babs init before the folder exists).
+    """
+    if op.exists(project_root):
+        for entry in os.scandir(project_root):
+            if entry.is_dir() and op.exists(op.join(entry.path, 'code/babs_proj_config.yaml')):
+                return entry.name
+    return default
 EMPTY_JOB_STATUS_DF = pd.DataFrame(
     columns=['sub_id', 'ses_id', 'task_id', 'job_id', 'has_results']
 )
@@ -101,7 +114,7 @@ class BABS:
         # attributes:
         self.project_root = str(project_root)
 
-        self.analysis_path = op.join(self.project_root, 'analysis')
+        self.analysis_path = op.join(self.project_root, _find_analysis_dirname(self.project_root))
         self._analysis_datalad_handle = None
 
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')

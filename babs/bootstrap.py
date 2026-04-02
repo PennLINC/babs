@@ -92,9 +92,13 @@ class BABSBootstrap(BABS):
         self.queue = validate_queue(queue)
         system = System(self.queue)
 
+        # Override analysis_path if analysis_dir is specified in container_config:
+        analysis_dirname = babs_config.get('analysis_dir', 'analysis')
+        self.analysis_path = op.join(self.project_root, analysis_dirname)
+
         # Create `analysis` folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
-        print('\nCreating `analysis` folder (also a datalad dataset)...')
+        print(f'\nCreating `{analysis_dirname}` folder (also a datalad dataset)...')
         self._analysis_datalad_handle = dlapi.create(
             self.analysis_path, cfg_proc='yoda', annex=True
         )
@@ -144,6 +148,7 @@ class BABSBootstrap(BABS):
                 template.render(
                     processing_level=self.processing_level,
                     queue=self.queue,
+                    analysis_dirname=analysis_dirname,
                     input_ds=self.input_datasets,
                     container_name=container_name,
                     container_ds=container_ds,
