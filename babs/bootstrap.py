@@ -96,6 +96,9 @@ class BABSBootstrap(BABS):
         analysis_dirname = babs_config.get('analysis_dirname', 'analysis')
         self.analysis_path = op.join(self.project_root, analysis_dirname)
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
+        self.list_sub_path_abs = op.join(self.analysis_path, self.list_sub_path_rel)
+        self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
+        self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
 
         # Create `analysis` folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())

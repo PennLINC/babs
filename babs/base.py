@@ -114,10 +114,9 @@ class BABS:
         # attributes:
         self.project_root = str(project_root)
 
-        self.analysis_path = op.join(self.project_root, _find_analysis_dirname(self.project_root))
         self._analysis_datalad_handle = None
-
-        self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
+        self.output_ria_data_dir = None  # not known yet before output_ria is created
+        self.analysis_dataset_id = None  # to update later
 
         self.input_ria_path = op.join(self.project_root, 'input_ria')
         self.output_ria_path = op.join(self.project_root, 'output_ria')
@@ -125,8 +124,9 @@ class BABS:
         self.input_ria_url = 'ria+file://' + self.input_ria_path
         self.output_ria_url = 'ria+file://' + self.output_ria_path
 
-        self.output_ria_data_dir = None  # not known yet before output_ria is created
-        self.analysis_dataset_id = None  # to update later
+        self.analysis_path = op.join(self.project_root, _find_analysis_dirname(self.project_root))
+
+        self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
 
         self.list_sub_path_rel = 'code/processing_inclusion.csv'
         self.list_sub_path_abs = op.join(self.analysis_path, self.list_sub_path_rel)
