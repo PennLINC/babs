@@ -34,10 +34,12 @@ CONFIG_SECTIONS = ['processing_level', 'queue', 'input_datasets', 'container']
 def _find_analysis_dirname(project_root, default='analysis'):
     """Find the analysis directory name inside project_root.
 
-    Scans project_root for a subdirectory containing code/babs_proj_config.yaml.
-    Falls back to the default if none is found (e.g. during babs init before the folder exists).
+    First checks if code/babs_proj_config.yaml exists directly in project_root (dirname='.'),
+    then scans subdirectories. Falls back to default if none found (e.g. during babs init).
     """
     if op.exists(project_root):
+        if op.exists(op.join(project_root, 'code/babs_proj_config.yaml')):
+            return '.'
         for entry in os.scandir(project_root):
             if entry.is_dir() and op.exists(op.join(entry.path, 'code/babs_proj_config.yaml')):
                 return entry.name

@@ -94,6 +94,7 @@ class BABSBootstrap(BABS):
 
         # Override analysis_path if analysis_dirname is specified in container_config:
         analysis_dirname = babs_config.get('analysis_dirname', 'analysis')
+        print(f'Analysis path: {op.join(self.project_root, analysis_dirname)}')
         self.analysis_path = op.join(self.project_root, analysis_dirname)
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
         self.list_sub_path_abs = op.join(self.analysis_path, self.list_sub_path_rel)
