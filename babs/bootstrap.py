@@ -26,6 +26,9 @@ from babs.utils import (
 class BABSBootstrap(BABS):
     """A BABS subclass that implements the bootstrap process."""
 
+    def __init__(self, project_root, container_config=None):
+        super().__init__(project_root, container_config=container_config)
+
     def _apply_config(self):
         pass
 
@@ -92,13 +95,25 @@ class BABSBootstrap(BABS):
         self.queue = validate_queue(queue)
         system = System(self.queue)
 
-        # Create `analysis` folder: -----------------------------
+        # Create analysis folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
-        print('\nCreating `analysis` folder (also a datalad dataset)...')
+        print(f'\nCreating `{self.analysis_path}` folder (also a datalad dataset)...')
         self._analysis_datalad_handle = dlapi.create(
             self.analysis_path, cfg_proc='yoda', annex=True
         )
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
+
+        # Persist analysis_dir so other BABS commands can find it:
+        root_babs_config_path = op.join(self.project_root, 'babs_layout_config.yaml')
+        with open(root_babs_config_path, 'w') as f:
+            yaml.dump(
+                {
+                    'analysis_path': babs_config.get('analysis_path', 'analysis'),
+                    'input_ria_path': babs_config.get('input_ria_path', 'input_ria'),
+                    'output_ria_path': babs_config.get('output_ria_path', 'output_ria'),
+                },
+                f,
+            )
         self.input_datasets.set_inclusion_dataframe(initial_inclusion_df, processing_level)
 
         # Prepare `.gitignore` ------------------------------
@@ -130,7 +145,7 @@ class BABSBootstrap(BABS):
 
         # Create `babs_proj_config.yaml` file: ----------------------
         print('Save BABS project configurations in a YAML file ...')
-        print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
+        print(f"Path to this yaml file will be: '{self.config_path}'")
 
         env = Environment(
             loader=PackageLoader('babs', 'templates'),
@@ -142,6 +157,7 @@ class BABSBootstrap(BABS):
         with open(self.config_path, 'w') as f:
             f.write(
                 template.render(
+                    analysis_dir=op.basename(self.analysis_path),
                     processing_level=self.processing_level,
                     queue=self.queue,
                     input_ds=self.input_datasets,
@@ -401,6 +417,8 @@ class BABSBootstrap(BABS):
             if op.exists(self.analysis_path):  # analysis folder is created by datalad
                 print('Removing input dataset(s) if cloned...')
                 for in_ds in self.input_datasets:
+                    if in_ds._babs_project_analysis_path is None:
+                        continue
                     if op.exists(in_ds.babs_project_analysis_path):
                         # use `datalad remove` to remove:
                         _ = self.analysis_datalad_handle.remove(
