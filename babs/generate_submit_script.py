@@ -30,6 +30,7 @@ def generate_submit_script(
     container_images=None,
     datalad_run_message=None,
     project_root=None,
+    analysis_dir='analysis',
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
@@ -129,6 +130,7 @@ def generate_submit_script(
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
         project_root=project_root,
+        analysis_dir=analysis_dir,
     )
 
 
