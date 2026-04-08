@@ -108,7 +108,7 @@ fi
 
 # Link to shared container image so each job does not re-clone the same image.
 # If shared path is not available (e.g. Slurm Docker workers), retrieve image in this clone.
-CONTAINER_SHARED="${PROJECT_ROOT}/analysis/containers/.datalad/environments/{{ container_name }}/image"
+CONTAINER_SHARED="${PROJECT_ROOT}/{{ analysis_dir }}/containers/.datalad/environments/{{ container_name }}/image"
 CONTAINER_JOB="containers/.datalad/environments/{{ container_name }}/image"
 
 if [ ! -L "${CONTAINER_SHARED}" ]; then

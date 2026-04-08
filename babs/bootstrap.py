@@ -2,6 +2,7 @@
 
 import os
 import os.path as op
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -121,16 +122,14 @@ class BABSBootstrap(BABS):
         )
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
 
-        # Persist analysis_dir so other BABS commands can find it:
-        root_babs_config_path = op.join(self.project_root, 'babs_layout_config.yaml')
-        with open(root_babs_config_path, 'w') as f:
-            yaml.dump(
-                {
-                    'analysis_path': babs_config.get('analysis_path', 'analysis'),
-                    'input_ria_path': babs_config.get('input_ria_path', 'input_ria'),
-                    'output_ria_path': babs_config.get('output_ria_path', 'output_ria'),
-                },
-                f,
+        # Persist original config so other BABS commands can find it:
+        babs_dir = op.join(self.project_root, '.babs')
+        os.makedirs(babs_dir, exist_ok=True)
+        shutil.copy2(container_config, op.join(babs_dir, 'babs_init_config.yaml'))
+        if op.normpath(self.analysis_path) == op.normpath(self.project_root):
+            self.datalad_save(
+                path='.babs/babs_init_config.yaml',
+                message='Save babs init config',
             )
         self.input_datasets.set_inclusion_dataframe(initial_inclusion_df, processing_level)
 
@@ -142,6 +141,9 @@ class BABSBootstrap(BABS):
             os.remove(gitignore_path)
         gitignore_file = open(gitignore_path, 'a')  # open in append mode
 
+        # not to track input/output RIA stores:
+        gitignore_file.write('\n' + op.basename(self.input_ria_path))
+        gitignore_file.write('\n' + op.basename(self.output_ria_path))
         # not to track `logs` folder:
         gitignore_file.write('\nlogs')
         # not to track `.*_datalad_lock`:
@@ -440,6 +442,7 @@ class BABSBootstrap(BABS):
             self.processing_level,
             system,
             project_root=op.dirname(self.analysis_path),
+            analysis_dir=op.basename(self.analysis_path),
         )
 
         # also, generate a bash script of a test job used by `babs check-setup`:
@@ -510,6 +513,7 @@ class BABSBootstrap(BABS):
             container_images=container_images,
             datalad_run_message='pipeline',
             project_root=op.dirname(self.analysis_path),
+            analysis_dir=op.basename(self.analysis_path),
         )
 
         with open(bash_path, 'w') as f:
