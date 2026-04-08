@@ -141,6 +141,66 @@ def run_shellcheck(script_path):
         return False, str(e)
 
 
+@pytest.mark.parametrize('processing_level', ['subject', 'session'])
+def test_generate_submit_script_no_zip(processing_level, tmp_path):
+    """Test participant_job.sh with no zipping: one datalad run, -o outputs/."""
+    config_path = NOTEBOOKS_DIR / 'eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml'
+    config = read_yaml(config_path)
+    script_content = generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config=config['cluster_resources'],
+        script_preamble=config['script_preamble'],
+        job_scratch_directory=config['job_compute_space'],
+        input_datasets=input_datasets_prep,
+        processing_level=processing_level,
+        container_name='toybidsapp-0-0-7',
+        zip_foldernames=None,
+    )
+
+    assert script_content.count('datalad run') == 1
+    assert '-o "outputs/"' in script_content
+    assert '.zip' not in script_content
+    assert '_zip.sh' not in script_content
+
+    out_fn = tmp_path / f'participant_job_no_zip_{processing_level}.sh'
+    with open(out_fn, 'w') as f:
+        f.write(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(script_content)
+    assert passed, status
+
+
+@pytest.mark.parametrize('processing_level', ['subject', 'session'])
+def test_generate_submit_script_with_zip(processing_level, tmp_path):
+    """Test participant_job.sh with zipping: two datalad run blocks."""
+    config_path = NOTEBOOKS_DIR / 'eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml'
+    config = read_yaml(config_path)
+    script_content = generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config=config['cluster_resources'],
+        script_preamble=config['script_preamble'],
+        job_scratch_directory=config['job_compute_space'],
+        input_datasets=input_datasets_prep,
+        processing_level=processing_level,
+        container_name='toybidsapp-0-0-7',
+        zip_foldernames=config['zip_foldernames'],
+    )
+
+    assert script_content.count('datalad run') == 2
+    assert '-o "outputs/"' in script_content
+    assert '_zip.sh' in script_content
+    assert '.zip"' in script_content
+
+    out_fn = tmp_path / f'participant_job_with_zip_{processing_level}.sh'
+    with open(out_fn, 'w') as f:
+        f.write(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(script_content)
+    assert passed, status
+
+
 def test_generate_submit_script_pipeline(tmp_path):
     """Test submit script generation for pipeline configuration."""
     # Use same pattern as single-app tests: read from existing YAML config

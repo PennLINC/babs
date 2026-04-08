@@ -204,12 +204,10 @@ def app_output_settings_from_config(config):
     # By default, the output folder is `outputs`:
     bids_app_output_dir = OUTPUT_MAIN_FOLDERNAME
 
-    # Sanity check: this section should exist:
-    if 'zip_foldernames' not in config:
-        raise Exception(
-            'The `container_config` does not contain'
-            ' the section `zip_foldernames`. Please add this section!'
-        )
+    # TODO: consider nesting zip options under an "output_zip" section
+    # zip_foldernames is optional — missing or empty means no zipping
+    if not config.get('zip_foldernames'):
+        return None, bids_app_output_dir
 
     # Check if placeholder to make a sub-folder in `outputs` folder
     create_output_dir_for_single_zip = config.get('all_results_in_one_zip', None)

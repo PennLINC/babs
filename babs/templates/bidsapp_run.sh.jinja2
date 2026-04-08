@@ -3,6 +3,7 @@ set -e -u -x
 
 subid="$1"
 {% if processing_level == 'session' %}
+# shellcheck disable=SC2034  # not always used in generated script
 sesid="$2"
 {% endif %}
 {% for input_ds in input_datasets|selectattr('is_zipped') %}
@@ -70,8 +71,7 @@ singularity run \
 {% endfor %}
         {{ subject_selection_flag }} "${subid}"
 
-{{ cmd_zip }}
-rm -rf {{ OUTPUT_MAIN_FOLDERNAME }} .git/tmp/wkdir
+rm -rf .git/tmp/wkdir
 {% if flag_filterfile %}
 rm -f "${filterfile}"
 {% endif %}

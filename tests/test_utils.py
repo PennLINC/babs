@@ -105,11 +105,17 @@ def test_app_output_settings_from_config():
     assert result_single == single_zip_config['zip_foldernames']
     assert output_dir_single == 'outputs/output1'
 
-    # Test with empty zip_foldernames (should raise exception)
+    # Test with empty zip_foldernames (no zipping)
     empty_config = {'zip_foldernames': {}}
+    result_empty, output_dir_empty = app_output_settings_from_config(empty_config)
+    assert result_empty is None
+    assert output_dir_empty == 'outputs'
 
-    with pytest.raises(Exception, match='No output folder name provided'):
-        app_output_settings_from_config(empty_config)
+    # Test with missing zip_foldernames (no zipping)
+    missing_config = {}
+    result_missing, output_dir_missing = app_output_settings_from_config(missing_config)
+    assert result_missing is None
+    assert output_dir_missing == 'outputs'
 
     # Test with multiple foldernames and all_results_in_one_zip (should raise exception)
     multiple_folders_config = {

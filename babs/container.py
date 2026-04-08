@@ -6,8 +6,9 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
+from babs.generate_bidsapp_runscript import generate_bidsapp_runscript, get_output_zipping_cmds
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
+from babs.constants import OUTPUT_MAIN_FOLDERNAME
 from babs.utils import app_output_settings_from_config
 
 
@@ -145,6 +146,29 @@ class Container:
         print('Below is the generated BIDS App run script:')
         print(script_content)
 
+    def generate_bash_zip_outputs(self, bash_path, processing_level):
+        """Generate a standalone bash script that zips BIDS App outputs."""
+        dict_zip_foldernames, _ = app_output_settings_from_config(self.config)
+        cmd_zip = get_output_zipping_cmds(dict_zip_foldernames, processing_level)
+
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+            undefined=StrictUndefined,
+        )
+        template = env.get_template('zip_outputs.sh.jinja2')
+        script_content = template.render(
+            processing_level=processing_level,
+            cmd_zip=cmd_zip,
+            OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
+        )
+
+        with open(bash_path, 'w') as f:
+            f.write(script_content)
+        os.chmod(bash_path, 0o700)
+
     def generate_bash_participant_job(
         self, bash_path, input_ds, processing_level, system, project_root=None
     ):
@@ -173,7 +197,7 @@ class Container:
             input_datasets=input_ds.as_records(),
             processing_level=processing_level,
             container_name=self.container_name,
-            zip_foldernames=self.config['zip_foldernames'],
+            zip_foldernames=self.config.get('zip_foldernames', None),
             project_root=project_root,
         )
 
