@@ -3,6 +3,7 @@
 import os
 import os.path as op
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -12,6 +13,13 @@ import pandas as pd
 from babs.input_datasets import InputDatasets, OutputDatasets
 from babs.scheduler import (
     request_all_job_status,
+    run_squeue,
+)
+from babs.status import (
+    read_job_status_csv,
+    update_from_branches,
+    update_from_scheduler,
+    write_job_status_csv,
 )
 from babs.system import validate_queue
 from babs.utils import (
@@ -20,12 +28,9 @@ from babs.utils import (
     get_results_branches,
     identify_running_jobs,
     read_yaml,
-    results_branch_dataframe,
     results_status_columns,
     scheduler_status_columns,
     status_dtypes,
-    update_job_batch_status,
-    update_results_status,
     validate_processing_level,
 )
 
@@ -381,32 +386,50 @@ class BABS:
         """Get the results branch names from the output RIA in a list."""
         return get_results_branches(self.output_ria_data_dir)
 
-    def _update_results_status(self) -> None:
+    def _update_results_status(self) -> dict:
+        """Update job statuses from external sources and write to CSV.
+
+        Returns
+        -------
+        dict[tuple, JobStatus]
+            Updated statuses keyed by (sub_id,) or (sub_id, ses_id).
         """
-        Update the status of jobs based on results in the output RIA and zip files.
-        """
+        # Read current state from CSV
+        if op.exists(self.job_status_path_abs):
+            statuses = read_job_status_csv(self.job_status_path_abs)
+        else:
+            statuses = {}
 
-        previous_job_completion_df = self.get_job_status_df()
+        # Update from results branches in output RIA
+        branches = self._get_results_branches()
+        statuses = update_from_branches(statuses, branches)
 
-        # Step 1: get a list of branches in the output ria to update the status
-        list_branches = self._get_results_branches()
-        completed_branches_df = results_branch_dataframe(list_branches, self.processing_level)
+        # Update from merged zip files in analysis dir
+        merged_zip_df = self._get_merged_results_from_analysis_dir()
+        if not merged_zip_df.empty:
+            for _, row in merged_zip_df.iterrows():
+                ses_id = row.get('ses_id') if 'ses_id' in merged_zip_df.columns else None
+                key = (row['sub_id'], ses_id) if ses_id else (row['sub_id'],)
+                if key in statuses:
+                    statuses[key] = replace(statuses[key], has_results=True)
 
-        # Get any completed merged zip files
-        merged_zip_completion_df = self._get_merged_results_from_analysis_dir()
-
-        # Update the results status
-        current_status_df = update_results_status(
-            previous_job_completion_df, completed_branches_df, merged_zip_completion_df
+        # Update from scheduler (squeue)
+        job_ids = sorted(
+            {
+                job.job_id
+                for job in statuses.values()
+                if job.submitted and not job.has_results and job.job_id is not None
+            }
         )
+        raw_squeue_parts = []
+        for jid in job_ids:
+            raw_squeue_parts.append(run_squeue(self.queue, jid))
+        raw_squeue = ''.join(raw_squeue_parts)
+        statuses = update_from_scheduler(statuses, raw_squeue)
 
-        # Part 2: Update which jobs are running
-        currently_running_df = self.get_currently_running_jobs_df()
-        current_status_df = update_job_batch_status(current_status_df, currently_running_df)
-        current_status_df['has_results'] = (
-            current_status_df['has_results'].astype('boolean').fillna(False)
-        )
-        current_status_df.to_csv(self.job_status_path_abs, index=False)
+        # Write updated statuses
+        write_job_status_csv(self.job_status_path_abs, statuses)
+        return statuses
 
     def get_latest_submitted_jobs_df(self):
         """

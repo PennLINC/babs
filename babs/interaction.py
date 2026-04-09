@@ -144,7 +144,5 @@ class BABSInteraction(BABS):
         """
         Check job status and makes a nice report.
         """
-        self._update_results_status()
-        currently_running_df = self.get_currently_running_jobs_df()
-        current_results_df = self.get_job_status_df()
-        report_job_status(current_results_df, currently_running_df, self.analysis_path)
+        statuses = self._update_results_status()
+        report_job_status(statuses, self.analysis_path)

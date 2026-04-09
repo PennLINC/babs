@@ -6,7 +6,51 @@ from io import StringIO
 import pandas as pd
 import yaml
 
+from babs.status import SchedulerState
 from babs.utils import get_username, scheduler_status_columns, status_dtypes
+
+
+def run_squeue(queue, job_id: int) -> str:
+    """Run squeue and return raw pipe-delimited output.
+
+    Parameters
+    ----------
+    queue : str
+        Job scheduling system type (only 'slurm' supported).
+    job_id : int
+        The job array ID to query.
+
+    Returns
+    -------
+    str
+        Raw squeue stdout (pipe-delimited lines), or empty string if
+        no jobs found.
+    """
+    if queue != 'slurm':
+        raise NotImplementedError(f'Queue {queue!r} is not supported.')
+    if not check_slurm_available():
+        raise RuntimeError('Slurm commands are not available on this system.')
+
+    username = get_username()
+    cmd = [
+        'squeue',
+        '-u',
+        username,
+        '-r',
+        '--noheader',
+        '--format=%i|%t|%M|%l|%D|%C|%P|%j',
+        f'-j{job_id}',
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode == 1 and 'Invalid job id specified' in result.stderr:
+        return ''
+    if result.returncode != 0:
+        raise RuntimeError(
+            f'squeue failed with return code {result.returncode}\nstderr: {result.stderr}'
+        )
+    return result.stdout
 
 
 def check_slurm_available() -> bool:
@@ -264,21 +308,16 @@ def submit_one_test_job(analysis_path, queue):
     return job_id
 
 
-def report_job_status(current_results_df, currently_running_df, analysis_path):
+def report_job_status(statuses, analysis_path):
     """
     Print a report that summarizes the overall status of a BABS project.
 
-    This will show how many of the jobs have been completed,
-    how many are still running, and how many have failed.
-
-    Parameters:
-    -------------
-    current_results_df: pd.DataFrame
-        dataframe the accurately reflects which tasks have finished
-    currently_running_df: pd.DataFrame
-        dataframe of currently running tasks
-    analysis_path: str
-        path to the `analysis` folder of a `BABS` project
+    Parameters
+    ----------
+    statuses : dict[tuple, JobStatus]
+        Current job statuses keyed by (sub_id,) or (sub_id, ses_id).
+    analysis_path : str
+        Path to the ``analysis`` folder of a BABS project.
     """
     from jinja2 import Environment, PackageLoader, StrictUndefined
 
@@ -291,12 +330,13 @@ def report_job_status(current_results_df, currently_running_df, analysis_path):
     )
     template = env.get_template('job_status_report.jinja')
 
-    total_jobs = current_results_df.shape[0]
-    total_submitted = int(current_results_df['submitted'].sum())
-    total_is_done = int(current_results_df['has_results'].sum())
-    total_pending = int((currently_running_df['state'] == 'PD').sum())
-    total_running = int((currently_running_df['state'] == 'R').sum())
-    total_failed = int(current_results_df['is_failed'].sum())
+    jobs = list(statuses.values())
+    total_jobs = len(jobs)
+    total_submitted = sum(1 for j in jobs if j.submitted)
+    total_is_done = sum(1 for j in jobs if j.has_results)
+    total_pending = sum(1 for j in jobs if j.scheduler_state == SchedulerState.PENDING)
+    total_running = sum(1 for j in jobs if j.scheduler_state == SchedulerState.RUNNING)
+    total_failed = sum(1 for j in jobs if j.is_failed)
 
     print(
         template.render(
