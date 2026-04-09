@@ -24,6 +24,7 @@ from babs.status import SchedulerState, read_job_status_csv
 from babs.utils import get_results_branches_from_clone
 
 
+@pytest.mark.timeout(450)
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
 def test_babs_init_raw_bids(
     tmp_path_factory,
