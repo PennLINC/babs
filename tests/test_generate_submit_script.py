@@ -147,11 +147,6 @@ def test_generate_submit_script_pipeline(tmp_path):
     config_path = NOTEBOOKS_DIR / 'eg_nordic-fmriprep_pipeline.yaml'
     config = read_yaml(config_path)
 
-    image_paths = [
-        'containers/.datalad/environments/nordic-0-0-1/image',
-        'containers/.datalad/environments/fmriprep-25.0.0/image',
-    ]
-
     script_content = generate_submit_script(
         queue_system='slurm',
         cluster_resources_config=config['cluster_resources'],
@@ -162,7 +157,10 @@ def test_generate_submit_script_pipeline(tmp_path):
         container_name='pipeline',  # placeholder
         zip_foldernames=config['zip_foldernames'],
         run_script_relpath='code/pipeline_zip.sh',
-        container_images=image_paths,
+        container_images=[
+            'containers/.datalad/environments/nordic-0-0-1/image',
+            'containers/.datalad/environments/fmriprep-25.0.0/image',
+        ],
         datalad_run_message='nordic-fmriprep pipeline',
     )
 

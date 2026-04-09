@@ -106,30 +106,24 @@ fi
 
 {{ zip_locator_text }}
 
-# Link shared container image(s) so each job does not re-clone the same image.
-CONTAINER_IMAGE_PATHS=(
-{% for image_path in container_image_paths %}
-  "{{ image_path }}"
-{% endfor %}
-)
+# Link to shared container image so each job does not re-clone the same image.
+# If shared path is not available (e.g. Slurm Docker workers), retrieve image in this clone.
+CONTAINER_SHARED="${PROJECT_ROOT}/analysis/containers/.datalad/environments/{{ container_name }}/image"
+CONTAINER_JOB="containers/.datalad/environments/{{ container_name }}/image"
 
-for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
-  CONTAINER_SHARED="${PROJECT_ROOT}/analysis/${CONTAINER_JOB}"
+if [ ! -L "${CONTAINER_SHARED}" ]; then
+  echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2
+  exit 1
+fi
 
-  if [ ! -e "${CONTAINER_SHARED}" ] && [ ! -L "${CONTAINER_SHARED}" ]; then
-    echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2
-    exit 1
-  fi
+mkdir -p "$(dirname "${CONTAINER_JOB}")"
+rm -f "${CONTAINER_JOB}"
+ln -s "${CONTAINER_SHARED}" "${CONTAINER_JOB}" || exit 1
 
-  mkdir -p "$(dirname "${CONTAINER_JOB}")"
-  rm -f "${CONTAINER_JOB}"
-  ln -s "${CONTAINER_SHARED}" "${CONTAINER_JOB}" || exit 1
-
-  if [ ! -L "${CONTAINER_JOB}" ]; then
-    echo "ERROR: failed to create symlink ${CONTAINER_JOB}" >&2
-    exit 1
-  fi
-done
+if [ ! -L "${CONTAINER_JOB}" ]; then
+  echo "ERROR: failed to create symlink ${CONTAINER_JOB}" >&2
+  exit 1
+fi
 
 # datalad run:
 datalad run \
@@ -142,9 +136,13 @@ datalad run \
 	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
-{% for image_path in container_image_paths %}
+{% if container_images %}
+{% for image_path in container_images %}
 	-i "{{ image_path }}" \
 {% endfor %}
+{% else %}
+	-i "containers/.datalad/environments/{{container_name}}/image" \
+{% endif %}
 {% if datalad_expand_inputs %}
 	--expand inputs \
 {% endif %}

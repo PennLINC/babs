@@ -103,13 +103,6 @@ def generate_submit_script(
         ),
     )
 
-    # Normalize container image paths so both single-app and pipeline paths use
-    # the same template logic for shared-image linking and datalad run inputs.
-    if container_images:
-        container_image_paths = list(container_images)
-    else:
-        container_image_paths = [f'containers/.datalad/environments/{container_name}/image']
-
     return participant_job_template.render(
         interpreting_shell=interpreting_shell,
         processing_level=processing_level,
@@ -126,7 +119,7 @@ def generate_submit_script(
             not input_dataset['is_zipped'] for input_dataset in input_datasets
         ),
         run_script_relpath=run_script_relpath,
-        container_image_paths=container_image_paths,
+        container_images=container_images,
         datalad_run_message=datalad_run_message,
         project_root=project_root,
     )
