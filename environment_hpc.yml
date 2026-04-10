@@ -8,7 +8,7 @@ dependencies:
   - p7zip
   - pip
   # Core packages from conda-forge when available
-  - numpy
+  - numpy<2
   - scipy
   - pandas
   - pyyaml>=6.0
