@@ -192,6 +192,10 @@ def _job_status_to_row(job: JobStatus, session_level: bool) -> dict:
 def write_job_status_csv(path: str, statuses: dict[tuple, JobStatus]) -> None:
     """Write job statuses to job_status.csv."""
     if not statuses:
+        # Keep on-disk state aligned with in-memory status:
+        # if there are no tracked jobs, remove any stale CSV.
+        if os.path.exists(path):
+            os.remove(path)
         return
 
     session_level = any(job.ses_id is not None for job in statuses.values())
