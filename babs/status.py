@@ -1,6 +1,7 @@
 """Job status data model and CSV I/O for babs status."""
 
 import csv
+import os
 import re
 from dataclasses import dataclass, replace
 from enum import Enum
