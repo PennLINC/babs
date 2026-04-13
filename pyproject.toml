@@ -50,6 +50,7 @@ dev = ["ruff ~= 0.4.3", "pre-commit"]
 tests = [
     "coverage",
     "pytest",
+    "pytest-timeout>=2.2.0",
     "pytest-xdist", # for running pytest in parallel
     "pytest-cov",   # for ordering test execution
     "datalad-osf",
