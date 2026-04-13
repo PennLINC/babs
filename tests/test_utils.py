@@ -4,7 +4,6 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import datalad.api as dlapi
 import pandas as pd
 import pytest
 import yaml
@@ -15,7 +14,6 @@ from babs.utils import (
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_repo_hash,
-    get_results_branches,
     get_results_branches_from_clone,
     get_results_branches_from_ria,
     get_username,
@@ -23,32 +21,9 @@ from babs.utils import (
     parse_select_arg,
     read_yaml,
     replace_placeholder_from_config,
-    results_branch_dataframe,
-    update_job_batch_status,
-    update_results_status,
     update_submitted_job_ids,
     validate_processing_level,
 )
-
-
-def datalad_dataset_with_branches(ds_path, branch_list):
-    """Create a DataLad dataset with branches from the provided list."""
-    ds = dlapi.create(path=ds_path)
-    ds.save(message='Initial commit')
-
-    for branch in branch_list:
-        subprocess.run(['git', 'checkout', '-b', branch], cwd=ds_path, capture_output=True)
-        (ds_path / f'{branch}.txt').write_text(f'Content for {branch}')
-        ds.save(message=f'Add content for {branch}')
-        subprocess.run(['git', 'checkout', 'main'], cwd=ds_path, capture_output=True)
-
-    return ds_path
-
-
-BRANCH_LISTS = [
-    ['job-123-1-sub-01', 'job-123-2-sub-02', 'job-124-1-sub-03'],
-    ['job-125-1-sub-01-ses-01', 'job-125-2-sub-01-ses-02', 'job-126-1-sub-02-ses-01'],
-]
 
 
 def test_get_username():
@@ -191,19 +166,6 @@ def test_git_show_ref_shasum(tmp_path):
         get_git_show_ref_shasum('nonexistent-branch', repo_path)
 
 
-@pytest.mark.parametrize('branch_list', BRANCH_LISTS)
-def test_results_branch_dataframe(tmp_path_factory, branch_list):
-    """Test that branch info is correctly extracted to dataframe."""
-    ds_path = datalad_dataset_with_branches(tmp_path_factory.mktemp('test_df'), branch_list)
-    branch_list = get_results_branches(ds_path)
-    if not len(branch_list) == len(branch_list):
-        raise ValueError('branch_list should have the same length as the number of branches')
-
-    df = results_branch_dataframe(branch_list, 'subject')
-
-    assert df.shape[0] == len(branch_list)
-
-
 def test_get_results_branches_from_clone(tmp_path):
     """get_results_branches_from_clone returns job-* branches, skips HEAD and non-job refs."""
     with patch('babs.utils.subprocess.run') as mock_run:
@@ -277,64 +239,6 @@ def test_replace_placeholder_from_config():
 
     # Test with numeric input
     assert replace_placeholder_from_config(42) == '42'
-
-
-def test_update_results_status():
-    """Test update_results_status function."""
-    # One session has results in the results branch
-    has_results_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0002', 'sub-0002'],
-            'ses_id': ['ses-01', 'ses-02'],
-            'job_id': [2, 1],
-            'task_id': [1, 1],
-            'has_results': [True, True],
-        }
-    )
-
-    # The previous status was checked before submitting the new jobs
-    previous_status_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
-            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
-            'job_id': [-1, -1, -1, 1],
-            'task_id': [-1, -1, -1, 1],
-            'submitted': [False, False, False, True],
-            'state': [pd.NA, pd.NA, pd.NA, 'R'],
-            'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
-            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
-            'nodes': [pd.NA, pd.NA, pd.NA, 1],
-            'cpus': [pd.NA, pd.NA, pd.NA, 1],
-            'partition': [pd.NA, pd.NA, pd.NA, 'normal'],
-            'name': [pd.NA, pd.NA, pd.NA, 'first_run'],
-            'has_results': [False, False, False, True],
-            # Fields for tracking:
-            'needs_resubmit': [False, False, False, False],
-            'is_failed': [pd.NA, pd.NA, pd.NA, False],
-            'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
-            'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
-            'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
-        }
-    )
-
-    updated_df = update_results_status(previous_status_df, has_results_df)
-
-    # Check the shape of the returned dataframe
-    assert updated_df.shape[0] == previous_status_df.shape[0]
-
-    # Check that job_id and task_id were updated for entries that have results
-    assert updated_df.loc[2, 'job_id'] == 2
-    assert updated_df.loc[2, 'task_id'] == 1
-    assert updated_df.loc[3, 'job_id'] == 1
-    assert updated_df.loc[3, 'task_id'] == 1
-
-    # Check that has_results field was updated
-    assert updated_df.loc[2, 'has_results']
-    assert updated_df.loc[3, 'has_results']
-
-    # Check that is_failed field was updated correctly
-    assert not updated_df.loc[2, 'is_failed']
-    assert not updated_df.loc[3, 'is_failed']
 
 
 def test_combine_inclusion_dataframes():
@@ -418,53 +322,6 @@ def test_running_jobs():
         'ses_id',
     }
     assert identified_running_df.shape[0] == 3
-
-
-def test_update_job_batch_status():
-    job_submit_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0001', 'sub-0001'],
-            'ses_id': ['ses-01', 'ses-02'],
-            'job_id': [3, 3],
-            'task_id': [1, 2],
-            'state': ['R', 'PD'],
-            'time_used': ['0:30', '0:00'],
-            'time_limit': ['5-00:00:00', '5-00:00:00'],
-            'nodes': [1, 1],
-            'cpus': [1, 1],
-            'partition': ['normal', 'normal'],
-            'name': ['third_run', 'third_run'],
-        }
-    )
-
-    # The previous status was checked before submitting the new jobs
-    status_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0001', 'sub-0001', 'sub-0002', 'sub-0002'],
-            'ses_id': ['ses-01', 'ses-02', 'ses-01', 'ses-02'],
-            'job_id': [-1, -1, 2, 1],
-            'task_id': [-1, -1, 1, 1],
-            'submitted': [False, False, True, True],
-            'state': [pd.NA, pd.NA, 'R', 'R'],
-            'time_used': [pd.NA, pd.NA, pd.NA, '10:00'],
-            'time_limit': ['5-00:00:00', '5-00:00:00', '5-00:00:00', '5-00:00:00'],
-            'nodes': [pd.NA, pd.NA, 1, 1],
-            'cpus': [pd.NA, pd.NA, 1, 1],
-            'partition': [pd.NA, pd.NA, 'normal', 'normal'],
-            'name': [pd.NA, pd.NA, 'second_run', 'first_run'],
-            'has_results': [False, False, False, True],
-            # Fields for tracking:
-            'needs_resubmit': [False, False, False, False],
-            'is_failed': [pd.NA, pd.NA, pd.NA, False],
-            'log_filename': [pd.NA, pd.NA, pd.NA, 'test_array_job.log'],
-            'last_line_stdout_file': [pd.NA, pd.NA, pd.NA, 'SUCCESS'],
-            'alert_message': [pd.NA, pd.NA, pd.NA, pd.NA],
-        }
-    )
-
-    new_status_df = update_job_batch_status(status_df, job_submit_df)
-
-    assert new_status_df.shape[0] == status_df.shape[0]
 
 
 def test_parse_select_arg():
@@ -595,55 +452,6 @@ def test_parse_select_nested():
     pd.testing.assert_frame_equal(result, expected)
 
 
-def test_results_merged_zip():
-    """Test update_results_status with merged_zip_completion_df."""
-    previous_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0001', 'sub-0002'],
-            'ses_id': ['ses-01', 'ses-01'],
-            'job_id': [-1, -1],
-            'task_id': [-1, -1],
-            'submitted': [False, False],
-            'has_results': [False, False],
-            'state': ['', ''],
-            'is_failed': [False, False],
-        }
-    )
-
-    job_completion_df = pd.DataFrame(
-        columns=['sub_id', 'ses_id', 'job_id', 'task_id', 'has_results']
-    )
-
-    merged_zip_completion_df = pd.DataFrame({'sub_id': ['sub-0001'], 'ses_id': ['ses-01']})
-
-    result = update_results_status(previous_df, job_completion_df, merged_zip_completion_df)
-
-    assert result.shape[0] == 2
-    assert result.loc[0, 'has_results'] is True
-    assert pd.isna(result.loc[0, 'job_id'])
-    assert pd.isna(result.loc[0, 'task_id'])
-
-
-def test_results_empty_previous():
-    """Test update_results_status with empty previous dataframe."""
-    previous_df = pd.DataFrame(
-        columns=['sub_id', 'ses_id', 'job_id', 'task_id', 'submitted', 'has_results', 'state']
-    )
-
-    job_completion_df = pd.DataFrame(
-        {
-            'sub_id': ['sub-0001'],
-            'ses_id': ['ses-01'],
-            'job_id': [1],
-            'task_id': [1],
-            'has_results': [True],
-        }
-    )
-
-    result = update_results_status(previous_df, job_completion_df)
-    assert result.shape[0] == 0
-
-
 def test_validate_inclusion_df():
     """Test validate_sub_ses_processing_inclusion with DataFrame input."""
     from babs.utils import validate_sub_ses_processing_inclusion
@@ -711,29 +519,6 @@ def test_identify_running_jobs_error():
 
     with pytest.raises(ValueError, match='Error merging'):
         identify_running_jobs(last_submitted_df, currently_running_df)
-
-
-def test_branch_no_matches():
-    """Test results_branch_dataframe with branches that don't match pattern."""
-    branches = ['not-a-job-branch', 'also-not-matching', 'master']
-    df = results_branch_dataframe(branches, 'subject')
-
-    assert df.empty
-    assert list(df.columns) == ['job_id', 'task_id', 'sub_id', 'has_results']
-
-
-def test_branch_session_level():
-    """Test results_branch_dataframe with session-level processing."""
-    branches = [
-        'job-123-1-sub-0001-ses-01',
-        'job-123-2-sub-0001-ses-02',
-        'job-124-1-sub-0002-ses-01',
-    ]
-    df = results_branch_dataframe(branches, 'session')
-
-    assert df.shape[0] == 3
-    assert 'ses_id' in df.columns
-    assert all(df['has_results'])
 
 
 def test_submitted_multiple_jobs():

@@ -1,5 +1,6 @@
 """This is the main module."""
 
+import csv
 import os
 import os.path as op
 import subprocess
@@ -7,19 +8,16 @@ import tempfile
 from pathlib import Path
 
 import datalad.api as dlapi
-import pandas as pd
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.base import BABS
 from babs.container import Container
 from babs.input_datasets import InputDatasets
+from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
 from babs.utils import (
     get_datalad_version,
-    results_status_columns,
-    results_status_default_values,
-    status_dtypes,
     validate_processing_level,
 )
 
@@ -611,22 +609,12 @@ class BABSBootstrap(BABS):
         print('\nCreated BABS project has been cleaned up.')
 
     def _create_initial_job_status_csv(self):
-        """
-        Create the initial job status csv file.
-        """
+        """Create the initial job status csv file."""
         if op.exists(self.job_status_path_abs):
             return
 
-        # Load the complete list of subjects and optionally sessions
-        df_sub = pd.read_csv(self.list_sub_path_abs)
-        df_job = df_sub.copy()
+        with open(self.list_sub_path_abs, newline='') as f:
+            sub_ses_list = list(csv.DictReader(f))
 
-        # Fill the columns that should get default values
-        for column_name, default_value in results_status_default_values.items():
-            df_job[column_name] = default_value
-
-        # ensure dtypes for all the columns
-        for column_name in results_status_columns:
-            df_job[column_name] = df_job[column_name].astype(status_dtypes[column_name])
-
-        df_job.to_csv(self.job_status_path_abs, index=False)
+        statuses = create_initial_statuses(sub_ses_list)
+        write_job_status_csv(self.job_status_path_abs, statuses)
