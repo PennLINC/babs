@@ -196,6 +196,15 @@ class TestCSVRoundTrip:
         write_job_status_csv(path, {})
         assert not os.path.exists(path)
 
+    def test_empty_statuses_remove_existing_file(self, tmp_path):
+        path = str(tmp_path / 'job_status.csv')
+        original = self._sample_statuses()
+        write_job_status_csv(path, original)
+        assert os.path.exists(path)
+
+        write_job_status_csv(path, {})
+        assert not os.path.exists(path)
+
 
 # -- update_from_branches ------------------------------------------------------
 
