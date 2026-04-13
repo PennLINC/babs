@@ -450,6 +450,18 @@ def _parse_status():
         default=Path.cwd(),
         type=PathExists,
     )
+    parser.add_argument(
+        '--wait',
+        action='store_true',
+        default=False,
+        help='Poll until all submitted jobs complete or fail.',
+    )
+    parser.add_argument(
+        '--wait-interval',
+        type=int,
+        default=300,
+        help='Seconds between status checks when using --wait.',
+    )
 
     return parser
 
@@ -472,6 +484,8 @@ def _enter_status(argv=None):
 
 def babs_status_main(
     project_root: str,
+    wait: bool = False,
+    wait_interval: int = 300,
 ):
     """
     This is the core function of `babs status`.
@@ -480,11 +494,18 @@ def babs_status_main(
     ----------
     project_root: str
         absolute path to the directory of BABS project
+    wait: bool
+        whether to poll until all submitted jobs complete or fail
+    wait_interval: int
+        seconds between status checks when using --wait
     """
     from babs import BABSInteraction
 
     babs_proj = BABSInteraction(project_root)
-    babs_proj.babs_status()
+    if wait:
+        babs_proj.babs_status_wait(interval=wait_interval)
+    else:
+        babs_proj.babs_status()
 
 
 def _parse_merge():

@@ -73,44 +73,26 @@ echo "Job submitted: Check setup, with job"
 
 babs submit
 
-# # Wait for all running jobs to finish
-while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
-    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
-    squeue -u "$USER" -t RUNNING,PENDING
-    echo "Waiting for running jobs to finish..."
-    sleep 5 # Wait for 60 seconds before checking again
-done
-
-echo "========================================================================="
-echo "babs status:"
-babs status
-echo "========================================================================="
-
-# Check for failed jobs TODO see above
-# if sacct -u $USER --state=FAILED --noheader | grep -q "FAILED"; then
-sacct -u "$USER"
-if sacct -u "$USER" --noheader | grep -q "FAILED"; then
-    echo "========================================================================="
-    echo "There are failed jobs."
-    LOGS_DIR="analysis/logs"
-    if [ -d "$LOGS_DIR" ]; then
-        echo "========================================================================="
-        echo "Failed job / task logs from $LOGS_DIR:"
-        for f in "$LOGS_DIR"/*; do
-            if [ -f "$f" ]; then
-                echo "---------- $f ----------"
-                cat "$f"
-                echo ""
-            fi
-        done
-    fi
-    exit 1 # Exit with failure status
-else
-    echo "========================================================================="
-    echo "PASSED: No failed jobs."
-fi
+babs status --wait --wait-interval 5
+echo "PASSED: No failed jobs."
 
 babs merge
+
+echo "Checking job_status.csv after merge..."
+cat analysis/code/job_status.csv
+python -c "
+import csv, sys
+with open('analysis/code/job_status.csv') as f:
+    for row in csv.DictReader(f):
+        if row['submitted'].strip().lower() == 'true':
+            if row['has_results'].strip().lower() != 'true':
+                print(f'FAIL: {row[\"sub_id\"]} submitted but has_results={row[\"has_results\"]}')
+                sys.exit(1)
+            if row['is_failed'].strip().lower() == 'true':
+                print(f'FAIL: {row[\"sub_id\"]} has_results=True but is_failed=True')
+                sys.exit(1)
+print('PASSED: job_status.csv is consistent')
+"
 echo "PASSED: e2e walkthrough successful!"
 
 popd
@@ -134,14 +116,22 @@ pushd "${PWD}/${TEST2_NAME}"
 babs check-setup
 
 babs submit
-# # Wait for all running jobs to finish
-while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
-    echo "squeue -u \"$USER\" -t RUNNING,PENDING"
-    squeue -u "$USER" -t RUNNING,PENDING
-    echo "Waiting for running jobs to finish..."
-    sleep 5 # Wait for 60 seconds before checking again
-done
-
-babs status
+babs status --wait --wait-interval 5
 
 babs merge
+
+echo "Checking job_status.csv after merge (multiinput)..."
+cat analysis/code/job_status.csv
+python -c "
+import csv, sys
+with open('analysis/code/job_status.csv') as f:
+    for row in csv.DictReader(f):
+        if row['submitted'].strip().lower() == 'true':
+            if row['has_results'].strip().lower() != 'true':
+                print(f'FAIL: {row[\"sub_id\"]} submitted but has_results={row[\"has_results\"]}')
+                sys.exit(1)
+            if row['is_failed'].strip().lower() == 'true':
+                print(f'FAIL: {row[\"sub_id\"]} has_results=True but is_failed=True')
+                sys.exit(1)
+print('PASSED: job_status.csv is consistent (multiinput)')
+"
