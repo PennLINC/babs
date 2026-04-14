@@ -131,9 +131,9 @@ for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
   fi
 done
 
-# datalad run:
+# datalad run — execute container:
 datalad run \
-	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
+	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_run.sh' }}" \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
 	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
@@ -149,13 +149,21 @@ datalad run \
 	--expand inputs \
 {% endif %}
 	--explicit \
-{% if zip_foldernames is not none %}
+	-o "{{ OUTPUT_MAIN_FOLDERNAME }}/" \
+	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
+    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_run.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+
+{% if zip_foldernames and not run_script_relpath %}
+# datalad run — zip outputs:
+datalad run \
+	-i "code/{{ container_name }}_zip.sh" \
+	--explicit \
 {% for key, value in zip_foldernames.items() %}
 	-o "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}_{% raw %}${sesid}{% endraw %}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
+	-m "zip {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
+    "bash ./code/{{ container_name }}_zip.sh {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}"
 {% endif %}
-	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
-    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 
 # Finish up:
 # push result file content to output RIA storage:

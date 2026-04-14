@@ -3,10 +3,14 @@ from pathlib import Path
 
 import pytest
 
+from jinja2 import Environment, PackageLoader, StrictUndefined
+
+from babs.constants import OUTPUT_MAIN_FOLDERNAME
 from babs.generate_bidsapp_runscript import (
     generate_bidsapp_runscript,
     generate_pipeline_runscript,
     get_input_unzipping_cmds,
+    get_output_zipping_cmds,
 )
 from babs.utils import (
     app_output_settings_from_config,
@@ -162,6 +166,66 @@ def run_shellcheck(script_path):
         return False, e.output
     except Exception as e:
         return False, str(e)
+
+
+@pytest.mark.parametrize('processing_level', ['subject', 'session'])
+def test_generate_bidsapp_runscript_no_zip(processing_level, tmp_path):
+    """Test that the run script works when zip_foldernames is absent."""
+    script_content = generate_bidsapp_runscript(
+        input_datasets_prep,
+        processing_level,
+        container_name='toybidsapp-0-0-7',
+        relative_container_path='containers/.datalad/containers/toybidsapp-0-0-7/image',
+        bids_app_output_dir='outputs',
+        dict_zip_foldernames=None,
+        bids_app_args='',
+        singularity_args=['--containall'],
+        templateflow_home=None,
+    )
+
+    assert '7z' not in script_content
+    assert 'rm -rf outputs' not in script_content
+    assert 'singularity run' in script_content
+
+    out_fn = tmp_path / f'no_zip_{processing_level}.sh'
+    with open(out_fn, 'w') as f:
+        f.write(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(script_content)
+    assert passed, status
+
+
+@pytest.mark.parametrize('processing_level', ['subject', 'session'])
+def test_generate_zip_outputs_script(processing_level, tmp_path):
+    """Test that the standalone zip script is generated correctly."""
+    dict_zip_foldernames = {'fmriprep_anat': '24-1-1'}
+    cmd_zip = get_output_zipping_cmds(dict_zip_foldernames, processing_level)
+
+    env = Environment(
+        loader=PackageLoader('babs', 'templates'),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+        undefined=StrictUndefined,
+    )
+    template = env.get_template('zip_outputs.sh.jinja2')
+    script_content = template.render(
+        processing_level=processing_level,
+        cmd_zip=cmd_zip,
+        OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
+    )
+
+    assert '7z' in script_content
+    assert 'rm -rf outputs' in script_content
+
+    out_fn = tmp_path / f'zip_outputs_{processing_level}.sh'
+    with open(out_fn, 'w') as f:
+        f.write(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(script_content)
+    assert passed, status
 
 
 def test_generate_pipeline_runscript(tmp_path):

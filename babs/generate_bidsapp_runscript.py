@@ -73,9 +73,6 @@ def generate_bidsapp_runscript(
     # Get unzip commands for any zipped input datasets
     cmd_unzip_inputds = get_input_unzipping_cmds(input_datasets)
 
-    # Generate zip command
-    cmd_zip = get_output_zipping_cmds(dict_zip_foldernames, processing_level)
-
     # Render the template
     env = Environment(
         loader=PackageLoader('babs', 'templates'),
@@ -101,8 +98,6 @@ def generate_bidsapp_runscript(
         bids_app_input_dir=bids_app_input_dir,
         bids_app_output_dir=bids_app_output_dir,
         bids_app_args=bids_app_args,
-        cmd_zip=cmd_zip,
-        OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
         singularity_flags=singularity_args,
         subject_selection_flag=subject_selection_flag,
     )

@@ -145,3 +145,87 @@ done
 babs status
 
 babs merge
+
+popd
+# Create a third BABS project with no zipping (loose output files)
+TEST3_NAME=no_zip_test
+babs init \
+    --container_ds "${PWD}"/simbids-container \
+    --container_name simbids-0-0-3 \
+    --container_config "/tests/tests/e2e-slurm/container/config_simbids_no_zip.yaml" \
+    --processing_level subject \
+    --queue slurm \
+    --keep-if-failed \
+    "${PWD}/${TEST3_NAME}"
+
+echo "PASSED: babs init (no zip)"
+
+pushd "${PWD}/${TEST3_NAME}/analysis"
+datalad get "containers/.datalad/environments/simbids-0-0-3/image"
+popd
+
+pushd "${PWD}/${TEST3_NAME}"
+
+babs check-setup
+
+babs submit
+while [[ -n $(squeue -u "$USER" -t RUNNING,PENDING --noheader) ]]; do
+    squeue -u "$USER" -t RUNNING,PENDING
+    echo "Waiting for running jobs to finish..."
+    sleep 5
+done
+
+babs status
+
+sacct -u "$USER"
+if sacct -u "$USER" --noheader | grep -q "FAILED"; then
+    echo "========================================================================="
+    echo "There are failed jobs in no-zip test."
+    LOGS_DIR="analysis/logs"
+    if [ -d "$LOGS_DIR" ]; then
+        for f in "$LOGS_DIR"/*; do
+            [ -f "$f" ] && echo "---------- $f ----------" && cat "$f"
+        done
+    fi
+    exit 1
+fi
+echo "PASSED: No failed jobs (no-zip)"
+
+babs merge
+
+# After merge, verify outputs in the output RIA are loose files, not zips
+RIA_PATH=$(find "${PWD}/output_ria" -mindepth 2 -maxdepth 2 -type d | head -1)
+echo "========================================================================="
+echo "Top-level entries in output RIA after merge:"
+git -C "$RIA_PATH" ls-tree --name-only HEAD
+echo "========================================================================="
+
+if git -C "$RIA_PATH" ls-tree --name-only HEAD | grep -q '\.zip'; then
+    echo "FAILED: found .zip files in no-zip project"
+    exit 1
+fi
+echo "PASSED: no .zip files in output RIA (as expected)"
+
+if ! git -C "$RIA_PATH" ls-tree --name-only HEAD | grep -q 'outputs'; then
+    echo "FAILED: no outputs directory found in output RIA"
+    exit 1
+fi
+echo "PASSED: outputs/ directory found in output RIA"
+
+if ! git -C "$RIA_PATH" ls-tree -r --name-only HEAD -- outputs | grep -q 'dataset_description.json'; then
+    echo "FAILED: missing dataset_description.json in outputs"
+    exit 1
+fi
+
+if ! git -C "$RIA_PATH" ls-tree -r --name-only HEAD -- outputs | grep -q 'sub-0001'; then
+    echo "FAILED: missing sub-0001 results in outputs"
+    exit 1
+fi
+
+if ! git -C "$RIA_PATH" ls-tree -r --name-only HEAD -- outputs | grep -q 'sub-0002'; then
+    echo "FAILED: missing sub-0002 results in outputs"
+    exit 1
+fi
+echo "PASSED: output files present for both subjects"
+
+echo "PASSED: e2e no-zip walkthrough successful!"

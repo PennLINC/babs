@@ -397,17 +397,24 @@ class BABSBootstrap(BABS):
         """Bootstrap scripts for single BIDS app configuration."""
         container = Container(container_ds, container_name, container_config)
 
-        # Generate `<containerName>_zip.sh`: ----------------------------------
-        # which is a bash script of singularity run + zip
-        # in folder: `analysis/code`
-        print('\nGenerating a bash script for running container and zipping the outputs...')
-        print('This bash script will be named as `' + container_name + '_zip.sh`')
-        bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
+        # Generate `<containerName>_run.sh`: ----------------------------------
+        print('\nGenerating run script: ' + container_name + '_run.sh')
+        bash_path = op.join(self.analysis_path, 'code', container_name + '_run.sh')
         container.generate_bash_run_bidsapp(bash_path, self.input_datasets, self.processing_level)
         self.datalad_save(
-            path='code/' + container_name + '_zip.sh',
+            path='code/' + container_name + '_run.sh',
             message='Generate script of running container',
         )
+
+        # Generate `<containerName>_zip.sh` if zipping is enabled: ---------------
+        if self.zip_foldernames:
+            print('Generating zip script: ' + container_name + '_zip.sh')
+            bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
+            container.generate_bash_zip_outputs(bash_path, self.processing_level)
+            self.datalad_save(
+                path='code/' + container_name + '_zip.sh',
+                message='Generate zip script',
+            )
 
         # make another folder within `code` for test jobs:
         os.makedirs(op.join(self.analysis_path, 'code/check_setup'), exist_ok=True)

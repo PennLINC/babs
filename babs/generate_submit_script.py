@@ -6,6 +6,8 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from babs.constants import OUTPUT_MAIN_FOLDERNAME
+
 # Multiple scheduler system handling
 DIRECTIVE_PREFIX = {
     'sge': '#$',
@@ -129,6 +131,7 @@ def generate_submit_script(
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
         project_root=project_root,
+        OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
     )
 
 
