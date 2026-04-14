@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 
 from babs.interaction import BABSInteraction
+from babs.status import JobStatus, SchedulerState
 from babs.utils import scheduler_status_columns
 
 
@@ -175,3 +176,218 @@ def test_get_currently_running_jobs_df_multiple_job_ids(babs_project_subjectleve
 
     assert set(calls) == {10, 20}
     assert set(running_df['sub_id']) == {'sub-01', 'sub-02'}
+
+
+# -- babs_status_wait tests --
+
+
+def _make_statuses(submitted, has_results):
+    """Build a statuses dict from parallel lists of booleans."""
+    statuses = {}
+    for i, (sub, res) in enumerate(zip(submitted, has_results, strict=True)):
+        sub_id = f'sub-{i + 1:02d}'
+        if sub and not res:
+            state = SchedulerState.DONE
+        elif sub:
+            state = SchedulerState.DONE
+        else:
+            state = SchedulerState.NOT_SUBMITTED
+        job = JobStatus(
+            sub_id=sub_id,
+            ses_id=None,
+            scheduler_state=state,
+            has_results=res,
+            job_id=100 + i if sub else None,
+            task_id=i + 1 if sub else None,
+            time_used='',
+            time_limit='',
+            nodes=0,
+            cpus=0,
+            partition='',
+            name='',
+        )
+        statuses[job.key] = job
+    return statuses
+
+
+def _patch_wait(monkeypatch, babs_proj, statuses_list):
+    """Patch a BABSInteraction for babs_status_wait testing.
+
+    Parameters
+    ----------
+    statuses_list : list[dict]
+        Sequence of statuses dicts returned by successive _update_results_status calls.
+    """
+    call_count = {'n': 0}
+
+    def _update():
+        idx = min(call_count['n'], len(statuses_list) - 1)
+        call_count['n'] += 1
+        return statuses_list[idx]
+
+    monkeypatch.setattr(babs_proj, '_update_results_status', _update)
+    monkeypatch.setattr('babs.interaction.report_job_status', lambda *a, **kw: None)
+    monkeypatch.setattr('babs.interaction.time.sleep', lambda s: None)
+
+    return call_count
+
+
+def test_status_wait_all_succeeded(babs_project_subjectlevel, monkeypatch, capsys):
+    """All submitted jobs already have results — should exit immediately."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    statuses = _make_statuses(submitted=[True, True], has_results=[True, True])
+    call_count = _patch_wait(monkeypatch, babs_proj, [statuses])
+
+    babs_proj.babs_status_wait(interval=1)
+
+    assert call_count['n'] == 1
+    captured = capsys.readouterr()
+    assert '2 succeeded' in captured.out
+    assert '0 failed' in captured.out
+
+
+def test_status_wait_all_failed(babs_project_subjectlevel, monkeypatch):
+    """All submitted jobs failed — should exit with sys.exit(1)."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    statuses = _make_statuses(submitted=[True, True], has_results=[False, False])
+    _patch_wait(monkeypatch, babs_proj, [statuses])
+
+    with pytest.raises(SystemExit, match='1'):
+        babs_proj.babs_status_wait(interval=1)
+
+
+def test_status_wait_mixed_results(babs_project_subjectlevel, monkeypatch, capsys):
+    """Some succeeded, some failed — should exit(1)."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    statuses = _make_statuses(submitted=[True, True], has_results=[True, False])
+    _patch_wait(monkeypatch, babs_proj, [statuses])
+
+    with pytest.raises(SystemExit, match='1'):
+        babs_proj.babs_status_wait(interval=1)
+
+
+def test_status_wait_loops_until_done(babs_project_subjectlevel, monkeypatch, capsys):
+    """Jobs still running on first check, done on second — should loop once."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+
+    # First poll: running
+    running = {}
+    for i in range(2):
+        sub_id = f'sub-{i + 1:02d}'
+        job = JobStatus(
+            sub_id=sub_id,
+            ses_id=None,
+            scheduler_state=SchedulerState.RUNNING,
+            has_results=False,
+            job_id=100 + i,
+            task_id=i + 1,
+            time_used='',
+            time_limit='',
+            nodes=0,
+            cpus=0,
+            partition='',
+            name='',
+        )
+        running[job.key] = job
+
+    # Second poll: done
+    done = _make_statuses(submitted=[True, True], has_results=[True, True])
+
+    call_count = _patch_wait(monkeypatch, babs_proj, [running, done])
+
+    babs_proj.babs_status_wait(interval=1)
+
+    assert call_count['n'] == 2
+    captured = capsys.readouterr()
+    assert '2 succeeded' in captured.out
+
+
+def test_status_wait_no_submitted_jobs(babs_project_subjectlevel, monkeypatch, capsys):
+    """No jobs submitted — should exit(1)."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    statuses = _make_statuses(submitted=[False, False], has_results=[False, False])
+    _patch_wait(monkeypatch, babs_proj, [statuses])
+
+    with pytest.raises(SystemExit, match='1'):
+        babs_proj.babs_status_wait(interval=1)
+
+
+def test_status_wait_report_called_each_iteration(babs_project_subjectlevel, monkeypatch):
+    """report_job_status should be called on every iteration."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+
+    running = {}
+    sub_id = 'sub-01'
+    job = JobStatus(
+        sub_id=sub_id,
+        ses_id=None,
+        scheduler_state=SchedulerState.RUNNING,
+        has_results=False,
+        job_id=100,
+        task_id=1,
+        time_used='',
+        time_limit='',
+        nodes=0,
+        cpus=0,
+        partition='',
+        name='',
+    )
+    running[job.key] = job
+
+    done = _make_statuses(submitted=[True], has_results=[True])
+
+    report_calls = []
+
+    call_count = {'n': 0}
+
+    def _update():
+        idx = min(call_count['n'], 1)
+        call_count['n'] += 1
+        return [running, done][idx]
+
+    monkeypatch.setattr(babs_proj, '_update_results_status', _update)
+    monkeypatch.setattr(
+        'babs.interaction.report_job_status',
+        lambda *a, **kw: report_calls.append(a),
+    )
+    monkeypatch.setattr('babs.interaction.time.sleep', lambda s: None)
+
+    babs_proj.babs_status_wait(interval=1)
+
+    assert len(report_calls) == 2
+
+
+def test_status_wait_keyboard_interrupt(babs_project_subjectlevel, monkeypatch, capsys):
+    """Ctrl-C should print a message and exit(130)."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+
+    running = {}
+    job = JobStatus(
+        sub_id='sub-01',
+        ses_id=None,
+        scheduler_state=SchedulerState.RUNNING,
+        has_results=False,
+        job_id=100,
+        task_id=1,
+        time_used='',
+        time_limit='',
+        nodes=0,
+        cpus=0,
+        partition='',
+        name='',
+    )
+    running[job.key] = job
+
+    monkeypatch.setattr(babs_proj, '_update_results_status', lambda: running)
+    monkeypatch.setattr('babs.interaction.report_job_status', lambda *a, **kw: None)
+    monkeypatch.setattr(
+        'babs.interaction.time.sleep',
+        lambda s: (_ for _ in ()).throw(KeyboardInterrupt),
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        babs_proj.babs_status_wait(interval=1)
+
+    assert exc_info.value.code == 130
+    captured = capsys.readouterr()
+    assert 'Interrupted' in captured.out

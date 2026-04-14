@@ -1,5 +1,8 @@
 """This is the main module."""
 
+import sys
+import time
+
 import numpy as np
 
 from babs.base import BABS
@@ -146,3 +149,38 @@ class BABSInteraction(BABS):
         """
         statuses = self._update_results_status()
         report_job_status(statuses, self.analysis_path)
+
+    def babs_status_wait(self, interval=300):
+        """Poll job status until all submitted jobs complete or fail.
+
+        Parameters
+        ----------
+        interval: int
+            Seconds between status checks.
+        """
+        try:
+            while True:
+                statuses = self._update_results_status()
+                report_job_status(statuses, self.analysis_path)
+                sys.stdout.flush()
+
+                submitted = [j for j in statuses.values() if j.submitted]
+                if not submitted:
+                    print('No jobs have been submitted.')
+                    sys.exit(1)
+
+                done = all(j.has_results or j.is_failed for j in submitted)
+                if done:
+                    n_results = sum(1 for j in submitted if j.has_results)
+                    n_failed = sum(1 for j in submitted if j.is_failed)
+                    print(
+                        f'\nAll submitted jobs finished: {n_results} succeeded, {n_failed} failed.'
+                    )
+                    if n_failed > 0:
+                        sys.exit(1)
+                    return
+
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print('\nInterrupted by user.')
+            sys.exit(130)

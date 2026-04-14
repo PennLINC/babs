@@ -31,5 +31,4 @@ dependencies:
       - qstat>=0.0.5
       - pytest-cov>=5.0.0
       - pytest-env>=1.1.0
-      - pytest-timeout>=2.2.0
       - pytest-xdist
