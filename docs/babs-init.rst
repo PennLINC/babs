@@ -112,6 +112,11 @@ a SLURM cluster:
     The throttle value will be added to the array specification as ``%<throttle>``,
     e.g., ``--array=1-${max_array}%10``.
 
+.. note::
+    **Shared group permissions**: On multi-user shared filesystems, you can add
+    ``--shared-group <GROUP>`` to initialize a BABS project with group-shared Git permissions, 
+    allowing project directories to be writable by all members of the group.
+
 
 *********
 Debugging
