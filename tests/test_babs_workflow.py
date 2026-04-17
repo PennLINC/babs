@@ -3,6 +3,7 @@
 import argparse
 import os
 import os.path as op
+import subprocess
 import time
 from glob import glob
 from pathlib import Path
@@ -394,8 +395,6 @@ def test_datalad_save_with_filtering(babs_project_sessionlevel_babsobject):
     )
 
     # Check that test_file1 was saved but test_file2 was filtered out
-    import subprocess
-
     result = subprocess.run(
         ['git', 'ls-files'],
         cwd=babs_project_sessionlevel_babsobject.analysis_path,

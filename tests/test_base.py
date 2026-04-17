@@ -12,9 +12,11 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 import yaml
+from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
+from babs.bootstrap import BABSBootstrap
 from babs.utils import read_yaml
 
 
@@ -255,9 +257,6 @@ def test_throttle_in_job_template(
     expected_in_template,
 ):
     """Test that throttle value is correctly included in job submission template."""
-    from conftest import get_config_simbids_path, update_yaml_for_run
-
-    from babs.bootstrap import BABSBootstrap
 
     os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
 
@@ -300,9 +299,6 @@ def test_shared_group_inits_analysis_and_rias(
     bids_data_singlesession,
 ):
     """Test --shared-group behavior for analysis and RIA creation."""
-    from conftest import get_config_simbids_path, update_yaml_for_run
-
-    from babs.bootstrap import BABSBootstrap
 
     os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
     shared_group = grp.getgrgid(os.getgid()).gr_name
