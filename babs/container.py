@@ -146,7 +146,13 @@ class Container:
         print(script_content)
 
     def generate_bash_participant_job(
-        self, bash_path, input_ds, processing_level, system, project_root=None
+        self,
+        bash_path,
+        input_ds,
+        processing_level,
+        system,
+        project_root=None,
+        analysis_dir='analysis',
     ):
         """Generate bash script for participant job.
 
@@ -175,6 +181,7 @@ class Container:
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
             project_root=project_root,
+            analysis_dir=analysis_dir,
         )
 
         with open(bash_path, 'w') as f:

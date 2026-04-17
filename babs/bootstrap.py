@@ -3,6 +3,7 @@
 import csv
 import os
 import os.path as op
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -24,6 +25,9 @@ from babs.utils import (
 
 class BABSBootstrap(BABS):
     """A BABS subclass that implements the bootstrap process."""
+
+    def __init__(self, project_root, container_config=None):
+        super().__init__(project_root, container_config=container_config)
 
     def _apply_config(self):
         pass
@@ -108,13 +112,23 @@ class BABSBootstrap(BABS):
         self.queue = validate_queue(queue)
         system = System(self.queue)
 
-        # Create `analysis` folder: -----------------------------
+        # Create analysis folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
-        print('\nCreating `analysis` folder (also a datalad dataset)...')
+        print(f'\nCreating `{self.analysis_path}` folder (also a datalad dataset)...')
         self._analysis_datalad_handle = dlapi.create(
             self.analysis_path, cfg_proc='yoda', annex=True
         )
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
+
+        # Persist original config so other BABS commands can find it:
+        babs_dir = op.join(self.project_root, '.babs')
+        os.makedirs(babs_dir, exist_ok=True)
+        shutil.copy2(container_config, op.join(babs_dir, 'babs_init_config.yaml'))
+        if op.normpath(self.analysis_path) == op.normpath(self.project_root):
+            self.datalad_save(
+                path='.babs/babs_init_config.yaml',
+                message='Save babs init config',
+            )
         self.input_datasets.set_inclusion_dataframe(initial_inclusion_df, processing_level)
 
         # Prepare `.gitignore` ------------------------------
@@ -125,6 +139,9 @@ class BABSBootstrap(BABS):
             os.remove(gitignore_path)
         gitignore_file = open(gitignore_path, 'a')  # open in append mode
 
+        # not to track input/output RIA stores:
+        gitignore_file.write('\n' + op.basename(self.input_ria_path))
+        gitignore_file.write('\n' + op.basename(self.output_ria_path))
         # not to track `logs` folder:
         gitignore_file.write('\nlogs')
         # not to track `.*_datalad_lock`:
@@ -146,7 +163,7 @@ class BABSBootstrap(BABS):
 
         # Create `babs_proj_config.yaml` file: ----------------------
         print('Save BABS project configurations in a YAML file ...')
-        print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
+        print(f"Path to this yaml file will be: '{self.config_path}'")
 
         env = Environment(
             loader=PackageLoader('babs', 'templates'),
@@ -158,6 +175,7 @@ class BABSBootstrap(BABS):
         with open(self.config_path, 'w') as f:
             f.write(
                 template.render(
+                    analysis_dir=op.basename(self.analysis_path),
                     processing_level=self.processing_level,
                     queue=self.queue,
                     input_ds=self.input_datasets,
@@ -422,6 +440,7 @@ class BABSBootstrap(BABS):
             self.processing_level,
             system,
             project_root=op.dirname(self.analysis_path),
+            analysis_dir=op.basename(self.analysis_path),
         )
 
         # also, generate a bash script of a test job used by `babs check-setup`:
@@ -492,6 +511,7 @@ class BABSBootstrap(BABS):
             container_images=container_images,
             datalad_run_message='pipeline',
             project_root=op.dirname(self.analysis_path),
+            analysis_dir=op.basename(self.analysis_path),
         )
 
         with open(bash_path, 'w') as f:
@@ -569,6 +589,8 @@ class BABSBootstrap(BABS):
             if op.exists(self.analysis_path):  # analysis folder is created by datalad
                 print('Removing input dataset(s) if cloned...')
                 for in_ds in self.input_datasets:
+                    if in_ds._babs_project_analysis_path is None:
+                        continue
                     if op.exists(in_ds.babs_project_analysis_path):
                         # use `datalad remove` to remove:
                         _ = self.analysis_datalad_handle.remove(

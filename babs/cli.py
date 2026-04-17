@@ -193,7 +193,7 @@ def babs_init_main(
 
     from babs import BABSBootstrap
 
-    babs_proj = BABSBootstrap(project_root)
+    babs_proj = BABSBootstrap(project_root, container_config=container_config)
     try:
         babs_proj.babs_bootstrap(
             processing_level,
