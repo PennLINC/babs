@@ -3,6 +3,7 @@
 import argparse
 import os
 import os.path as op
+import subprocess
 import time
 from glob import glob
 from pathlib import Path
@@ -216,6 +217,37 @@ def test_babs_init_raw_bids(
                 raise
 
 
+def test_init_forwards_shared_group(tmp_path):
+    """Test that CLI --shared-group is forwarded to bootstrap."""
+    options = argparse.Namespace(
+        project_root=tmp_path / 'my_babs_project',
+        list_sub_file=None,
+        container_ds='/tmp/container_ds',
+        container_name='simbids-0-0-3',
+        container_config='/tmp/container_config.yaml',
+        processing_level='subject',
+        queue='slurm',
+        keep_if_failed=False,
+        throttle=None,
+        shared_group='my-lab-group',
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
+        with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
+            _enter_init()
+
+    mock_bootstrap_cls.assert_called_once_with(options.project_root)
+    mock_bootstrap_cls.return_value.babs_bootstrap.assert_called_once_with(
+        options.processing_level,
+        options.queue,
+        options.container_ds,
+        options.container_name,
+        options.container_config,
+        options.list_sub_file,
+        throttle=options.throttle,
+        shared_group=options.shared_group,
+    )
+
+
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
 def test_babs_init_list_sub_file(
     tmp_path_factory,
@@ -363,8 +395,6 @@ def test_datalad_save_with_filtering(babs_project_sessionlevel_babsobject):
     )
 
     # Check that test_file1 was saved but test_file2 was filtered out
-    import subprocess
-
     result = subprocess.run(
         ['git', 'ls-files'],
         cwd=babs_project_sessionlevel_babsobject.analysis_path,

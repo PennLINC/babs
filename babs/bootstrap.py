@@ -37,6 +37,7 @@ class BABSBootstrap(BABS):
         container_config,
         initial_inclusion_df=None,
         throttle=None,
+        shared_group=None,
     ):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
@@ -62,6 +63,10 @@ class BABSBootstrap(BABS):
             simultaneously running array tasks. The value will be added to the array
             specification as `%<throttle>`. Example: `10` will result in
             `--array=1-${max_array}%10`.
+        shared_group: str or None, optional
+            Unix group name for shared write access. If provided, `analysis` is
+            initialized with `git init --shared=group` and RIA siblings are created
+            with `--shared group --group <GROUP>`.
         """
         if op.exists(self.project_root):
             raise FileExistsError(
@@ -89,6 +94,7 @@ class BABSBootstrap(BABS):
 
         # Store throttle value for job submission template
         self.throttle = throttle
+        self.shared_group = shared_group
 
         # validate `processing_level`:
         self.processing_level = validate_processing_level(processing_level)
@@ -111,9 +117,17 @@ class BABSBootstrap(BABS):
         # Create `analysis` folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
         print('\nCreating `analysis` folder (also a datalad dataset)...')
-        self._analysis_datalad_handle = dlapi.create(
-            self.analysis_path, cfg_proc='yoda', annex=True
-        )
+        if self.shared_group is None:
+            self._analysis_datalad_handle = dlapi.create(
+                self.analysis_path, cfg_proc='yoda', annex=True
+            )
+        else:
+            self._analysis_datalad_handle = dlapi.create(
+                self.analysis_path,
+                cfg_proc='yoda',
+                annex=True,
+                initopts=['--shared=group'],
+            )
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
         self.input_datasets.set_inclusion_dataframe(initial_inclusion_df, processing_level)
 
@@ -171,19 +185,38 @@ class BABSBootstrap(BABS):
         )
         # Create output RIA sibling: -----------------------------
         print('\nCreating output and input RIA...')
-        self.analysis_datalad_handle.create_sibling_ria(
-            name='output', url=self.output_ria_url, new_store_ok=True
-        )
+        if self.shared_group is None:
+            self.analysis_datalad_handle.create_sibling_ria(
+                name='output', url=self.output_ria_url, new_store_ok=True
+            )
+        else:
+            self.analysis_datalad_handle.create_sibling_ria(
+                name='output',
+                url=self.output_ria_url,
+                new_store_ok=True,
+                shared='group',
+                group=self.shared_group,
+            )
 
         self.wtf_key_info()
 
         # Create input RIA sibling:
-        self.analysis_datalad_handle.create_sibling_ria(
-            name='input',
-            url=self.input_ria_url,
-            storage_sibling=False,  # False is `off` in CLI of datalad
-            new_store_ok=True,
-        )
+        if self.shared_group is None:
+            self.analysis_datalad_handle.create_sibling_ria(
+                name='input',
+                url=self.input_ria_url,
+                storage_sibling=False,  # False is `off` in CLI of datalad
+                new_store_ok=True,
+            )
+        else:
+            self.analysis_datalad_handle.create_sibling_ria(
+                name='input',
+                url=self.input_ria_url,
+                storage_sibling=False,  # False is `off` in CLI of datalad
+                new_store_ok=True,
+                shared='group',
+                group=self.shared_group,
+            )
 
         # Register the input dataset(s): -----------------------------
         print('\nRegistering the input dataset(s)...')
