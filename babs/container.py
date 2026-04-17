@@ -146,7 +146,13 @@ class Container:
         print(script_content)
 
     def generate_bash_participant_job(
-        self, bash_path, input_ds, processing_level, system, project_root=None, analysis_dir='analysis'
+        self,
+        bash_path,
+        input_ds,
+        processing_level,
+        system,
+        project_root=None,
+        analysis_dir='analysis',
     ):
         """Generate bash script for participant job.
 
