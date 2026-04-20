@@ -175,3 +175,18 @@ def test_get_currently_running_jobs_df_multiple_job_ids(babs_project_subjectleve
 
     assert set(calls) == {10, 20}
     assert set(running_df['sub_id']) == {'sub-01', 'sub-02'}
+
+
+def test_get_latest_submitted_jobs_df_missing_job_id_column(babs_project_subjectlevel):
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    # Simulate interrupted submit that wrote pre-submit schema only.
+    pd.DataFrame({'sub_id': ['sub-01'], 'task_id': [1]}).to_csv(
+        babs_proj.job_submit_path_abs, index=False
+    )
+
+    latest_df = babs_proj.get_latest_submitted_jobs_df()
+
+    assert latest_df.columns.tolist() == ['sub_id', 'job_id', 'task_id']
+    assert latest_df['sub_id'].tolist() == ['sub-01']
+    assert latest_df['task_id'].tolist() == [1]
+    assert latest_df['job_id'].isna().all()

@@ -444,12 +444,24 @@ class BABS:
         1  sub-0002       1        2
 
         """
+        expected_columns = get_latest_submitted_jobs_columns(self.processing_level)
         if not op.exists(self.job_submit_path_abs):
-            return EMPTY_JOB_STATUS_DF
-        df = pd.read_csv(self.job_submit_path_abs)
-        for column_name in get_latest_submitted_jobs_columns(self.processing_level):
+            return pd.DataFrame(columns=expected_columns)
+
+        try:
+            df = pd.read_csv(self.job_submit_path_abs)
+        except pd.errors.EmptyDataError:
+            return pd.DataFrame(columns=expected_columns)
+
+        # job_submit.csv is written once before submit (without job_id) and then
+        # rewritten after submit (with job_id). Tolerate the interim schema so
+        # follow-up commands do not crash if submit was interrupted.
+        for column_name in expected_columns:
+            if column_name not in df.columns:
+                df[column_name] = pd.NA
             df[column_name] = df[column_name].astype(status_dtypes[column_name])
-        return df
+
+        return df[expected_columns]
 
     def get_currently_running_jobs_df(self):
         """
