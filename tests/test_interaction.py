@@ -337,13 +337,14 @@ def test_status_wait_loops_until_done(babs_project_subjectlevel, monkeypatch, ca
 
 
 def test_status_wait_no_submitted_jobs(babs_project_subjectlevel, monkeypatch, capsys):
-    """No jobs submitted — should exit(1)."""
+    """No jobs submitted — should return cleanly (exit 0)."""
     babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
     statuses = _make_statuses(submitted=[False, False], has_results=[False, False])
     _patch_wait(monkeypatch, babs_proj, [statuses])
 
-    with pytest.raises(SystemExit, match='1'):
-        babs_proj.babs_status_wait(interval=1)
+    babs_proj.babs_status_wait(interval=1)
+    captured = capsys.readouterr()
+    assert 'No jobs have been submitted' in captured.out
 
 
 def test_status_wait_report_called_each_iteration(babs_project_subjectlevel, monkeypatch):

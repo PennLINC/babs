@@ -156,6 +156,10 @@ class BABSInteraction(BABS):
     def babs_status_wait(self, interval=300):
         """Poll job status until all submitted jobs complete or fail.
 
+        Exits 0 if nothing has been submitted or all submitted jobs
+        succeeded; exits 1 only if a submitted job failed; exits 130
+        on Ctrl-C.
+
         Parameters
         ----------
         interval: int
@@ -169,8 +173,8 @@ class BABSInteraction(BABS):
 
                 submitted = [j for j in statuses.values() if j.submitted]
                 if not submitted:
-                    print('No jobs have been submitted.')
-                    sys.exit(1)
+                    print('No jobs have been submitted; nothing to wait on.')
+                    return
 
                 done = all(j.has_results or j.is_failed for j in submitted)
                 if done:
