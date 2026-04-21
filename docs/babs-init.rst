@@ -113,9 +113,17 @@ a SLURM cluster:
     e.g., ``--array=1-${max_array}%10``.
 
 .. note::
-    **Shared group permissions**: On multi-user shared filesystems, you can add
-    ``--shared-group <GROUP>`` to initialize a BABS project with group-shared Git permissions, 
-    allowing project directories to be writable by all members of the group.
+    **Shared group permissions**: On multi-user shared filesystems:
+
+    #. **Set ``umask 002``** in your shell startup (for example ``~/.bashrc``). This is
+       **necessary** so new files remain group-writable for collaborators.
+    #. **Pass ``--shared-group <GROUP>``** to ``babs init`` so Git and RIA stores are
+       created with group-shared permissions.
+
+    With ``--shared-group``, BABS writes generated scripts with group read, write,
+    and execute permissions (equivalent to mode ``770``), and registers BABS repositories in Git
+    ``safe.directory`` so different users in the same Unix group can run
+    ``babs status`` and ``babs submit`` without ownership issues.
 
 
 *********

@@ -68,6 +68,25 @@ def test_babs_submit_blocks_non_cg_jobs(babs_project_subjectlevel, monkeypatch):
         babs_proj.babs_submit(count=1)
 
 
+def test_babs_status_configures_shared_group_runtime(babs_project_subjectlevel, monkeypatch):
+    """`babs status` should run shared-group runtime safeguards first."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    called = []
+    # Replace the runtime guard with a tracer so we can assert it was invoked.
+    monkeypatch.setattr(
+        babs_proj,
+        'ensure_shared_group_runtime_ready',
+        lambda: called.append(True),
+    )
+    # Stub downstream work; this test verifies guard invocation only.
+    monkeypatch.setattr(babs_proj, '_update_results_status', lambda: {})
+    monkeypatch.setattr('babs.interaction.report_job_status', lambda *_args, **_kwargs: None)
+
+    babs_proj.babs_status()
+
+    assert called == [True]
+
+
 def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):
     babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
     running_df = pd.DataFrame(

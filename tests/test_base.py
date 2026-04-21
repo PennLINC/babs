@@ -5,6 +5,7 @@ import os
 import os.path as op
 import random
 import re
+import stat
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -344,3 +345,22 @@ def test_shared_group_inits_analysis_and_rias(
             check=True,
         ).stdout.strip()
         assert shared_value in {'1', 'group', 'true'}
+
+    # Shared mode should generate scripts with explicit group mode 0o770.
+    for check_path in (
+        Path(babs_bootstrap.analysis_path) / 'code' / 'participant_job.sh',
+        Path(babs_bootstrap.analysis_path) / 'code' / 'simbids-0-0-3_zip.sh',
+        Path(babs_bootstrap.analysis_path) / 'code' / 'check_setup' / 'call_test_job.sh',
+        Path(babs_bootstrap.analysis_path) / 'code' / 'check_setup' / 'test_job.py',
+    ):
+        mode = stat.S_IMODE(check_path.stat().st_mode)
+        assert mode == 0o770
+
+    safe_dirs = subprocess.run(
+        ['git', 'config', '--global', '--get-all', 'safe.directory'],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=False,
+    ).stdout.splitlines()
+    assert str(Path(babs_bootstrap.analysis_path).resolve()) in safe_dirs
+    assert str(output_ria_dir.resolve()) in safe_dirs
