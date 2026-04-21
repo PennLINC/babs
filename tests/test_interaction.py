@@ -68,6 +68,25 @@ def test_babs_submit_blocks_non_cg_jobs(babs_project_subjectlevel, monkeypatch):
         babs_proj.babs_submit(count=1)
 
 
+def test_babs_status_configures_shared_group_runtime(babs_project_subjectlevel, monkeypatch):
+    """`babs status` should run shared-group runtime safeguards first."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    called = []
+    # Replace the runtime guard with a tracer so we can assert it was invoked.
+    monkeypatch.setattr(
+        babs_proj,
+        'ensure_shared_group_runtime_ready',
+        lambda: called.append(True),
+    )
+    # Stub downstream work; this test verifies guard invocation only.
+    monkeypatch.setattr(babs_proj, '_update_results_status', lambda: {})
+    monkeypatch.setattr('babs.interaction.report_job_status', lambda *_args, **_kwargs: None)
+
+    babs_proj.babs_status()
+
+    assert called == [True]
+
+
 def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):
     babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
     running_df = pd.DataFrame(
@@ -175,3 +194,18 @@ def test_get_currently_running_jobs_df_multiple_job_ids(babs_project_subjectleve
 
     assert set(calls) == {10, 20}
     assert set(running_df['sub_id']) == {'sub-01', 'sub-02'}
+
+
+def test_get_latest_submitted_jobs_df_missing_job_id_column(babs_project_subjectlevel):
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    # Simulate interrupted submit that wrote pre-submit schema only.
+    pd.DataFrame({'sub_id': ['sub-01'], 'task_id': [1]}).to_csv(
+        babs_proj.job_submit_path_abs, index=False
+    )
+
+    latest_df = babs_proj.get_latest_submitted_jobs_df()
+
+    assert latest_df.columns.tolist() == ['sub_id', 'job_id', 'task_id']
+    assert latest_df['sub_id'].tolist() == ['sub-01']
+    assert latest_df['task_id'].tolist() == [1]
+    assert latest_df['job_id'].isna().all()

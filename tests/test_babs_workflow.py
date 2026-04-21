@@ -3,6 +3,7 @@
 import argparse
 import os
 import os.path as op
+import subprocess
 import time
 from glob import glob
 from pathlib import Path
@@ -20,9 +21,11 @@ from conftest import (
 from babs import base as babs_base
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
 from babs.scheduler import squeue_to_pandas
+from babs.status import SchedulerState, read_job_status_csv
 from babs.utils import get_results_branches_from_clone
 
 
+@pytest.mark.timeout(450)
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
 def test_babs_init_raw_bids(
     tmp_path_factory,
@@ -106,6 +109,16 @@ def test_babs_init_raw_bids(
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
         _enter_status()
 
+    # Verify CSV: all jobs should be NOT_SUBMITTED with no results
+    babs_obj = babs_base.BABS(project_root)
+    statuses = read_job_status_csv(babs_obj.job_status_path_abs)
+    assert len(statuses) > 0, 'job_status.csv should have entries after init'
+    for job in statuses.values():
+        assert job.scheduler_state == SchedulerState.NOT_SUBMITTED
+        assert not job.has_results
+        assert not job.submitted
+        assert not job.is_failed
+
     ensure_container_image(project_root, container_name)
 
     # babs submit:
@@ -141,6 +154,14 @@ def test_babs_init_raw_bids(
     # remaining jobs (otherwise the same subject would be submitted again).
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_status_opts):
         _enter_status()
+
+    # Verify CSV: first batch should have results, rest should be DONE (failed) or NOT_SUBMITTED
+    statuses = read_job_status_csv(babs_obj.job_status_path_abs)
+    jobs_with_results = [j for j in statuses.values() if j.has_results]
+    assert len(jobs_with_results) >= 1, 'At least one job should have results after first batch'
+    for job in jobs_with_results:
+        assert not job.is_failed
+        assert job.submitted
 
     # Submit the remaining job(s):
     babs_submit_opts = argparse.Namespace(
@@ -194,6 +215,37 @@ def test_babs_init_raw_bids(
                     )
                     raise ValueError(f'{e}\nJob accounting (sacct):\n{diag}') from e
                 raise
+
+
+def test_init_forwards_shared_group(tmp_path):
+    """Test that CLI --shared-group is forwarded to bootstrap."""
+    options = argparse.Namespace(
+        project_root=tmp_path / 'my_babs_project',
+        list_sub_file=None,
+        container_ds='/tmp/container_ds',
+        container_name='simbids-0-0-3',
+        container_config='/tmp/container_config.yaml',
+        processing_level='subject',
+        queue='slurm',
+        keep_if_failed=False,
+        throttle=None,
+        shared_group='my-lab-group',
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
+        with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
+            _enter_init()
+
+    mock_bootstrap_cls.assert_called_once_with(options.project_root)
+    mock_bootstrap_cls.return_value.babs_bootstrap.assert_called_once_with(
+        options.processing_level,
+        options.queue,
+        options.container_ds,
+        options.container_name,
+        options.container_config,
+        options.list_sub_file,
+        throttle=options.throttle,
+        shared_group=options.shared_group,
+    )
 
 
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
@@ -343,8 +395,6 @@ def test_datalad_save_with_filtering(babs_project_sessionlevel_babsobject):
     )
 
     # Check that test_file1 was saved but test_file2 was filtered out
-    import subprocess
-
     result = subprocess.run(
         ['git', 'ls-files'],
         cwd=babs_project_sessionlevel_babsobject.analysis_path,
