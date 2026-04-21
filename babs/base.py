@@ -1,5 +1,6 @@
 """This is the main module."""
 
+import configparser
 import os
 import os.path as op
 import subprocess
@@ -127,6 +128,7 @@ class BABS:
         self.job_status_path_rel = 'code/job_status.csv'
         self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
         self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
+        self._shared_group_enabled_cache = None
         self._apply_config()
 
     def _apply_config(self) -> None:
@@ -177,6 +179,7 @@ class BABS:
 
         self.input_datasets = InputDatasets(self.processing_level, config_yaml['input_datasets'])
         self.input_datasets.update_abs_paths(Path(self.project_root) / 'analysis')
+        self.ensure_shared_group_git_safe_directories()
 
     def _validate_pipeline_config(self) -> None:
         """Validate the pipeline configuration if present.
@@ -323,6 +326,118 @@ class BABS:
                 proc_analysis_dataset_id.stdout.decode('utf-8').strip().lstrip("'").rstrip("'")
             )
 
+    @staticmethod
+    def source_to_local_path(source: str) -> str | None:
+        """Convert a local dataset source URL/path to a filesystem path."""
+        if not source:
+            return None
+        if source.startswith('ria+file://'):
+            local_path = source[len('ria+file://') :]
+        elif source.startswith('file://'):
+            local_path = source[len('file://') :]
+        elif '://' not in source:
+            local_path = source
+        else:
+            return None
+        return local_path.split('#', 1)[0]
+
+    def analysis_git_config_path(self) -> str | None:
+        """Return absolute path to analysis git config file."""
+        git_path = op.join(self.analysis_path, '.git')
+        # Standard repo layout: `.git/` is a directory containing `config`.
+        if op.isdir(git_path):
+            config_path = op.join(git_path, 'config')
+            return config_path if op.exists(config_path) else None
+
+        # Alternate layout (e.g., worktree/submodule): `.git` is a file with
+        # a pointer like `gitdir: /actual/path/to/gitdir`.
+        if op.isfile(git_path):
+            with open(git_path) as f:
+                first_line = f.readline().strip()
+            if first_line.startswith('gitdir:'):
+                git_dir = first_line.split(':', 1)[1].strip()
+                # The gitdir pointer can be relative to `analysis_path`.
+                if not op.isabs(git_dir):
+                    git_dir = op.normpath(op.join(self.analysis_path, git_dir))
+                config_path = op.join(git_dir, 'config')
+                return config_path if op.exists(config_path) else None
+        # No recognizable git metadata/config path found.
+        return None
+
+    def is_shared_group_project(self) -> bool:
+        """Return whether this project is configured for shared-group permissions."""
+        # During `babs init`, shared mode is known from the CLI flag directly.
+        if getattr(self, 'shared_group', None) is not None:
+            return True
+        # Reuse the computed value to avoid repeatedly reading git config.
+        if self._shared_group_enabled_cache is not None:
+            return self._shared_group_enabled_cache
+
+        # For existing projects, infer shared mode from git's core setting.
+        config_path = self.analysis_git_config_path()
+        if config_path is None:
+            self._shared_group_enabled_cache = False
+            return False
+
+        parser = configparser.ConfigParser()
+        parser.read(config_path)
+        # Git may encode shared mode as text ('group') or truthy values.
+        shared_mode = parser.get('core', 'sharedrepository', fallback='').strip().lower()
+        self._shared_group_enabled_cache = shared_mode in {'group', '1', 'true', 'yes'}
+        return self._shared_group_enabled_cache
+
+    def ensure_shared_group_git_safe_directories(self) -> None:
+        """Register project repositories in git safe.directory for shared mode."""
+        if not self.is_shared_group_project():
+            return
+
+        safe_dirs = set()
+        if op.exists(self.analysis_path):
+            safe_dirs.add(op.realpath(self.analysis_path))
+
+        for ria_root in (self.input_ria_path, self.output_ria_path):
+            ria_root_path = Path(ria_root)
+            if not ria_root_path.exists():
+                continue
+            for repo_dir in ria_root_path.glob('*/*'):
+                if repo_dir.is_dir():
+                    safe_dirs.add(str(repo_dir.resolve()))
+
+        alias_data = op.join(self.output_ria_path, 'alias', 'data')
+        if op.exists(alias_data):
+            safe_dirs.add(op.realpath(alias_data))
+
+        if hasattr(self, 'input_datasets'):
+            for in_ds in self.input_datasets:
+                local_path = self.source_to_local_path(getattr(in_ds, 'origin_url', ''))
+                if local_path is not None:
+                    safe_dirs.add(op.realpath(local_path))
+
+        proc_existing = subprocess.run(
+            ['git', 'config', '--global', '--get-all', 'safe.directory'],
+            capture_output=True,
+            text=True,
+        )
+        existing = (
+            {line.strip() for line in proc_existing.stdout.splitlines() if line.strip()}
+            if proc_existing.returncode == 0
+            else set()
+        )
+
+        for repo_path in sorted(safe_dirs):
+            if not op.exists(repo_path) or repo_path in existing:
+                continue
+            subprocess.run(
+                ['git', 'config', '--global', '--add', 'safe.directory', repo_path],
+                capture_output=True,
+                text=True,
+            )
+            existing.add(repo_path)
+
+    def ensure_shared_group_runtime_ready(self) -> None:
+        """Apply git-safe-directory safeguards for shared projects."""
+        self.ensure_shared_group_git_safe_directories()
+
     @property
     def analysis_datalad_handle(self) -> dlapi.Dataset:
         """Cached property of `analysis_datalad_handle`."""
@@ -444,12 +559,24 @@ class BABS:
         1  sub-0002       1        2
 
         """
+        expected_columns = get_latest_submitted_jobs_columns(self.processing_level)
         if not op.exists(self.job_submit_path_abs):
-            return EMPTY_JOB_STATUS_DF
-        df = pd.read_csv(self.job_submit_path_abs)
-        for column_name in get_latest_submitted_jobs_columns(self.processing_level):
+            return pd.DataFrame(columns=expected_columns)
+
+        try:
+            df = pd.read_csv(self.job_submit_path_abs)
+        except pd.errors.EmptyDataError:
+            return pd.DataFrame(columns=expected_columns)
+
+        # job_submit.csv is written once before submit (without job_id) and then
+        # rewritten after submit (with job_id). Tolerate the interim schema so
+        # follow-up commands do not crash if submit was interrupted.
+        for column_name in expected_columns:
+            if column_name not in df.columns:
+                df[column_name] = pd.NA
             df[column_name] = df[column_name].astype(status_dtypes[column_name])
-        return df
+
+        return df[expected_columns]
 
     def get_currently_running_jobs_df(self):
         """

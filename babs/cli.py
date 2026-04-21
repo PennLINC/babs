@@ -126,6 +126,14 @@ def _parse_init():
         'The value will be added to the array specification as ``%%<throttle>``. '
         'Example: ``--throttle 10`` will result in ``--array=1-${max_array}%%10``.',
     )
+    parser.add_argument(
+        '--shared_group',
+        '--shared-group',
+        type=str,
+        help='Unix group name for shared write access. If provided, '
+        '`analysis` is initialized with ``git init --shared=group`` and '
+        'RIA siblings are created with ``--shared group --group <GROUP>``.',
+    )
 
     return parser
 
@@ -157,6 +165,7 @@ def babs_init_main(
     queue: str,
     keep_if_failed: bool,
     throttle: int | None = None,
+    shared_group: str | None = None,
 ):
     """This is the core function of babs init.
 
@@ -189,6 +198,10 @@ def babs_init_main(
         simultaneously running array tasks. The value will be added to the array
         specification as `%<throttle>`. Example: `10` will result in
         `--array=1-${max_array}%10`.
+    shared_group: str or None, optional
+        Unix group name for shared write access. If provided, `analysis` is
+        initialized with `git init --shared=group` and RIA siblings are created
+        with `--shared group --group <GROUP>`.
     """
 
     from babs import BABSBootstrap
@@ -203,6 +216,7 @@ def babs_init_main(
             container_config,
             list_sub_file,
             throttle=throttle,
+            shared_group=shared_group,
         )
     except Exception as exc:
         print('\n`babs init` failed! Below is the error message:')

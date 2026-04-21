@@ -32,6 +32,8 @@ class BABSInteraction(BABS):
             whether to allow submission when there are running/pending jobs
         """
 
+        self.ensure_shared_group_runtime_ready()
+
         # Check if there are still jobs running
         currently_running_df = self.get_currently_running_jobs_df()
         running_pending_df = currently_running_df.copy()
@@ -144,5 +146,6 @@ class BABSInteraction(BABS):
         """
         Check job status and makes a nice report.
         """
+        self.ensure_shared_group_runtime_ready()
         statuses = self._update_results_status()
         report_job_status(statuses, self.analysis_path)

@@ -1,9 +1,11 @@
 """Test the check_setup functionality."""
 
+import grp
 import os
 import os.path as op
 import random
 import re
+import stat
 import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -11,9 +13,11 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 import yaml
+from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
+from babs.bootstrap import BABSBootstrap
 from babs.utils import read_yaml
 
 
@@ -254,9 +258,6 @@ def test_throttle_in_job_template(
     expected_in_template,
 ):
     """Test that throttle value is correctly included in job submission template."""
-    from conftest import get_config_simbids_path, update_yaml_for_run
-
-    from babs.bootstrap import BABSBootstrap
 
     os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
 
@@ -290,3 +291,76 @@ def test_throttle_in_job_template(
         assert f'%{throttle_value}' in cmd_template
     else:
         assert not re.search(r'%\d+', cmd_template)
+
+
+def test_shared_group_inits_analysis_and_rias(
+    tmp_path_factory,
+    templateflow_home,
+    simbids_container_ds,
+    bids_data_singlesession,
+):
+    """Test --shared-group behavior for analysis and RIA creation."""
+
+    os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
+    shared_group = grp.getgrgid(os.getgid()).gr_name
+
+    project_base = tmp_path_factory.mktemp('project')
+    project_root = project_base / 'my_babs_project_shared_group'
+    container_config = update_yaml_for_run(
+        project_base,
+        get_config_simbids_path().name,
+        {'BIDS': bids_data_singlesession},
+    )
+
+    babs_bootstrap = BABSBootstrap(project_root=project_root)
+    babs_bootstrap.babs_bootstrap(
+        processing_level='subject',
+        queue='slurm',
+        container_ds=simbids_container_ds,
+        container_name='simbids-0-0-3',
+        container_config=container_config,
+        initial_inclusion_df=None,
+        shared_group=shared_group,
+    )
+
+    analysis_shared = subprocess.run(
+        ['git', 'config', '--get', 'core.sharedrepository'],
+        cwd=babs_bootstrap.analysis_path,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert analysis_shared in {'1', 'group', 'true'}
+
+    dataset_id = babs_bootstrap.analysis_dataset_id
+    assert dataset_id is not None
+    ria_relpath = Path(dataset_id[:3]) / dataset_id[3:]
+    output_ria_dir = Path(babs_bootstrap.output_ria_path) / ria_relpath
+    input_ria_dir = Path(babs_bootstrap.input_ria_path) / ria_relpath
+    for ria_dir in (output_ria_dir, input_ria_dir):
+        shared_value = subprocess.run(
+            ['git', '--git-dir', str(ria_dir), 'config', '--get', 'core.sharedrepository'],
+            stdout=subprocess.PIPE,
+            text=True,
+            check=True,
+        ).stdout.strip()
+        assert shared_value in {'1', 'group', 'true'}
+
+    # Shared mode should generate scripts with explicit group mode 0o770.
+    for check_path in (
+        Path(babs_bootstrap.analysis_path) / 'code' / 'participant_job.sh',
+        Path(babs_bootstrap.analysis_path) / 'code' / 'simbids-0-0-3_zip.sh',
+        Path(babs_bootstrap.analysis_path) / 'code' / 'check_setup' / 'call_test_job.sh',
+        Path(babs_bootstrap.analysis_path) / 'code' / 'check_setup' / 'test_job.py',
+    ):
+        mode = stat.S_IMODE(check_path.stat().st_mode)
+        assert mode == 0o770
+
+    safe_dirs = subprocess.run(
+        ['git', 'config', '--global', '--get-all', 'safe.directory'],
+        stdout=subprocess.PIPE,
+        text=True,
+        check=False,
+    ).stdout.splitlines()
+    assert str(Path(babs_bootstrap.analysis_path).resolve()) in safe_dirs
+    assert str(output_ria_dir.resolve()) in safe_dirs
