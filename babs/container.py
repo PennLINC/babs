@@ -157,6 +157,7 @@ class Container:
         processing_level,
         system,
         project_root=None,
+        analysis_dir='analysis',
         shared_group_mode=False,
     ):
         """Generate bash script for participant job.
@@ -188,6 +189,7 @@ class Container:
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
             project_root=project_root,
+            analysis_dir=analysis_dir,
         )
 
         with open(bash_path, 'w') as f:

@@ -114,7 +114,7 @@ CONTAINER_IMAGE_PATHS=(
 )
 
 for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
-  CONTAINER_SHARED="${PROJECT_ROOT}/analysis/${CONTAINER_JOB}"
+  CONTAINER_SHARED="${PROJECT_ROOT}/{{ analysis_dir }}/${CONTAINER_JOB}"
 
   if [ ! -e "${CONTAINER_SHARED}" ] && [ ! -L "${CONTAINER_SHARED}" ]; then
     echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2

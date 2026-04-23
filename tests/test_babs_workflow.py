@@ -235,7 +235,10 @@ def test_init_forwards_shared_group(tmp_path):
         with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
             _enter_init()
 
-    mock_bootstrap_cls.assert_called_once_with(options.project_root)
+    mock_bootstrap_cls.assert_called_once_with(
+        options.project_root,
+        container_config=options.container_config,
+    )
     mock_bootstrap_cls.return_value.babs_bootstrap.assert_called_once_with(
         options.processing_level,
         options.queue,
