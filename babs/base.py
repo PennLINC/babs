@@ -198,7 +198,6 @@ class BABS:
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
         self.ensure_shared_group_git_safe_directories()
 
-
     def _validate_pipeline_config(self) -> None:
         """Validate the pipeline configuration if present.
 
