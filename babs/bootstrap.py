@@ -41,6 +41,7 @@ class BABSBootstrap(BABS):
         container_config,
         initial_inclusion_df=None,
         throttle=None,
+        shared_group=None,
     ):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
@@ -66,6 +67,10 @@ class BABSBootstrap(BABS):
             simultaneously running array tasks. The value will be added to the array
             specification as `%<throttle>`. Example: `10` will result in
             `--array=1-${max_array}%10`.
+        shared_group: str or None, optional
+            Unix group name for shared write access. If provided, `analysis` is
+            initialized with `git init --shared=group` and RIA siblings are created
+            with `--shared group --group <GROUP>`.
         """
         if op.exists(self.project_root):
             raise FileExistsError(
@@ -93,6 +98,7 @@ class BABSBootstrap(BABS):
 
         # Store throttle value for job submission template
         self.throttle = throttle
+        self.shared_group = shared_group
 
         # validate `processing_level`:
         self.processing_level = validate_processing_level(processing_level)
@@ -115,9 +121,10 @@ class BABSBootstrap(BABS):
         # Create analysis folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
         print(f'\nCreating `{self.analysis_path}` folder (also a datalad dataset)...')
-        self._analysis_datalad_handle = dlapi.create(
-            self.analysis_path, cfg_proc='yoda', annex=True
-        )
+        create_kwargs = {'cfg_proc': 'yoda', 'annex': True}
+        if self.shared_group is not None:
+            create_kwargs['initopts'] = ['--shared=group']
+        self._analysis_datalad_handle = dlapi.create(self.analysis_path, **create_kwargs)
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
 
         # Persist original config so other BABS commands can find it:
@@ -189,8 +196,14 @@ class BABSBootstrap(BABS):
         )
         # Create output RIA sibling: -----------------------------
         print('\nCreating output and input RIA...')
+        sibling_kwargs = {}
+        if self.shared_group is not None:
+            sibling_kwargs = {'shared': 'group', 'group': self.shared_group}
         self.analysis_datalad_handle.create_sibling_ria(
-            name='output', url=self.output_ria_url, new_store_ok=True
+            name='output',
+            url=self.output_ria_url,
+            new_store_ok=True,
+            **sibling_kwargs,
         )
 
         self.wtf_key_info()
@@ -201,6 +214,7 @@ class BABSBootstrap(BABS):
             url=self.input_ria_url,
             storage_sibling=False,  # False is `off` in CLI of datalad
             new_store_ok=True,
+            **sibling_kwargs,
         )
 
         # Register the input dataset(s): -----------------------------
@@ -401,6 +415,7 @@ class BABSBootstrap(BABS):
 
         # Initialize the job status csv file:
         self._create_initial_job_status_csv()
+        self.ensure_shared_group_git_safe_directories()
 
         print('\n')
         print(
@@ -421,7 +436,13 @@ class BABSBootstrap(BABS):
         print('\nGenerating a bash script for running container and zipping the outputs...')
         print('This bash script will be named as `' + container_name + '_zip.sh`')
         bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
-        container.generate_bash_run_bidsapp(bash_path, self.input_datasets, self.processing_level)
+        shared_group_mode = self.shared_group is not None
+        container.generate_bash_run_bidsapp(
+            bash_path,
+            self.input_datasets,
+            self.processing_level,
+            shared_group_mode=shared_group_mode,
+        )
         self.datalad_save(
             path='code/' + container_name + '_zip.sh',
             message='Generate script of running container',
@@ -441,11 +462,16 @@ class BABSBootstrap(BABS):
             system,
             project_root=op.dirname(self.analysis_path),
             analysis_dir=op.basename(self.analysis_path),
+            shared_group_mode=shared_group_mode,
         )
 
         # also, generate a bash script of a test job used by `babs check-setup`:
         path_check_setup = op.join(self.analysis_path, 'code/check_setup')
-        container.generate_bash_test_job(path_check_setup, system)
+        container.generate_bash_test_job(
+            path_check_setup,
+            system,
+            shared_group_mode=shared_group_mode,
+        )
 
     def _bootstrap_pipeline_scripts(self, container_ds, container_config, system):
         """Bootstrap scripts for pipeline configuration."""
@@ -476,7 +502,7 @@ class BABSBootstrap(BABS):
 
         with open(pipeline_script_path, 'w') as f:
             f.write(pipeline_script_content)
-        os.chmod(pipeline_script_path, 0o700)
+        os.chmod(pipeline_script_path, 0o770 if self.shared_group is not None else 0o700)
 
         self.datalad_save(
             path='code/pipeline_zip.sh',
@@ -516,7 +542,7 @@ class BABSBootstrap(BABS):
 
         with open(bash_path, 'w') as f:
             f.write(participant_job_content)
-        os.chmod(bash_path, 0o700)
+        os.chmod(bash_path, 0o770 if self.shared_group is not None else 0o700)
 
         # also, generate bash scripts of test jobs used by `babs check-setup`:
         # Generate test jobs for all containers in the pipeline
@@ -531,7 +557,11 @@ class BABSBootstrap(BABS):
             # Create separate test job directories for each container
             step_check_setup = op.join(path_check_setup, f'step_{i + 1}_{step_container_name}')
             os.makedirs(step_check_setup, exist_ok=True)
-            step_container.generate_bash_test_job(step_check_setup, system)
+            step_container.generate_bash_test_job(
+                step_check_setup,
+                system,
+                shared_group_mode=(self.shared_group is not None),
+            )
 
     def _init_import_files(self, file_list):
         """

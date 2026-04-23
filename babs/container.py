@@ -101,7 +101,9 @@ class Container:
             + "'."
         )
 
-    def generate_bash_run_bidsapp(self, bash_path, input_ds, processing_level):
+    def generate_bash_run_bidsapp(
+        self, bash_path, input_ds, processing_level, shared_group_mode=False
+    ):
         """
         This is to generate a bash script that runs the BIDS App singularity image.
 
@@ -113,6 +115,8 @@ class Container:
             input dataset(s) information
         processing_level : {'subject', 'session'}
             whether processing is done on a subject-wise or session-wise basis
+        shared_group_mode : bool, optional
+            If True, align generated script permissions with shared-group mode.
         """
 
         # Check if the folder exist; if not, create it:
@@ -140,7 +144,8 @@ class Container:
 
         with open(bash_path, 'w') as f:
             f.write(script_content)
-        os.chmod(bash_path, 0o700)  # rwx------ (owner only)
+        # Shared-group mode uses explicit group-executable/writable scripts.
+        os.chmod(bash_path, 0o770 if shared_group_mode else 0o700)
 
         print('Below is the generated BIDS App run script:')
         print(script_content)
@@ -153,6 +158,7 @@ class Container:
         system,
         project_root=None,
         analysis_dir='analysis',
+        shared_group_mode=False,
     ):
         """Generate bash script for participant job.
 
@@ -169,6 +175,8 @@ class Container:
         project_root : str, optional
             Absolute path to the BABS project root (parent of `analysis/`).
             Shown in the script error message when PROJECT_ROOT is unset.
+        shared_group_mode : bool, optional
+            If True, align generated script permissions with shared-group mode.
         """
 
         script_content = generate_submit_script(
@@ -186,9 +194,10 @@ class Container:
 
         with open(bash_path, 'w') as f:
             f.write(script_content)
-        os.chmod(bash_path, 0o700)  # rwx------ (owner only)
+        # Shared-group mode uses explicit group-executable/writable scripts.
+        os.chmod(bash_path, 0o770 if shared_group_mode else 0o700)
 
-    def generate_bash_test_job(self, folder_check_setup, system):
+    def generate_bash_test_job(self, folder_check_setup, system, shared_group_mode=False):
         """Generate scripts for test job.
 
         Parameters
@@ -197,6 +206,8 @@ class Container:
             Path to the check_setup folder
         system : System
             System object containing system-specific information
+        shared_group_mode : bool, optional
+            If True, align generated script permissions with shared-group mode.
         """
 
         fn_call_test_job = op.join(folder_check_setup, 'call_test_job.sh')
@@ -213,13 +224,13 @@ class Container:
 
         with open(fn_call_test_job, 'w') as f:
             f.write(script_content)
-        os.chmod(fn_call_test_job, 0o700)
+        os.chmod(fn_call_test_job, 0o770 if shared_group_mode else 0o700)
 
         # Copy the template file into the check_setup folder
         with resources.files('babs').joinpath('template_test_job.py').open('rb') as src:
             with open(fn_test_job, 'wb') as dst:
                 dst.write(src.read())
-        os.chmod(fn_test_job, 0o700)
+        os.chmod(fn_test_job, 0o770 if shared_group_mode else 0o700)
 
     def generate_job_submit_template(self, yaml_path, babs, system, test=False):
         """
