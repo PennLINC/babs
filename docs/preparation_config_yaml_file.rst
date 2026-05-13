@@ -29,6 +29,7 @@ Sections in the configuration YAML file
 * **all_results_in_one_zip**: whether to zip all results in one zip file;
 * **zip_foldernames**: the results foldername(s) to be zipped;
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
+* **common_paths**: dataset-root paths to include in the sparse-checkout for every job, in addition to the per-subject path (e.g., a shared ``phenotype/participants.tsv`` file);
 * **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
 Among these sections, these sections are optional:
@@ -40,6 +41,7 @@ Among these sections, these sections are optional:
   * You must include this section if there are more one input dataset.
 
 * **required_files**
+* **common_paths**
 * **alert_log_messages**
 * **imported_files**
 
@@ -103,7 +105,7 @@ Example section **input_datasets**
             unzipped_path_containing_subject_dirs: "freesurfer"
             path_in_babs: inputs/data/freesurfer
 
-This example shows two input datasets: 
+This example shows two input datasets:
 one is a raw BIDS dataset, and the other is a zipped FreeSurfer results from another BABS project.
 Previously, the commandline to use something like this would have required::
 
@@ -772,5 +774,65 @@ Notes:
       It is also a sub-folder of the space specified in this section.
 
 .. _required_files:
+
+Section ``required_files``
+==========================
+
+.. note::
+
+    ``required_files`` is currently not fully implemented.
+    The field is accepted in the YAML file but filtering is not yet applied.
+
+.. _common-paths:
+
+Section ``common_paths``
+=========================
+
+The ``common_paths`` field lists paths (relative to an input dataset's root)
+that every job should include in the sparse-checkout and retrieve with
+``datalad get``, in addition to the per-subject (and per-session) path.
+This is useful when BIDS Apps or processing scripts need dataset-level files
+that live outside any individual subject directory.
+
+By default (when the field is omitted), BABS automatically includes
+``dataset_description.json`` for every non-zipped input dataset.
+Once you supply ``common_paths`` explicitly, the default is **replaced** —
+so if you still want ``dataset_description.json`` you must list it yourself.
+
+``common_paths`` is optional.  It is nested under the relevant input dataset
+entry inside the ``input_datasets`` section.
+
+Example — keep the default ``dataset_description.json`` **and** add a shared
+phenotype file:
+
+..  code-block:: yaml
+
+    input_datasets:
+        BIDS:
+            is_zipped: false
+            origin_url: "/path/to/BIDS"
+            path_in_babs: inputs/data/BIDS
+            common_paths:
+                - "phenotype/participants.tsv"
+                - "dataset_description.json"
+
+Example — disable all common-path retrieval (pass an empty list):
+
+..  code-block:: yaml
+
+    input_datasets:
+        BIDS:
+            is_zipped: false
+            origin_url: "/path/to/BIDS"
+            path_in_babs: inputs/data/BIDS
+            common_paths: []
+
+Notes:
+
+* Paths are relative to the input dataset root (e.g., ``"phenotype/participants.tsv"``
+  not ``"inputs/data/BIDS/phenotype/participants.tsv"``).
+* Each path is retrieved individually with ``datalad get -n`` so you can track
+  exactly which files are fetched in the job log.
+* This field has no effect on zipped input datasets.
 
 
