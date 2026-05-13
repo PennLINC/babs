@@ -87,7 +87,9 @@ echo "# Pull down the input session but don't retrieve data contents:"
 {% if not input_dataset['is_zipped'] %}
 datalad get -n "{{ input_dataset['path_in_babs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"
 
-datalad get -n "{{ input_dataset['path_in_babs'] }}/dataset_description.json"
+{% for common_path in input_dataset['common_paths'] %}
+datalad get -n "{{ input_dataset['path_in_babs'] }}/{{ common_path }}"
+{% endfor %}
 {% else %}
 datalad get -n "{{ input_dataset['path_in_babs'] }}"
 {% endif %}
@@ -99,7 +101,7 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 if [ -d "{{ input_dataset['path_in_babs'] }}/.git" ]; then
   ( cd "{{ input_dataset['path_in_babs'] }}" && \
     ( git sparse-checkout init --no-cone 2>/dev/null && \
-      { echo "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"; echo 'dataset_description.json'; } | git sparse-checkout set --stdin 2>/dev/null ) ) || true
+      { echo "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"; {% for common_path in input_dataset['common_paths'] %}echo '{{ common_path }}'; {% endfor %}} | git sparse-checkout set --stdin 2>/dev/null ) ) || true
 fi
 {% endif %}
 {% endfor %}
@@ -137,7 +139,8 @@ datalad run \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
 	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
-	-i "{{ input_dataset['path_in_babs'] }}/dataset_description.json" \
+{% for common_path in input_dataset['common_paths'] %}	-i "{{ input_dataset['path_in_babs'] }}/{{ common_path }}" \
+{% endfor %}
 {% else %}
 	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
