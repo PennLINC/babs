@@ -88,6 +88,7 @@ echo "# Pull down the input session but don't retrieve data contents:"
 datalad get -n "{{ input_dataset['path_in_babs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"
 
 {% for common_path in input_dataset['common_paths'] %}
+echo "# Getting common path: {{ input_dataset['path_in_babs'] }}/{{ common_path }}"
 datalad get -n "{{ input_dataset['path_in_babs'] }}/{{ common_path }}"
 {% endfor %}
 {% else %}
