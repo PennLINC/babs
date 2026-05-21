@@ -14,6 +14,7 @@ input_datasets_prep = [
         'path_in_babs': 'inputs/data/BIDS',
         'unzipped_path_containing_subject_dirs': 'inputs/data/BIDS',
         'is_zipped': False,
+        'common_paths': ['dataset_description.json'],
     },
 ]
 
@@ -29,6 +30,7 @@ input_datasets_fmriprep_ingressed_anat = [
         'path_in_babs': 'inputs/data/BIDS',
         'unzipped_path_containing_subject_dirs': 'inputs/data/BIDS',
         'is_zipped': False,
+        'common_paths': [],
     },
 ]
 
