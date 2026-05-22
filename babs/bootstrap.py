@@ -154,12 +154,8 @@ class BABSBootstrap(BABS):
         # Create `babs_proj_config.yaml` file: ----------------------
         print('Save BABS project configurations in a YAML file ...')
         print("Path to this yaml file will be: 'analysis/code/babs_proj_config.yaml'")
-        if self.pipeline is not None:
-            container_images = [
-                self.container_image_path(step['container_name']) for step in self.pipeline
-            ]
-        else:
-            container_images = [self.container_image_path(container_name)]
+        self.container = {'name': container_name}
+        container_images = self.get_container_image_paths({})
 
         env = Environment(
             loader=PackageLoader('babs', 'templates'),
