@@ -9,7 +9,6 @@ from pathlib import Path
 import datalad.api as dl
 import pytest
 from conftest import (
-    ensure_container_image,
     gather_slurm_job_diagnostics,
     get_config_simbids_path,
     update_yaml_for_run,
@@ -166,8 +165,6 @@ def test_babs_update_input_data(
     babs_proj = BABSUpdate(project_root=project_root)
     original_inclusion_df = babs_proj.inclusion_dataframe.copy()
     assert not original_inclusion_df.empty
-
-    ensure_container_image(project_root, 'simbids-0-0-3')
 
     # Submit a single job with the initial input data
     babs_submit_main(project_root=project_root, select=None, inclusion_file=None, count=1)

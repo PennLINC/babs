@@ -1,8 +1,10 @@
 """This is the main module."""
 
+import os.path as op
 import sys
 import time
 
+import datalad.api as dlapi
 import numpy as np
 
 from babs.base import BABS
@@ -17,6 +19,46 @@ from babs.utils import (
 
 class BABSInteraction(BABS):
     """Implement interactions with a BABS project - submitting jobs and checking status."""
+
+    def ensure_container_images_available(self) -> None:
+        """Retrieve configured container image contents before submitting jobs."""
+        containers_path = op.join(self.analysis_path, 'containers')
+        if not op.exists(op.join(containers_path, '.datalad', 'config')):
+            raise FileNotFoundError(
+                'There is no containers DataLad dataset in folder: ' + containers_path
+            )
+
+        print('\nEnsuring container image(s) are available locally...')
+        for image_path in self.container_images:
+            if op.isabs(image_path):
+                image_path_abs = image_path
+            else:
+                image_path_abs = op.join(self.analysis_path, image_path)
+
+            if op.exists(image_path_abs):
+                print(f'Container image already available: {image_path}')
+                continue
+
+            print(f'Running `datalad get {image_path}`...')
+            statuses = dlapi.get(path=image_path_abs, dataset=containers_path)
+            if isinstance(statuses, dict):
+                statuses = [statuses]
+            elif statuses is None:
+                statuses = []
+
+            failed_statuses = [
+                status for status in statuses if status.get('status') not in {'ok', 'notneeded'}
+            ]
+            if failed_statuses:
+                raise RuntimeError(
+                    'Unable to retrieve container image before job submission: '
+                    f'{image_path}\nDataLad status: {failed_statuses}'
+                )
+
+            if not op.exists(image_path_abs):
+                raise FileNotFoundError(
+                    'Container image is still not available after `datalad get`: ' + image_path_abs
+                )
 
     def babs_submit(self, count=None, submit_df=None, skip_failed=False, skip_running_jobs=False):
         """
@@ -112,6 +154,8 @@ class BABSInteraction(BABS):
         if count is not None:
             print(f'Submitting the first {count} jobs')
             df_needs_submit = df_needs_submit.head(min(count, df_needs_submit.shape[0]))
+
+        self.ensure_container_images_available()
 
         # We know task_id ahead of time, so we can add it to the dataframe
         df_needs_submit['task_id'] = np.arange(1, df_needs_submit.shape[0] + 1)
