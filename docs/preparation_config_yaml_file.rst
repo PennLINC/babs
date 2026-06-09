@@ -162,6 +162,62 @@ It also means that the ``recon_spec.yaml`` file will be tracked by datalad.
 **Important**: If you are importing a large file this mechanism will not work.
 
 
+Section ``hooks``
+=================
+
+This section is optional. It lets you splice your own shell commands into each
+participant job at two **splice points** that bracket the BIDS App run:
+
+- ``pre_run`` — runs just **before** the ``datalad run`` that executes the BIDS App.
+- ``post_run`` — runs just **after** that ``datalad run`` completes (its outputs
+  already committed), but **before** the results are pushed to the output RIA.
+
+Each splice point is a list; entries run in the order you list them.
+
+Example section **hooks**
+-------------------------
+
+..  code-block:: yaml
+
+    hooks:
+      pre_run:
+        - echo "starting ${subid}"                 # a raw shell snippet
+        - script: "/path/to/validate-inputs.sh"    # a script copied into the project
+      post_run:
+        - script: "/path/to/validate-outputs.sh"
+
+Two entry forms are supported:
+
+- **snippet** — a bare string. It is spliced **verbatim** into the job script
+  and runs *inline*. You own its quoting and safety (this is shell injection by
+  the config author, by design).
+- **script** — ``{script: <path>}``. ``<path>`` is an **absolute** local path
+  (copied into the project the same way as ``imported_files``). BABS copies it to
+  ``code/hooks/<basename>.sh`` at ``babs init`` and the splice runs
+  ``bash ./code/hooks/<basename>.sh`` — a **separate process**.
+
+The runtime contract
+--------------------
+
+Both splice points run with the working directory set to the cloned dataset and
+with these variables **exported** (so a separate-process ``script`` hook can read
+them): ``subid``; ``sesid`` (session-level processing only); ``BRANCH``;
+``PROJECT_ROOT``; ``JOB_SCRATCH_DIR``. Each splice runs in a **subshell** under
+``set -e``: a hook's ``cd`` or variable changes do **not** leak into the rest of
+the job, and a non-zero exit **aborts the job**.
+
+Persisting hook output
+----------------------
+
+Hooks splice **outside** the ``datalad run`` wrapper, so their filesystem effects
+are **not** captured by it. A ``post_run`` hook that merely writes files into the
+dataset leaves **uncommitted** changes — ``datalad push`` ships committed content,
+so those files are **not pushed**. The common, safe use is **validation that fails
+the job**: a ``post_run`` validator that exits non-zero aborts the job *before*
+the push, so bad results never leave the node. If a hook needs to **persist**
+output, it must run its **own** ``datalad run``/``datalad save`` to commit it.
+
+
 Section ``bids_app_args``
 =========================
 Currently, BABS does not support using configurations of running a BIDS App
