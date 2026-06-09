@@ -17,10 +17,12 @@ Entry forms supported in this version:
 - **(a) raw snippet** -- a bare string, spliced verbatim (``Verbatim``).
 - **(b) user script** -- ``{script: <path>}``; copied into
   ``code/hooks/<basename>.sh`` and invoked as ``bash ./code/hooks/<basename>.sh``
-  (``CopyIn``). The destination name is the source basename. The *same* script
-  may appear at multiple splice points (e.g. a validator at ``pre_app`` and
-  ``post_run``) -- it is copied once and referenced from each. Two *different*
-  sources sharing a basename collide (no name override yet -- add one if needed).
+  (``CopyIn``). ``<path>`` is an absolute local path used verbatim -- the same
+  convention as ``imported_files.original_path``, which this reuses. The
+  destination name is the source basename. The *same* script may appear at
+  multiple splice points (e.g. a validator at ``pre_app`` and ``post_run``) --
+  it is copied once and referenced from each. Two *different* sources sharing a
+  basename collide (no name override yet -- add one if needed).
 
 `Render` (rendering a shipped ``*.sh.jinja2`` through the shared singularity
 partial) is defined here as the forward-compatible seam, but `resolve_hooks`
@@ -95,16 +97,13 @@ def _default_name(source):
     return base[:-3] if base.endswith('.sh') else base
 
 
-def _resolve_entry(entry, source_base):
+def _resolve_entry(entry):
     """Classify a single config entry into a materialization mode.
 
     Parameters
     ----------
     entry : str or dict
         One item from a ``pre_app:`` / ``post_run:`` list.
-    source_base : str
-        Directory that relative ``script:`` paths resolve against (the
-        ``babs init`` invocation cwd). Absolute paths pass through unchanged.
 
     Returns
     -------
@@ -126,8 +125,10 @@ def _resolve_entry(entry, source_base):
         # override yet, so two sources with the same basename collide (see below).
         name = _default_name(source)
         _validate_name(name, entry)
-        original_path = source if op.isabs(source) else op.join(source_base, source)
-        return CopyIn(original_path=original_path, name=name)
+        # `source` is used verbatim as the copy source -- same convention as
+        # `imported_files.original_path` (an absolute local path; resolved by
+        # `_init_import_files`, which raises FileNotFoundError on a bad path).
+        return CopyIn(original_path=source, name=name)
 
     raise ValueError(
         f'Unsupported hook entry: {entry!r}. This version supports a raw shell '
@@ -144,7 +145,7 @@ def _command_for(mode):
     raise TypeError(f'Unknown hook mode: {mode!r}')
 
 
-def resolve_hooks(hooks_config, *, source_base):
+def resolve_hooks(hooks_config):
     """Resolve a ``hooks:`` config block into spliceable commands + materializations.
 
     Parameters
@@ -152,9 +153,6 @@ def resolve_hooks(hooks_config, *, source_base):
     hooks_config : dict or None
         The top-level ``hooks:`` block (``{'pre_app': [...], 'post_run': [...]}``),
         or ``None`` when no hooks are configured.
-    source_base : str
-        Directory that relative ``script:`` paths resolve against (the
-        ``babs init`` invocation cwd).
 
     Returns
     -------
@@ -194,7 +192,7 @@ def resolve_hooks(hooks_config, *, source_base):
 
     for point in SPLICE_POINTS:
         for entry in hooks_config.get(point) or []:
-            mode = _resolve_entry(entry, source_base=source_base)
+            mode = _resolve_entry(entry)
             resolved[point].append(_command_for(mode))
             if isinstance(mode, (CopyIn, Render)):
                 # Collision is about the materialized file, not the name alone:
