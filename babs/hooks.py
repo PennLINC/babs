@@ -1,7 +1,7 @@
 """Resolve a `hooks:` config block into spliceable commands + materializations.
 
 A BABS container config may carry a top-level ``hooks:`` block with
-``pre_app:`` / ``post_run:`` lists. Each entry names a snippet of work to run
+``pre_run:`` / ``post_run:`` lists. Each entry names a snippet of work to run
 at the corresponding splice point in ``participant_job.sh`` (added in the
 splice-points step). This module turns those config entries into:
 
@@ -20,7 +20,7 @@ Entry forms supported in this version:
   (``CopyIn``). ``<path>`` is an absolute local path used verbatim -- the same
   convention as ``imported_files.original_path``, which this reuses. The
   destination name is the source basename. The *same* script may appear at
-  multiple splice points (e.g. a validator at ``pre_app`` and ``post_run``) --
+  multiple splice points (e.g. a validator at ``pre_run`` and ``post_run``) --
   it is copied once and referenced from each. Two *different* sources sharing a
   basename collide (no name override yet -- add one if needed).
 
@@ -38,7 +38,7 @@ from dataclasses import dataclass, field
 HOOKS_SUBDIR = op.join('code', 'hooks')
 
 # The splice points a hooks config may target, in run order.
-SPLICE_POINTS = ('pre_app', 'post_run')
+SPLICE_POINTS = ('pre_run', 'post_run')
 
 
 @dataclass(frozen=True)
@@ -104,7 +104,7 @@ def _resolve_entry(entry):
     Parameters
     ----------
     entry : str or dict
-        One item from a ``pre_app:`` / ``post_run:`` list.
+        One item from a ``pre_run:`` / ``post_run:`` list.
 
     Returns
     -------
@@ -152,13 +152,13 @@ def resolve_hooks(hooks_config):
     Parameters
     ----------
     hooks_config : dict or None
-        The top-level ``hooks:`` block (``{'pre_app': [...], 'post_run': [...]}``),
+        The top-level ``hooks:`` block (``{'pre_run': [...], 'post_run': [...]}``),
         or ``None`` when no hooks are configured.
 
     Returns
     -------
-    pre_app : list of str
-        Command strings to splice at the ``pre_app`` point, in order.
+    pre_run : list of str
+        Command strings to splice at the ``pre_run`` point, in order.
     post_run : list of str
         Command strings to splice at the ``post_run`` point, in order.
     materializations : list of (CopyIn or Render)
@@ -215,4 +215,4 @@ def resolve_hooks(hooks_config):
                 seen[mode.name] = (mode, point)
                 materializations.append(mode)
 
-    return resolved['pre_app'], resolved['post_run'], materializations
+    return resolved['pre_run'], resolved['post_run'], materializations

@@ -30,7 +30,7 @@ def generate_submit_script(
     container_images=None,
     datalad_run_message=None,
     project_root=None,
-    hook_pre_app=None,
+    hook_pre_run=None,
     hook_post_run=None,
 ):
     """
@@ -64,7 +64,7 @@ def generate_submit_script(
         Absolute path to the BABS project root (parent of `analysis/`).
         Passed to the template; used in the error message when PROJECT_ROOT
         is unset. If None, the placeholder ``{project_root}`` is shown.
-    hook_pre_app : list of str, optional
+    hook_pre_run : list of str, optional
         Shell snippets spliced into a subshell just before the ``datalad run``
         wrapper. None (or empty) renders nothing. Snippets are emitted in order.
     hook_post_run : list of str, optional
@@ -137,7 +137,7 @@ def generate_submit_script(
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
         project_root=project_root,
-        hook_pre_app=hook_pre_app,
+        hook_pre_run=hook_pre_run,
         hook_post_run=hook_post_run,
     )
 

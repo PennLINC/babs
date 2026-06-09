@@ -73,7 +73,7 @@ def test_babs_init_raw_bids(
     # (`script:`, a separate process), so it only sees the contract vars because
     # the splice subshell exports them; `${var:?}` fails the job under `set -e`
     # if any guaranteed var is unset -- so this e2e goes red if a refactor ever
-    # breaks the splice contract. Reusing one source at pre_app + post_run also
+    # breaks the splice contract. Reusing one source at pre_run + post_run also
     # exercises copy-once dedup. (sesid is session-only, so it's not guarded
     # here; its export is covered by the render-level test.)
     contract_guard = project_base / 'contract_guard.sh'
@@ -86,7 +86,7 @@ def test_babs_init_raw_bids(
     with open(container_config) as f:
         cfg = yaml.safe_load(f)
     cfg['hooks'] = {
-        'pre_app': [{'script': str(contract_guard)}],
+        'pre_run': [{'script': str(contract_guard)}],
         'post_run': [{'script': str(contract_guard)}],
     }
     with open(container_config, 'w') as f:
@@ -261,7 +261,7 @@ def test_babs_init_single_app_hooks(
     test_babs_init_raw_bids: that guard can only fail the job if it is actually
     in place, so a silently dropped hook would pass. Here we assert positively --
     no job execution needed -- that a configured hook is copied into code/hooks/
-    and referenced from participant_job.sh at both pre_app and post_run.
+    and referenced from participant_job.sh at both pre_run and post_run.
     """
     project_base = tmp_path_factory.mktemp('hooks_project')
     project_root = project_base / 'my_babs_project'
@@ -276,7 +276,7 @@ def test_babs_init_single_app_hooks(
     with open(container_config) as f:
         cfg = yaml.safe_load(f)
     cfg['hooks'] = {
-        'pre_app': [{'script': str(hook)}],
+        'pre_run': [{'script': str(hook)}],
         'post_run': [{'script': str(hook)}],
     }
     with open(container_config, 'w') as f:
@@ -300,7 +300,7 @@ def test_babs_init_single_app_hooks(
     hook_in_ds = analysis_code / 'hooks' / 'echo_hook.sh'
     assert hook_in_ds.exists()
     assert hook_in_ds.read_text() == 'echo hook-ran\n'
-    # Spliced at both pre_app and post_run:
+    # Spliced at both pre_run and post_run:
     participant_job = (analysis_code / 'participant_job.sh').read_text()
     assert participant_job.count('bash ./code/hooks/echo_hook.sh') == 2
 

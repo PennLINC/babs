@@ -179,7 +179,7 @@ class Container:
             If True, align generated script permissions with shared-group mode.
         """
 
-        hook_pre_app, hook_post_run, _ = resolve_hooks(self.config.get('hooks'))
+        hook_pre_run, hook_post_run, _ = resolve_hooks(self.config.get('hooks'))
         script_content = generate_submit_script(
             queue_system=system.type,
             cluster_resources_config=self.config['cluster_resources'],
@@ -190,7 +190,7 @@ class Container:
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
             project_root=project_root,
-            hook_pre_app=hook_pre_app,
+            hook_pre_run=hook_pre_run,
             hook_post_run=hook_post_run,
         )
 

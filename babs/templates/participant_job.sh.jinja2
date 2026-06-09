@@ -130,14 +130,14 @@ for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
     exit 1
   fi
 done
-{% if hook_pre_app %}
-# pre_app hooks: spliced before the datalad run wrapper; subshell exports the contract.
+{% if hook_pre_run %}
+# pre_run hooks: spliced before the datalad run wrapper; subshell exports the contract.
 (
   export subid BRANCH PROJECT_ROOT JOB_SCRATCH_DIR
 {% if processing_level == 'session' %}
   export sesid
 {% endif %}
-{% for snippet in hook_pre_app %}
+{% for snippet in hook_pre_run %}
 {{ snippet }}
 {% endfor %}
 )
