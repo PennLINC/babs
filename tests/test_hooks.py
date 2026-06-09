@@ -68,7 +68,15 @@ def test_different_sources_same_name_collide():
         'pre_run': [{'script': '/a/validate.sh'}],
         'post_run': [{'script': '/b/validate.sh'}],
     }
-    with pytest.raises(ValueError, match='Duplicate hook name'):
+    with pytest.raises(ValueError, match=r"Duplicate hook name 'validate' \('pre_run' and 'post_run'\)"):
+        resolve_hooks(cfg)
+
+
+def test_same_point_same_name_collide():
+    # Two different scripts with the same basename in one splice point: the
+    # message names the single point, not "'pre_run' and 'pre_run'".
+    cfg = {'pre_run': [{'script': '/a/validate.sh'}, {'script': '/b/validate.sh'}]}
+    with pytest.raises(ValueError, match=r"Duplicate hook name 'validate' \('pre_run'\)"):
         resolve_hooks(cfg)
 
 
