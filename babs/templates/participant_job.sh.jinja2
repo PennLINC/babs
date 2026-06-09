@@ -130,6 +130,18 @@ for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
     exit 1
   fi
 done
+{% if hook_pre_app %}
+# pre_app hooks: spliced before the datalad run wrapper; subshell exports the contract.
+(
+  export subid BRANCH PROJECT_ROOT JOB_SCRATCH_DIR
+{% if processing_level == 'session' %}
+  export sesid
+{% endif %}
+{% for snippet in hook_pre_app %}
+{{ snippet }}
+{% endfor %}
+)
+{% endif %}
 
 # datalad run:
 datalad run \
@@ -156,6 +168,18 @@ datalad run \
 {% endif %}
 	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
     "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+{% if hook_post_run %}
+# post_run hooks: spliced after the run, before push; subshell exports the contract.
+(
+  export subid BRANCH PROJECT_ROOT JOB_SCRATCH_DIR
+{% if processing_level == 'session' %}
+  export sesid
+{% endif %}
+{% for snippet in hook_post_run %}
+{{ snippet }}
+{% endfor %}
+)
+{% endif %}
 
 # Finish up:
 # push result file content to output RIA storage:

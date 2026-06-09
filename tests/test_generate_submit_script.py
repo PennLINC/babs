@@ -116,6 +116,92 @@ def test_generate_submit_script(input_datasets, config_file, processing_level, t
     assert passed, status
 
 
+# ---------------------------------------------------------------------------
+# pre_app / post_run splice-point hooks
+# ---------------------------------------------------------------------------
+
+PRE_APP_MARKER = '# pre_app hooks:'
+POST_RUN_MARKER = '# post_run hooks:'
+CONTRACT_EXPORT = 'export subid BRANCH PROJECT_ROOT JOB_SCRATCH_DIR'
+
+
+def _render_with_hooks(processing_level='subject', **hook_kwargs):
+    """Render participant_job.sh for a simple single-app config, with optional hooks."""
+    config = read_yaml(NOTEBOOKS_DIR / 'eg_fmriprep-24-1-1_regular.yaml')
+    return generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config=config['cluster_resources'],
+        script_preamble=config['script_preamble'],
+        job_scratch_directory=config['job_compute_space'],
+        input_datasets=input_datasets_prep,
+        processing_level=processing_level,
+        container_name='fmriprep-24-1-1',
+        zip_foldernames=config['zip_foldernames'],
+        **hook_kwargs,
+    )
+
+
+def _pre_app_block(text):
+    """Slice out the rendered pre_app subshell (marker through its closing paren)."""
+    start = text.index(PRE_APP_MARKER)
+    return text[start : text.index('\n)\n', start) + 2]
+
+
+def test_hooks_absent_when_not_configured(tmp_path):
+    """No hooks configured: no splice blocks rendered, and None behaves like []."""
+    default_render = _render_with_hooks()
+    empty_render = _render_with_hooks(hook_pre_app=[], hook_post_run=[])
+
+    assert default_render == empty_render  # None and [] are both no-ops
+    assert PRE_APP_MARKER not in default_render
+    assert POST_RUN_MARKER not in default_render
+
+    out_fn = tmp_path / 'participant_job_nohooks.sh'
+    out_fn.write_text(default_render)
+    passed, status = run_shellcheck(str(out_fn))
+    assert passed, status
+
+
+def test_pre_app_and_post_run_hooks_spliced(tmp_path):
+    """Configured hooks render as subshells exporting the contract, in order,
+    positioned around the datalad run wrapper."""
+    text = _render_with_hooks(
+        hook_pre_app=['echo PRE_A', 'echo PRE_B'],
+        hook_post_run=['echo POST_ONE'],
+    )
+
+    assert PRE_APP_MARKER in text
+    assert POST_RUN_MARKER in text
+    # the contract is exported once per splice subshell
+    assert text.count(CONTRACT_EXPORT) == 2
+    # snippets appear, in the configured order
+    assert text.index('echo PRE_A') < text.index('echo PRE_B')
+    assert 'echo POST_ONE' in text
+
+    # pre_app sits before the run; post_run after it, before the push
+    i_pre = text.index(PRE_APP_MARKER)
+    i_run = text.index('\ndatalad run ')
+    i_post = text.index(POST_RUN_MARKER)
+    i_push = text.index('datalad push --to output-storage')
+    assert i_pre < i_run < i_post < i_push
+
+    out_fn = tmp_path / 'participant_job_hooks.sh'
+    out_fn.write_text(text)
+    passed, status = run_shellcheck(str(out_fn))
+    if not passed:
+        print(text)
+    assert passed, status
+
+
+def test_hooks_export_sesid_only_at_session_level():
+    """sesid joins the exported contract only for session-level processing."""
+    session = _render_with_hooks(processing_level='session', hook_pre_app=['echo HI'])
+    subject = _render_with_hooks(processing_level='subject', hook_pre_app=['echo HI'])
+
+    assert 'export sesid' in _pre_app_block(session)
+    assert 'export sesid' not in _pre_app_block(subject)
+
+
 def run_shellcheck(script_path):
     """Run shellcheck on a shell script string and return the result.
 
