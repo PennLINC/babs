@@ -14,8 +14,8 @@ the caller (`Bootstrap`) performs the materializations.
 
 Entry forms supported in this version:
 
-- **(a) raw snippet** -- a bare string, spliced verbatim (``Verbatim``).
-- **(b) user script** -- ``{script: <path>}``; copied into
+- **snippet** -- a bare string, spliced verbatim (``Verbatim``).
+- **script** -- ``{script: <path>}``; copied into
   ``code/hooks/<basename>.sh`` and invoked as ``bash ./code/hooks/<basename>.sh``
   (``CopyIn``). ``<path>`` is an absolute local path used verbatim -- the same
   convention as ``imported_files.original_path``, which this reuses. The
@@ -24,10 +24,11 @@ Entry forms supported in this version:
   it is copied once and referenced from each. Two *different* sources sharing a
   basename collide (no name override yet -- add one if needed).
 
-`Render` (rendering a shipped ``*.sh.jinja2`` through the shared singularity
-partial) is defined here as the forward-compatible seam, but `resolve_hooks`
-does not yet produce one -- entries requiring it are rejected. See the
-pipeline-of-one design notes for the builtin/container forms it will carry.
+`Render` (rendering a shipped ``*.sh.jinja2`` into ``code/hooks/``) is defined
+here as the forward-compatible seam, but `resolve_hooks` does not yet produce one
+-- entries requiring it are rejected. It is the **templated built-in** mode: the
+same mechanism serves a zip hook and a container-running hook (e.g. nordic) alike
+-- they differ only in what the shipped template does, not in how it's produced.
 """
 
 import os.path as op
@@ -42,14 +43,14 @@ SPLICE_POINTS = ('pre_app', 'post_run')
 
 @dataclass(frozen=True)
 class Verbatim:
-    """Form (a): a raw shell snippet spliced inline. No file materialization."""
+    """Snippet hook: a raw shell snippet spliced inline. No file materialization."""
 
     command: str
 
 
 @dataclass(frozen=True)
 class CopyIn:
-    """Form (b) / static built-in: copy ``original_path`` -> ``code/hooks/<name>.sh``."""
+    """Script hook (or static built-in): copy ``original_path`` -> ``code/hooks/<name>.sh``."""
 
     original_path: str
     name: str
@@ -66,7 +67,7 @@ class CopyIn:
 
 @dataclass(frozen=True)
 class Render:
-    """Form (c) / templated built-in: render ``template_path`` -> ``code/hooks/<name>.sh``.
+    """Templated built-in: render ``template_path`` -> ``code/hooks/<name>.sh``.
 
     Defined as the forward-compatible seam; `resolve_hooks` does not yet produce
     one (wired in a later step alongside the shared singularity partial).

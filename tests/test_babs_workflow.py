@@ -69,8 +69,8 @@ def test_babs_init_raw_bids(
         },
     )
 
-    # Splice a contract-guard hook at both splice points. It's a form-(b)
-    # `script:` (a separate process), so it only sees the contract vars because
+    # Splice a contract-guard hook at both splice points. It's a script hook
+    # (`script:`, a separate process), so it only sees the contract vars because
     # the splice subshell exports them; `${var:?}` fails the job under `set -e`
     # if any guaranteed var is unset -- so this e2e goes red if a refactor ever
     # breaks the splice contract. Reusing one source at pre_app + post_run also

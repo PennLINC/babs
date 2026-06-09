@@ -271,7 +271,7 @@ class BABSBootstrap(BABS):
             )
             container = Container(container_ds, container_name, container_config)
 
-        # Copy in any other files needed, plus form-(b) hook scripts. Hook
+        # Copy in any other files needed, plus script hooks. Hook
         # CopyIns reuse the imported_files path (destination relative to
         # self.analysis_path, so it survives a configurable analysis_path).
         # Pipeline configs have no `hooks:` block, so this is a no-op there.
