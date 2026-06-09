@@ -68,13 +68,36 @@ def test_order_preserved_within_and_across_splice_points():
     assert post_run == ['echo c']
 
 
-def test_name_collision_across_splice_points_raises():
+def test_different_sources_same_name_collide():
     cfg = {
         'pre_app': [{'script': 'a/validate.sh'}],
         'post_run': [{'script': 'b/validate.sh'}],
     }
     with pytest.raises(ValueError, match='Duplicate hook name'):
         resolve_hooks(cfg, source_base='/base')
+
+
+def test_same_script_at_both_points_materializes_once():
+    # The identical hook reused at pre_app and post_run (e.g. a validator) is
+    # copied once and referenced from each list -- not a collision.
+    cfg = {
+        'pre_app': [{'script': 'hooks/validate.sh'}],
+        'post_run': [{'script': 'hooks/validate.sh'}],
+    }
+    pre_app, post_run, materializations = resolve_hooks(cfg, source_base='/proj')
+    assert pre_app == ['bash ./code/hooks/validate.sh']
+    assert post_run == ['bash ./code/hooks/validate.sh']
+    assert materializations == [
+        CopyIn(original_path='/proj/hooks/validate.sh', name='validate')
+    ]
+
+
+def test_render_equality_distinguishes_context():
+    # The collision rule keys on descriptor equality; Render carries `context`,
+    # so the same template rendered two ways into one name is a real conflict.
+    # (Render isn't produced by resolve_hooks yet -- this pins the invariant.)
+    assert Render('zip.sh.jinja2', 'zip', {'a': 1}) == Render('zip.sh.jinja2', 'zip', {'a': 1})
+    assert Render('zip.sh.jinja2', 'zip', {'a': 1}) != Render('zip.sh.jinja2', 'zip', {'a': 2})
 
 
 def test_unknown_splice_point_raises():

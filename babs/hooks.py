@@ -17,8 +17,10 @@ Entry forms supported in this version:
 - **(a) raw snippet** -- a bare string, spliced verbatim (``Verbatim``).
 - **(b) user script** -- ``{script: <path>}``; copied into
   ``code/hooks/<basename>.sh`` and invoked as ``bash ./code/hooks/<basename>.sh``
-  (``CopyIn``). The destination name is the source basename; two sources sharing
-  a basename collide (no override yet -- add one if it proves needed).
+  (``CopyIn``). The destination name is the source basename. The *same* script
+  may appear at multiple splice points (e.g. a validator at ``pre_app`` and
+  ``post_run``) -- it is copied once and referenced from each. Two *different*
+  sources sharing a basename collide (no name override yet -- add one if needed).
 
 `Render` (rendering a shipped ``*.sh.jinja2`` through the shared singularity
 partial) is defined here as the forward-compatible seam, but `resolve_hooks`
@@ -168,8 +170,9 @@ def resolve_hooks(hooks_config, *, source_base):
     ------
     ValueError
         On an unknown splice-point key, an unsupported entry form, an invalid
-        hook name, or a name collision across the (shared) ``code/hooks/``
-        namespace.
+        hook name, or two *different* hooks resolving to the same name in the
+        (shared) ``code/hooks/`` namespace. The identical hook reused at
+        multiple splice points is allowed (materialized once).
     """
     if hooks_config is None:
         return [], [], []
@@ -187,20 +190,30 @@ def resolve_hooks(hooks_config, *, source_base):
 
     resolved = {point: [] for point in SPLICE_POINTS}
     materializations = []
-    seen_names = {}  # name -> splice point that claimed it (for collision messages)
+    seen = {}  # name -> (descriptor, splice point that first claimed it)
 
     for point in SPLICE_POINTS:
         for entry in hooks_config.get(point) or []:
             mode = _resolve_entry(entry, source_base=source_base)
             resolved[point].append(_command_for(mode))
             if isinstance(mode, (CopyIn, Render)):
-                if mode.name in seen_names:
+                # Collision is about the materialized file, not the name alone:
+                # the *same* hook used at multiple splice points (identical
+                # descriptor) is fine -- copy/render once, reference it from
+                # each list. Only a *different* descriptor claiming the same
+                # name is a real conflict (one would clobber the other). For a
+                # Render this includes a differing `context` -- same template
+                # rendered two ways into one file collides.
+                if mode.name in seen:
+                    prior, prior_point = seen[mode.name]
+                    if mode == prior:
+                        continue  # same file; already materialized
                     raise ValueError(
-                        f'Duplicate hook name {mode.name!r} (in {point!r} and '
-                        f'{seen_names[mode.name]!r}); both would write '
+                        f'Duplicate hook name {mode.name!r} (in {prior_point!r} and '
+                        f'{point!r}) resolves to different content; both would write '
                         f'{op.join(HOOKS_SUBDIR, mode.name + ".sh")!r}.'
                     )
-                seen_names[mode.name] = point
+                seen[mode.name] = (mode, point)
                 materializations.append(mode)
 
     return resolved['pre_app'], resolved['post_run'], materializations
