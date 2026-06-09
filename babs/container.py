@@ -8,6 +8,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
+from babs.hooks import resolve_hooks
 from babs.utils import app_output_settings_from_config
 
 
@@ -178,6 +179,7 @@ class Container:
             If True, align generated script permissions with shared-group mode.
         """
 
+        hook_pre_app, hook_post_run, _ = resolve_hooks(self.config.get('hooks'))
         script_content = generate_submit_script(
             queue_system=system.type,
             cluster_resources_config=self.config['cluster_resources'],
@@ -188,6 +190,8 @@ class Container:
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
             project_root=project_root,
+            hook_pre_app=hook_pre_app,
+            hook_post_run=hook_post_run,
         )
 
         with open(bash_path, 'w') as f:

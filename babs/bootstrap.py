@@ -13,6 +13,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.base import BABS
 from babs.container import Container
+from babs.hooks import resolve_hooks
 from babs.input_datasets import InputDatasets
 from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
@@ -270,8 +271,15 @@ class BABSBootstrap(BABS):
             )
             container = Container(container_ds, container_name, container_config)
 
-        # Copy in any other files needed:
-        self._init_import_files(container.config.get('imported_files', []))
+        # Copy in any other files needed, plus form-(b) hook scripts. Hook
+        # CopyIns reuse the imported_files path (destination relative to
+        # self.analysis_path, so it survives a configurable analysis_path).
+        # Pipeline configs have no `hooks:` block, so this is a no-op there.
+        _, _, hook_materializations = resolve_hooks(container.config.get('hooks'))
+        self._init_import_files(
+            container.config.get('imported_files', [])
+            + [m.as_import() for m in hook_materializations]
+        )
         # _update_inclusion_dataframe() expects a DataFrame (or None).
         # If --list_sub_file was provided, use the parsed DataFrame
         # stored in initial_inclu_df by set_inclusion_dataframe() above.
@@ -564,6 +572,9 @@ class BABSBootstrap(BABS):
                     f'Requested imported file {imported_file["original_path"]} does not exist.'
                 )
             imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
+            # Create the destination's parent dir if needed (e.g. hooks land in
+            # `code/hooks/`, which doesn't pre-exist like flat `code/` does).
+            os.makedirs(op.dirname(imported_location), exist_ok=True)
             # Copy the file using pure Python:
             with (
                 open(imported_file['original_path'], 'rb') as src,

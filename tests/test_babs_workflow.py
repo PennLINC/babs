@@ -11,6 +11,7 @@ from unittest import mock
 
 import pandas as pd
 import pytest
+import yaml
 from conftest import (
     ensure_container_image,
     gather_slurm_job_diagnostics,
@@ -68,6 +69,29 @@ def test_babs_init_raw_bids(
         },
     )
 
+    # Splice a contract-guard hook at both splice points. It's a form-(b)
+    # `script:` (a separate process), so it only sees the contract vars because
+    # the splice subshell exports them; `${var:?}` fails the job under `set -e`
+    # if any guaranteed var is unset -- so this e2e goes red if a refactor ever
+    # breaks the splice contract. Reusing one source at pre_app + post_run also
+    # exercises copy-once dedup. (sesid is session-only, so it's not guarded
+    # here; its export is covered by the render-level test.)
+    contract_guard = project_base / 'contract_guard.sh'
+    contract_guard.write_text(
+        ': "${subid:?contract guard: subid not exported}"\n'
+        ': "${BRANCH:?contract guard: BRANCH not exported}"\n'
+        ': "${PROJECT_ROOT:?contract guard: PROJECT_ROOT not exported}"\n'
+        ': "${JOB_SCRATCH_DIR:?contract guard: JOB_SCRATCH_DIR not exported}"\n'
+    )
+    with open(container_config) as f:
+        cfg = yaml.safe_load(f)
+    cfg['hooks'] = {
+        'pre_app': [{'script': str(contract_guard)}],
+        'post_run': [{'script': str(contract_guard)}],
+    }
+    with open(container_config, 'w') as f:
+        yaml.safe_dump(cfg, f)
+
     babs_init_opts = argparse.Namespace(
         project_root=project_root,
         list_sub_file=None,
@@ -96,6 +120,14 @@ def test_babs_init_raw_bids(
     babs_init_opts.project_root = project_root
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
         _enter_init()
+
+    # The contract guard can only fail the job if it is actually wired in -- a
+    # dropped hook would leave no assertion to fail. So verify positively that
+    # the hook is materialized and spliced at both points before relying on it.
+    analysis_code = project_root / 'analysis' / 'code'
+    assert (analysis_code / 'hooks' / 'contract_guard.sh').exists()
+    participant_job = (analysis_code / 'participant_job.sh').read_text()
+    assert participant_job.count('bash ./code/hooks/contract_guard.sh') == 2
 
     # babs check-setup:
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=True)
@@ -217,6 +249,62 @@ def test_babs_init_raw_bids(
                 raise
 
 
+@pytest.mark.timeout(300)
+def test_babs_init_single_app_hooks(
+    tmp_path_factory,
+    bids_data_singlesession,
+    simbids_container_ds,
+):
+    """`babs init` materializes hook scripts and splices them at both splice points.
+
+    This is the wiring check that backstops the runtime contract-guard hook in
+    test_babs_init_raw_bids: that guard can only fail the job if it is actually
+    in place, so a silently dropped hook would pass. Here we assert positively --
+    no job execution needed -- that a configured hook is copied into code/hooks/
+    and referenced from participant_job.sh at both pre_app and post_run.
+    """
+    project_base = tmp_path_factory.mktemp('hooks_project')
+    project_root = project_base / 'my_babs_project'
+
+    container_config = update_yaml_for_run(
+        project_base,
+        get_config_simbids_path().name,
+        {'BIDS': bids_data_singlesession},
+    )
+    hook = project_base / 'echo_hook.sh'
+    hook.write_text('echo hook-ran\n')
+    with open(container_config) as f:
+        cfg = yaml.safe_load(f)
+    cfg['hooks'] = {
+        'pre_app': [{'script': str(hook)}],
+        'post_run': [{'script': str(hook)}],
+    }
+    with open(container_config, 'w') as f:
+        yaml.safe_dump(cfg, f)
+
+    babs_init_opts = argparse.Namespace(
+        project_root=project_root,
+        list_sub_file=None,
+        container_ds=simbids_container_ds,
+        container_name='simbids-0-0-3',
+        container_config=container_config,
+        processing_level='subject',
+        queue='slurm',
+        keep_if_failed=False,
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
+        _enter_init()
+
+    analysis_code = project_root / 'analysis' / 'code'
+    # Materialized once into code/hooks/ (same source at both points -> copy-once):
+    hook_in_ds = analysis_code / 'hooks' / 'echo_hook.sh'
+    assert hook_in_ds.exists()
+    assert hook_in_ds.read_text() == 'echo hook-ran\n'
+    # Spliced at both pre_app and post_run:
+    participant_job = (analysis_code / 'participant_job.sh').read_text()
+    assert participant_job.count('bash ./code/hooks/echo_hook.sh') == 2
+
+
 def test_init_forwards_shared_group(tmp_path):
     """Test that CLI --shared-group is forwarded to bootstrap."""
     options = argparse.Namespace(
@@ -312,6 +400,9 @@ def test_babs_init_list_sub_file(
         _enter_init()
 
     assert project_root.exists()
+    # No hooks configured -> no code/hooks/ dir is created (it's materialized
+    # lazily, only when a hook actually needs it).
+    assert not (project_root / 'analysis' / 'code' / 'hooks').exists()
     inclusion_csv = project_root / 'analysis' / 'code' / 'processing_inclusion.csv'
     assert inclusion_csv.exists()
     df = pd.read_csv(inclusion_csv)
