@@ -423,12 +423,12 @@ class BABSBootstrap(BABS):
         """Bootstrap scripts for single BIDS app configuration."""
         container = Container(container_ds, container_name, container_config)
 
-        # Generate `<containerName>_zip.sh`: ----------------------------------
-        # which is a bash script of singularity run + zip
+        # Generate `<containerName>_run.sh`: ----------------------------------
+        # which is a bash script of singularity run
         # in folder: `analysis/code`
-        print('\nGenerating a bash script for running container and zipping the outputs...')
-        print('This bash script will be named as `' + container_name + '_zip.sh`')
-        bash_path = op.join(self.analysis_path, 'code', container_name + '_zip.sh')
+        print('\nGenerating a bash script for running the container...')
+        print('This bash script will be named as `' + container_name + '_run.sh`')
+        bash_path = op.join(self.analysis_path, 'code', container_name + '_run.sh')
         shared_group_mode = self.shared_group is not None
         container.generate_bash_run_bidsapp(
             bash_path,
@@ -437,7 +437,7 @@ class BABSBootstrap(BABS):
             shared_group_mode=shared_group_mode,
         )
         self.datalad_save(
-            path='code/' + container_name + '_zip.sh',
+            path='code/' + container_name + '_run.sh',
             message='Generate script of running container',
         )
 

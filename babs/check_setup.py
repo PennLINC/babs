@@ -156,7 +156,7 @@ class BABSCheckSetup(BABS):
         else:
             list_files_code = [
                 'babs_proj_config.yaml',
-                container_name + '_zip.sh',
+                container_name + '_run.sh',
                 'participant_job.sh',
                 'submit_job_template.yaml',
             ]
