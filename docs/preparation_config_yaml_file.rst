@@ -185,8 +185,10 @@ Example section **hooks**
         - script: "/path/to/validate-inputs.sh"    # a script copied into the project
       post_run:
         - script: "/path/to/validate-outputs.sh"
+        - builtin: zip                             # a built-in shipped with BABS
+          path: outputs/fmriprep_minimal-25-2-5
 
-Two entry forms are supported:
+Three entry forms are supported:
 
 - **snippet** — a bare string. It is spliced **verbatim** into the job script
   and runs *inline*. You own its quoting and safety (this is shell injection by
@@ -195,6 +197,22 @@ Two entry forms are supported:
   (copied into the project the same way as ``imported_files``). BABS copies it to
   ``code/hooks/<basename>.sh`` at ``babs init`` and the splice runs
   ``bash ./code/hooks/<basename>.sh`` — a **separate process**.
+- **built-in** — ``{builtin: <name>}``. The hook ships with BABS as a template;
+  ``babs init`` renders it into ``code/hooks/<name>.sh`` (git-tracked, so you can
+  read exactly what will run) and the splice runs it like a script hook. Keys
+  beyond ``builtin`` are parameters for that built-in.
+
+Built-in: ``zip``
+-----------------
+
+``{builtin: zip, path: <folder>}`` archives one output folder as a ``post_run``
+hook. ``path`` is the folder to zip, relative to the dataset root (e.g.
+``outputs/fmriprep_minimal-25-2-5``). The hook zips it into
+``${subid}[_${sesid}]_<basename>.zip`` at the dataset root inside its **own**
+``datalad run`` (so the archive is committed with provenance), then removes the
+granular folder in a follow-up commit. The archive contains the folder itself
+(e.g. ``fmriprep_minimal-25-2-5/``) at its top level. To produce several
+separate archives, list several zip hooks, each with its own ``path``.
 
 The runtime contract
 --------------------
