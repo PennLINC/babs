@@ -23,28 +23,28 @@ Entry forms supported in this version:
   multiple splice points (e.g. a validator at ``pre_run`` and ``post_run``) --
   it is copied once and referenced from each. Two *different* sources sharing a
   basename collide (no name override yet -- add one if needed).
-- **built-in** -- ``{builtin: <name>}``; the hook ships inside the babs
-  package. A *static* built-in (``templates/hooks/<name>.sh``) is copied in
-  like a script hook (``CopyIn``) and its per-hook params become shell
-  **arguments** at the splice site, with defaults resolved at config time
-  (e.g. zip's ``path`` defaults to the top-level ``output_dir``) -- so several
-  instances share one script and differ only in args. A *templated* built-in
-  (``templates/hooks/<name>.sh.jinja2``) is rendered at init (``Render``);
-  none ship yet -- the container-running built-ins (NORDIC) are its first
-  real consumer. ``zip`` is the first built-in, and it is static.
+- **built-in** -- ``{builtin: <name>}``; the hook is a static script shipped
+  inside the babs package (``templates/hooks/<name>.sh``), copied in like a
+  script hook (``CopyIn``). Its per-hook params become shell **arguments** at
+  the splice site, with defaults resolved at config time (e.g. zip's ``path``
+  defaults to the top-level ``output_dir``) -- so several instances share one
+  script and differ only in args. ``zip`` is the first built-in.
 
-The **container-running templated built-in** (a babs-shipped ``singularity run``
-template parameterised by per-hook ``singularity_args``/``bids_app_args``) also
-lands as a ``Render``, but is still deferred -- ``{container: ...}`` entries are
-rejected for now. User-provided jinja templates are intentionally *not*
-supported: a template is inert without babs code to populate its context.
+The **container-running built-in** (a babs-shipped hook composing the
+``singularity run`` invocation from per-hook ``singularity_args``/
+``bids_app_args``) is still deferred -- ``{container: ...}`` entries are
+rejected for now. An earlier *rendered* (init-time jinja) built-in form was
+prototyped and removed; reintroduce it alongside the container-running
+built-ins (NORDIC) only if runtime arg/env composition turns out not to
+suffice. User-provided jinja templates are intentionally *not* supported:
+a template is inert without babs code to populate its context.
 """
 
 import os.path as op
 import shlex
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-# Where copied/rendered hook scripts land inside the analysis dataset.
+# Where copied hook scripts land inside the analysis dataset.
 HOOKS_SUBDIR = op.join('code', 'hooks')
 
 # Where the packaged built-in hook files live.
@@ -55,11 +55,9 @@ SPLICE_POINTS = ('pre_run', 'post_run')
 
 # Known built-ins and the per-hook params each accepts. Also the registry of
 # valid `{builtin: <name>}` names, so a typo'd name or param fails at
-# resolve time. STATIC_BUILTINS names the ones shipped as plain `.sh` (copied
-# in; params become splice-site arguments); the rest are `.sh.jinja2`
-# templates (rendered at init; params become render context) -- none yet.
+# resolve time. Every built-in is a static `templates/hooks/<name>.sh`;
+# params become splice-site arguments.
 BUILTIN_PARAMS = {'zip': {'path', 'name'}}
-STATIC_BUILTINS = {'zip'}
 
 
 @dataclass(frozen=True)
@@ -84,26 +82,6 @@ class CopyIn:
     def as_import(self):
         """Shape consumed by ``Bootstrap._init_import_files``."""
         return {'original_path': self.original_path, 'analysis_path': self.analysis_path}
-
-
-@dataclass(frozen=True)
-class Render:
-    """Templated built-in: render ``template_path`` -> ``code/hooks/<name>.sh``.
-
-    ``template_path`` is loader-relative (``PackageLoader('babs', 'templates')``).
-    ``context`` is the config-derived part (per-hook params); bootstrap merges in
-    the top-level/derived part (e.g. ``output_dir``) before rendering. Produced for
-    ``{builtin: <name>}`` entries; the ``{container: ...}`` scaffold is still deferred.
-    """
-
-    template_path: str
-    name: str
-    context: dict = field(default_factory=dict)
-
-    @property
-    def analysis_path(self):
-        """Destination relative to the analysis dataset root."""
-        return op.join(HOOKS_SUBDIR, f'{self.name}.sh')
 
 
 def _validate_name(name, entry):
@@ -151,13 +129,13 @@ def _resolve_entry(entry, output_dir=None):
 
     Returns
     -------
-    mode : Verbatim, CopyIn, or Render
+    mode : Verbatim or CopyIn
         The classified mode.
     args : tuple of str
-        Splice-site arguments for the hook's command (static built-ins only;
-        empty otherwise). Args belong to the *command*, not the
-        materialization: several instances of one static built-in share a
-        single materialized file and differ only in args.
+        Splice-site arguments for the hook's command (built-ins only; empty
+        otherwise). Args belong to the *command*, not the materialization:
+        several instances of one built-in share a single materialized file
+        and differ only in args.
     """
     if isinstance(entry, str):
         return Verbatim(command=entry), ()
@@ -191,22 +169,11 @@ def _resolve_entry(entry, output_dir=None):
                 f'Unsupported key(s) {sorted(unknown)} for built-in hook {name!r}; '
                 f'it accepts {sorted(BUILTIN_PARAMS[name])}.'
             )
-        # A static built-in is copied in like a script hook; its params become
+        # A built-in is copied in like a script hook; its params become
         # splice-site arguments (resolved here, at config time, so defaults
         # like zip's path <- output_dir are visible in participant_job.sh).
-        if name in STATIC_BUILTINS:
-            source = op.join(BUILTIN_SOURCE_DIR, f'{name}.sh')
-            return CopyIn(original_path=source, name=name), _builtin_args(
-                name, entry, output_dir
-            )
-        # A templated built-in renders at init; keys beyond `builtin` are the
-        # *config-derived* part of its render context, and bootstrap merges in
-        # the top-level/derived part (e.g. `processing_level`) at render time.
-        # The template path is loader-relative (PackageLoader('babs',
-        # 'templates')). None ship yet (zip is static); the container-running
-        # built-ins (PR 3) land here.
-        context = {k: v for k, v in entry.items() if k != 'builtin'}
-        return Render(template_path=f'hooks/{name}.sh.jinja2', name=name, context=context), ()
+        source = op.join(BUILTIN_SOURCE_DIR, f'{name}.sh')
+        return CopyIn(original_path=source, name=name), _builtin_args(name, entry, output_dir)
 
     raise ValueError(
         f'Unsupported hook entry: {entry!r}. This version supports a raw shell '
@@ -218,7 +185,7 @@ def _command_for(mode, args=()):
     """The runtime command string a classified mode contributes to its splice list."""
     if isinstance(mode, Verbatim):
         return mode.command
-    if isinstance(mode, (CopyIn, Render)):
+    if isinstance(mode, CopyIn):
         command = f'bash ./{mode.analysis_path}'
         if args:
             command += ' ' + ' '.join(shlex.quote(str(arg)) for arg in args)
@@ -245,8 +212,8 @@ def resolve_hooks(hooks_config, output_dir=None):
         Command strings to splice at the ``pre_run`` point, in order.
     post_run : list of str
         Command strings to splice at the ``post_run`` point, in order.
-    materializations : list of (CopyIn or Render)
-        Files BABS must copy/render into ``code/hooks/`` at ``babs init``.
+    materializations : list of CopyIn
+        Files BABS must copy into ``code/hooks/`` at ``babs init``.
         `Verbatim` entries contribute no materialization.
 
     Raises
@@ -278,14 +245,12 @@ def resolve_hooks(hooks_config, output_dir=None):
         for entry in hooks_config.get(point) or []:
             mode, args = _resolve_entry(entry, output_dir)
             resolved[point].append(_command_for(mode, args))
-            if isinstance(mode, (CopyIn, Render)):
+            if isinstance(mode, CopyIn):
                 # Collision is about the materialized file, not the name alone:
                 # the *same* hook used at multiple splice points (identical
-                # descriptor) is fine -- copy/render once, reference it from
-                # each list. Only a *different* descriptor claiming the same
-                # name is a real conflict (one would clobber the other). For a
-                # Render this includes a differing `context` -- same template
-                # rendered two ways into one file collides.
+                # descriptor) is fine -- copy once, reference it from each
+                # list. Only a *different* descriptor claiming the same name
+                # is a real conflict (one would clobber the other).
                 if mode.name in seen:
                     prior, prior_point = seen[mode.name]
                     if mode == prior:

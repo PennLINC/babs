@@ -7,7 +7,6 @@ import pytest
 from babs.hooks import (
     BUILTIN_SOURCE_DIR,
     CopyIn,
-    Render,
     Verbatim,
     resolve_hooks,
 )
@@ -93,13 +92,6 @@ def test_same_script_at_both_points_materializes_once():
     assert pre_run == ['bash ./code/hooks/validate.sh']
     assert post_run == ['bash ./code/hooks/validate.sh']
     assert materializations == [CopyIn(original_path='/proj/hooks/validate.sh', name='validate')]
-
-
-def test_render_equality_distinguishes_context():
-    # The collision rule keys on descriptor equality; Render carries `context`,
-    # so the same template rendered two ways into one name is a real conflict.
-    assert Render('zip.sh.jinja2', 'zip', {'a': 1}) == Render('zip.sh.jinja2', 'zip', {'a': 1})
-    assert Render('zip.sh.jinja2', 'zip', {'a': 1}) != Render('zip.sh.jinja2', 'zip', {'a': 2})
 
 
 def test_unknown_splice_point_raises():

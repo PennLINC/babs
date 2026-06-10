@@ -13,7 +13,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.base import BABS
 from babs.container import Container
-from babs.hooks import CopyIn, Render, resolve_hooks
+from babs.hooks import resolve_hooks
 from babs.input_datasets import InputDatasets
 from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
@@ -272,23 +272,21 @@ class BABSBootstrap(BABS):
             )
             container = Container(container_ds, container_name, container_config)
 
-        # Materialize hooks (and copy in any other files needed). Built-in
-        # (Render) hooks are rendered from shipped templates; script (CopyIn)
-        # hooks reuse the imported_files path. Both destinations are relative
-        # to self.analysis_path, so they survive a configurable analysis_path.
-        # Pipeline configs have no `hooks:` block, so this is a no-op there
-        # (and output_dir -- which would hard-error on a pipeline config's
-        # legacy zip keys -- is only derived when hooks are configured).
+        # Materialize hooks (and copy in any other files needed): hook scripts
+        # (user `script:` and built-ins alike) are CopyIns riding the
+        # imported_files path. Destinations are relative to self.analysis_path,
+        # so they survive a configurable analysis_path. Pipeline configs have
+        # no `hooks:` block, so this is a no-op there (and output_dir -- which
+        # would hard-error on a pipeline config's legacy zip keys -- is only
+        # derived when hooks are configured).
         hooks_config = container.config.get('hooks')
         _, _, hook_materializations = resolve_hooks(
             hooks_config,
             output_dir=output_dir_from_config(container.config) if hooks_config else None,
         )
-        self._init_render_hooks([m for m in hook_materializations if isinstance(m, Render)])
-        copy_ins = [m for m in hook_materializations if isinstance(m, CopyIn)]
         self._init_import_files(
             container.config.get('imported_files', [])
-            + [m.as_import() for m in copy_ins]
+            + [m.as_import() for m in hook_materializations]
         )
         # _update_inclusion_dataframe() expects a DataFrame (or None).
         # If --list_sub_file was provided, use the parsed DataFrame
@@ -602,42 +600,6 @@ class BABSBootstrap(BABS):
                 path=imported_files,
                 message='Import files',
             )
-
-    def _init_render_hooks(self, renders):
-        """
-        Render built-in hook templates into ``code/hooks/`` and datalad save.
-
-        Parameters
-        ----------
-        renders: list of babs.hooks.Render
-            Built-in hooks to materialize. Each is rendered from its shipped
-            template (``babs/templates/hooks/``) with a context of the per-hook
-            config params plus the derived part supplied here
-            (``processing_level``).
-        """
-        if not renders:
-            return
-        env = Environment(
-            loader=PackageLoader('babs', 'templates'),
-            trim_blocks=True,
-            lstrip_blocks=True,
-            autoescape=False,
-            undefined=StrictUndefined,
-        )
-        rendered_files = []
-        for render in renders:
-            # Derived values win; a per-hook config param can't override them.
-            context = {**render.context, 'processing_level': self.processing_level}
-            content = env.get_template(render.template_path).render(**context)
-            destination = op.join(self.analysis_path, render.analysis_path)
-            os.makedirs(op.dirname(destination), exist_ok=True)
-            with open(destination, 'w') as f:
-                f.write(content)
-            rendered_files.append(render.analysis_path)
-        self.datalad_save(
-            path=rendered_files,
-            message='Materialize built-in hook scripts',
-        )
 
     def clean_up(self):
         """
