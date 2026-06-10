@@ -37,9 +37,7 @@ def test_script_path_used_verbatim():
     cfg = {'pre_run': [{'script': '/proj/hooks/validate.sh'}]}
     pre_run, _, materializations = resolve_hooks(cfg)
     assert pre_run == ['bash ./code/hooks/validate.sh']
-    assert materializations == [
-        CopyIn(original_path='/proj/hooks/validate.sh', name='validate')
-    ]
+    assert materializations == [CopyIn(original_path='/proj/hooks/validate.sh', name='validate')]
     assert materializations[0].as_import() == {
         'original_path': '/proj/hooks/validate.sh',
         'analysis_path': 'code/hooks/validate.sh',
@@ -68,7 +66,8 @@ def test_different_sources_same_name_collide():
         'pre_run': [{'script': '/a/validate.sh'}],
         'post_run': [{'script': '/b/validate.sh'}],
     }
-    with pytest.raises(ValueError, match=r"Duplicate hook name 'validate' \('pre_run' and 'post_run'\)"):
+    msg = r"Duplicate hook name 'validate' \('pre_run' and 'post_run'\)"
+    with pytest.raises(ValueError, match=msg):
         resolve_hooks(cfg)
 
 
@@ -90,9 +89,7 @@ def test_same_script_at_both_points_materializes_once():
     pre_run, post_run, materializations = resolve_hooks(cfg)
     assert pre_run == ['bash ./code/hooks/validate.sh']
     assert post_run == ['bash ./code/hooks/validate.sh']
-    assert materializations == [
-        CopyIn(original_path='/proj/hooks/validate.sh', name='validate')
-    ]
+    assert materializations == [CopyIn(original_path='/proj/hooks/validate.sh', name='validate')]
 
 
 def test_render_equality_distinguishes_context():
@@ -141,9 +138,7 @@ def test_render_is_defined_but_never_produced():
     r = Render(template_path='t.sh.jinja2', name='zip', context={'k': 'v'})
     assert r.analysis_path == 'code/hooks/zip.sh'
     # ...but resolve_hooks never returns one in this version (no config form maps to it).
-    _, _, materializations = resolve_hooks(
-        {'post_run': ['echo verbatim', {'script': '/x.sh'}]}
-    )
+    _, _, materializations = resolve_hooks({'post_run': ['echo verbatim', {'script': '/x.sh'}]})
     assert all(isinstance(m, CopyIn) for m in materializations)
 
 
