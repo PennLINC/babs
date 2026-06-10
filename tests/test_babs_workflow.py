@@ -305,6 +305,80 @@ def test_babs_init_single_app_hooks(
     assert participant_job.count('bash ./code/hooks/echo_hook.sh') == 2
 
 
+def test_babs_init_builtin_zip_hook(
+    tmp_path_factory,
+    bids_data_singlesession,
+    simbids_container_ds,
+):
+    """`babs init` renders the zip built-in into code/hooks/ and splices it.
+
+    Render-level check of the ``{builtin: zip}`` form: the shipped
+    hooks/zip.sh.jinja2 is materialized with the per-hook ``path`` param plus
+    the derived ``processing_level``, committed to the analysis dataset, and
+    referenced from participant_job.sh at post_run.
+    """
+    project_base = tmp_path_factory.mktemp('zip_hook_project')
+    project_root = project_base / 'my_babs_project'
+
+    container_config = update_yaml_for_run(
+        project_base,
+        get_config_simbids_path().name,
+        {'BIDS': bids_data_singlesession},
+    )
+    with open(container_config) as f:
+        cfg = yaml.safe_load(f)
+    cfg['hooks'] = {
+        'post_run': [{'builtin': 'zip', 'path': 'outputs/fmriprep_anat-24-1-1'}],
+    }
+    with open(container_config, 'w') as f:
+        yaml.safe_dump(cfg, f)
+
+    babs_init_opts = argparse.Namespace(
+        project_root=project_root,
+        list_sub_file=None,
+        container_ds=simbids_container_ds,
+        container_name='simbids-0-0-3',
+        container_config=container_config,
+        processing_level='subject',
+        queue='slurm',
+        keep_if_failed=False,
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
+        _enter_init()
+
+    analysis = project_root / 'analysis'
+    zip_sh = analysis / 'code' / 'hooks' / 'zip.sh'
+    assert zip_sh.exists()
+    rendered = zip_sh.read_text()
+    # Subject-level id; archive name from basename(path); zip from inside the
+    # parent so the archive contains the folder itself; granular removal:
+    assert 'ZIP_ID="${subid}"' in rendered
+    assert '${sesid}' not in rendered
+    assert 'ZIP_NAME="${ZIP_ID}_fmriprep_anat-24-1-1.zip"' in rendered
+    assert 'cd outputs && 7z a ../${ZIP_NAME} fmriprep_anat-24-1-1' in rendered
+    assert 'git rm -rf -q --sparse "outputs/fmriprep_anat-24-1-1"' in rendered
+    # Spliced at post_run only:
+    participant_job = (analysis / 'code' / 'participant_job.sh').read_text()
+    assert participant_job.count('bash ./code/hooks/zip.sh') == 1
+    # Committed at init:
+    log = subprocess.run(
+        ['git', '-C', str(analysis), 'log', '--oneline'],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert 'Materialize built-in hook scripts' in log
+
+    # TODO remove demo: persist rendered artifacts outside the container so
+    # they can be inspected after the docker run (the worktree is bind-mounted).
+    demo_dir = Path(__file__).parent.parent / 'demo-output'
+    demo_dir.mkdir(exist_ok=True)
+    (demo_dir / 'zip.sh').write_text(rendered)
+    (demo_dir / 'participant_job.sh').write_text(participant_job)
+    (demo_dir / 'analysis-git-log.txt').write_text(log)
+    # TODO remove demo end
+
+
 def test_init_forwards_shared_group(tmp_path):
     """Test that CLI --shared-group is forwarded to bootstrap."""
     options = argparse.Namespace(
