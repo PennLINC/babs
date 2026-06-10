@@ -145,7 +145,7 @@ done
 
 # datalad run:
 datalad run \
-	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }}" \
+	-i "{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_run.sh' }}" \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
 	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
@@ -161,13 +161,16 @@ datalad run \
 	--expand inputs \
 {% endif %}
 	--explicit \
+{% if output_dir %}
+	-o "{{ output_dir }}" \
+{% endif %}
 {% if zip_foldernames is not none %}
 {% for key, value in zip_foldernames.items() %}
 	-o "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}_{% raw %}${sesid}{% endraw %}{% endif %}_{{ key }}-{{ value }}.zip" \
 {% endfor %}
 {% endif %}
 	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
-    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_run.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 {% if hook_post_run %}
 # post_run hooks: spliced after the run, before push; subshell exports the contract.
 (
