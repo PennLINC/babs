@@ -45,6 +45,12 @@ HOOKS_SUBDIR = op.join('code', 'hooks')
 # The splice points a hooks config may target, in run order.
 SPLICE_POINTS = ('pre_run', 'post_run')
 
+# Known built-ins and the per-hook params each accepts. Also the registry of
+# valid `{builtin: <name>}` names, so a typo'd name or param fails at
+# resolve time (StrictUndefined only catches *missing* template context, not
+# unexpected keys, which would otherwise flow in silently).
+BUILTIN_PARAMS = {'zip': {'path'}}
+
 
 @dataclass(frozen=True)
 class Verbatim:
@@ -140,13 +146,21 @@ def _resolve_entry(entry):
 
     if isinstance(entry, dict) and 'builtin' in entry:
         name = entry['builtin']
-        _validate_name(name, entry)
+        if name not in BUILTIN_PARAMS:
+            raise ValueError(
+                f'Unknown built-in hook {name!r}; available: {sorted(BUILTIN_PARAMS)}.'
+            )
+        unknown = set(entry) - {'builtin'} - BUILTIN_PARAMS[name]
+        if unknown:
+            raise ValueError(
+                f'Unsupported key(s) {sorted(unknown)} for built-in hook {name!r}; '
+                f'it accepts {sorted(BUILTIN_PARAMS[name])}.'
+            )
         # Keys beyond `builtin` are per-hook parameters for the built-in's
         # template (e.g. zip's optional `path`). They are the *config-derived*
         # part of the render context; bootstrap merges in the top-level/derived
-        # part (e.g. `output_dir`, `processing_level`) at render time. The
-        # template path is loader-relative (PackageLoader('babs', 'templates'));
-        # an unknown built-in fails as TemplateNotFound at init.
+        # part (e.g. `processing_level`) at render time. The template path is
+        # loader-relative (PackageLoader('babs', 'templates')).
         context = {k: v for k, v in entry.items() if k != 'builtin'}
         return Render(template_path=f'hooks/{name}.sh.jinja2', name=name, context=context)
 

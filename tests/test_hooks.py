@@ -167,9 +167,19 @@ def test_builtin_same_name_different_context_collides():
         resolve_hooks(cfg)
 
 
-def test_builtin_invalid_name_raises():
-    cfg = {'post_run': [{'builtin': '../escape'}]}
-    with pytest.raises(ValueError, match='Invalid hook name'):
+@pytest.mark.parametrize('bad_name', ['../escape', 'gzip', ''])
+def test_builtin_unknown_name_raises(bad_name):
+    # The registry doubles as name validation: only known built-ins resolve,
+    # so a path-escaping or typo'd name fails at resolve time.
+    cfg = {'post_run': [{'builtin': bad_name}]}
+    with pytest.raises(ValueError, match='Unknown built-in hook'):
+        resolve_hooks(cfg)
+
+
+def test_builtin_unknown_param_raises():
+    # A typo'd param must not flow silently into the render context.
+    cfg = {'post_run': [{'builtin': 'zip', 'paht': 'outputs/x'}]}
+    with pytest.raises(ValueError, match="Unsupported key.*for built-in hook 'zip'"):
         resolve_hooks(cfg)
 
 
