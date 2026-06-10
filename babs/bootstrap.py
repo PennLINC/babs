@@ -271,19 +271,13 @@ class BABSBootstrap(BABS):
             )
             container = Container(container_ds, container_name, container_config)
 
-        # Copy in any other files needed, plus script hooks. Hook
-        # CopyIns reuse the imported_files path (destination relative to
-        # self.analysis_path, so it survives a configurable analysis_path).
+        # Materialize hooks (and copy in any other files needed). Built-in
+        # (Render) hooks are rendered from shipped templates; script (CopyIn)
+        # hooks reuse the imported_files path. Both destinations are relative
+        # to self.analysis_path, so they survive a configurable analysis_path.
         # Pipeline configs have no `hooks:` block, so this is a no-op there.
         _, _, hook_materializations = resolve_hooks(container.config.get('hooks'))
-        renders = [m for m in hook_materializations if isinstance(m, Render)]
-        if renders:
-            # Built-in (Render) materialization -- rendering the shipped
-            # `templates/hooks/<name>.sh.jinja2` into code/hooks/ -- lands in the
-            # next slice (zip-as-hook). Reject cleanly until then.
-            raise NotImplementedError(
-                f'Built-in hooks not yet materialized: {[r.name for r in renders]}'
-            )
+        self._init_render_hooks([m for m in hook_materializations if isinstance(m, Render)])
         copy_ins = [m for m in hook_materializations if isinstance(m, CopyIn)]
         self._init_import_files(
             container.config.get('imported_files', [])
@@ -601,6 +595,42 @@ class BABSBootstrap(BABS):
                 path=imported_files,
                 message='Import files',
             )
+
+    def _init_render_hooks(self, renders):
+        """
+        Render built-in hook templates into ``code/hooks/`` and datalad save.
+
+        Parameters
+        ----------
+        renders: list of babs.hooks.Render
+            Built-in hooks to materialize. Each is rendered from its shipped
+            template (``babs/templates/hooks/``) with a context of the per-hook
+            config params plus the derived part supplied here
+            (``processing_level``).
+        """
+        if not renders:
+            return
+        env = Environment(
+            loader=PackageLoader('babs', 'templates'),
+            trim_blocks=True,
+            lstrip_blocks=True,
+            autoescape=False,
+            undefined=StrictUndefined,
+        )
+        rendered_files = []
+        for render in renders:
+            # Derived values win; a per-hook config param can't override them.
+            context = {**render.context, 'processing_level': self.processing_level}
+            content = env.get_template(render.template_path).render(**context)
+            destination = op.join(self.analysis_path, render.analysis_path)
+            os.makedirs(op.dirname(destination), exist_ok=True)
+            with open(destination, 'w') as f:
+                f.write(content)
+            rendered_files.append(render.analysis_path)
+        self.datalad_save(
+            path=rendered_files,
+            message='Materialize built-in hook scripts',
+        )
 
     def clean_up(self):
         """
