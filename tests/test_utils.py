@@ -11,6 +11,7 @@ import yaml
 from babs.utils import (
     app_output_settings_from_config,
     combine_inclusion_dataframes,
+    output_dir_from_config,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_repo_hash,
@@ -94,6 +95,34 @@ def test_app_output_settings_from_config():
 
     with pytest.raises(Exception, match='create more than one output folder'):
         app_output_settings_from_config(multiple_folders_config)
+
+
+def test_output_dir_from_config():
+    """Test output_dir_from_config: the single-app `output_dir` contract."""
+    assert (
+        output_dir_from_config({'output_dir': 'outputs/fmriprep-24-1-1'})
+        == 'outputs/fmriprep-24-1-1'
+    )
+    # Normalized (a trailing slash would break basename-derived zip names):
+    assert (
+        output_dir_from_config({'output_dir': 'outputs/fmriprep-24-1-1/'})
+        == 'outputs/fmriprep-24-1-1'
+    )
+
+    # The removed legacy keys hard-error with a migration message:
+    with pytest.raises(ValueError, match='no longer supported'):
+        output_dir_from_config({'zip_foldernames': {'a': '1'}, 'output_dir': 'outputs'})
+    with pytest.raises(ValueError, match='no longer supported'):
+        output_dir_from_config({'all_results_in_one_zip': True, 'output_dir': 'outputs'})
+
+    # Missing or non-string:
+    with pytest.raises(ValueError, match='needs a top-level `output_dir`'):
+        output_dir_from_config({})
+
+    # Must stay a relative in-dataset path:
+    for bad in ('/abs/outputs', '../escape', '.'):
+        with pytest.raises(ValueError, match='relative path'):
+            output_dir_from_config({'output_dir': bad})
 
 
 def create_git_repo(tmp_path):

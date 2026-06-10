@@ -47,9 +47,12 @@ singularity_args:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'fmriprep_anat' to wrap all derivatives:
-all_results_in_one_zip: true
-zip_foldernames:
-    fmriprep_func: "24-1-1" # folder 'fmriprep_func' will be zipped into 'sub-xx_(ses-yy_)fmriprep_func-24-1-1.zip'
+# Where the BIDS App writes its results; the zip hook below archives
+# this folder into 'sub-xx_(ses-yy_)fmriprep_func-24-1-1.zip'.
+output_dir: outputs/fmriprep_func-24-1-1
+hooks:
+    post_run:
+        - builtin: zip
 
 # How much cluster resources it needs:
 cluster_resources:

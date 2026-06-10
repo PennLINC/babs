@@ -19,6 +19,7 @@ from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
 from babs.utils import (
     get_datalad_version,
+    output_dir_from_config,
     validate_processing_level,
 )
 
@@ -275,8 +276,14 @@ class BABSBootstrap(BABS):
         # (Render) hooks are rendered from shipped templates; script (CopyIn)
         # hooks reuse the imported_files path. Both destinations are relative
         # to self.analysis_path, so they survive a configurable analysis_path.
-        # Pipeline configs have no `hooks:` block, so this is a no-op there.
-        _, _, hook_materializations = resolve_hooks(container.config.get('hooks'))
+        # Pipeline configs have no `hooks:` block, so this is a no-op there
+        # (and output_dir -- which would hard-error on a pipeline config's
+        # legacy zip keys -- is only derived when hooks are configured).
+        hooks_config = container.config.get('hooks')
+        _, _, hook_materializations = resolve_hooks(
+            hooks_config,
+            output_dir=output_dir_from_config(container.config) if hooks_config else None,
+        )
         self._init_render_hooks([m for m in hook_materializations if isinstance(m, Render)])
         copy_ins = [m for m in hook_materializations if isinstance(m, CopyIn)]
         self._init_import_files(

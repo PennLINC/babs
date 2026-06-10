@@ -235,8 +235,9 @@ Here we use these arguments to show examples of:
 * how to add arguments without values: e.g., ``--stop-on-first-crash: ""`` and ``-vv: ""``;
 * and it's totally fine to mix flags with prefix of ``--`` and ``-``.
 
-Section ``zip_foldernames`` tells BABS to zip the output folder named ``fmriprep_anat``
-as a zip file as ``${sub-id}_${ses-id}_fmriprep_anat-25-0-0.zip`` for each subject's each session,
+``output_dir`` tells BABS (and the BIDS App) which folder the results are written into,
+and the ``zip`` hook in section ``hooks`` zips that folder into
+``${sub-id}_${ses-id}_fmriprep_anat-25-0-0.zip`` for each subject's each session,
 where ``${sub-id}`` is a subject ID, ``${ses-id}`` is a session ID.
 
 You can copy the above content and save it as file ``config_simbids_0-0-3_raw_mri.yaml`` in ``~/babs_demo`` directory.

@@ -104,7 +104,7 @@ def test_generate_submit_script(input_datasets, config_file, processing_level, t
         input_datasets=input_datasets,
         processing_level=processing_level,
         container_name=container_name,
-        zip_foldernames=config['zip_foldernames'],
+        output_dir=config['output_dir'],
     )
 
     out_fn = tmp_path / f'participant_job_{config_path.name}_{processing_level}.sh'
@@ -136,7 +136,7 @@ def _render_with_hooks(processing_level='subject', **hook_kwargs):
         input_datasets=input_datasets_prep,
         processing_level=processing_level,
         container_name='fmriprep-24-1-1',
-        zip_foldernames=config['zip_foldernames'],
+        output_dir=config['output_dir'],
         **hook_kwargs,
     )
 

@@ -1,8 +1,11 @@
 """Unit tests for `babs.hooks.resolve_hooks` (pure; no I/O, no docker)."""
 
+import os.path as op
+
 import pytest
 
 from babs.hooks import (
+    BUILTIN_SOURCE_DIR,
     CopyIn,
     Render,
     Verbatim,
@@ -137,38 +140,58 @@ def test_source_with_invalid_derived_name_raises(bad_source):
         resolve_hooks(cfg)
 
 
-def test_builtin_resolves_to_render():
+def test_builtin_zip_is_static_copyin():
+    # the argless common case: archive the config's top-level output_dir
     cfg = {'post_run': [{'builtin': 'zip'}]}
-    pre_run, post_run, materializations = resolve_hooks(cfg)
+    pre_run, post_run, materializations = resolve_hooks(cfg, output_dir='outputs/fmriprep-1-0-0')
     assert pre_run == []
-    assert post_run == ['bash ./code/hooks/zip.sh']
+    assert post_run == ['bash ./code/hooks/zip.sh outputs/fmriprep-1-0-0']
     assert materializations == [
-        Render(template_path='hooks/zip.sh.jinja2', name='zip', context={})
+        CopyIn(original_path=op.join(BUILTIN_SOURCE_DIR, 'zip.sh'), name='zip')
     ]
     assert materializations[0].analysis_path == 'code/hooks/zip.sh'
 
 
-def test_builtin_extra_keys_become_context():
-    # per-hook params (e.g. zip's optional `path`) flow into the render context
-    cfg = {'post_run': [{'builtin': 'zip', 'path': 'outputs/freesurfer-7-3-2'}]}
-    _, _, materializations = resolve_hooks(cfg)
-    assert materializations == [
-        Render(
-            template_path='hooks/zip.sh.jinja2',
-            name='zip',
-            context={'path': 'outputs/freesurfer-7-3-2'},
-        )
-    ]
-
-
-def test_builtin_same_name_different_context_collides():
-    # descriptor equality includes context -> same name rendered two ways collides
+def test_builtin_zip_params_become_args():
+    # per-hook params become splice-site arguments, in <path> [<name>] order
     cfg = {
-        'pre_run': [{'builtin': 'zip'}],
-        'post_run': [{'builtin': 'zip', 'path': 'outputs/x'}],
+        'post_run': [{'builtin': 'zip', 'path': 'outputs/freesurfer', 'name': 'freesurfer-7-3-2'}]
     }
-    with pytest.raises(ValueError, match='Duplicate hook name'):
+    _, post_run, materializations = resolve_hooks(cfg)
+    assert post_run == ['bash ./code/hooks/zip.sh outputs/freesurfer freesurfer-7-3-2']
+    assert len(materializations) == 1
+
+
+def test_builtin_zip_instances_share_one_script():
+    # multi-zip: several instances of one static built-in share a single
+    # materialized file and differ only in args
+    cfg = {
+        'post_run': [
+            {'builtin': 'zip'},
+            {'builtin': 'zip', 'path': 'outputs/fmriprep'},
+            {'builtin': 'zip', 'path': 'outputs/freesurfer', 'name': 'freesurfer-20-2-3'},
+        ],
+    }
+    _, post_run, materializations = resolve_hooks(cfg, output_dir='outputs/all-1-0-0')
+    assert post_run == [
+        'bash ./code/hooks/zip.sh outputs/all-1-0-0',
+        'bash ./code/hooks/zip.sh outputs/fmriprep',
+        'bash ./code/hooks/zip.sh outputs/freesurfer freesurfer-20-2-3',
+    ]
+    assert len(materializations) == 1
+
+
+def test_builtin_zip_argless_needs_output_dir():
+    # no `path` param and no top-level output_dir -> nothing to archive
+    cfg = {'post_run': [{'builtin': 'zip'}]}
+    with pytest.raises(ValueError, match='`path` param or set the top-level `output_dir`'):
         resolve_hooks(cfg)
+
+
+def test_builtin_args_are_shell_quoted():
+    cfg = {'post_run': [{'builtin': 'zip', 'path': 'outputs/odd dir'}]}
+    _, post_run, _ = resolve_hooks(cfg)
+    assert post_run == ["bash ./code/hooks/zip.sh 'outputs/odd dir'"]
 
 
 @pytest.mark.parametrize('bad_name', ['../escape', 'gzip', ''])

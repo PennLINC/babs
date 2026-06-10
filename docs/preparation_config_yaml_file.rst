@@ -26,8 +26,7 @@ Sections in the configuration YAML file
 * **singularity_args**: the arguments for ``singularity run``;
 * **bids_app_args**: the arguments for the BIDS App;
 * **imported_files**: the files to be copied into the datalad dataset;
-* **all_results_in_one_zip**: whether to zip all results in one zip file;
-* **zip_foldernames**: the results foldername(s) to be zipped;
+* **output_dir**: the folder the BIDS App writes its results into;
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
 * **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
@@ -162,6 +161,8 @@ It also means that the ``recon_spec.yaml`` file will be tracked by datalad.
 **Important**: If you are importing a large file this mechanism will not work.
 
 
+.. _section-hooks:
+
 Section ``hooks``
 =================
 
@@ -186,7 +187,6 @@ Example section **hooks**
       post_run:
         - script: "/path/to/validate-outputs.sh"
         - builtin: zip                             # a built-in shipped with BABS
-          path: outputs/fmriprep_minimal-25-2-5
 
 Three entry forms are supported:
 
@@ -197,22 +197,33 @@ Three entry forms are supported:
   (copied into the project the same way as ``imported_files``). BABS copies it to
   ``code/hooks/<basename>.sh`` at ``babs init`` and the splice runs
   ``bash ./code/hooks/<basename>.sh`` — a **separate process**.
-- **built-in** — ``{builtin: <name>}``. The hook ships with BABS as a template;
-  ``babs init`` renders it into ``code/hooks/<name>.sh`` (git-tracked, so you can
-  read exactly what will run) and the splice runs it like a script hook. Keys
-  beyond ``builtin`` are parameters for that built-in.
+- **built-in** — ``{builtin: <name>}``. The hook ships with BABS; ``babs init``
+  copies it into ``code/hooks/<name>.sh`` (git-tracked, so you can read exactly
+  what will run) and the splice runs it like a script hook. Keys beyond
+  ``builtin`` are parameters for that built-in, passed as **arguments** at the
+  splice site — several instances of the same built-in (e.g. several zip hooks)
+  share one script and differ only in their arguments.
 
 Built-in: ``zip``
 -----------------
 
-``{builtin: zip, path: <folder>}`` archives one output folder as a ``post_run``
-hook. ``path`` is the folder to zip, relative to the dataset root (e.g.
-``outputs/fmriprep_minimal-25-2-5``). The hook zips it into
-``${subid}[_${sesid}]_<basename>.zip`` at the dataset root inside its **own**
-``datalad run`` (so the archive is committed with provenance), then removes the
-granular folder in a follow-up commit. The archive contains the folder itself
-(e.g. ``fmriprep_minimal-25-2-5/``) at its top level. To produce several
-separate archives, list several zip hooks, each with its own ``path``.
+``{builtin: zip}`` archives one output folder as a ``post_run`` hook. Its two
+optional parameters:
+
+- ``path`` — the folder to zip, relative to the dataset root. Defaults to the
+  top-level ``output_dir``, so the argless form covers the common case of
+  archiving the whole app output.
+- ``name`` — the archive-name stem: the hook zips ``path`` into
+  ``${subid}[_${sesid}]_<name>.zip`` at the dataset root. Defaults to
+  ``path``'s basename. Set it when the BIDS App controls the folder name and
+  you want a versioned archive name (e.g. ``path: outputs/freesurfer`` with
+  ``name: freesurfer-24-1-1``).
+
+The hook zips inside its **own** ``datalad run`` (so the archive is committed
+with provenance), then removes the granular folder in a follow-up commit. The
+archive contains the folder itself (e.g. ``fmriprep_minimal-25-2-5/``) at its
+top level. To produce several separate archives, list several zip hooks, each
+with its own ``path``.
 
 The runtime contract
 --------------------
@@ -487,139 +498,86 @@ Advanced - Manual of writing section ``bids_app_args``
 .. `notebooks/inDev_*.yaml` in `babs_tests` repo: done
 
 
-Section ``zip_foldernames``
-===========================
+Section ``output_dir``
+======================
 
-This section defines the name(s) of the expected output folder(s).
-BABS will zip those folder(s) into separate zip file(s).
+``output_dir`` is the folder the BIDS App writes its results into, relative to
+the dataset root. It carries the full versioned derivative name (e.g.
+``outputs/fmriprep-24-1-1``) and is the single source for that name: the same
+string is the app's write directory, the ``datalad run`` output declaration,
+and the default folder the built-in :ref:`zip hook <section-hooks>` archives.
 
-Here we provide two examples. :ref:`Example #1 <example_zip_foldernames_for_fmriprep_legacy_output_layout>`
-is for regular use cases,
-where the BIDS App will generate one or several folders that wrap all derivative files.
-Example use cases are ``fMRIPrep`` with legacy output layout, as well as ``QSIPrep`` and ``XCP-D``.
+Note that ``output_dir`` only *declares* the folder and commits whatever the
+app writes there -- zipping is opt-in, configured as a ``post_run`` zip hook
+(see Section ``hooks`` above). No zip hook = results are pushed as granular
+files.
 
-If the BIDS App won't generate one or several folders that wrap all derivative files,
-users should ask BABS to create a folder as an extra layer by specifying ``all_results_in_one_zip: true``.
-We explain how to do so in :ref:`Example #2 <example_zip_foldernames_for_fmriprep_BIDS_output_layout>`.
-An example use case is ``fMRIPrep`` with BIDS output layout.
+Which folder to point it at depends on the BIDS App's output layout:
 
+Example #1: the BIDS App writes directly into the output directory
+-------------------------------------------------------------------
 
-.. _example_zip_foldernames_for_fmriprep_legacy_output_layout:
+Recent ``fMRIPrep`` (version >= 21.0) uses
+`BIDS output layout <https://fmriprep.org/en/stable/outputs.html#layout>`_:
+it writes files like ``sub-<label>.html`` and ``dataset_description.json``
+directly into the directory it is given. Point ``output_dir`` at a versioned
+folder and (optionally) archive it with an argless zip hook:
 
-Example #1: for ``fMRIPrep`` *legacy* output layout
----------------------------------------------------
+..  code-block:: yaml
+    :linenos:
 
-Here we use ``fMRIPrep`` (*legacy* output layout) as an example to show you
-how to write this ``zip_foldernames`` section. For this case, all derivative files
-are wrapped in folders generated by fMRIPrep. Similar use cases are ``QSIPrep``
-(e.g., generating a folder called ``qsiprep``), and ``XCP-D`` (generating a folder called ``xcp_d``).
+    output_dir: outputs/fmriprep-23-1-3
+    hooks:
+        post_run:
+            - builtin: zip
 
-Older versions of ``fMRIPrep`` (version < 21.0) generate
-`legacy output layout <https://fmriprep.org/en/stable/outputs.html#legacy-layout>`_
-which looks like below::
+The results land in ``outputs/fmriprep-23-1-3/`` and the zip hook archives
+that folder into ``${sub-id}(_${ses-id})_fmriprep-23-1-3.zip``, where
+``${sub-id}`` is the subject ID (e.g., ``sub-01``) and ``${ses-id}`` is the
+session ID (e.g., ``ses-A``; session-level processing only).
 
-    <output_dir>/
+Example #2: the BIDS App creates its own wrapper folder(s)
+-----------------------------------------------------------
+
+Older ``fMRIPrep`` (version < 21.0) uses the
+`legacy output layout <https://fmriprep.org/en/stable/outputs.html#legacy-layout>`_:
+given an output directory, it creates wrapper folders inside it::
+
+    outputs/
         fmriprep/
         freesurfer/
 
-In this case, ``fMRIPrep`` generates two folders, ``fmriprep`` and ``freesurfer``,
-which include all derivatives. Therefore, we can directly tell BABS the expected foldernames,
-without asking BABS to create them.
-
-Example section **zip_foldernames** for ``fMRIPrep`` *legacy* output layout:
-
-..  code-block:: yaml
-    :linenos:
-
-    zip_foldernames:
-        fmriprep: "20-2-3"
-        freesurfer: "20-2-3"
-
-Here, we write the expected folders in line #2 and #3.
-For other BIDS Apps, if there is only one expected output folder, simply provide only one.
-
-In addition to the folder name(s), please also add the version of the BIDS App as the value.
-
-Above example means that:
-
-* BABS will zip output folder ``fmriprep`` into zip file ``${sub-id}_${ses-id}_fmriprep-20-2-3.zip``;
-* BABS will zip output folder ``freesurfer`` into zip file ``${sub-id}_${ses-id}_freesurfer-20-2-3.zip``;
-
-Here, ``${sub-id}`` is the subject ID (e.g., ``sub-01``),
-and ``${ses-id}`` is the session ID (e.g., ``ses-A``).
-In other words, each subject (or session) will have their specific zip file(s).
-
-
-.. _example_zip_foldernames_for_fmriprep_BIDS_output_layout:
-
-Example #2: for ``fMRIPrep`` *BIDS* output layout: asking BABS to create additional output folder
--------------------------------------------------------------------------------------------------
-
-Recent ``fMRIPrep`` (version >= 21.0) uses
-`BIDS output layout <https://fmriprep.org/en/stable/outputs.html#layout>`_
-which looks like below::
-
-    <output_dir>/
-        logs/
-        sub-<label>/
-        sub-<label>.html
-        dataset_description.json
-        .bidsignore
-
-As you can see, there are files like ``sub-<label>.html`` and ``dataset_description.json``
-which do not belong to any folders (except ``<output_dir>``,
-which is a standard BIDS output directory).
-However, BABS expects there are
-one or more folders in ``<output_dir>`` that are generated by the BIDS App,
-and wrap all derivative files,
-so that BABS can directly zip these "wrapper" folders.
-Therefore, users need to ask BABS to create an additional folder to wrap all the derivatives.
-
-Example section **zip_foldernames** for ``fMRIPrep`` *BIDS* output layout:
+Here the *app* controls the folder names, so point ``output_dir`` at the
+parent and give each zip hook an explicit ``path`` (the folder to archive)
+plus a ``name`` (the archive-name stem, keeping the version in the archive
+name):
 
 ..  code-block:: yaml
     :linenos:
 
-    all_results_in_one_zip: true
-    zip_foldernames:
-        fmriprep: "23-1-3"
+    output_dir: outputs
+    hooks:
+        post_run:
+            - builtin: zip
+              path: outputs/fmriprep
+              name: fmriprep-20-2-3
+            - builtin: zip
+              path: outputs/freesurfer
+              name: freesurfer-20-2-3
 
-Line #1 ``all_results_in_one_zip: true`` asks BABS to create an additional folder,
-i.e., ``fmriprep`` specified in line #3, to wrap all derivatives.
-In this way, the output will look like below::
-
-    <output_dir>/fmriprep/
-        logs/
-        sub-<label>/
-        sub-<label>.html
-        dataset_description.json
-        .bidsignore
-
-Note that all derivatives will locate in the "wrapper" folder called ``fmriprep``.
-BABS will zip this folder into zip file ``${sub-id}_${ses-id}_fmriprep-23-1-3.zip``.
-
-In addition, when using ``all_results_in_one_zip: true``,
-you must only provide one foldername in ``zip_foldernames``.
+This zips ``outputs/fmriprep`` into ``${sub-id}(_${ses-id})_fmriprep-20-2-3.zip``
+and ``outputs/freesurfer`` into ``${sub-id}(_${ses-id})_freesurfer-20-2-3.zip``.
 
 Other detailed instructions
 ---------------------------
 
-* The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
-
-    * In example #1, you probably use ``fmriprep-20-2-3`` for *image NAME*;
-    * In example #2, you probably use ``fmriprep-23-1-3`` for *image NAME*.
-
-* When calling ``babs init``, argument ``--container-name`` should use the same version too, i.e.,
-
-    * ``--container-name fmriprep-20-2-3`` in example #1;
-    * ``--container-name fmriprep-23-1-3`` in example #2;
-
+* The version number in ``output_dir`` (or in a zip hook's ``name``) should be
+  consistent with that in *image NAME* when :ref:`create-a-container-datalad-dataset`,
+  and with ``--container-name`` when calling ``babs init`` --
+  e.g., ``output_dir: outputs/fmriprep-23-1-3`` alongside
+  ``--container-name fmriprep-23-1-3``.
 * Please use dashes ``-`` instead of dots ``.`` when indicating the version number,
   e.g., ``20-2-3`` instead of ``20.2.3``.
-* If there are multiple folders to zip, we recommend using the consistent version string across these folders.
-  In example #1, the ``fMRIPrep`` BIDS App's version is ``20.2.3``, so we specify ``20-2-3`` for
-  both folders ``fmriprep`` and ``freesurfer``,
-  although the version of ``FreeSurfer`` included in this ``fMRIPrep`` may not be ``20.2.3``.
 
 
 .. _cluster-resources:

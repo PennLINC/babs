@@ -85,9 +85,12 @@ def test_babs_init_raw_bids(
     )
     with open(container_config) as f:
         cfg = yaml.safe_load(f)
+    # post_run order is load-bearing: the guard must run before zip flattens
+    # the outputs. The argless zip built-in archives `output_dir` and commits
+    # the archive itself, so this e2e also exercises the runtime zip path.
     cfg['hooks'] = {
         'pre_run': [{'script': str(contract_guard)}],
-        'post_run': [{'script': str(contract_guard)}],
+        'post_run': [{'script': str(contract_guard)}, {'builtin': 'zip'}],
     }
     with open(container_config, 'w') as f:
         yaml.safe_dump(cfg, f)
@@ -128,6 +131,7 @@ def test_babs_init_raw_bids(
     assert (analysis_code / 'hooks' / 'contract_guard.sh').exists()
     participant_job = (analysis_code / 'participant_job.sh').read_text()
     assert participant_job.count('bash ./code/hooks/contract_guard.sh') == 2
+    assert participant_job.count('bash ./code/hooks/zip.sh') == 1
 
     # babs check-setup:
     babs_check_setup_opts = argparse.Namespace(project_root=project_root, job_test=True)
@@ -310,12 +314,13 @@ def test_babs_init_builtin_zip_hook(
     bids_data_singlesession,
     simbids_container_ds,
 ):
-    """`babs init` renders the zip built-in into code/hooks/ and splices it.
+    """`babs init` copies the static zip built-in into code/hooks/ and splices it.
 
-    Render-level check of the ``{builtin: zip}`` form: the shipped
-    hooks/zip.sh.jinja2 is materialized with the per-hook ``path`` param plus
-    the derived ``processing_level``, committed to the analysis dataset, and
-    referenced from participant_job.sh at post_run.
+    Init-level check of the argless ``{builtin: zip}`` form: the packaged
+    static hooks/zip.sh is copied in verbatim, committed to the analysis
+    dataset, and spliced at post_run with the resolved argument (``path``
+    defaulted from the config's top-level ``output_dir``) visible in
+    participant_job.sh.
     """
     project_base = tmp_path_factory.mktemp('zip_hook_project')
     project_root = project_base / 'my_babs_project'
@@ -328,7 +333,7 @@ def test_babs_init_builtin_zip_hook(
     with open(container_config) as f:
         cfg = yaml.safe_load(f)
     cfg['hooks'] = {
-        'post_run': [{'builtin': 'zip', 'path': 'outputs/fmriprep_anat-24-1-1'}],
+        'post_run': [{'builtin': 'zip'}],
     }
     with open(container_config, 'w') as f:
         yaml.safe_dump(cfg, f)
@@ -350,24 +355,25 @@ def test_babs_init_builtin_zip_hook(
     zip_sh = analysis / 'code' / 'hooks' / 'zip.sh'
     assert zip_sh.exists()
     rendered = zip_sh.read_text()
-    # Subject-level id; archive name from basename(path); zip from inside the
-    # parent so the archive contains the folder itself; granular removal:
-    assert 'ZIP_ID="${subid}"' in rendered
-    assert '${sesid}' not in rendered
-    assert 'ZIP_NAME="${ZIP_ID}_fmriprep_anat-24-1-1.zip"' in rendered
-    assert 'cd outputs && 7z a ../${ZIP_NAME} fmriprep_anat-24-1-1' in rendered
-    assert 'git rm -rf -q --sparse "outputs/fmriprep_anat-24-1-1"' in rendered
-    # Spliced at post_run only:
+    # The static script is copied verbatim (subject-vs-session and archive
+    # naming are runtime concerns: sesid presence + the script's args):
+    packaged = Path(babs_base.__file__).parent / 'templates' / 'hooks' / 'zip.sh'
+    assert rendered == packaged.read_text()
+    # Spliced at post_run only, with path resolved from the config's
+    # output_dir into a visible argument; the run's -o declares the granular
+    # output_dir (the zip hook owns the archive commit):
     participant_job = (analysis / 'code' / 'participant_job.sh').read_text()
-    assert participant_job.count('bash ./code/hooks/zip.sh') == 1
-    # Committed at init:
+    assert participant_job.count('bash ./code/hooks/zip.sh outputs/fmriprep_anat-24-1-1') == 1
+    assert '-o "outputs/fmriprep_anat-24-1-1"' in participant_job
+    assert '.zip' not in participant_job
+    # Committed at init (static built-ins ride the imported-files path):
     log = subprocess.run(
         ['git', '-C', str(analysis), 'log', '--oneline'],
         capture_output=True,
         text=True,
         check=True,
     ).stdout
-    assert 'Materialize built-in hook scripts' in log
+    assert 'Import files' in log
 
     # TODO remove demo: persist rendered artifacts outside the container so
     # they can be inspected after the docker run (the worktree is bind-mounted).
