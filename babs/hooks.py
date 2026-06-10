@@ -226,7 +226,9 @@ def resolve_hooks(hooks_config):
                     prior, prior_point = seen[mode.name]
                     if mode == prior:
                         continue  # same file; already materialized
-                    where = repr(point) if prior_point == point else f'{prior_point!r} and {point!r}'
+                    where = (
+                        repr(point) if prior_point == point else f'{prior_point!r} and {point!r}'
+                    )
                     raise ValueError(
                         f'Duplicate hook name {mode.name!r} ({where}): two different '
                         f'hooks both resolve to {op.join(HOOKS_SUBDIR, mode.name + ".sh")!r}.'

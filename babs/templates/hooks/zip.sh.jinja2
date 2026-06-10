@@ -1,0 +1,43 @@
+#!/bin/bash
+# Built-in babs `zip` hook: archive a BIDS App output folder, commit the
+# archive, and remove the granular outputs it replaces.
+#
+# Rendered once at `babs init` into `code/hooks/zip.sh`. Runs at the
+# `post_run` splice point (cwd = the job's dataset clone) as a separate
+# process: `subid` (and `sesid` at session level) arrive via the exported
+# splice-point contract.
+set -e -u -x
+
+{# `path` is the folder to zip, e.g. `outputs/fmriprep_minimal-25-2-5`.  #}
+{# The archive is written to the dataset root and contains the folder    #}
+{# itself (not its parents), matching the layout of babs zips to date.   #}
+{% set zip_folder = path.rsplit('/', 1)[-1] %}
+{% set zip_dir = path.rsplit('/', 1)[0] if '/' in path else '.' %}
+{% set updirs = '../' * (zip_dir.count('/') + 1) if zip_dir != '.' else '' %}
+# subid/sesid are exported by the splice-point subshell in participant_job.sh
+# shellcheck disable=SC2154
+{% if processing_level == 'session' %}
+ZIP_ID="${subid}_${sesid}"
+{% else %}
+ZIP_ID="${subid}"
+{% endif %}
+ZIP_NAME="${ZIP_ID}_{{ zip_folder }}.zip"
+
+# Zip real file content, not annex symlinks:
+datalad unlock "{{ path }}"
+
+datalad run \
+	--explicit \
+	--output "${ZIP_NAME}" \
+	-m "Zip {{ path }} for ${ZIP_ID}" \
+	-- \
+	"cd {{ zip_dir }} && 7z a {{ updirs }}${ZIP_NAME} {{ zip_folder }}"
+
+# `datalad run --explicit` does not track deletions, so the granular outputs
+# are removed in a separate commit (workaround for datalad/datalad#7822,
+# since fixed upstream).
+# TODO research which datalad version shipped the datalad/datalad#7822 fix;
+# once babs's minimum supported datalad is at or above it, fold this removal
+# into the datalad run above and drop this step.
+git rm -rf -q --sparse "{{ path }}"
+git commit -m "Remove {{ path }} for ${ZIP_ID} (zipped)"
