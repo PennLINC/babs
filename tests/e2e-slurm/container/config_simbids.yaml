@@ -13,9 +13,7 @@ bids_app_args:
     -vv: ""
     --anat-only: ""
 
-all_results_in_one_zip: true
-zip_foldernames:
-    fmriprep_anat: "24-1-1"
+output_dir: outputs/fmriprep_anat-24-1-1
 
 singularity_args:
     - --containall

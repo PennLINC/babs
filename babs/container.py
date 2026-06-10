@@ -9,7 +9,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
 from babs.hooks import resolve_hooks
-from babs.utils import app_output_settings_from_config
+from babs.utils import output_dir_from_config
 
 
 class Container:
@@ -128,16 +128,12 @@ class Container:
         input_datasets = input_ds.as_records()
         templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
 
-        # What should the outputs look like?
-        dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(self.config)
-
         script_content = generate_bidsapp_runscript(
             input_datasets,
             processing_level,
             container_name=self.container_name,
             relative_container_path=self.container_path_relToAnalysis,
-            bids_app_output_dir=bids_app_output_dir,
-            dict_zip_foldernames=dict_zip_foldernames,
+            bids_app_output_dir=output_dir_from_config(self.config),
             bids_app_args=self.config.get('bids_app_args', None),
             singularity_args=self.config.get('singularity_args', []),
             templateflow_home=templateflow_home,
@@ -179,7 +175,10 @@ class Container:
             If True, align generated script permissions with shared-group mode.
         """
 
-        hook_pre_run, hook_post_run, _ = resolve_hooks(self.config.get('hooks'))
+        output_dir = output_dir_from_config(self.config)
+        hook_pre_run, hook_post_run, _ = resolve_hooks(
+            self.config.get('hooks'), output_dir=output_dir
+        )
         script_content = generate_submit_script(
             queue_system=system.type,
             cluster_resources_config=self.config['cluster_resources'],
@@ -188,7 +187,7 @@ class Container:
             input_datasets=input_ds.as_records(),
             processing_level=processing_level,
             container_name=self.container_name,
-            zip_foldernames=self.config['zip_foldernames'],
+            output_dir=output_dir,
             project_root=project_root,
             hook_pre_run=hook_pre_run,
             hook_post_run=hook_post_run,

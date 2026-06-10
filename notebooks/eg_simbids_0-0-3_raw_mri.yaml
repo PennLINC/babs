@@ -5,9 +5,12 @@ bids_app_args:
     -vv: ""
     --anat-only: ""
 
-all_results_in_one_zip: true
-zip_foldernames:
-    fmriprep_anat: "25-0-0"
+# Where the BIDS App writes its results; the zip hook below archives
+# this folder into 'sub-xx_(ses-yy_)fmriprep_anat-25-0-0.zip'.
+output_dir: outputs/fmriprep_anat-25-0-0
+hooks:
+    post_run:
+        - builtin: zip
 
 # Arguments that are passed directly to singularity/apptainer:
 singularity_args:

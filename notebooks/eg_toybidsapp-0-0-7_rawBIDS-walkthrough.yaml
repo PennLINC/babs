@@ -23,8 +23,16 @@ singularity_args:
     - --writable-tmpfs
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
-zip_foldernames:
-    toybidsapp: "0-0-7"
+# The BIDS App writes directly into 'outputs/' and creates the
+# subfolder(s) below; each zip hook archives one subfolder
+# ('name' keeps the version in the archive name, since the app
+# controls the folder name).
+output_dir: outputs
+hooks:
+    post_run:
+        - builtin: zip
+          path: outputs/toybidsapp
+          name: toybidsapp-0-0-7    # archived as 'sub-xx_(ses-yy_)toybidsapp-0-0-7.zip'
 
 # How much cluster resources it needs:
 cluster_resources:

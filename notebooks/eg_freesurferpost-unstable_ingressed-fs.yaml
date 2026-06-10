@@ -33,9 +33,12 @@ singularity_args:
     - --writable-tmpfs
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
-all_results_in_one_zip: true
-zip_foldernames:
-    freesurfer-post: "unstable" # folder 'freesurfer-post' will be zipped into 'sub-xx_(ses-yy_)freesurfer-post-unstable.zip'
+# Where the BIDS App writes its results; the zip hook below archives
+# this folder into 'sub-xx_(ses-yy_)freesurfer-post-unstable.zip'.
+output_dir: outputs/freesurfer-post-unstable
+hooks:
+    post_run:
+        - builtin: zip
 
 # How much cluster resources it needs:
 cluster_resources:

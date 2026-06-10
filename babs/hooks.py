@@ -23,11 +23,15 @@ Entry forms supported in this version:
   multiple splice points (e.g. a validator at ``pre_run`` and ``post_run``) --
   it is copied once and referenced from each. Two *different* sources sharing a
   basename collide (no name override yet -- add one if needed).
-- **built-in** -- ``{builtin: <name>}``; babs renders a shipped
-  ``templates/hooks/<name>.sh.jinja2`` into ``code/hooks/<name>.sh`` at init
-  (``Render``). Keys beyond ``builtin`` are per-hook params for the template;
-  bootstrap merges in the top-level/derived render context (e.g. ``output_dir``).
-  ``zip`` is the first built-in.
+- **built-in** -- ``{builtin: <name>}``; the hook ships inside the babs
+  package. A *static* built-in (``templates/hooks/<name>.sh``) is copied in
+  like a script hook (``CopyIn``) and its per-hook params become shell
+  **arguments** at the splice site, with defaults resolved at config time
+  (e.g. zip's ``path`` defaults to the top-level ``output_dir``) -- so several
+  instances share one script and differ only in args. A *templated* built-in
+  (``templates/hooks/<name>.sh.jinja2``) is rendered at init (``Render``);
+  none ship yet -- the container-running built-ins (NORDIC) are its first
+  real consumer. ``zip`` is the first built-in, and it is static.
 
 The **container-running templated built-in** (a babs-shipped ``singularity run``
 template parameterised by per-hook ``singularity_args``/``bids_app_args``) also
@@ -37,19 +41,25 @@ supported: a template is inert without babs code to populate its context.
 """
 
 import os.path as op
+import shlex
 from dataclasses import dataclass, field
 
 # Where copied/rendered hook scripts land inside the analysis dataset.
 HOOKS_SUBDIR = op.join('code', 'hooks')
+
+# Where the packaged built-in hook files live.
+BUILTIN_SOURCE_DIR = op.join(op.dirname(__file__), 'templates', 'hooks')
 
 # The splice points a hooks config may target, in run order.
 SPLICE_POINTS = ('pre_run', 'post_run')
 
 # Known built-ins and the per-hook params each accepts. Also the registry of
 # valid `{builtin: <name>}` names, so a typo'd name or param fails at
-# resolve time (StrictUndefined only catches *missing* template context, not
-# unexpected keys, which would otherwise flow in silently).
-BUILTIN_PARAMS = {'zip': {'path'}}
+# resolve time. STATIC_BUILTINS names the ones shipped as plain `.sh` (copied
+# in; params become splice-site arguments); the rest are `.sh.jinja2`
+# templates (rendered at init; params become render context) -- none yet.
+BUILTIN_PARAMS = {'zip': {'path', 'name'}}
+STATIC_BUILTINS = {'zip'}
 
 
 @dataclass(frozen=True)
@@ -111,21 +121,46 @@ def _default_name(source):
     return base[:-3] if base.endswith('.sh') else base
 
 
-def _resolve_entry(entry):
-    """Classify a single config entry into a materialization mode.
+def _builtin_args(name, entry, output_dir):
+    """Resolve a static built-in's params into its splice-site arguments.
+
+    zip: ``<path> [<name>]``. ``path`` defaults to the config's top-level
+    ``output_dir`` (the argless common case: archive the whole app output);
+    ``name`` is only passed when configured (the script defaults it to
+    ``path``'s basename).
+    """
+    path = entry.get('path', output_dir)
+    if not path:
+        raise ValueError(
+            f'The {name!r} built-in needs a folder to archive: give it a '
+            '`path` param or set the top-level `output_dir`.'
+        )
+    return (path,) if 'name' not in entry else (path, entry['name'])
+
+
+def _resolve_entry(entry, output_dir=None):
+    """Classify a single config entry into a materialization mode + arguments.
 
     Parameters
     ----------
     entry : str or dict
         One item from a ``pre_run:`` / ``post_run:`` list.
+    output_dir : str or None
+        The config's top-level ``output_dir``; defaults static built-in args
+        (zip's ``path``).
 
     Returns
     -------
-    Verbatim, CopyIn, or Render
+    mode : Verbatim, CopyIn, or Render
         The classified mode.
+    args : tuple of str
+        Splice-site arguments for the hook's command (static built-ins only;
+        empty otherwise). Args belong to the *command*, not the
+        materialization: several instances of one static built-in share a
+        single materialized file and differ only in args.
     """
     if isinstance(entry, str):
-        return Verbatim(command=entry)
+        return Verbatim(command=entry), ()
 
     if isinstance(entry, dict) and 'script' in entry:
         unknown = set(entry) - {'script'}
@@ -142,7 +177,7 @@ def _resolve_entry(entry):
         # `source` is used verbatim as the copy source -- same convention as
         # `imported_files.original_path` (an absolute local path; resolved by
         # `_init_import_files`, which raises FileNotFoundError on a bad path).
-        return CopyIn(original_path=source, name=name)
+        return CopyIn(original_path=source, name=name), ()
 
     if isinstance(entry, dict) and 'builtin' in entry:
         name = entry['builtin']
@@ -156,13 +191,22 @@ def _resolve_entry(entry):
                 f'Unsupported key(s) {sorted(unknown)} for built-in hook {name!r}; '
                 f'it accepts {sorted(BUILTIN_PARAMS[name])}.'
             )
-        # Keys beyond `builtin` are per-hook parameters for the built-in's
-        # template (e.g. zip's optional `path`). They are the *config-derived*
-        # part of the render context; bootstrap merges in the top-level/derived
-        # part (e.g. `processing_level`) at render time. The template path is
-        # loader-relative (PackageLoader('babs', 'templates')).
+        # A static built-in is copied in like a script hook; its params become
+        # splice-site arguments (resolved here, at config time, so defaults
+        # like zip's path <- output_dir are visible in participant_job.sh).
+        if name in STATIC_BUILTINS:
+            source = op.join(BUILTIN_SOURCE_DIR, f'{name}.sh')
+            return CopyIn(original_path=source, name=name), _builtin_args(
+                name, entry, output_dir
+            )
+        # A templated built-in renders at init; keys beyond `builtin` are the
+        # *config-derived* part of its render context, and bootstrap merges in
+        # the top-level/derived part (e.g. `processing_level`) at render time.
+        # The template path is loader-relative (PackageLoader('babs',
+        # 'templates')). None ship yet (zip is static); the container-running
+        # built-ins (PR 3) land here.
         context = {k: v for k, v in entry.items() if k != 'builtin'}
-        return Render(template_path=f'hooks/{name}.sh.jinja2', name=name, context=context)
+        return Render(template_path=f'hooks/{name}.sh.jinja2', name=name, context=context), ()
 
     raise ValueError(
         f'Unsupported hook entry: {entry!r}. This version supports a raw shell '
@@ -170,16 +214,19 @@ def _resolve_entry(entry):
     )
 
 
-def _command_for(mode):
+def _command_for(mode, args=()):
     """The runtime command string a classified mode contributes to its splice list."""
     if isinstance(mode, Verbatim):
         return mode.command
     if isinstance(mode, (CopyIn, Render)):
-        return f'bash ./{mode.analysis_path}'
+        command = f'bash ./{mode.analysis_path}'
+        if args:
+            command += ' ' + ' '.join(shlex.quote(str(arg)) for arg in args)
+        return command
     raise TypeError(f'Unknown hook mode: {mode!r}')
 
 
-def resolve_hooks(hooks_config):
+def resolve_hooks(hooks_config, output_dir=None):
     """Resolve a ``hooks:`` config block into spliceable commands + materializations.
 
     Parameters
@@ -187,6 +234,10 @@ def resolve_hooks(hooks_config):
     hooks_config : dict or None
         The top-level ``hooks:`` block (``{'pre_run': [...], 'post_run': [...]}``),
         or ``None`` when no hooks are configured.
+    output_dir : str or None
+        The config's top-level ``output_dir``; used to default static
+        built-in arguments (the argless ``{builtin: zip}`` archives it).
+        Only consulted when such a hook is configured.
 
     Returns
     -------
@@ -225,8 +276,8 @@ def resolve_hooks(hooks_config):
 
     for point in SPLICE_POINTS:
         for entry in hooks_config.get(point) or []:
-            mode = _resolve_entry(entry)
-            resolved[point].append(_command_for(mode))
+            mode, args = _resolve_entry(entry, output_dir)
+            resolved[point].append(_command_for(mode, args))
             if isinstance(mode, (CopyIn, Render)):
                 # Collision is about the materialized file, not the name alone:
                 # the *same* hook used at multiple splice points (identical

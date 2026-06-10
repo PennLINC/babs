@@ -14,7 +14,6 @@ def generate_bidsapp_runscript(
     container_name,
     relative_container_path,
     bids_app_output_dir,
-    dict_zip_foldernames,
     bids_app_args=None,
     singularity_args=None,
     templateflow_home=None,
@@ -43,7 +42,7 @@ def generate_bidsapp_runscript(
         The contents of the bash script that runs the BIDS App singularity image.
     """
 
-    from .constants import OUTPUT_MAIN_FOLDERNAME, PATH_FS_LICENSE_IN_CONTAINER
+    from .constants import PATH_FS_LICENSE_IN_CONTAINER
 
     # 1. check `bids_app_args` section:
     if bids_app_args is None:
@@ -73,9 +72,6 @@ def generate_bidsapp_runscript(
     # Get unzip commands for any zipped input datasets
     cmd_unzip_inputds = get_input_unzipping_cmds(input_datasets)
 
-    # Generate zip command
-    cmd_zip = get_output_zipping_cmds(dict_zip_foldernames, processing_level)
-
     # Render the template
     env = Environment(
         loader=PackageLoader('babs', 'templates'),
@@ -101,8 +97,6 @@ def generate_bidsapp_runscript(
         bids_app_input_dir=bids_app_input_dir,
         bids_app_output_dir=bids_app_output_dir,
         bids_app_args=bids_app_args,
-        cmd_zip=cmd_zip,
-        OUTPUT_MAIN_FOLDERNAME=OUTPUT_MAIN_FOLDERNAME,
         singularity_flags=singularity_args,
         subject_selection_flag=subject_selection_flag,
     )

@@ -50,9 +50,12 @@ bids_app_args:
 
 # Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
 #   As fMRIPrep will use BIDS output layout, we need to ask BABS to create a folder 'qsiprep' to wrap all derivatives:
-all_results_in_one_zip: true
-zip_foldernames:
-    qsiprep: "1-0-0" # folder 'qsiprep' will be zipped into 'sub-xx_(ses-yy_)qsiprep-1-0-0.zip'
+# Where the BIDS App writes its results; the zip hook below archives
+# this folder into 'sub-xx_(ses-yy_)qsiprep-1-0-0.zip'.
+output_dir: outputs/qsiprep-1-0-0
+hooks:
+    post_run:
+        - builtin: zip
 
 # How much cluster resources it needs:
 cluster_resources:
