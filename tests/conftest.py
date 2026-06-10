@@ -388,19 +388,6 @@ def gather_slurm_job_diagnostics(
     return '\n'.join(lines)
 
 
-def ensure_container_image(project_root, container_name='simbids-0-0-3'):
-    """Ensure container image content is present so jobs can find it at runtime."""
-    project_root = Path(project_root)
-    containers_path = project_root / 'analysis' / 'containers'
-    image_abs = containers_path / '.datalad' / 'environments' / container_name / 'image'
-    if containers_path.exists():
-        try:
-            dlapi.get(path=str(image_abs), dataset=str(containers_path))
-        except Exception as e:
-            if not image_abs.exists():
-                raise RuntimeError(f'Failed to get container image for tests: {e}') from e
-
-
 def get_babs_project(
     tmp_path_factory,
     templateflow_home,
@@ -449,8 +436,6 @@ def get_babs_project(
         container_config=container_config,
         initial_inclusion_df=None,
     )
-
-    ensure_container_image(project_root, container_name)
 
     if return_path:
         return project_root
