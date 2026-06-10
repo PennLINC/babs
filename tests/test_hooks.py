@@ -95,7 +95,6 @@ def test_same_script_at_both_points_materializes_once():
 def test_render_equality_distinguishes_context():
     # The collision rule keys on descriptor equality; Render carries `context`,
     # so the same template rendered two ways into one name is a real conflict.
-    # (Render isn't produced by resolve_hooks yet -- this pins the invariant.)
     assert Render('zip.sh.jinja2', 'zip', {'a': 1}) == Render('zip.sh.jinja2', 'zip', {'a': 1})
     assert Render('zip.sh.jinja2', 'zip', {'a': 1}) != Render('zip.sh.jinja2', 'zip', {'a': 2})
 
@@ -110,8 +109,9 @@ def test_non_mapping_config_raises():
         resolve_hooks(['echo x'])
 
 
-@pytest.mark.parametrize('entry', [{'builtin': 'zip'}, {'container': 'nordic'}, 42])
+@pytest.mark.parametrize('entry', [{'container': 'nordic'}, {'unknown': 'x'}, 42])
 def test_unsupported_entry_forms_raise(entry):
+    # The container-running form is still deferred; arbitrary dicts / scalars are invalid.
     with pytest.raises(ValueError, match='Unsupported hook entry'):
         resolve_hooks({'pre_run': [entry]})
 
@@ -133,13 +133,44 @@ def test_source_with_invalid_derived_name_raises(bad_source):
         resolve_hooks(cfg)
 
 
-def test_render_is_defined_but_never_produced():
-    # The forward-compat seam exists as a type...
-    r = Render(template_path='t.sh.jinja2', name='zip', context={'k': 'v'})
-    assert r.analysis_path == 'code/hooks/zip.sh'
-    # ...but resolve_hooks never returns one in this version (no config form maps to it).
-    _, _, materializations = resolve_hooks({'post_run': ['echo verbatim', {'script': '/x.sh'}]})
-    assert all(isinstance(m, CopyIn) for m in materializations)
+def test_builtin_resolves_to_render():
+    cfg = {'post_run': [{'builtin': 'zip'}]}
+    pre_run, post_run, materializations = resolve_hooks(cfg)
+    assert pre_run == []
+    assert post_run == ['bash ./code/hooks/zip.sh']
+    assert materializations == [
+        Render(template_path='hooks/zip.sh.jinja2', name='zip', context={})
+    ]
+    assert materializations[0].analysis_path == 'code/hooks/zip.sh'
+
+
+def test_builtin_extra_keys_become_context():
+    # per-hook params (e.g. zip's optional `path`) flow into the render context
+    cfg = {'post_run': [{'builtin': 'zip', 'path': 'outputs/freesurfer-7-3-2'}]}
+    _, _, materializations = resolve_hooks(cfg)
+    assert materializations == [
+        Render(
+            template_path='hooks/zip.sh.jinja2',
+            name='zip',
+            context={'path': 'outputs/freesurfer-7-3-2'},
+        )
+    ]
+
+
+def test_builtin_same_name_different_context_collides():
+    # descriptor equality includes context -> same name rendered two ways collides
+    cfg = {
+        'pre_run': [{'builtin': 'zip'}],
+        'post_run': [{'builtin': 'zip', 'path': 'outputs/x'}],
+    }
+    with pytest.raises(ValueError, match='Duplicate hook name'):
+        resolve_hooks(cfg)
+
+
+def test_builtin_invalid_name_raises():
+    cfg = {'post_run': [{'builtin': '../escape'}]}
+    with pytest.raises(ValueError, match='Invalid hook name'):
+        resolve_hooks(cfg)
 
 
 def test_verbatim_dataclass_shape():

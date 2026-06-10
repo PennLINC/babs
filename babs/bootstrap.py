@@ -13,7 +13,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.base import BABS
 from babs.container import Container
-from babs.hooks import resolve_hooks
+from babs.hooks import CopyIn, Render, resolve_hooks
 from babs.input_datasets import InputDatasets
 from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
@@ -276,9 +276,18 @@ class BABSBootstrap(BABS):
         # self.analysis_path, so it survives a configurable analysis_path).
         # Pipeline configs have no `hooks:` block, so this is a no-op there.
         _, _, hook_materializations = resolve_hooks(container.config.get('hooks'))
+        renders = [m for m in hook_materializations if isinstance(m, Render)]
+        if renders:
+            # Built-in (Render) materialization -- rendering the shipped
+            # `templates/hooks/<name>.sh.jinja2` into code/hooks/ -- lands in the
+            # next slice (zip-as-hook). Reject cleanly until then.
+            raise NotImplementedError(
+                f'Built-in hooks not yet materialized: {[r.name for r in renders]}'
+            )
+        copy_ins = [m for m in hook_materializations if isinstance(m, CopyIn)]
         self._init_import_files(
             container.config.get('imported_files', [])
-            + [m.as_import() for m in hook_materializations]
+            + [m.as_import() for m in copy_ins]
         )
         # _update_inclusion_dataframe() expects a DataFrame (or None).
         # If --list_sub_file was provided, use the parsed DataFrame
