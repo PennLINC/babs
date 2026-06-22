@@ -580,6 +580,14 @@ class BABSBootstrap(BABS):
                     f'Requested imported file {imported_file["original_path"]} does not exist.'
                 )
             imported_location = op.join(self.analysis_path, imported_file['analysis_path'])
+            # Reject a destination that escapes the analysis dir (absolute or
+            # `..`), which the makedirs below would otherwise create anywhere.
+            analysis_root = op.abspath(self.analysis_path)
+            if op.commonpath([analysis_root, op.abspath(imported_location)]) != analysis_root:
+                raise ValueError(
+                    f'Imported-file destination {imported_file["analysis_path"]!r} '
+                    f'escapes the analysis directory {self.analysis_path}.'
+                )
             # Create the destination's parent dir if needed (e.g. hooks land in
             # `code/hooks/`, which doesn't pre-exist like flat `code/` does).
             os.makedirs(op.dirname(imported_location), exist_ok=True)
