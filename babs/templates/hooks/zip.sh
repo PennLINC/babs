@@ -31,13 +31,20 @@ ZIP_NAME="${ZIP_ID}_${name}.zip"
 datalad unlock "${path}"
 
 # cd into the parent so the archive contains the folder at its top level;
-# OLDPWD (the dataset root) is where the archive lands.
+# OLDPWD (the dataset root, where `bash -c` starts) is where the archive
+# lands. Two subtleties:
+#  - the command runs via `bash -c` because datalad execs the words after
+#    `--` directly (no shell), so the `&&` needs an explicit shell;
+#  - the braces in ${{OLDPWD}} are doubled to escape datalad run's own
+#    {placeholder} syntax -- datalad collapses them to ${OLDPWD}, which the
+#    job's shell then expands (it stays literal in the run record, so
+#    `datalad rerun` re-resolves it -- no absolute path is baked in).
 datalad run \
 	--explicit \
 	--output "${ZIP_NAME}" \
 	-m "Zip ${path} for ${ZIP_ID}" \
 	-- \
-	"cd ${zip_dir} && 7z a \"\${OLDPWD}/${ZIP_NAME}\" ${zip_folder}"
+	bash -c "cd ${zip_dir} && 7z a \"\${{OLDPWD}}/${ZIP_NAME}\" ${zip_folder}"
 
 # `datalad run --explicit` does not track deletions, so the granular outputs
 # are removed in a separate commit (workaround for datalad/datalad#7822,
