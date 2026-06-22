@@ -173,6 +173,7 @@ class BABS:
         self.pipeline = config_yaml.get('pipeline', None)
         if self.pipeline is not None:
             self._validate_pipeline_config()
+        self.container_images = self.get_container_image_paths(config_yaml)
 
         # Check the output RIA:
         self.wtf_key_info(flag_output_ria_only=True)
@@ -234,6 +235,26 @@ class BABS:
                 print('    Inter-step commands: present')
 
         print('Pipeline configuration validation complete!')
+
+    @staticmethod
+    def container_image_path(container_name: str) -> str:
+        """Return the analysis-relative image path for a DataLad container."""
+        return op.join('containers', '.datalad', 'environments', container_name, 'image')
+
+    def get_container_image_paths(self, config_yaml: dict) -> list[str]:
+        """Get analysis-relative container image paths used by participant jobs."""
+        container_images = config_yaml.get('container_images')
+        if isinstance(container_images, str):
+            container_images = [container_images]
+        elif container_images is None:
+            if self.pipeline is not None:
+                container_names = [step['container_name'] for step in self.pipeline]
+            else:
+                container_names = [self.container['name']]
+            container_images = [self.container_image_path(name) for name in container_names]
+
+        # Preserve order while avoiding duplicate datalad get calls.
+        return list(dict.fromkeys(container_images))
 
     def _update_inclusion_dataframe(
         self, initial_inclusion_df: pd.DataFrame | None = None

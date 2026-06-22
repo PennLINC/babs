@@ -140,6 +140,52 @@ def test_pipeline_config_details(babs_project_sessionlevel):
     babs_proj._validate_pipeline_config()
 
 
+def test_container_image_path():
+    assert (
+        BABS.container_image_path('fmriprep-1-2-3')
+        == 'containers/.datalad/environments/fmriprep-1-2-3/image'
+    )
+
+
+def test_get_container_image_paths_from_explicit_string():
+    babs_proj = object.__new__(BABS)
+
+    assert babs_proj.get_container_image_paths(
+        {'container_images': 'containers/custom/image'}
+    ) == ['containers/custom/image']
+
+
+def test_get_container_image_paths_deduplicates_explicit_list():
+    babs_proj = object.__new__(BABS)
+
+    assert babs_proj.get_container_image_paths(
+        {'container_images': ['containers/a/image', 'containers/a/image', 'containers/b/image']}
+    ) == ['containers/a/image', 'containers/b/image']
+
+
+def test_get_container_image_paths_from_single_container():
+    babs_proj = object.__new__(BABS)
+    babs_proj.pipeline = None
+    babs_proj.container = {'name': 'simbids-0-0-3'}
+
+    assert babs_proj.get_container_image_paths({}) == [
+        'containers/.datalad/environments/simbids-0-0-3/image'
+    ]
+
+
+def test_get_container_image_paths_from_pipeline():
+    babs_proj = object.__new__(BABS)
+    babs_proj.pipeline = [
+        {'container_name': 'nordic-0-0-1'},
+        {'container_name': 'fmriprep-25-0-0'},
+    ]
+
+    assert babs_proj.get_container_image_paths({}) == [
+        'containers/.datalad/environments/nordic-0-0-1/image',
+        'containers/.datalad/environments/fmriprep-25-0-0/image',
+    ]
+
+
 def test_update_inclusion_empty_combine(babs_project_sessionlevel):
     """Test _update_inclusion_dataframe when combined dataframe is empty."""
     babs_proj = BABS(babs_project_sessionlevel)
