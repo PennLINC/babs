@@ -275,10 +275,9 @@ class BABSBootstrap(BABS):
         # Materialize hooks (and copy in any other files needed): hook scripts
         # (user `script:` and built-ins alike) are CopyIns riding the
         # imported_files path. Destinations are relative to self.analysis_path,
-        # so they survive a configurable analysis_path. Pipeline configs have
-        # no `hooks:` block, so this is a no-op there (and output_dir -- which
-        # would hard-error on a pipeline config's legacy zip keys -- is only
-        # derived when hooks are configured).
+        # so they survive a configurable analysis_path. output_dir is only
+        # derived when hooks are configured (a hook-free config needn't supply
+        # it).
         hooks_config = container.config.get('hooks')
         _, _, hook_materializations = resolve_hooks(
             hooks_config,

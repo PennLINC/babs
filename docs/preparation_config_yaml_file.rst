@@ -27,6 +27,8 @@ Sections in the configuration YAML file
 * **bids_app_args**: the arguments for the BIDS App;
 * **imported_files**: the files to be copied into the datalad dataset;
 * **output_dir**: the folder the BIDS App writes its results into;
+* **all_results_in_one_zip**: (pipeline mode only) whether to zip all results in one zip file;
+* **zip_foldernames**: (pipeline mode only) the results foldername(s) to be zipped;
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
 * **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 

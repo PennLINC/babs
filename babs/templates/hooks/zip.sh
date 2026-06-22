@@ -48,9 +48,9 @@ datalad run \
 
 # `datalad run --explicit` does not track deletions, so the granular outputs
 # are removed in a separate commit (workaround for datalad/datalad#7822,
-# since fixed upstream).
-# TODO research which datalad version shipped the datalad/datalad#7822 fix;
-# once babs's minimum supported datalad is at or above it, fold this removal
-# into the datalad run above and drop this step.
+# fixed in datalad 1.3.4).
+# TODO babs currently pins datalad >= 0.17.2, so the #7822 fix is not
+# guaranteed at runtime. Once babs raises its minimum supported datalad to
+# >= 1.3.4, fold this removal into the datalad run above and drop this step.
 git rm -rf -q --sparse "${path}"
 git commit -m "Remove ${path} for ${ZIP_ID} (zipped)"
