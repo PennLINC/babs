@@ -11,7 +11,6 @@ import yaml
 from babs.utils import (
     app_output_settings_from_config,
     combine_inclusion_dataframes,
-    output_dir_from_config,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_repo_hash,
@@ -19,6 +18,7 @@ from babs.utils import (
     get_results_branches_from_ria,
     get_username,
     identify_running_jobs,
+    output_dir_from_config,
     parse_select_arg,
     read_yaml,
     replace_placeholder_from_config,
