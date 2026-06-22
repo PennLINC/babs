@@ -14,8 +14,6 @@ import pandas as pd
 class InputDataset:
     """Represent an input dataset."""
 
-    _is_input_dataset = True
-
     def __init__(
         self,
         name,
@@ -80,11 +78,7 @@ class InputDataset:
         """Get the path to this input dataset in the BABS project analysis directory."""
         if self._babs_project_analysis_path is None:
             raise ValueError('BABS project analysis path is not set.')
-        if self._is_input_dataset:
-            return os.path.join(self._babs_project_analysis_path, self.path_in_babs)
-        else:
-            # If this is an output dataset, the path is the analysis directory
-            return self._babs_project_analysis_path
+        return os.path.join(self._babs_project_analysis_path, self.path_in_babs)
 
     @property
     def is_up_to_date(self):
@@ -149,12 +143,11 @@ class InputDataset:
             print('Using the subjects (sessions) provided in the initial inclusion list.')
             inclu_df = initial_inclu_df
         else:
-            if self._is_input_dataset:
-                print(
-                    'Did not provide an initial inclusion list.'
-                    f' Examining input dataset {self.name}'
-                    ' to get an initial inclusion list.'
-                )
+            print(
+                'Did not provide an initial inclusion list.'
+                f' Examining input dataset {self.name}'
+                ' to get an initial inclusion list.'
+            )
 
             if self.is_zipped:
                 inclu_df = self._get_sub_ses_from_zipped_input()
@@ -179,7 +172,7 @@ class InputDataset:
         sub_ses_df: pandas DataFrame
             A pandas DataFrame with the subjects and sessions available in the input dataset
         """
-        zip_name = self.name if self._is_input_dataset else ''
+        zip_name = self.name
         zip_pattern = (
             f'sub-*_ses-*_{zip_name}*.zip'
             if self.processing_level == 'session'
