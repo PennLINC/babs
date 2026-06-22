@@ -16,7 +16,7 @@ from babs.utils import get_git_show_ref_shasum
 def test_merge_no_branches(babs_project_sessionlevel, monkeypatch):
     """Test babs_merge when no branches have results."""
     babs_proj = BABSMerge(babs_project_sessionlevel)
-    monkeypatch.setattr(babs_proj, '_get_results_branches', lambda: [])
+    monkeypatch.setattr(babs_proj, '_get_results_branches', lambda: {})
 
     with pytest.raises(ValueError, match='There is no successfully finished job yet'):
         babs_proj.babs_merge()
@@ -52,7 +52,7 @@ def test_merge_all_branches_no_results(babs_project_sessionlevel, tmp_path, monk
     git_ref, _ = get_git_show_ref_shasum(default_branch, merge_ds_path)
 
     def mock_branches():
-        return ['job-123-1-sub-0001']
+        return {'job-123-1-sub-0001': 'a' * 40}
 
     def mock_key_info(flag_output_ria_only=False):
         babs_proj.analysis_dataset_id = 'test-id'
@@ -276,7 +276,7 @@ def test_merge_no_head(babs_project_sessionlevel, tmp_path, monkeypatch):
         babs_proj.analysis_dataset_id = 'test-id'
 
     monkeypatch.setattr(babs_proj, 'wtf_key_info', set_analysis_id)
-    monkeypatch.setattr(babs_proj, '_get_results_branches', lambda: ['job-123'])
+    monkeypatch.setattr(babs_proj, '_get_results_branches', lambda: {'job-123': 'a' * 40})
 
     from babs.merge import dlapi
 

@@ -14,6 +14,7 @@ from babs.utils import (
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_repo_hash,
+    get_results_branches,
     get_results_branches_from_clone,
     get_results_branches_from_ria,
     get_username,
@@ -193,6 +194,24 @@ def test_git_show_ref_shasum(tmp_path):
     # Test with non-existent branch
     with pytest.raises(subprocess.CalledProcessError):
         get_git_show_ref_shasum('nonexistent-branch', repo_path)
+
+
+def test_get_results_branches(tmp_path):
+    """get_results_branches maps each job-* branch to its tip SHA, skipping non-job refs."""
+    with patch('babs.utils.subprocess.run') as mock_run:
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout=('aaa111 job-0001-sub-01\nbbb222 job-0002-sub-02\nccc333 main\n'),
+            stderr='',
+        )
+        result = get_results_branches(str(tmp_path))
+    assert result == {'job-0001-sub-01': 'aaa111', 'job-0002-sub-02': 'bbb222'}
+    mock_run.assert_called_once_with(
+        ['git', 'for-each-ref', '--format=%(objectname) %(refname:short)', 'refs/heads/job-*'],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+    )
 
 
 def test_get_results_branches_from_clone(tmp_path):

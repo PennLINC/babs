@@ -389,9 +389,11 @@ def get_git_show_ref_shasum(branch_name, the_path):
 
 def get_results_branches(ria_directory):
     """
-    Get branch list from git repository.
+    Map each ``job-*`` results branch to its tip commit SHA.
 
-    If no branches are found, an empty list is returned.
+    Returns ``{branch_name: sha}`` (the SHA is the job's result commit, recorded
+    into ``has_results``). One ``git for-each-ref`` call; empty dict if no
+    branches are found. Callers that only need the names can iterate the keys.
 
     Parameters:
     --------------
@@ -399,22 +401,19 @@ def get_results_branches(ria_directory):
         path to the git (or datalad) repository
 
     """
-    branch_output = subprocess.run(
-        ['git', 'branch', '--list'],
+    out = subprocess.run(
+        ['git', 'for-each-ref', '--format=%(objectname) %(refname:short)', 'refs/heads/job-*'],
         cwd=ria_directory,
         capture_output=True,
         text=True,
     )
 
-    # Filter to just branches starting with 'job-'
-    branches = [
-        # Remove leading and trailing asterisks and spaces
-        b.strip().replace('* ', '')
-        for b in branch_output.stdout.strip().split('\n')
-        if b.strip().replace('* ', '').startswith('job-')
-    ]
-
-    return branches
+    branch_to_sha = {}
+    for line in out.stdout.strip().splitlines():
+        sha, _, name = line.strip().partition(' ')
+        if name.startswith('job-'):
+            branch_to_sha[name] = sha
+    return branch_to_sha
 
 
 def get_results_branches_from_clone(clone_path):

@@ -497,8 +497,11 @@ class BABS:
             # ^^ "notneeded": nothing to save
             raise Exception('`datalad save` failed!')
 
-    def _get_results_branches(self) -> list[str]:
-        """Get the results branch names from the output RIA in a list."""
+    def _get_results_branches(self) -> dict[str, str]:
+        """Map each results branch in the output RIA to its tip commit SHA.
+
+        Callers that only need names can iterate the keys.
+        """
         return get_results_branches(self.output_ria_data_dir)
 
     def _update_results_status(self) -> dict:
@@ -516,8 +519,8 @@ class BABS:
             statuses = {}
 
         # Update from results branches in output RIA
-        branches = self._get_results_branches()
-        statuses = update_from_branches(statuses, branches)
+        branch_to_sha = self._get_results_branches()
+        statuses = update_from_branches(statuses, branch_to_sha)
 
         # Update from merged zip files in analysis dir
         merged_zip_df = self._get_merged_results_from_analysis_dir()

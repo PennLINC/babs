@@ -8,6 +8,7 @@ from babs.scheduler import report_job_status
 from babs.status import (
     JobStatus,
     SchedulerState,
+    _parse_has_results,
     create_initial_statuses,
     read_job_status_csv,
     update_from_branches,
@@ -135,6 +136,18 @@ class TestCSVRoundTrip:
             assert loaded[key].is_failed == original[key].is_failed
             assert loaded[key].submitted == original[key].submitted
 
+    def test_has_results_sha_round_trips(self, tmp_path):
+        """has_results carries a result-commit SHA verbatim through the csv."""
+        sha = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'
+        original = self._sample_statuses()
+        original[('sub-01',)].has_results = sha
+        path = str(tmp_path / 'job_status.csv')
+        write_job_status_csv(path, original)
+        loaded = read_job_status_csv(path)
+
+        assert loaded[('sub-01',)].has_results == sha
+        assert loaded[('sub-02',)].has_results is False
+
     def test_round_trip_session_level(self, tmp_path):
         original = {
             ('sub-01', 'ses-A'): JobStatus(
@@ -209,6 +222,20 @@ class TestCSVRoundTrip:
 # -- update_from_branches ------------------------------------------------------
 
 
+@pytest.mark.parametrize(
+    ('raw', 'expected'),
+    [
+        ('', False),
+        ('False', False),
+        ('false', False),
+        ('True', True),  # legacy pre-SHA csv, accepted as truthy
+        ('a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2', 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'),
+    ],
+)
+def test_parse_has_results(raw, expected):
+    assert _parse_has_results(raw) == expected
+
+
 class TestUpdateFromBranches:
     def _initial_statuses(self):
         return {
@@ -242,24 +269,25 @@ class TestUpdateFromBranches:
             ),
         }
 
-    def test_branch_sets_has_results(self):
+    def test_branch_sets_has_results_to_sha(self):
         statuses = self._initial_statuses()
-        updated = update_from_branches(statuses, ['job-100-1-sub-01'])
+        sha = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2'
+        updated = update_from_branches(statuses, {'job-100-1-sub-01': sha})
 
-        assert updated[('sub-01',)].has_results is True
+        assert updated[('sub-01',)].has_results == sha
         assert updated[('sub-01',)].job_id == 100
         assert updated[('sub-01',)].task_id == 1
 
     def test_no_match_leaves_unchanged(self):
         statuses = self._initial_statuses()
-        updated = update_from_branches(statuses, ['job-100-1-sub-99'])
+        updated = update_from_branches(statuses, {'job-100-1-sub-99': 'deadbeef'})
 
         assert updated[('sub-01',)].has_results is False
         assert updated[('sub-02',)].has_results is False
 
     def test_non_matching_branch_names_ignored(self):
         statuses = self._initial_statuses()
-        updated = update_from_branches(statuses, ['main', 'not-a-job'])
+        updated = update_from_branches(statuses, {'main': 'sha1', 'not-a-job': 'sha2'})
 
         assert updated == statuses
 
@@ -280,19 +308,23 @@ class TestUpdateFromBranches:
                 name='',
             ),
         }
-        updated = update_from_branches(statuses, ['job-200-1-sub-01-ses-A'])
+        sha = 'c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00'
+        updated = update_from_branches(statuses, {'job-200-1-sub-01-ses-A': sha})
 
-        assert updated[('sub-01', 'ses-A')].has_results is True
+        assert updated[('sub-01', 'ses-A')].has_results == sha
         assert updated[('sub-01', 'ses-A')].job_id == 200
 
     def test_already_has_results_preserved(self):
-        """A job that already has_results=True keeps it even with no matching branch."""
+        """A job with a truthy has_results keeps it when no branch matches.
+
+        Uses a legacy ``True`` (a pre-SHA csv) to confirm it is not clobbered.
+        """
         statuses = {
             ('sub-01',): JobStatus(
                 sub_id='sub-01',
                 ses_id=None,
                 scheduler_state=SchedulerState.DONE,
-                has_results=True,
+                has_results=True,  # legacy pre-SHA value
                 job_id=50,
                 task_id=1,
                 time_used='1:00',
@@ -303,14 +335,37 @@ class TestUpdateFromBranches:
                 name='old_job',
             ),
         }
-        updated = update_from_branches(statuses, [])
+        updated = update_from_branches(statuses, {})
 
         assert updated[('sub-01',)].has_results is True
         assert updated[('sub-01',)].job_id == 50
 
+    def test_legacy_true_overwritten_by_sha_when_branch_present(self):
+        """A legacy ``True`` is upgraded to the SHA when its branch is seen."""
+        statuses = {
+            ('sub-01',): JobStatus(
+                sub_id='sub-01',
+                ses_id=None,
+                scheduler_state=SchedulerState.DONE,
+                has_results=True,  # legacy pre-SHA value
+                job_id=50,
+                task_id=1,
+                time_used='1:00',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=1,
+                partition='normal',
+                name='old_job',
+            ),
+        }
+        sha = 'feedface00feedface00feedface00feedface00'
+        updated = update_from_branches(statuses, {'job-50-1-sub-01': sha})
+
+        assert updated[('sub-01',)].has_results == sha
+
     def test_empty_statuses_with_branches(self):
         """Branches for unknown subjects are ignored."""
-        updated = update_from_branches({}, ['job-100-1-sub-99'])
+        updated = update_from_branches({}, {'job-100-1-sub-99': 'deadbeef'})
         assert len(updated) == 0
 
 

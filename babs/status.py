@@ -41,7 +41,7 @@ class JobStatus:
     sub_id: str
     ses_id: str | None
     scheduler_state: SchedulerState
-    has_results: bool
+    has_results: str | bool  # False (no result) or the result-commit SHA
     job_id: int | None
     task_id: int | None
     time_used: str
@@ -117,6 +117,20 @@ def _parse_bool(value: str) -> bool:
     return value.strip().lower() == 'true'
 
 
+def _parse_has_results(value: str) -> str | bool:
+    """has_results is False (no result) or the result-commit SHA.
+
+    Legacy csvs (pre-SHA) stored a bare 'True'; accept it as truthy so an
+    in-flight project keeps working until the value is overwritten with a SHA.
+    """
+    value = value.strip()
+    if value == '' or value.lower() == 'false':
+        return False
+    if value.lower() == 'true':
+        return True
+    return value  # a commit SHA
+
+
 def _parse_optional_int(value: str) -> int | None:
     value = value.strip()
     if value in ('', 'NA', 'nan'):
@@ -144,7 +158,7 @@ def _job_status_from_row(row: dict) -> JobStatus:
         sub_id=row['sub_id'].strip(),
         ses_id=ses_id,
         scheduler_state=scheduler_state,
-        has_results=_parse_bool(row.get('has_results', 'False')),
+        has_results=_parse_has_results(row.get('has_results', 'False')),
         job_id=_parse_optional_int(row.get('job_id', '')),
         task_id=_parse_optional_int(row.get('task_id', '')),
         time_used=row.get('time_used', '').strip(),
@@ -219,16 +233,18 @@ _BRANCH_PATTERN = re.compile(
 
 def update_from_branches(
     statuses: dict[tuple, JobStatus],
-    branches: list[str],
+    branch_to_sha: dict[str, str],
 ) -> dict[tuple, JobStatus]:
-    """Update statuses with results information from branch names.
+    """Update statuses with results information from result branches.
 
-    Branches that don't match any existing status key are ignored
+    ``branch_to_sha`` maps each ``job-*`` branch name to its tip commit SHA
+    (the job's result commit). A matched job gets ``has_results`` set to that
+    SHA. Branches that don't match any existing status key are ignored
     (they may belong to subjects not in the inclusion list).
     """
-    # Parse branches into a lookup of key -> (job_id, task_id)
-    branch_results: dict[tuple, tuple[int | None, int | None]] = {}
-    for branch in branches:
+    # Parse branches into a lookup of key -> (job_id, task_id, sha)
+    branch_results: dict[tuple, tuple[int | None, int | None, str]] = {}
+    for branch, sha in branch_to_sha.items():
         match = _BRANCH_PATTERN.match(branch)
         if not match:
             continue
@@ -237,15 +253,15 @@ def update_from_branches(
         job_id = int(match.group('job_id')) if match.group('job_id') else None
         task_id = int(match.group('task_id')) if match.group('task_id') else None
         key = (sub_id, ses_id) if ses_id else (sub_id,)
-        branch_results[key] = (job_id, task_id)
+        branch_results[key] = (job_id, task_id, sha)
 
     updated = {}
     for key, job in statuses.items():
         if key in branch_results:
-            branch_job_id, branch_task_id = branch_results[key]
+            branch_job_id, branch_task_id, sha = branch_results[key]
             updated[key] = replace(
                 job,
-                has_results=True,
+                has_results=sha,
                 job_id=branch_job_id if branch_job_id is not None else job.job_id,
                 task_id=branch_task_id if branch_task_id is not None else job.task_id,
             )
