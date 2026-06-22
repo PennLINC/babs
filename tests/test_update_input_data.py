@@ -93,23 +93,7 @@ def manually_add_new_subject_to_input_data(input_data_path: str):
 
 
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
-@pytest.mark.parametrize(
-    'with_zip',
-    [
-        True,
-        pytest.param(
-            False,
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason='Without a zip hook the merged results are unzipped, but '
-                'babs status enumerates merged results by zip glob '
-                '(OutputDataset hardcodes is_zipped=True), so it reports none. '
-                'Remove this xfail once babs status accounts for unzipped '
-                'merged results.',
-            ),
-        ),
-    ],
-)
+@pytest.mark.parametrize('with_zip', [True, False])
 def test_babs_update_input_data(
     tmp_path_factory,
     templateflow_home,
@@ -124,9 +108,9 @@ def test_babs_update_input_data(
     This is to test `babs init` on raw BIDS data.
 
     Parametrized over ``with_zip``: with a ``{builtin: zip}`` post_run hook the
-    merged results are zip files (the path babs status currently understands);
-    without it they are unzipped and merged accounting is empty (marked xfail
-    until babs status accounts for unzipped merged results).
+    merged results are zip files, without it they are unzipped. Either way
+    post-merge done-detection is the same -- `babs merge` records each merged
+    result's commit SHA into job_status.csv -- so both variants must pass.
     """
     from babs import BABSUpdate
 
@@ -260,11 +244,10 @@ def test_babs_update_input_data(
 
     # The results branch should have been deleted after the merge happened
     assert get_results_branches_from_ria(bbs.output_ria_data_dir) == []
-    # Merged results should be discoverable. With the zip hook they are zip
-    # files (found); without it they are unzipped and babs status reports none
-    # (xfail for with_zip=False until babs status handles unzipped results).
-    merged_zip_file = bbs._get_merged_results_from_analysis_dir()
-    assert not merged_zip_file.empty
+    # Merged results stay discoverable post-merge: `babs merge` recorded each
+    # merged result's commit SHA into job_status.csv before deleting the result
+    # branches, so has_results is truthy whether or not zipping was on.
+    assert pre_update_job_status_df['has_results'].any()
 
     # Check that the job completion dataframe has the new subject
     job_completion_df = bbs.get_job_status_df()

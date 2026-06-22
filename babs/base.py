@@ -4,14 +4,13 @@ import configparser
 import os
 import os.path as op
 import subprocess
-from dataclasses import replace
 from pathlib import Path
 from urllib.parse import urlparse
 
 import datalad.api as dlapi
 import pandas as pd
 
-from babs.input_datasets import InputDatasets, OutputDatasets
+from babs.input_datasets import InputDatasets
 from babs.scheduler import (
     request_all_job_status,
     run_squeue,
@@ -265,12 +264,6 @@ class BABS:
             message='Record of inclusion/exclusion of participants/sessions',
         )
 
-    def _get_merged_results_from_analysis_dir(self) -> pd.DataFrame:
-        """Get the results from the analysis directory."""
-        output_datasets = OutputDatasets(self.input_datasets)
-        out_df = output_datasets.generate_inclusion_dataframe()
-        return out_df
-
     def wtf_key_info(self, flag_output_ria_only=False) -> None:
         """
         This is to get some key information on DataLad dataset `analysis`,
@@ -519,18 +512,12 @@ class BABS:
         else:
             statuses = {}
 
-        # Update from results branches in output RIA
+        # Update from results branches in output RIA. Pre-merge each finished
+        # job pushes a `job-*` branch (detected here); `babs merge` records the
+        # merged result SHAs into the csv before deleting those branches, so
+        # has_results survives post-merge without a separate merged-zip scan.
         branch_to_sha = self._get_results_branches()
         statuses = update_from_branches(statuses, branch_to_sha)
-
-        # Update from merged zip files in analysis dir
-        merged_zip_df = self._get_merged_results_from_analysis_dir()
-        if not merged_zip_df.empty:
-            for _, row in merged_zip_df.iterrows():
-                ses_id = row.get('ses_id') if 'ses_id' in merged_zip_df.columns else None
-                key = (row['sub_id'], ses_id) if ses_id else (row['sub_id'],)
-                if key in statuses:
-                    statuses[key] = replace(statuses[key], has_results=True)
 
         # Update from scheduler (squeue)
         job_ids = sorted(

@@ -412,25 +412,3 @@ def validate_nonzipped_input_contents(
                             f'In input dataset {dataset_name}, located at {dataset_abs_path}.'
                             f'There is no `{session}` folder in "{subject}"!'
                         )
-
-
-class OutputDataset(InputDataset):
-    """Represent an output dataset."""
-
-    _is_input_dataset = False
-
-    def __init__(self, input_dataset):
-        # Store the raw value from input_dataset
-        self._babs_project_analysis_path = input_dataset._babs_project_analysis_path
-
-        # Initialize all other attributes from input_dataset
-        self.name = input_dataset.name
-        self.origin_url = input_dataset.origin_url
-        self.path_in_babs = input_dataset.path_in_babs
-        # All output datasets are zipped
-        self.is_zipped = True
-        self.unzipped_path_containing_subject_dirs = (
-            input_dataset.unzipped_path_containing_subject_dirs
-        )
-        self.required_files = input_dataset.required_files
-        self.processing_level = input_dataset.processing_level
