@@ -11,6 +11,11 @@ import warnings
 import datalad.api as dlapi
 
 from babs.base import BABS
+from babs.status import (
+    read_job_status_csv,
+    update_from_branches,
+    write_job_status_csv,
+)
 from babs.utils import get_git_show_ref_shasum
 
 
@@ -184,6 +189,7 @@ class BABSMerge(BABS):
         #   that's different from current git commit SHASUM (`git_ref`):
         list_branches_no_results = []
         list_branches_with_results = []
+        branch_with_results_to_sha = {}
         for branch_job in list_branches_jobs:
             # get the job's `git show-ref` (in merge_ds clone refs are remote: origin/job-*):
             branch_ref = 'origin/' + branch_job
@@ -192,6 +198,7 @@ class BABSMerge(BABS):
                 list_branches_no_results.append(branch_job)
             else:  # has results:
                 list_branches_with_results.append(branch_job)
+                branch_with_results_to_sha[branch_job] = git_ref_branch_job
 
         # check if there is any valid job (with results):
         if len(list_branches_with_results) == 0:  # empty:
@@ -367,6 +374,15 @@ class BABSMerge(BABS):
         # delete the merge_ds folder
         print('\nCleaning up merge_ds directory...')
         robust_rm_dir(merge_ds_path)
+
+        # Record each merged result's commit SHA into job_status.csv before the
+        # job-* branches are deleted below: once the branches are gone, `babs
+        # status` can no longer detect results by branch existence, so the SHA
+        # stamped here is what keeps `has_results` truthy post-merge.
+        if op.exists(self.job_status_path_abs):
+            statuses = read_job_status_csv(self.job_status_path_abs)
+            statuses = update_from_branches(statuses, branch_with_results_to_sha)
+            write_job_status_csv(self.job_status_path_abs, statuses)
 
         # Delete all the merged branches from the output RIA
         for n_chunk, chunk in enumerate(all_chunks):
