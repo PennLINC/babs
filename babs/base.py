@@ -17,6 +17,7 @@ from babs.scheduler import (
     run_squeue,
 )
 from babs.status import (
+    _parse_has_results,
     read_job_status_csv,
     update_from_branches,
     update_from_scheduler,
@@ -658,6 +659,12 @@ class BABS:
         if not op.exists(self.job_status_path_abs):
             return EMPTY_JOB_STATUS_DF
         df = pd.read_csv(self.job_status_path_abs)
+        # has_results is stored as `False` or a result-commit SHA; the dataframe
+        # layer only needs its truthiness (the SHA lives in the JobStatus/csv
+        # record), so collapse it to bool before the boolean cast below.
+        df['has_results'] = df['has_results'].apply(
+            lambda v: bool(_parse_has_results(str(v))) if pd.notna(v) else False
+        )
         for column_name in results_status_columns:
             df[column_name] = df[column_name].astype(status_dtypes[column_name])
 
