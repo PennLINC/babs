@@ -246,6 +246,34 @@ the job**: a ``post_run`` validator that exits non-zero aborts the job *before*
 the push, so bad results never leave the node. If a hook needs to **persist**
 output, it must run its **own** ``datalad run``/``datalad save`` to commit it.
 
+Using ``datalad run`` inside a hook script
+------------------------------------------
+
+When a hook runs its own ``datalad run`` to commit output (the pattern above),
+two ``datalad run`` behaviours commonly trip up a hand-written command. The
+built-in ``zip`` hook (``code/hooks/zip.sh`` after ``babs init``) is a worked
+example you can read.
+
+- **The words after ``--`` are executed directly, without a shell.** So a
+  command that relies on shell features — ``&&``, pipes, redirects, ``cd`` — is
+  treated as a single program name and fails with something like
+  ``/bin/sh: cd ... && ...: No such file or directory``. Wrap such a command in
+  an explicit shell::
+
+      datalad run --explicit -o out.zip -m "zip" -- \
+          bash -c "cd outputs && 7z a ../out.zip deriv"
+
+- **``datalad run`` substitutes its own ``{placeholder}`` fields over the
+  command** (``{inputs}``, ``{outputs}``, ``{pwd}``, …). A literal brace —
+  including an ordinary shell ``${VAR}`` — must be **doubled** or ``datalad``
+  rejects it with ``unrecognized placeholder: 'VAR'``. Write ``${{VAR}}``;
+  ``datalad`` collapses it back to ``${VAR}`` for the job's shell to expand, and
+  it stays literal in the run record (so ``datalad rerun`` re-resolves it rather
+  than baking in a value)::
+
+      datalad run --explicit -o out.zip -m "zip" -- \
+          bash -c "cd outputs && 7z a \"\${{OLDPWD}}/out.zip\" deriv"
+
 
 Section ``bids_app_args``
 =========================
