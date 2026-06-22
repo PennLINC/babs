@@ -5,16 +5,13 @@ input_datasets:
         is_zipped: false
         origin_url: "/test-temp/simbids"
         path_in_babs: inputs/data/BIDS
-    fmriprep_anat:
-        is_zipped: true
-        origin_url: "ria+file:///test-temp/test_project/output_ria#~data"
-        path_in_babs: inputs/data/fmriprep_anat
 
 bids_app_args:
     --bids-app: "fmriprep"
     $SUBJECT_SELECTION_FLAG: "--participant-label"
     --stop-on-first-crash: ""
     -vv: ""
+    --anat-only: ""
 
 output_dir: outputs/fmriprep_anat-24-1-1
 

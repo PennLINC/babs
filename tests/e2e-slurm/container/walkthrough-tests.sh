@@ -50,7 +50,7 @@ cd /test-temp
 babs init \
     --container_ds "${PWD}"/simbids-container \
     --container_name simbids-0-0-3 \
-    --container_config "/tests/tests/e2e-slurm/container/config_simbids.yaml" \
+    --container_config "/tests/tests/e2e-slurm/container/config_simbids_zip.yaml" \
     --processing_level subject \
     --queue slurm \
     --keep-if-failed \
