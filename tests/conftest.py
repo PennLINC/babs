@@ -272,7 +272,9 @@ def get_config_simbids_path():
     return e2e_slurm_path / 'config_simbids.yaml'
 
 
-def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
+def update_yaml_for_run(
+    new_dir, babs_config_yaml, input_datasets_updates=None, extra_config=None
+):
     """Copy a packaged yaml to a new_dir and make any included_files in new_dir.
 
     Parameters
@@ -283,6 +285,10 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
         The name of the yaml file to copy.
     input_datasets_updates : dict
         A dictionary of input datasets to update in the yaml file.
+    extra_config : dict
+        Extra top-level keys to merge into the config (e.g.
+        ``{'hooks': {'post_run': [{'builtin': 'zip'}]}}``), so a test can opt a
+        run into a hook without a separate fixture file.
 
     Returns
     -------
@@ -315,6 +321,10 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     if input_datasets_updates:
         for ds_name, ds_path in input_datasets_updates.items():
             babs_config['input_datasets'][ds_name]['origin_url'] = ds_path
+
+    # Merge any extra top-level config (e.g. a hooks block) the test asked for:
+    if extra_config:
+        babs_config.update(extra_config)
 
     yaml_data = babs_config.copy()
     for imported_file in yaml_data.get('imported_files', []):
