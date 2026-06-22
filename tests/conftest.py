@@ -272,9 +272,7 @@ def get_config_simbids_path():
     return e2e_slurm_path / 'config_simbids.yaml'
 
 
-def update_yaml_for_run(
-    new_dir, babs_config_yaml, input_datasets_updates=None, extra_config=None
-):
+def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None, extra_config=None):
     """Copy a packaged yaml to a new_dir and make any included_files in new_dir.
 
     Parameters
