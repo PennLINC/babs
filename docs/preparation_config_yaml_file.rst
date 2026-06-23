@@ -29,7 +29,7 @@ Sections in the configuration YAML file
 * **all_results_in_one_zip**: whether to zip all results in one zip file;
 * **zip_foldernames**: the results foldername(s) to be zipped;
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
-* **common_paths**: dataset-root paths to include in the sparse-checkout for every job, in addition to the per-subject path (e.g., a shared ``phenotype/participants.tsv`` file);
+* **common_paths**: extra, *non-inherited* files to stage for every job (BIDS metadata inheritance is automatic — see :ref:`bids-inheritance`); e.g. a shared ``sourcedata/NIDM/nidm.ttl``;
 * **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
 Among these sections, these sections are optional:
@@ -783,27 +783,49 @@ Section ``required_files``
     ``required_files`` is currently not fully implemented.
     The field is accepted in the YAML file but filtering is not yet applied.
 
+.. _bids-inheritance:
+
+BIDS metadata inheritance (automatic)
+=====================================
+
+For every non-zipped input dataset, BABS automatically stages the BIDS
+*inherited* metadata each job needs, in addition to the per-subject (and
+per-session) path.  Under the `BIDS Inheritance Principle
+<https://bids-specification.readthedocs.io/en/stable/common-principles.html#the-inheritance-principle>`_,
+a metadata file that sits *above* a data file in the directory hierarchy applies
+to it.  A per-subject (or per-session) sparse-checkout would otherwise drop those
+upper-tier files — e.g. a top-level ``task-rest_bold.json`` carrying
+``RepetitionTime``/``PhaseEncodingDirection``, ``participants.tsv``, or
+``dataset_description.json`` — making BIDS Apps fail on otherwise-valid data.
+
+For each job, BABS includes every metadata file at the tiers *above* the job's
+checkout:
+
+* the **dataset root** — always;
+* the **subject tier** (``sub-XX/``) — additionally for ``session``-level jobs,
+  whose ``sub-XX/ses-YY`` checkout would otherwise miss files sitting directly
+  under ``sub-XX/`` (subject-level jobs already check out the whole ``sub-XX/``
+  subtree).
+
+This is automatic and needs no configuration: ``dataset_description.json`` and
+other inherited sidecars are staged out of the box.
+
 .. _common-paths:
 
 Section ``common_paths``
 =========================
 
-The ``common_paths`` field lists paths (relative to an input dataset's root)
-that every job should include in the sparse-checkout and retrieve with
-``datalad get``, in addition to the per-subject (and per-session) path.
-This is useful when BIDS Apps or processing scripts need dataset-level files
-that live outside any individual subject directory.
+``common_paths`` is an optional escape hatch for **extra, non-inherited** files
+that the automatic inheritance grab does not reach — for example a specific file
+in a subdirectory, such as a shared ``sourcedata/NIDM/nidm.ttl``.  It lists paths
+relative to an input dataset's root; each is added to the job's sparse-checkout,
+retrieved with ``datalad get -n``, and recorded as a ``datalad run`` input.
 
-By default (when the field is omitted), BABS automatically includes
-``dataset_description.json`` for every non-zipped input dataset.
-Once you supply ``common_paths`` explicitly, the default is **replaced** —
-so if you still want ``dataset_description.json`` you must list it yourself.
+It defaults to ``[]`` — BIDS inheritance already covers the dataset-level
+sidecars, so valid BIDS needs nothing extra here.  It is nested under the
+relevant input dataset entry inside the ``input_datasets`` section.
 
-``common_paths`` is optional.  It is nested under the relevant input dataset
-entry inside the ``input_datasets`` section.
-
-Example — keep the default ``dataset_description.json`` **and** add a shared
-phenotype file:
+Example — also stage a specific shared file the inheritance grab won't reach:
 
 ..  code-block:: yaml
 
@@ -813,26 +835,16 @@ phenotype file:
             origin_url: "/path/to/BIDS"
             path_in_babs: inputs/data/BIDS
             common_paths:
-                - "phenotype/participants.tsv"
-                - "dataset_description.json"
-
-Example — disable all common-path retrieval (pass an empty list):
-
-..  code-block:: yaml
-
-    input_datasets:
-        BIDS:
-            is_zipped: false
-            origin_url: "/path/to/BIDS"
-            path_in_babs: inputs/data/BIDS
-            common_paths: []
+                - "sourcedata/NIDM/nidm.ttl"
 
 Notes:
 
-* Paths are relative to the input dataset root (e.g., ``"phenotype/participants.tsv"``
-  not ``"inputs/data/BIDS/phenotype/participants.tsv"``).
+* Paths are relative to the input dataset root (e.g., ``"sourcedata/NIDM/nidm.ttl"``
+  not ``"inputs/data/BIDS/sourcedata/NIDM/nidm.ttl"``).
 * Each path is retrieved individually with ``datalad get -n`` so you can track
   exactly which files are fetched in the job log.
 * This field has no effect on zipped input datasets.
+* BIDS metadata inheritance is automatic (see above) — you do **not** need to
+  list ``dataset_description.json`` or other inherited sidecars here.
 
 
