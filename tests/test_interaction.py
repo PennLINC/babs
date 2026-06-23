@@ -1,5 +1,8 @@
 """Tests for interaction behaviors."""
 
+from functools import partial
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -48,6 +51,33 @@ def _status_df_for_submit():
     )
 
 
+_DEFAULT_MOCK_GET_RESPONSE = object()
+
+
+def _mock_get(path, dataset, *, get_calls=None, events=None, response=_DEFAULT_MOCK_GET_RESPONSE):
+    """Mock `datalad get` with optional event/call recording."""
+    if response is _DEFAULT_MOCK_GET_RESPONSE:
+        response = [{'status': 'ok'}]
+
+    if events is not None:
+        events.append('get')
+    if get_calls is not None:
+        get_calls.append((path, dataset))
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('retrieved image')
+    return response
+
+
+def _mock_submit_array(analysis_path, queue, total_jobs, *, submit_calls=None, events=None):
+    """Mock scheduler submission with optional event/call recording."""
+    if events is not None:
+        events.append('submit')
+    if submit_calls is not None:
+        submit_calls.append((analysis_path, queue, total_jobs))
+    return 123
+
+
 def test_babs_submit_blocks_non_cg_jobs(babs_project_subjectlevel, monkeypatch):
     babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
     running_df = pd.DataFrame(
@@ -88,6 +118,157 @@ def test_babs_status_configures_shared_group_runtime(babs_project_subjectlevel, 
     assert called == [True]
 
 
+def test_babs_submit_gets_container_before_scheduler_submit(
+    babs_project_subjectlevel, monkeypatch
+):
+    """`babs submit` should retrieve the container image before submitting jobs."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    monkeypatch.setattr(babs_proj, 'get_currently_running_jobs_df', pd.DataFrame)
+    monkeypatch.setattr(babs_proj, 'get_job_status_df', _minimal_status_df)
+    missing_image_path = 'containers/.datalad/environments/missing-container/image'
+    babs_proj.container_images = [missing_image_path]
+
+    events = []
+    get_calls = []
+
+    monkeypatch.setattr(
+        'babs.interaction.dlapi.get',
+        partial(_mock_get, get_calls=get_calls, events=events),
+    )
+    monkeypatch.setattr(
+        'babs.interaction.submit_array', partial(_mock_submit_array, events=events)
+    )
+
+    babs_proj.babs_submit(count=1)
+
+    expected_image_path = (
+        f'{babs_proj.analysis_path}/containers/.datalad/environments/missing-container/image'
+    )
+    assert events == ['get', 'submit']
+    assert get_calls == [(expected_image_path, f'{babs_proj.analysis_path}/containers')]
+
+
+def test_babs_submit_skips_container_get_when_image_exists(babs_project_subjectlevel, monkeypatch):
+    """`babs submit` should not call datalad get when the image is already present."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    monkeypatch.setattr(babs_proj, 'get_currently_running_jobs_df', pd.DataFrame)
+    monkeypatch.setattr(babs_proj, 'get_job_status_df', _minimal_status_df)
+    present_image_path = 'containers/.datalad/environments/present-container/image'
+    present_image = Path(babs_proj.analysis_path) / present_image_path
+    present_image.parent.mkdir(parents=True, exist_ok=True)
+    present_image.write_text('present image')
+    babs_proj.container_images = [present_image_path]
+
+    get_calls = []
+    submit_calls = []
+
+    monkeypatch.setattr(
+        'babs.interaction.dlapi.get',
+        lambda path, dataset: get_calls.append((path, dataset)),
+    )
+    monkeypatch.setattr(
+        'babs.interaction.submit_array',
+        lambda analysis_path, queue, total_jobs: submit_calls.append(total_jobs) or 123,
+    )
+
+    babs_proj.babs_submit(count=1)
+
+    assert get_calls == []
+    assert submit_calls == [1]
+
+
+def test_babs_submit_stops_when_container_get_fails(babs_project_subjectlevel, monkeypatch):
+    """A failed container retrieval should prevent scheduler submission."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    monkeypatch.setattr(babs_proj, 'get_currently_running_jobs_df', pd.DataFrame)
+    monkeypatch.setattr(babs_proj, 'get_job_status_df', _minimal_status_df)
+    babs_proj.container_images = ['containers/.datalad/environments/missing-container/image']
+    monkeypatch.setattr(
+        'babs.interaction.dlapi.get',
+        lambda path, dataset: [{'status': 'error', 'message': 'not available'}],
+    )
+    submit_calls = []
+    monkeypatch.setattr(
+        'babs.interaction.submit_array',
+        lambda analysis_path, queue, total_jobs: submit_calls.append(total_jobs),
+    )
+
+    with pytest.raises(RuntimeError, match='Unable to retrieve container image'):
+        babs_proj.babs_submit(count=1)
+
+    assert submit_calls == []
+
+
+def test_ensure_container_images_requires_container_dataset(tmp_path):
+    """Raise if the sibling `containers` DataLad dataset is missing."""
+    babs_proj = object.__new__(BABSInteraction)
+    babs_proj.analysis_path = str(tmp_path / 'analysis')
+    babs_proj.container_images = ['containers/.datalad/environments/test/image']
+
+    with pytest.raises(FileNotFoundError, match='There is no containers DataLad dataset'):
+        babs_proj.ensure_container_images_available()
+
+
+def test_ensure_container_images_gets_absolute_path_and_dict_status(tmp_path, monkeypatch):
+    """Accept dict result statuses and request absolute image paths."""
+    analysis_path = tmp_path / 'analysis'
+    containers_path = analysis_path / 'containers'
+    (containers_path / '.datalad').mkdir(parents=True)
+    (containers_path / '.datalad' / 'config').write_text('')
+    image_path = containers_path / '.datalad' / 'environments' / 'absolute' / 'image'
+
+    babs_proj = object.__new__(BABSInteraction)
+    babs_proj.analysis_path = str(analysis_path)
+    babs_proj.container_images = [str(image_path)]
+    get_calls = []
+    monkeypatch.setattr(
+        'babs.interaction.dlapi.get',
+        partial(_mock_get, get_calls=get_calls, response={'status': 'ok'}),
+    )
+
+    babs_proj.ensure_container_images_available()
+
+    assert get_calls == [(str(image_path), str(containers_path))]
+
+
+def test_ensure_container_images_accepts_none_status(tmp_path, monkeypatch):
+    """Treat `None` `datalad get` status as success when file appears."""
+    analysis_path = tmp_path / 'analysis'
+    containers_path = analysis_path / 'containers'
+    (containers_path / '.datalad').mkdir(parents=True)
+    (containers_path / '.datalad' / 'config').write_text('')
+    image_relpath = 'containers/.datalad/environments/none-status/image'
+    image_path = analysis_path / image_relpath
+
+    babs_proj = object.__new__(BABSInteraction)
+    babs_proj.analysis_path = str(analysis_path)
+    babs_proj.container_images = [image_relpath]
+    monkeypatch.setattr(
+        'babs.interaction.dlapi.get',
+        partial(_mock_get, response=None),
+    )
+
+    babs_proj.ensure_container_images_available()
+
+    assert image_path.exists()
+
+
+def test_ensure_container_images_errors_if_get_does_not_create_image(tmp_path, monkeypatch):
+    """Raise when `datalad get` reports success but image is still missing."""
+    analysis_path = tmp_path / 'analysis'
+    containers_path = analysis_path / 'containers'
+    (containers_path / '.datalad').mkdir(parents=True)
+    (containers_path / '.datalad' / 'config').write_text('')
+
+    babs_proj = object.__new__(BABSInteraction)
+    babs_proj.analysis_path = str(analysis_path)
+    babs_proj.container_images = ['containers/.datalad/environments/not-created/image']
+    monkeypatch.setattr('babs.interaction.dlapi.get', lambda path, dataset: [{'status': 'ok'}])
+
+    with pytest.raises(FileNotFoundError, match='still not available after `datalad get`'):
+        babs_proj.ensure_container_images_available()
+
+
 def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):
     babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
     running_df = pd.DataFrame(
@@ -105,14 +286,14 @@ def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):
     )
     monkeypatch.setattr(babs_proj, 'get_currently_running_jobs_df', lambda: running_df)
     monkeypatch.setattr(babs_proj, 'get_job_status_df', _minimal_status_df)
+    monkeypatch.setattr(babs_proj, 'ensure_container_images_available', lambda: None)
 
     submit_calls = []
 
-    def _mock_submit_array(analysis_path, queue, total_jobs):
-        submit_calls.append((analysis_path, queue, total_jobs))
-        return 123
-
-    monkeypatch.setattr('babs.interaction.submit_array', _mock_submit_array)
+    monkeypatch.setattr(
+        'babs.interaction.submit_array',
+        partial(_mock_submit_array, submit_calls=submit_calls),
+    )
 
     babs_proj.babs_submit(count=1)
 
@@ -137,14 +318,14 @@ def test_babs_submit_allows_running_skips_jobs(babs_project_subjectlevel, monkey
     )
     monkeypatch.setattr(babs_proj, 'get_currently_running_jobs_df', lambda: running_df)
     monkeypatch.setattr(babs_proj, 'get_job_status_df', _status_df_for_submit)
+    monkeypatch.setattr(babs_proj, 'ensure_container_images_available', lambda: None)
 
     submit_calls = []
 
-    def _mock_submit_array(analysis_path, queue, total_jobs):
-        submit_calls.append((analysis_path, queue, total_jobs))
-        return 123
-
-    monkeypatch.setattr('babs.interaction.submit_array', _mock_submit_array)
+    monkeypatch.setattr(
+        'babs.interaction.submit_array',
+        partial(_mock_submit_array, submit_calls=submit_calls),
+    )
 
     babs_proj.babs_submit(skip_running_jobs=True)
 

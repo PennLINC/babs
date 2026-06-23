@@ -12,7 +12,6 @@ from unittest import mock
 import pandas as pd
 import pytest
 from conftest import (
-    ensure_container_image,
     gather_slurm_job_diagnostics,
     get_config_simbids_path,
     update_yaml_for_run,
@@ -118,8 +117,6 @@ def test_babs_init_raw_bids(
         assert not job.has_results
         assert not job.submitted
         assert not job.is_failed
-
-    ensure_container_image(project_root, container_name)
 
     # babs submit:
     babs_submit_opts = argparse.Namespace(
