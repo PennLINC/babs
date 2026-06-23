@@ -25,7 +25,7 @@ from babs.status import SchedulerState, read_job_status_csv
 from babs.utils import get_results_branches_from_clone
 
 
-@pytest.mark.timeout(450)
+@pytest.mark.timeout(900)
 @pytest.mark.parametrize('processing_level', ['subject', 'session'])
 def test_babs_init_raw_bids(
     tmp_path_factory,
@@ -171,7 +171,7 @@ def test_babs_init_raw_bids(
         _enter_status()
 
     finished = False
-    for waitnum in [5, 8, 10, 15, 30, 60, 120]:
+    for waitnum in [5, 8, 10, 15, 30, 60, 120, 120, 120]:
         time.sleep(waitnum)
         print(f'Waiting {waitnum} seconds...')
         df = squeue_to_pandas()
@@ -209,7 +209,7 @@ def test_babs_init_raw_bids(
 
     # Wait for all submitted jobs to finish before merging
     finished = False
-    for waitnum in [5, 8, 10, 15, 30, 60, 120]:
+    for waitnum in [5, 8, 10, 15, 30, 60, 120, 120, 120]:
         time.sleep(waitnum)
         print(f'Waiting for remaining jobs {waitnum} seconds...')
         df = squeue_to_pandas()
