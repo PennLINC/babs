@@ -5,6 +5,30 @@ from babs.input_dataset import InputDataset, OutputDataset
 from babs.input_datasets import InputDatasets
 
 
+def _bids(**overrides):
+    kwargs = {
+        'name': 'BIDS',
+        'origin_url': '/does/not/matter',
+        'path_in_babs': 'inputs/data/BIDS',
+        'is_zipped': False,
+        'processing_level': 'subject',
+    }
+    kwargs.update(overrides)
+    return InputDataset(**kwargs)
+
+
+def test_common_paths_default_is_empty():
+    """common_paths defaults to [] (BIDS inheritance is automatic, not via this field)."""
+    # default: no common_paths supplied
+    assert _bids().common_paths == []
+    # an explicit list is preserved as-is ...
+    assert _bids(common_paths=['phenotype/participants.tsv']).common_paths == [
+        'phenotype/participants.tsv'
+    ]
+    # ... including an explicit empty list
+    assert _bids(common_paths=[]).common_paths == []
+
+
 @pytest.mark.parametrize(
     ('session_type', 'processing_level'),
     [
