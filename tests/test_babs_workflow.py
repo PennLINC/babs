@@ -227,6 +227,7 @@ def test_init_forwards_shared_group(tmp_path):
         keep_if_failed=False,
         throttle=None,
         shared_group='my-lab-group',
+        no_ignore=[],
     )
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
         with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
@@ -242,6 +243,40 @@ def test_init_forwards_shared_group(tmp_path):
         options.list_sub_file,
         throttle=options.throttle,
         shared_group=options.shared_group,
+        no_ignore=options.no_ignore,
+    )
+
+
+def test_init_forwards_no_ignore(tmp_path):
+    """Test that CLI --no-ignore is forwarded to bootstrap."""
+    options = argparse.Namespace(
+        project_root=tmp_path / 'my_babs_project',
+        list_sub_file=None,
+        container_ds='/tmp/container_ds',
+        container_name='simbids-0-0-3',
+        container_config='/tmp/container_config.yaml',
+        processing_level='subject',
+        queue='slurm',
+        keep_if_failed=False,
+        throttle=None,
+        shared_group=None,
+        no_ignore=['logs'],
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
+        with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
+            _enter_init()
+
+    mock_bootstrap_cls.assert_called_once_with(options.project_root)
+    mock_bootstrap_cls.return_value.babs_bootstrap.assert_called_once_with(
+        options.processing_level,
+        options.queue,
+        options.container_ds,
+        options.container_name,
+        options.container_config,
+        options.list_sub_file,
+        throttle=options.throttle,
+        shared_group=options.shared_group,
+        no_ignore=options.no_ignore,
     )
 
 
