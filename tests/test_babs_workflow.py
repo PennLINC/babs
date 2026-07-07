@@ -21,7 +21,7 @@ from conftest import (
 from babs import base as babs_base
 from babs.cli import _enter_check_setup, _enter_init, _enter_merge, _enter_status, _enter_submit
 from babs.scheduler import squeue_to_pandas
-from babs.status import SchedulerState, job_status_counts, read_job_status_csv
+from babs.status import SchedulerState, read_job_status_csv
 from babs.utils import get_results_branches_from_clone
 
 
