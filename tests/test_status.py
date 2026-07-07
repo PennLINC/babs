@@ -565,8 +565,12 @@ class TestJobStatusCounts:
         s = job_status_counts(statuses)
         assert s['total'] == s['submitted'] + s['unsubmitted']
         assert s['submitted'] == (
-            s['pending'] + s['running'] + s['completing'] + s['configuring']
-            + s['done'] + s['failed']
+            s['pending']
+            + s['running']
+            + s['completing']
+            + s['configuring']
+            + s['done']
+            + s['failed']
         )
 
 
