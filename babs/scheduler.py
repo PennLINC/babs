@@ -6,7 +6,7 @@ from io import StringIO
 import pandas as pd
 import yaml
 
-from babs.status import SchedulerState
+from babs.status import job_status_counts
 from babs.utils import get_username, scheduler_status_columns, status_dtypes
 
 
@@ -330,22 +330,18 @@ def report_job_status(statuses, analysis_path):
     )
     template = env.get_template('job_status_report.jinja')
 
-    jobs = list(statuses.values())
-    total_jobs = len(jobs)
-    total_submitted = sum(1 for j in jobs if j.submitted)
-    total_is_done = sum(1 for j in jobs if j.has_results)
-    total_pending = sum(1 for j in jobs if j.scheduler_state == SchedulerState.PENDING)
-    total_running = sum(1 for j in jobs if j.scheduler_state == SchedulerState.RUNNING)
-    total_failed = sum(1 for j in jobs if j.is_failed)
+    counts = job_status_counts(statuses)
 
     print(
         template.render(
-            total_jobs=total_jobs,
-            total_submitted=total_submitted,
-            total_is_done=total_is_done,
-            total_pending=total_pending,
-            total_running=total_running,
-            total_failed=total_failed,
+            total_jobs=counts['total'],
+            total_submitted=counts['submitted'],
+            total_is_done=counts['done'],
+            total_pending=counts['pending'],
+            total_running=counts['running'],
+            total_completing=counts['completing'],
+            total_configuring=counts['configuring'],
+            total_failed=counts['failed'],
             log_path=op.join(analysis_path, 'logs'),
         )
     )

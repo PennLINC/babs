@@ -1,5 +1,6 @@
 """Tests for interaction behaviors."""
 
+import json
 from functools import partial
 from pathlib import Path
 
@@ -116,6 +117,57 @@ def test_babs_status_configures_shared_group_runtime(babs_project_subjectlevel, 
     babs_proj.babs_status()
 
     assert called == [True]
+
+
+def _make_job(state=SchedulerState.NOT_SUBMITTED, has_results=False, sub_id='sub-01'):
+    return JobStatus(
+        sub_id=sub_id,
+        ses_id=None,
+        scheduler_state=state,
+        has_results=has_results,
+        job_id=None,
+        task_id=None,
+        time_used='',
+        time_limit='',
+        nodes=0,
+        cpus=0,
+        partition='',
+        name='',
+    )
+
+
+def test_babs_status_json_emits_only_json(babs_project_subjectlevel, monkeypatch, capsys):
+    """`babs status --json` prints a single parseable JSON summary and no table."""
+    babs_proj = BABSInteraction(project_root=babs_project_subjectlevel)
+    statuses = {
+        ('sub-01',): _make_job(SchedulerState.DONE, has_results=True, sub_id='sub-01'),
+        ('sub-02',): _make_job(SchedulerState.RUNNING, sub_id='sub-02'),
+        ('sub-03',): _make_job(sub_id='sub-03'),
+    }
+    monkeypatch.setattr(babs_proj, 'ensure_shared_group_runtime_ready', lambda: None)
+    monkeypatch.setattr(babs_proj, '_update_results_status', lambda: statuses)
+    # If the human renderer runs it would pollute stdout — make that a hard failure.
+    monkeypatch.setattr(
+        'babs.interaction.report_job_status',
+        lambda *a, **kw: pytest.fail('report_job_status must not run in --json mode'),
+    )
+
+    babs_proj.babs_status(json_output=True)
+
+    out = capsys.readouterr().out
+    # The entire stdout must be exactly one JSON document (no scraping needed).
+    summary = json.loads(out)
+    assert summary == {
+        'total': 3,
+        'submitted': 2,
+        'unsubmitted': 1,
+        'pending': 0,
+        'running': 1,
+        'completing': 0,
+        'configuring': 0,
+        'done': 1,
+        'failed': 0,
+    }
 
 
 def test_babs_submit_gets_container_before_scheduler_submit(
