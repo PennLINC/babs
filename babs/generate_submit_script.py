@@ -30,7 +30,7 @@ def generate_submit_script(
     container_images=None,
     datalad_run_message=None,
     project_root=None,
-    analysis_dir='analysis',
+    analysis_relpath='analysis',
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
@@ -60,9 +60,13 @@ def generate_submit_script(
     datalad_run_message : str, optional
         Custom message for datalad run. None uses container name.
     project_root : str, optional
-        Absolute path to the BABS project root (parent of `analysis/`).
-        Passed to the template; used in the error message when PROJECT_ROOT
-        is unset. If None, the placeholder ``{project_root}`` is shown.
+        Absolute path to the BABS project root. Baked into the template as the
+        default `BABS_PROJECT_ROOT`. If None, the placeholder ``{project_root}``
+        is shown.
+    analysis_relpath : str, optional
+        Path to the analysis dataset relative to `project_root` (`'analysis'`
+        for the default layout, `'.'` for the BIDS study layout). Combined with
+        `BABS_PROJECT_ROOT` in the script to locate the analysis dataset.
 
     Returns
     -------
@@ -130,7 +134,7 @@ def generate_submit_script(
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
         project_root=project_root,
-        analysis_dir=analysis_dir,
+        analysis_relpath=analysis_relpath,
     )
 
 
