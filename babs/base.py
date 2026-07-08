@@ -116,9 +116,6 @@ class BABS:
         self.list_sub_path_rel = 'code/processing_inclusion.csv'
         self.job_status_path_rel = 'code/job_status.csv'
 
-        # Derive the analysis dataset and RIA paths from the babs init config.
-        # Extracted into a method so `babs_bootstrap` can re-derive from its
-        # authoritative config (review thread #7).
         self._set_project_paths(container_config)
 
         self._shared_group_enabled_cache = None
@@ -132,8 +129,8 @@ class BABS:
         again at the start of ``babs_bootstrap`` so that constructing
         ``BABSBootstrap`` without a config and then bootstrapping with one still
         honors the config's custom ``analysis_path`` instead of silently using
-        the default layout (review thread #7). Depends on ``list_sub_path_rel``
-        and ``job_status_path_rel`` already being set.
+        the default layout. Depends on ``list_sub_path_rel`` and
+        ``job_status_path_rel`` already being set.
         """
         cfg = self._load_babs_init_config(container_config)
 

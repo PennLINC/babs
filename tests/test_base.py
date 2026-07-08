@@ -503,7 +503,7 @@ def test_cmd_template_survives_spaces_in_paths():
 
     Renders `job_submit.yaml.jinja2` with a project root that contains a
     space and asserts each path is recovered as one token, matching how
-    `babs.scheduler` parses the template at submit time (thread #8).
+    `babs.scheduler` parses the template at submit time.
     """
     project_root = '/base/my project'
     analysis_path = project_root + '/analysis'
@@ -561,7 +561,7 @@ def test_bootstrap_rederives_paths_from_config(tmp_path):
     Reproduces the direct-API pattern (`BABSBootstrap(project_root)` then
     `babs_bootstrap(..., container_config=...)`): the constructor sees the
     default layout, and the re-derivation `babs_bootstrap` performs must pick
-    up the config's custom paths rather than silently ignoring them (thread #7).
+    up the config's custom paths rather than silently ignoring them.
     """
     project_root = tmp_path / 'proj'
     project_root.mkdir()
