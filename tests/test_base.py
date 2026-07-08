@@ -410,3 +410,86 @@ def test_shared_group_inits_analysis_and_rias(
     ).stdout.splitlines()
     assert str(Path(babs_bootstrap.analysis_path).resolve()) in safe_dirs
     assert str(output_ria_dir.resolve()) in safe_dirs
+
+
+def _write_init_config(config_path, body):
+    """Write a minimal `babs init` config YAML for path-derivation tests."""
+    with open(config_path, 'w') as f:
+        f.write(body)
+
+
+@pytest.mark.parametrize(
+    'raw_value',
+    [
+        '/absolute/outside',
+        '../outside',
+        '',
+        '   ',
+    ],
+)
+def test_analysis_path_rejects_unsafe_values(tmp_path, raw_value):
+    """`analysis_path` that is absolute, empty, or escapes project_root is rejected.
+
+    Guards against a config writing the analysis dataset outside project_root,
+    where BABS cleanup would not reach it.
+    """
+    config_path = tmp_path / 'config.yaml'
+    _write_init_config(config_path, f'analysis_path: {raw_value!r}\n')
+    project_root = tmp_path / 'proj'
+    project_root.mkdir()
+
+    with pytest.raises(ValueError, match='analysis_path'):
+        BABSBootstrap(str(project_root), container_config=str(config_path))
+
+
+@pytest.mark.parametrize('key', ['input_ria_path', 'output_ria_path'])
+def test_ria_paths_reject_escaping(tmp_path, key):
+    """RIA store paths that escape project_root via `..` are rejected."""
+    config_path = tmp_path / 'config.yaml'
+    _write_init_config(config_path, f'{key}: "../escaping_ria"\n')
+    project_root = tmp_path / 'proj'
+    project_root.mkdir()
+
+    with pytest.raises(ValueError, match=key):
+        BABSBootstrap(str(project_root), container_config=str(config_path))
+
+
+def test_bids_study_layout_paths_resolve_inside_project(tmp_path):
+    """`analysis_path: "."` plus `.babs/` RIA stores resolve inside project_root."""
+    config_path = tmp_path / 'config.yaml'
+    _write_init_config(
+        config_path,
+        'analysis_path: "."\n'
+        'input_ria_path: ".babs/input_ria"\n'
+        'output_ria_path: ".babs/output_ria"\n',
+    )
+    project_root = tmp_path / 'proj'
+    project_root.mkdir()
+
+    babs_proj = BABSBootstrap(str(project_root), container_config=str(config_path))
+
+    assert babs_proj.analysis_path == str(project_root)
+    assert babs_proj.input_ria_path == str(project_root / '.babs' / 'input_ria')
+    assert babs_proj.output_ria_path == str(project_root / '.babs' / 'output_ria')
+
+
+@pytest.mark.parametrize(
+    'body',
+    [
+        '',  # empty file -> yaml.safe_load returns None
+        '- not\n- a\n- mapping\n',  # a sequence, not a mapping
+    ],
+)
+def test_non_mapping_config_raises_clear_error(tmp_path, body):
+    """A config file that is empty or not a mapping raises a clear error.
+
+    Previously an empty YAML parsed to `None` and produced an opaque
+    `AttributeError` on `cfg.get(...)`.
+    """
+    config_path = tmp_path / 'config.yaml'
+    _write_init_config(config_path, body)
+    project_root = tmp_path / 'proj'
+    project_root.mkdir()
+
+    with pytest.raises(ValueError, match='YAML mapping'):
+        BABSBootstrap(str(project_root), container_config=str(config_path))

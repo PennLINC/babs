@@ -109,27 +109,20 @@ class BABS:
         # attributes:
         self.project_root = str(project_root)
 
-        if container_config is not None:
-            with open(container_config) as f:
-                cfg = yaml.safe_load(f)
-        else:
-            root_config_path = op.join(self.project_root, '.babs', 'babs_init_config.yaml')
-            cfg = {}
-            if op.exists(root_config_path):
-                with open(root_config_path) as f:
-                    cfg = yaml.safe_load(f) or {}
+        cfg = self._load_babs_init_config(container_config)
 
-        analysis_dir = cfg.get('analysis_path', 'analysis')
-        self.analysis_path = op.normpath(op.join(self.project_root, analysis_dir))
+        self.analysis_path = self._resolve_project_subpath(
+            cfg.get('analysis_path', 'analysis'), 'analysis_path'
+        )
         self._analysis_datalad_handle = None
 
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
 
-        self.input_ria_path = op.normpath(
-            op.join(self.project_root, cfg.get('input_ria_path', 'input_ria'))
+        self.input_ria_path = self._resolve_project_subpath(
+            cfg.get('input_ria_path', 'input_ria'), 'input_ria_path'
         )
-        self.output_ria_path = op.normpath(
-            op.join(self.project_root, cfg.get('output_ria_path', 'output_ria'))
+        self.output_ria_path = self._resolve_project_subpath(
+            cfg.get('output_ria_path', 'output_ria'), 'output_ria_path'
         )
 
         self.input_ria_url = 'ria+file://' + self.input_ria_path
@@ -147,6 +140,87 @@ class BABS:
         self.analysis_root = op.dirname(self.analysis_path)
         self._shared_group_enabled_cache = None
         self._apply_config()
+
+    def _load_babs_init_config(self, container_config):
+        """Load the config mapping that determines the project's paths.
+
+        Parameters
+        ----------
+        container_config : str or None
+            Path to the user's `babs init` config YAML. When ``None`` (i.e.
+            non-init BABS commands), the config persisted at
+            ``<project_root>/.babs/babs_init_config.yaml`` is read instead,
+            falling back to an empty mapping when that file does not exist.
+
+        Returns
+        -------
+        dict
+            The parsed configuration mapping (possibly empty).
+
+        Raises
+        ------
+        ValueError
+            If a config file is present but does not parse to a mapping
+            (e.g. an empty file yields ``None``). Raising here gives a clear
+            error instead of a downstream ``AttributeError`` on ``cfg.get``.
+        """
+        if container_config is not None:
+            config_source = container_config
+        else:
+            config_source = op.join(self.project_root, '.babs', 'babs_init_config.yaml')
+            if not op.exists(config_source):
+                return {}
+        with open(config_source) as f:
+            cfg = yaml.safe_load(f)
+        if not isinstance(cfg, dict):
+            raise ValueError(
+                'Expected the config file to contain a YAML mapping, but '
+                f'{config_source!r} parsed to {type(cfg).__name__}. '
+                'Is the file empty or malformed?'
+            )
+        return cfg
+
+    def _resolve_project_subpath(self, raw_path, key):
+        """Resolve a config-supplied path against ``project_root`` safely.
+
+        The returned path is normalized but keeps ``project_root`` as its
+        prefix (symlinks are not resolved), so it stays consistent with the
+        rest of BABS. Empty, absolute, and parent-escaping (``..``) values are
+        rejected: otherwise a config could place the analysis dataset or a RIA
+        store outside ``project_root``, where BABS's own cleanup would not
+        reach it (e.g. ``analysis_path: ../outside``).
+
+        Parameters
+        ----------
+        raw_path : str
+            The relative path from the config (e.g. the ``analysis_path`` value).
+        key : str
+            The config key name, used only in error messages.
+
+        Returns
+        -------
+        str
+            Absolute, normalized path located inside ``project_root``. A value
+            of ``.`` resolves to ``project_root`` itself (BIDS study layout).
+        """
+        if raw_path is None or str(raw_path).strip() == '':
+            raise ValueError(
+                f'`{key}` in the config is empty; provide a relative path '
+                'inside the project or omit it to use the default.'
+            )
+        if op.isabs(raw_path):
+            raise ValueError(
+                f'`{key}` must be a relative path inside the project, but an '
+                f'absolute path was given: {raw_path!r}.'
+            )
+        project_root = Path(self.project_root).resolve()
+        resolved = (project_root / raw_path).resolve()
+        if resolved != project_root and project_root not in resolved.parents:
+            raise ValueError(
+                f'`{key}` must resolve to a location inside the project root '
+                f'({project_root}), but {raw_path!r} resolves to {resolved}.'
+            )
+        return op.normpath(op.join(self.project_root, raw_path))
 
     def _apply_config(self) -> None:
         """Apply the configuration to the BABS project.
