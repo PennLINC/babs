@@ -146,9 +146,17 @@ class BABSBootstrap(BABS):
             os.remove(gitignore_path)
         gitignore_file = open(gitignore_path, 'a')  # open in append mode
 
-        # not to track input/output RIA stores:
-        gitignore_file.write('\n' + op.basename(self.input_ria_path))
-        gitignore_file.write('\n' + op.basename(self.output_ria_path))
+        # not to track input/output RIA stores when they live inside the
+        # analysis dataset (BIDS study layout). Anchor the pattern to the
+        # analysis root with a leading '/' and use the path relative to it,
+        # rather than the bare basename which would match same-named files
+        # anywhere in the tree. In the default layout the RIA stores are
+        # siblings of `analysis/` (outside the dataset), so nothing is added.
+        for ria_path in (self.input_ria_path, self.output_ria_path):
+            ria_relpath = op.relpath(ria_path, self.analysis_path)
+            if ria_relpath == os.curdir or ria_relpath.split(os.sep)[0] == os.pardir:
+                continue
+            gitignore_file.write('\n/' + ria_relpath)
         # not to track `logs` folder:
         gitignore_file.write('\nlogs')
         # not to track `.*_datalad_lock`:
@@ -184,7 +192,6 @@ class BABSBootstrap(BABS):
         with open(self.config_path, 'w') as f:
             f.write(
                 template.render(
-                    analysis_dir=op.basename(self.analysis_path),
                     processing_level=self.processing_level,
                     queue=self.queue,
                     input_ds=self.input_datasets,
