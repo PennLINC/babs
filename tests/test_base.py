@@ -584,3 +584,40 @@ def test_bootstrap_rederives_paths_from_config(tmp_path):
     assert babs_proj.analysis_path == str(project_root)
     assert babs_proj.input_ria_path == str(project_root / '.babs' / 'input_ria')
     assert babs_proj.config_path == op.join(str(project_root), 'code/babs_proj_config.yaml')
+
+
+def test_readme_input_location_rewritten_for_bids_layout(tmp_path):
+    """The yoda README `inputs/` wording becomes the actual input root (BIDS layout)."""
+    babs_proj = object.__new__(BABSBootstrap)
+    babs_proj.analysis_path = str(tmp_path)
+    babs_proj.input_datasets = [SimpleNamespace(path_in_babs='sourcedata/fmriprep_anat')]
+    readme = tmp_path / 'README.md'
+    readme.write_text(
+        '## Dataset structure\n\n'
+        '- All inputs (i.e. building blocks from other sources) are located in\n'
+        '  `inputs/`.\n'
+    )
+
+    with patch.object(BABSBootstrap, 'datalad_save') as mock_save:
+        babs_proj._update_readme_input_location()
+
+    content = readme.read_text()
+    assert '`sourcedata/`' in content
+    assert '`inputs/`' not in content
+    mock_save.assert_called_once()
+
+
+def test_readme_input_location_untouched_for_default_layout(tmp_path):
+    """The default `inputs/data/...` layout leaves the README wording unchanged."""
+    babs_proj = object.__new__(BABSBootstrap)
+    babs_proj.analysis_path = str(tmp_path)
+    babs_proj.input_datasets = [SimpleNamespace(path_in_babs='inputs/data/BIDS')]
+    readme = tmp_path / 'README.md'
+    original = '- All inputs are located in\n  `inputs/`.\n'
+    readme.write_text(original)
+
+    with patch.object(BABSBootstrap, 'datalad_save') as mock_save:
+        babs_proj._update_readme_input_location()
+
+    assert readme.read_text() == original
+    mock_save.assert_not_called()

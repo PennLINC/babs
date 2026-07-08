@@ -32,6 +32,39 @@ class BABSBootstrap(BABS):
     def _apply_config(self):
         pass
 
+    def _update_readme_input_location(self):
+        """Fix the yoda-generated README's input-location wording.
+
+        ``datalad create -c yoda`` writes a README stating that all inputs live
+        in ``inputs/``. Under the BIDS study layout the input datasets are
+        placed elsewhere (e.g. ``sourcedata/``), so update the wording to match
+        where this project's inputs actually live (tien-tong review body).
+        Best-effort: only rewrites when every input dataset shares a single,
+        non-default top-level directory, and silently skips if the README or
+        the expected ``inputs/`` phrase is absent.
+        """
+        input_roots = {
+            in_ds.path_in_babs.split('/')[0] for in_ds in self.input_datasets if in_ds.path_in_babs
+        }
+        if input_roots == {'inputs'} or len(input_roots) != 1:
+            return
+        (input_root,) = input_roots
+
+        readme_path = op.join(self.analysis_path, 'README.md')
+        if not op.exists(readme_path):
+            return
+        with open(readme_path) as f:
+            content = f.read()
+        updated = content.replace('`inputs/`', f'`{input_root}/`')
+        if updated == content:
+            return
+        with open(readme_path, 'w') as f:
+            f.write(updated)
+        self.datalad_save(
+            path='README.md',
+            message='Update README input location for BIDS study layout',
+        )
+
     def babs_bootstrap(
         self,
         processing_level,
@@ -131,6 +164,7 @@ class BABSBootstrap(BABS):
             create_kwargs['initopts'] = ['--shared=group']
         self._analysis_datalad_handle = dlapi.create(self.analysis_path, **create_kwargs)
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
+        self._update_readme_input_location()
 
         # Persist original config so other BABS commands can find it:
         babs_dir = op.join(self.project_root, '.babs')
