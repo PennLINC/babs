@@ -1,5 +1,6 @@
 import os.path as op
 import re
+import shlex
 import subprocess
 from io import StringIO
 
@@ -255,7 +256,9 @@ def submit_array(analysis_path, queue, maxarray):
     cmd = cmd_template.replace('${max_array}', f'{maxarray}')
 
     if queue == 'slurm':
-        job_id = sbatch_get_job_id(cmd.split(), analysis_path)
+        # shlex.split (not str.split) so quoted paths containing spaces stay
+        # a single argv token; the command is run without a shell.
+        job_id = sbatch_get_job_id(shlex.split(cmd), analysis_path)
     else:
         raise Exception('Invalid job scheduler system type `queue`: ' + queue)
 
@@ -300,7 +303,9 @@ def submit_one_test_job(analysis_path, queue):
     cmd = templates['cmd_template']
 
     if queue == 'slurm':
-        job_id = sbatch_get_job_id(cmd.split(), analysis_path)
+        # shlex.split (not str.split) so quoted paths containing spaces stay
+        # a single argv token; the command is run without a shell.
+        job_id = sbatch_get_job_id(shlex.split(cmd), analysis_path)
     else:
         raise Exception('Invalid job scheduler system type `queue`: ' + queue)
     print(f'Test job has been submitted (job ID: {job_id}).')

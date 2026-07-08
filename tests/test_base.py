@@ -5,15 +5,18 @@ import os
 import os.path as op
 import random
 import re
+import shlex
 import stat
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
 import yaml
 from conftest import get_config_simbids_path, update_yaml_for_run
+from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
@@ -493,3 +496,60 @@ def test_non_mapping_config_raises_clear_error(tmp_path, body):
 
     with pytest.raises(ValueError, match='YAML mapping'):
         BABSBootstrap(str(project_root), container_config=str(config_path))
+
+
+def test_cmd_template_survives_spaces_in_paths():
+    """Paths containing spaces stay single argv tokens after `shlex.split`.
+
+    Renders `job_submit.yaml.jinja2` with a project root that contains a
+    space and asserts each path is recovered as one token, matching how
+    `babs.scheduler` parses the template at submit time (thread #8).
+    """
+    project_root = '/base/my project'
+    analysis_path = project_root + '/analysis'
+    babs = SimpleNamespace(
+        analysis_path=analysis_path,
+        job_submit_path_abs=analysis_path + '/code/job_submit.csv',
+        project_root=project_root,
+    )
+    env = Environment(
+        loader=PackageLoader('babs', 'templates'),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        autoescape=False,
+        undefined=StrictUndefined,
+    )
+    template = env.get_template('job_submit.yaml.jinja2')
+    rendered = template.render(
+        test=False,
+        submit_head='sbatch',
+        env_flags=(
+            f'--export=DSLOCKFILE={analysis_path}/.SLURM_datalad_lock'
+            f',BABS_PROJECT_ROOT={project_root}'
+        ),
+        name_flag_str=' --job-name ',
+        job_name='sim',
+        eo_args=(f'-e "{analysis_path}/logs/sim.e%A_%a" -o "{analysis_path}/logs/sim.o%A_%a"'),
+        array_args='--array=1-${max_array}',
+        babs=babs,
+        dssource=f'ria+file://{project_root}/.babs/input_ria#~data',
+        pushgitremote=f'ria+file://{project_root}/.babs/output_ria#~data',
+    )
+
+    cmd_template = yaml.safe_load(rendered)['cmd_template']
+    cmd = cmd_template.replace('${max_array}', '5')
+    argv = shlex.split(cmd)
+
+    # Each space-containing path survives as exactly one token:
+    assert f'{analysis_path}/code/participant_job.sh' in argv
+    assert project_root in argv
+    assert f'{analysis_path}/code/job_submit.csv' in argv
+    assert f'ria+file://{project_root}/.babs/input_ria#~data' in argv
+    assert f'ria+file://{project_root}/.babs/output_ria#~data' in argv
+    # The export flag and both log paths survive too:
+    assert (
+        f'--export=DSLOCKFILE={analysis_path}/.SLURM_datalad_lock,BABS_PROJECT_ROOT={project_root}'
+        in argv
+    )
+    assert f'{analysis_path}/logs/sim.e%A_%a' in argv
+    assert f'{analysis_path}/logs/sim.o%A_%a' in argv

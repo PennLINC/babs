@@ -296,13 +296,15 @@ class Container:
         # Now, we can define stdout and stderr file names/paths:
         if system.type == 'slurm':
             # slurm clusters also need exact filenames:
+            # Quote the log paths so an analysis_path containing spaces stays a
+            # single argv token once the cmd_template is shlex.split at submit.
             eo_args = (
-                '-e '
+                '-e "'
                 + babs.analysis_path
-                + f'/logs/{job_name}.e%A_%a '
-                + '-o '
+                + f'/logs/{job_name}.e%A_%a" '
+                + '-o "'
                 + babs.analysis_path
-                + f'/logs/{job_name}.o%A_%a'
+                + f'/logs/{job_name}.o%A_%a"'
             )
             # array task id starts from 0 so that max_array == count
             if test:  # no max_array for `submit_test_job_template.yaml`
