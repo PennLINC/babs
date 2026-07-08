@@ -553,3 +553,34 @@ def test_cmd_template_survives_spaces_in_paths():
     )
     assert f'{analysis_path}/logs/sim.e%A_%a' in argv
     assert f'{analysis_path}/logs/sim.o%A_%a' in argv
+
+
+def test_bootstrap_rederives_paths_from_config(tmp_path):
+    """Re-deriving paths honors a custom `analysis_path` set only via the config.
+
+    Reproduces the direct-API pattern (`BABSBootstrap(project_root)` then
+    `babs_bootstrap(..., container_config=...)`): the constructor sees the
+    default layout, and the re-derivation `babs_bootstrap` performs must pick
+    up the config's custom paths rather than silently ignoring them (thread #7).
+    """
+    project_root = tmp_path / 'proj'
+    project_root.mkdir()
+
+    # Constructed without a config -> default layout.
+    babs_proj = BABSBootstrap(str(project_root))
+    assert babs_proj.analysis_path == str(project_root / 'analysis')
+
+    # A config selecting the BIDS study layout.
+    config_path = tmp_path / 'config.yaml'
+    _write_init_config(
+        config_path,
+        'analysis_path: "."\n'
+        'input_ria_path: ".babs/input_ria"\n'
+        'output_ria_path: ".babs/output_ria"\n',
+    )
+
+    # Re-derivation (what `babs_bootstrap` runs) picks up the custom paths.
+    babs_proj._set_project_paths(str(config_path))
+    assert babs_proj.analysis_path == str(project_root)
+    assert babs_proj.input_ria_path == str(project_root / '.babs' / 'input_ria')
+    assert babs_proj.config_path == op.join(str(project_root), 'code/babs_proj_config.yaml')

@@ -72,6 +72,11 @@ class BABSBootstrap(BABS):
             initialized with `git init --shared=group` and RIA siblings are created
             with `--shared group --group <GROUP>`.
         """
+        # Re-derive the analysis/RIA paths from this authoritative init config
+        # so a custom `analysis_path` is honored even when `BABSBootstrap` was
+        # constructed without the config (review thread #7).
+        self._set_project_paths(container_config)
+
         if op.exists(self.project_root):
             raise FileExistsError(
                 f'{self.project_root} already exists.\n\n'

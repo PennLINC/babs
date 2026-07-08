@@ -108,14 +108,38 @@ class BABS:
 
         # attributes:
         self.project_root = str(project_root)
+        self._analysis_datalad_handle = None
 
+        self.output_ria_data_dir = None  # not known yet before output_ria is created
+        self.analysis_dataset_id = None  # to update later
+
+        self.list_sub_path_rel = 'code/processing_inclusion.csv'
+        self.job_status_path_rel = 'code/job_status.csv'
+
+        # Derive the analysis dataset and RIA paths from the babs init config.
+        # Extracted into a method so `babs_bootstrap` can re-derive from its
+        # authoritative config (review thread #7).
+        self._set_project_paths(container_config)
+
+        self._shared_group_enabled_cache = None
+        self._apply_config()
+
+    def _set_project_paths(self, container_config):
+        """Derive analysis dataset and RIA paths from the babs init config.
+
+        Sets every path attribute that depends on ``analysis_path`` /
+        ``input_ria_path`` / ``output_ria_path``. Called from ``__init__``, and
+        again at the start of ``babs_bootstrap`` so that constructing
+        ``BABSBootstrap`` without a config and then bootstrapping with one still
+        honors the config's custom ``analysis_path`` instead of silently using
+        the default layout (review thread #7). Depends on ``list_sub_path_rel``
+        and ``job_status_path_rel`` already being set.
+        """
         cfg = self._load_babs_init_config(container_config)
 
         self.analysis_path = self._resolve_project_subpath(
             cfg.get('analysis_path', 'analysis'), 'analysis_path'
         )
-        self._analysis_datalad_handle = None
-
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
 
         self.input_ria_path = self._resolve_project_subpath(
@@ -124,21 +148,12 @@ class BABS:
         self.output_ria_path = self._resolve_project_subpath(
             cfg.get('output_ria_path', 'output_ria'), 'output_ria_path'
         )
-
         self.input_ria_url = 'ria+file://' + self.input_ria_path
         self.output_ria_url = 'ria+file://' + self.output_ria_path
 
-        self.output_ria_data_dir = None  # not known yet before output_ria is created
-        self.analysis_dataset_id = None  # to update later
-
-        self.list_sub_path_rel = 'code/processing_inclusion.csv'
         self.list_sub_path_abs = op.join(self.analysis_path, self.list_sub_path_rel)
-
-        self.job_status_path_rel = 'code/job_status.csv'
         self.job_status_path_abs = op.join(self.analysis_path, self.job_status_path_rel)
         self.job_submit_path_abs = op.join(self.analysis_path, 'code/job_submit.csv')
-        self._shared_group_enabled_cache = None
-        self._apply_config()
 
     def _load_babs_init_config(self, container_config):
         """Load the config mapping that determines the project's paths.
