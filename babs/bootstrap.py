@@ -105,9 +105,11 @@ class BABSBootstrap(BABS):
             initialized with `git init --shared=group` and RIA siblings are created
             with `--shared group --group <GROUP>`.
         """
-        # Re-derive the analysis/RIA paths from this authoritative init config
-        # so a custom `analysis_path` is honored even when `BABSBootstrap` was
-        # constructed without the config.
+        # The Python API allows constructing `BABSBootstrap(project_root)` without
+        # the init config and passing it only here (the test fixtures do this; the
+        # CLI passes it at construction) — in which case __init__ set the paths to
+        # defaults. Re-derive from this authoritative config so a custom
+        # `analysis_path` is honored regardless of construction order.
         self._set_project_paths(container_config)
 
         if op.exists(self.project_root):
@@ -185,12 +187,10 @@ class BABSBootstrap(BABS):
             os.remove(gitignore_path)
         gitignore_file = open(gitignore_path, 'a')  # open in append mode
 
-        # not to track input/output RIA stores when they live inside the
-        # analysis dataset (BIDS study layout). Anchor the pattern to the
-        # analysis root with a leading '/' and use the path relative to it,
-        # rather than the bare basename which would match same-named files
-        # anywhere in the tree. In the default layout the RIA stores are
-        # siblings of `analysis/` (outside the dataset), so nothing is added.
+        # Do not track the RIA stores in git. Only relevant when a store lives
+        # inside the analysis dataset (BIDS study layout); the '/'-anchored
+        # relpath matches only that exact path, not any same-named dir. In the
+        # default layout the stores are outside `analysis/`, so nothing is added.
         for ria_path in (self.input_ria_path, self.output_ria_path):
             ria_relpath = op.relpath(ria_path, self.analysis_path)
             if ria_relpath == os.curdir or ria_relpath.split(os.sep)[0] == os.pardir:
