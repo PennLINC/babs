@@ -241,8 +241,7 @@ def test_init_forwards_shared_group(tmp_path):
         options.queue,
         options.container_ds,
         options.container_name,
-        options.container_config,
-        options.list_sub_file,
+        initial_inclusion_df=options.list_sub_file,
         throttle=options.throttle,
         shared_group=options.shared_group,
     )
