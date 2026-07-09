@@ -459,8 +459,8 @@ class BABSBootstrap(BABS):
             self.input_datasets,
             self.processing_level,
             system,
-            project_root=op.dirname(self.analysis_path),
-            analysis_dir=op.basename(self.analysis_path),
+            project_root=self.project_root,
+            analysis_path=self.analysis_path,
             shared_group_mode=shared_group_mode,
         )
 
@@ -535,8 +535,8 @@ class BABSBootstrap(BABS):
             run_script_relpath='code/pipeline_zip.sh',
             container_images=container_images,
             datalad_run_message='pipeline',
-            project_root=op.dirname(self.analysis_path),
-            analysis_dir=op.basename(self.analysis_path),
+            project_root=self.project_root,
+            analysis_path=self.analysis_path,
         )
 
         with open(bash_path, 'w') as f:
