@@ -182,7 +182,6 @@ class BABSBootstrap(BABS):
         with open(self.config_path, 'w') as f:
             f.write(
                 template.render(
-                    analysis_dir=op.basename(self.analysis_path),
                     processing_level=self.processing_level,
                     queue=self.queue,
                     input_ds=self.input_datasets,

@@ -43,6 +43,19 @@ EMPTY_JOB_STATUS_DF = pd.DataFrame(
 EMPTY_JOB_SUBMIT_DF = pd.DataFrame(columns=['sub_id', 'ses_id', 'task_id', 'job_id', 'state'])
 
 
+def _resolve_subpath(project_root: str, value: str, key: str) -> str:
+    """Resolve a config-supplied relative path under project_root, rejecting traversal."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"'{key}' must be a non-empty string, got {value!r}")
+    p = Path(value)
+    if p.is_absolute():
+        raise ValueError(f"'{key}' must be a relative path, got {value!r}")
+    resolved = (Path(project_root) / p).resolve()
+    if not resolved.is_relative_to(Path(project_root).resolve()):
+        raise ValueError(f"'{key}' resolves outside project_root: {resolved}")
+    return str(resolved)
+
+
 class BABS:
     """The BABS base class holds common attributes and methods for all BABS classes."""
 
@@ -111,25 +124,31 @@ class BABS:
 
         if container_config is not None:
             with open(container_config) as f:
-                cfg = yaml.safe_load(f)
+                cfg = yaml.safe_load(f) or {}
         else:
             root_config_path = op.join(self.project_root, '.babs', 'babs_init_config.yaml')
             cfg = {}
             if op.exists(root_config_path):
                 with open(root_config_path) as f:
                     cfg = yaml.safe_load(f) or {}
+        if not isinstance(cfg, dict):
+            raise ValueError(
+                f"container_config_yaml must be a YAML mapping (key: value pairs), "
+                f"got {type(cfg).__name__}"
+            )
 
-        analysis_dir = cfg.get('analysis_path', 'analysis')
-        self.analysis_path = op.normpath(op.join(self.project_root, analysis_dir))
+        self.analysis_path = _resolve_subpath(
+            self.project_root, cfg.get('analysis_path', 'analysis'), 'analysis_path'
+        )
         self._analysis_datalad_handle = None
 
         self.config_path = op.join(self.analysis_path, 'code/babs_proj_config.yaml')
 
-        self.input_ria_path = op.normpath(
-            op.join(self.project_root, cfg.get('input_ria_path', 'input_ria'))
+        self.input_ria_path = _resolve_subpath(
+            self.project_root, cfg.get('input_ria_path', 'input_ria'), 'input_ria_path'
         )
-        self.output_ria_path = op.normpath(
-            op.join(self.project_root, cfg.get('output_ria_path', 'output_ria'))
+        self.output_ria_path = _resolve_subpath(
+            self.project_root, cfg.get('output_ria_path', 'output_ria'), 'output_ria_path'
         )
 
         self.input_ria_url = 'ria+file://' + self.input_ria_path
