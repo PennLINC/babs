@@ -440,12 +440,13 @@ def get_babs_project(
         {'BIDS': bids_data},
     )
 
-    babs_bootstrap = BABSBootstrap(project_root=project_root, container_config=container_config)
+    babs_bootstrap = BABSBootstrap(project_root=project_root)
     babs_bootstrap.babs_bootstrap(
         processing_level=processing_level,
         queue='slurm',
         container_ds=simbids_container_ds,
         container_name=container_name,
+        container_config=container_config,
         initial_inclusion_df=None,
     )
 
