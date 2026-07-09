@@ -293,6 +293,37 @@ def test_throttle_in_job_template(
         assert not re.search(r'%\d+', cmd_template)
 
 
+def test_bootstrap_container_config_from_constructor(
+    tmp_path_factory,
+    templateflow_home,
+    simbids_container_ds,
+    bids_data_singlesession,
+):
+    """Test that container_config passed to the constructor is used when not passed to babs_bootstrap."""
+
+    os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
+
+    project_base = tmp_path_factory.mktemp('project')
+    project_root = project_base / 'my_babs_project_config_from_init'
+    container_config = update_yaml_for_run(
+        project_base,
+        get_config_simbids_path().name,
+        {'BIDS': bids_data_singlesession},
+    )
+
+    babs_bootstrap = BABSBootstrap(project_root=project_root, container_config=container_config)
+    babs_bootstrap.babs_bootstrap(
+        processing_level='subject',
+        queue='slurm',
+        container_ds=simbids_container_ds,
+        container_name='simbids-0-0-3',
+        initial_inclusion_df=None,
+    )
+
+    assert op.exists(babs_bootstrap.analysis_path)
+    assert op.exists(op.join(babs_bootstrap.analysis_path, 'code', 'participant_job.sh'))
+
+
 def test_shared_group_inits_analysis_and_rias(
     tmp_path_factory,
     templateflow_home,

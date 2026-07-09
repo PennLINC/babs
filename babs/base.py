@@ -121,6 +121,7 @@ class BABS:
 
         # attributes:
         self.project_root = str(project_root)
+        self.container_config = container_config
 
         if container_config is not None:
             with open(container_config) as f:

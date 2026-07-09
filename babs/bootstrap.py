@@ -38,7 +38,7 @@ class BABSBootstrap(BABS):
         queue,
         container_ds,
         container_name,
-        container_config,
+        container_config=None,
         initial_inclusion_df=None,
         throttle=None,
         shared_group=None,
@@ -57,9 +57,10 @@ class BABSBootstrap(BABS):
             e.g., 'fmriprep-0-0-0'
         container_ds: str
             path to the container datalad dataset which the user provides
-        container_config: str
+        container_config: str, optional
             Path to a YAML file that contains the configurations
-            of how to run the BIDS App container
+            of how to run the BIDS App container. If not provided,
+            falls back to ``self.container_config`` set at construction time.
         initial_inclusion_df: pd.DataFrame
             initial inclusion dataframe of subjects/sessions to analyze
         throttle: int or None, optional
@@ -72,6 +73,8 @@ class BABSBootstrap(BABS):
             initialized with `git init --shared=group` and RIA siblings are created
             with `--shared group --group <GROUP>`.
         """
+        container_config = container_config or self.container_config
+
         if op.exists(self.project_root):
             raise FileExistsError(
                 f'{self.project_root} already exists.\n\n'

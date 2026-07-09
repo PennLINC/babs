@@ -213,8 +213,7 @@ def babs_init_main(
             queue,
             container_ds,
             container_name,
-            container_config,
-            list_sub_file,
+            initial_inclusion_df=list_sub_file,
             throttle=throttle,
             shared_group=shared_group,
         )
