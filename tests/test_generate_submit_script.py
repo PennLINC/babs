@@ -105,7 +105,6 @@ def test_generate_submit_script(input_datasets, config_file, processing_level, t
         processing_level=processing_level,
         container_name=container_name,
         zip_foldernames=config['zip_foldernames'],
-        project_root='/tmp/babs_project',
         analysis_path='/tmp/babs_project/analysis',
     )
 
@@ -166,7 +165,6 @@ def test_generate_submit_script_pipeline(tmp_path):
         run_script_relpath='code/pipeline_zip.sh',
         container_images=image_paths,
         datalad_run_message='nordic-fmriprep pipeline',
-        project_root='/tmp/babs_project',
         analysis_path='/tmp/babs_project/analysis',
     )
 

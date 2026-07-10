@@ -156,7 +156,6 @@ class Container:
         input_ds,
         processing_level,
         system,
-        project_root=None,
         analysis_path=None,
         shared_group_mode=False,
     ):
@@ -172,9 +171,6 @@ class Container:
             whether processing is done on a subject-wise or session-wise basis
         system: class `System`
             information on cluster management system
-        project_root : str, optional
-            Absolute path to the BABS project root (parent of `analysis/`).
-            Shown in the script error message when PROJECT_ROOT is unset.
         analysis_path : str
             Absolute path to the analysis directory. Passed to the generated
             script to locate shared container images.
@@ -193,7 +189,6 @@ class Container:
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
-            project_root=project_root,
             analysis_path=analysis_path,
         )
 
@@ -265,8 +260,6 @@ class Container:
                 '--export=DSLOCKFILE='
                 + babs.analysis_path
                 + '/.SLURM_datalad_lock'
-                + ',PROJECT_ROOT='
-                + babs.project_root
             )
         else:
             warnings.warn('not supporting systems other than slurm...', stacklevel=2)

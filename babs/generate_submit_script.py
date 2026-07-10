@@ -29,7 +29,6 @@ def generate_submit_script(
     run_script_relpath=None,
     container_images=None,
     datalad_run_message=None,
-    project_root=None,
     analysis_path=None,
 ):
     """
@@ -59,10 +58,6 @@ def generate_submit_script(
         List of container image paths. None for single-app mode.
     datalad_run_message : str, optional
         Custom message for datalad run. None uses container name.
-    project_root : str, optional
-        Absolute path to the BABS project root (parent of `analysis/`).
-        Passed to the template; used in the error message when PROJECT_ROOT
-        is unset. If None, the placeholder ``{project_root}`` is shown.
     analysis_path : str
         Absolute path to the analysis directory. Used in the generated script
         to locate shared container images.
@@ -134,7 +129,6 @@ def generate_submit_script(
         run_script_relpath=run_script_relpath,
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
-        project_root=project_root,
         analysis_path=analysis_path,
     )
 
