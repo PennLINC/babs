@@ -134,6 +134,14 @@ def _parse_init():
         '`analysis` is initialized with ``git init --shared=group`` and '
         'RIA siblings are created with ``--shared group --group <GROUP>``.',
     )
+    parser.add_argument(
+        '--no-ignore',
+        nargs='+',
+        choices=['logs'],
+        default=[],
+        metavar='ENTRY',
+        help="Skip adding ENTRY to the generated .gitignore. Currently supported: 'logs'.",
+    )
 
     return parser
 
@@ -166,6 +174,7 @@ def babs_init_main(
     keep_if_failed: bool,
     throttle: int | None = None,
     shared_group: str | None = None,
+    no_ignore: list | None = None,
 ):
     """This is the core function of babs init.
 
@@ -202,6 +211,8 @@ def babs_init_main(
         Unix group name for shared write access. If provided, `analysis` is
         initialized with `git init --shared=group` and RIA siblings are created
         with `--shared group --group <GROUP>`.
+    no_ignore: list or None, optional
+        List of entries to omit from the generated .gitignore. Supported: 'logs'.
     """
 
     from babs import BABSBootstrap
@@ -217,6 +228,7 @@ def babs_init_main(
             list_sub_file,
             throttle=throttle,
             shared_group=shared_group,
+            no_ignore=no_ignore,
         )
     except Exception as exc:
         print('\n`babs init` failed! Below is the error message:')
