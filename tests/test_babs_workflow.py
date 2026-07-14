@@ -1,6 +1,7 @@
 """Test the babs workflow."""
 
 import argparse
+import json
 import os
 import os.path as op
 import subprocess
@@ -33,6 +34,7 @@ def test_babs_init_raw_bids(
     bids_data_multisession,
     processing_level,
     simbids_container_ds,
+    capsys,
 ):
     """
     This is to test `babs init` on raw BIDS data.
@@ -160,6 +162,36 @@ def test_babs_init_raw_bids(
         assert not job.is_failed
         assert job.submitted
 
+    # `babs status --json` exercises the machine-readable contract end-to-end:
+    # stdout must be exactly one JSON object, and its counts must match the known
+    # ground truth at this checkpoint (asserted as literals, not re-derived from
+    # job_status_counts — a bug there must not pass by matching itself).
+    capsys.readouterr()  # drop output buffered from the status runs above
+    babs_status_json_opts = argparse.Namespace(project_root=project_root, json_output=True)
+    with mock.patch.object(
+        argparse.ArgumentParser, 'parse_args', return_value=babs_status_json_opts
+    ):
+        _enter_status()
+    json_out = capsys.readouterr().out
+    summary = json.loads(json_out)  # single parseable document, no scraping
+
+    # Ground truth here: exactly one job was submitted (count=1) and has finished
+    # with results (checked above); squeue is empty (nothing live); the rest are
+    # unsubmitted. `total` is the CSV row count via read_job_status_csv (not the
+    # function under test), so the assertion pins real numbers.
+    total = len(read_job_status_csv(babs_obj.job_status_path_abs))
+    assert summary == {
+        'total': total,
+        'submitted': 1,
+        'unsubmitted': total - 1,
+        'pending': 0,
+        'running': 0,
+        'completing': 0,
+        'configuring': 0,
+        'done': 1,
+        'failed': 0,
+    }
+
     # Submit the remaining job(s):
     babs_submit_opts = argparse.Namespace(
         project_root=project_root,
@@ -227,6 +259,7 @@ def test_init_forwards_shared_group(tmp_path):
         keep_if_failed=False,
         throttle=None,
         shared_group='my-lab-group',
+        no_ignore=[],
     )
     with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
         with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
@@ -242,6 +275,40 @@ def test_init_forwards_shared_group(tmp_path):
         options.list_sub_file,
         throttle=options.throttle,
         shared_group=options.shared_group,
+        no_ignore=options.no_ignore,
+    )
+
+
+def test_init_forwards_no_ignore(tmp_path):
+    """Test that CLI --no-ignore is forwarded to bootstrap."""
+    options = argparse.Namespace(
+        project_root=tmp_path / 'my_babs_project',
+        list_sub_file=None,
+        container_ds='/tmp/container_ds',
+        container_name='simbids-0-0-3',
+        container_config='/tmp/container_config.yaml',
+        processing_level='subject',
+        queue='slurm',
+        keep_if_failed=False,
+        throttle=None,
+        shared_group=None,
+        no_ignore=['logs'],
+    )
+    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
+        with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
+            _enter_init()
+
+    mock_bootstrap_cls.assert_called_once_with(options.project_root)
+    mock_bootstrap_cls.return_value.babs_bootstrap.assert_called_once_with(
+        options.processing_level,
+        options.queue,
+        options.container_ds,
+        options.container_name,
+        options.container_config,
+        options.list_sub_file,
+        throttle=options.throttle,
+        shared_group=options.shared_group,
+        no_ignore=options.no_ignore,
     )
 
 
