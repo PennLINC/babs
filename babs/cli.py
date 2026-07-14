@@ -476,11 +476,22 @@ def _parse_status():
         default=Path.cwd(),
         type=PathExists,
     )
-    parser.add_argument(
+    # --wait polls and prints repeatedly; --json prints a single JSON object.
+    # They are mutually exclusive so stdout stays a single parseable JSON doc.
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
         '--wait',
         action='store_true',
         default=False,
         help='Poll until all submitted jobs complete or fail.',
+    )
+    mode_group.add_argument(
+        '--json',
+        dest='json_output',
+        action='store_true',
+        default=False,
+        help='Print only a machine-readable JSON summary of job counts to stdout '
+        '(no human-readable table).',
     )
     parser.add_argument(
         '--wait-interval',
@@ -512,6 +523,7 @@ def babs_status_main(
     project_root: str,
     wait: bool = False,
     wait_interval: int = 300,
+    json_output: bool = False,
 ):
     """
     This is the core function of `babs status`.
@@ -524,6 +536,9 @@ def babs_status_main(
         whether to poll until all submitted jobs complete or fail
     wait_interval: int
         seconds between status checks when using --wait
+    json_output: bool
+        whether to emit only a machine-readable JSON summary to stdout
+        instead of the human-readable table
     """
     from babs import BABSInteraction
 
@@ -531,7 +546,7 @@ def babs_status_main(
     if wait:
         babs_proj.babs_status_wait(interval=wait_interval)
     else:
-        babs_proj.babs_status()
+        babs_proj.babs_status(json_output=json_output)
 
 
 def _parse_merge():

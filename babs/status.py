@@ -66,6 +66,53 @@ class JobStatus:
         return (self.sub_id,)
 
 
+# -- Summary ------------------------------------------------------------------
+
+
+def job_status_counts(statuses: dict[tuple, JobStatus]) -> dict[str, int]:
+    """Compute the job-count summary shared by the human report and ``--json``.
+
+    Single source of truth for the counts: ``report_job_status`` renders these
+    as the human table, and ``babs status --json`` emits this dict verbatim (the
+    interface contract consumed by tooling such as mechababs). Key names are
+    stable:
+
+    - ``total``       — number of tracked jobs (rows in job_status.csv)
+    - ``submitted``   — jobs submitted to the scheduler (state != NOT_SUBMITTED)
+    - ``unsubmitted`` — ``total - submitted``
+    - ``pending``     — scheduler_state == PENDING (queued, not started)
+    - ``running``     — scheduler_state == RUNNING (executing)
+    - ``completing``  — scheduler_state == COMPLETING (finishing/cleanup)
+    - ``configuring`` — scheduler_state == CONFIGURING (nodes preparing)
+    - ``done``        — ``has_results and not is_failed``
+    - ``failed``      — ``is_failed`` (state == DONE and no results)
+
+    ``pending``/``running``/``completing``/``configuring`` are raw scheduler
+    snapshots (like the existing human report), so they can transiently overlap
+    ``done`` — ``has_results`` (from result branches) and ``scheduler_state``
+    (from squeue) update independently, so a job may show ``has_results`` while
+    squeue still reports COMPLETING. The only guaranteed invariant is therefore
+    ``total == submitted + unsubmitted``; ``done``/``failed`` (defined by
+    ``has_results``/``is_failed``, not state) partition cleanly against
+    ``submitted``, so a consumer derives in-progress as
+    ``submitted - done - failed``.
+    """
+    jobs = list(statuses.values())
+    total = len(jobs)
+    submitted = sum(1 for j in jobs if j.submitted)
+    return {
+        'total': total,
+        'submitted': submitted,
+        'unsubmitted': total - submitted,
+        'pending': sum(1 for j in jobs if j.scheduler_state == SchedulerState.PENDING),
+        'running': sum(1 for j in jobs if j.scheduler_state == SchedulerState.RUNNING),
+        'completing': sum(1 for j in jobs if j.scheduler_state == SchedulerState.COMPLETING),
+        'configuring': sum(1 for j in jobs if j.scheduler_state == SchedulerState.CONFIGURING),
+        'done': sum(1 for j in jobs if j.has_results and not j.is_failed),
+        'failed': sum(1 for j in jobs if j.is_failed),
+    }
+
+
 # -- CSV I/O -----------------------------------------------------------------
 
 _CSV_COLUMNS_SUBJECT = [
