@@ -17,8 +17,14 @@ from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
-from babs.bootstrap import BABSBootstrap
+from babs.bootstrap import BIDS_GITATTRIBUTES, BABSBootstrap
 from babs.utils import read_yaml
+
+
+def test_bootstrap_writes_bids_gitattributes(babs_project_sessionlevel):
+    """`babs init` installs the BIDS-friendly `.gitattributes` in `analysis/`."""
+    gitattributes = Path(babs_project_sessionlevel) / 'analysis' / '.gitattributes'
+    assert gitattributes.read_text() == BIDS_GITATTRIBUTES
 
 
 def test_missing_config_parts(babs_project_sessionlevel):
