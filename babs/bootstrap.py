@@ -42,6 +42,7 @@ class BABSBootstrap(BABS):
         initial_inclusion_df=None,
         throttle=None,
         shared_group=None,
+        no_ignore=None,
     ):
         """
         Bootstrap a babs project: initialize datalad-tracked RIAs, generate scripts to be used, etc
@@ -72,6 +73,8 @@ class BABSBootstrap(BABS):
             Unix group name for shared write access. If provided, `analysis` is
             initialized with `git init --shared=group` and RIA siblings are created
             with `--shared group --group <GROUP>`.
+        no_ignore: list or None, optional
+            List of entries to omit from the generated .gitignore. Supported: 'logs'.
         """
         container_config = container_config or self.container_config
 
@@ -153,7 +156,8 @@ class BABSBootstrap(BABS):
         gitignore_file.write('\n' + op.basename(self.input_ria_path))
         gitignore_file.write('\n' + op.basename(self.output_ria_path))
         # not to track `logs` folder:
-        gitignore_file.write('\nlogs')
+        if 'logs' not in (no_ignore or []):
+            gitignore_file.write('\nlogs')
         # not to track `.*_datalad_lock`:
         gitignore_file.write('\n.*_datalad_lock')
         # not to track lock file:

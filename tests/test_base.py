@@ -339,6 +339,52 @@ def test_throttle_in_job_template(
         assert not re.search(r'%\d+', cmd_template)
 
 
+@pytest.mark.parametrize(
+    ('no_ignore', 'logs_ignored'),
+    [([], True), (['logs'], False)],
+)
+def test_no_ignore_logs_in_gitignore(
+    tmp_path_factory,
+    templateflow_home,
+    simbids_container_ds,
+    bids_data_singlesession,
+    no_ignore,
+    logs_ignored,
+):
+    """Test that --no-ignore logs omits the logs entry from .gitignore."""
+
+    os.environ['TEMPLATEFLOW_HOME'] = str(templateflow_home)
+
+    project_base = tmp_path_factory.mktemp('project')
+    label = 'default' if not no_ignore else 'no_logs'
+    project_root = project_base / f'my_babs_project_{label}'
+    container_config = update_yaml_for_run(
+        project_base,
+        get_config_simbids_path().name,
+        {'BIDS': bids_data_singlesession},
+    )
+
+    babs_bootstrap = BABSBootstrap(project_root=project_root)
+    babs_bootstrap.babs_bootstrap(
+        processing_level='subject',
+        queue='slurm',
+        container_ds=simbids_container_ds,
+        container_name='simbids-0-0-3',
+        container_config=container_config,
+        initial_inclusion_df=None,
+        no_ignore=no_ignore,
+    )
+
+    gitignore_path = op.join(babs_bootstrap.analysis_path, '.gitignore')
+    with open(gitignore_path) as f:
+        contents = f.read()
+
+    if logs_ignored:
+        assert 'logs' in contents
+    else:
+        assert 'logs' not in contents
+
+
 def test_bootstrap_container_config_from_constructor(
     tmp_path_factory,
     templateflow_home,
