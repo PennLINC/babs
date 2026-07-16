@@ -13,8 +13,6 @@ set -e -u -x
 dssource="$1"	# i.e., `input_ria`
 pushgitremote="$2"	# i.e., `output_ria`
 SUBJECT_CSV="$3"
-# PROJECT_ROOT: $4 (reliable) or sbatch --export (may not propagate on some Slurm setups) or baked-in default below
-PROJECT_ROOT="${4:-${PROJECT_ROOT:-{{ project_root | default('') }}}}"
 
 subject_row=$(head -n $(({{varname_taskid}} + 1)) "${SUBJECT_CSV}" | tail -n 1)
 subid=$(echo "$subject_row" | python -c "import sys, re; pattern = r'sub-[a-zA-Z0-9]+(?=,|$)'; matches = re.findall(pattern, sys.stdin.read()); print(matches[0] if len(matches) == 1 else 'ERROR')")
@@ -143,7 +141,7 @@ CONTAINER_IMAGE_PATHS=(
 )
 
 for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
-  CONTAINER_SHARED="${PROJECT_ROOT}/analysis/${CONTAINER_JOB}"
+  CONTAINER_SHARED="{{ analysis_path }}/${CONTAINER_JOB}"
 
   if [ ! -e "${CONTAINER_SHARED}" ] && [ ! -L "${CONTAINER_SHARED}" ]; then
     echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2

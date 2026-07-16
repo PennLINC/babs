@@ -217,15 +217,14 @@ def babs_init_main(
 
     from babs import BABSBootstrap
 
-    babs_proj = BABSBootstrap(project_root)
+    babs_proj = BABSBootstrap(project_root, container_config=container_config)
     try:
         babs_proj.babs_bootstrap(
             processing_level,
             queue,
             container_ds,
             container_name,
-            container_config,
-            list_sub_file,
+            initial_inclusion_df=list_sub_file,
             throttle=throttle,
             shared_group=shared_group,
             no_ignore=no_ignore,

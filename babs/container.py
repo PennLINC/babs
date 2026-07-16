@@ -156,7 +156,7 @@ class Container:
         input_ds,
         processing_level,
         system,
-        project_root=None,
+        analysis_path=None,
         shared_group_mode=False,
     ):
         """Generate bash script for participant job.
@@ -171,12 +171,14 @@ class Container:
             whether processing is done on a subject-wise or session-wise basis
         system: class `System`
             information on cluster management system
-        project_root : str, optional
-            Absolute path to the BABS project root (parent of `analysis/`).
-            Shown in the script error message when PROJECT_ROOT is unset.
+        analysis_path : str
+            Absolute path to the analysis directory. Passed to the generated
+            script to locate shared container images.
         shared_group_mode : bool, optional
             If True, align generated script permissions with shared-group mode.
         """
+        if analysis_path is None:
+            raise ValueError('analysis_path is required')
 
         script_content = generate_submit_script(
             queue_system=system.type,
@@ -187,7 +189,7 @@ class Container:
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
-            project_root=project_root,
+            analysis_path=analysis_path,
         )
 
         with open(bash_path, 'w') as f:
@@ -254,13 +256,7 @@ class Container:
         # Flags when submitting the job:
         if system.type == 'slurm':
             submit_head = 'sbatch'
-            env_flags = (
-                '--export=DSLOCKFILE='
-                + babs.analysis_path
-                + '/.SLURM_datalad_lock'
-                + ',PROJECT_ROOT='
-                + babs.project_root
-            )
+            env_flags = '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
         else:
             warnings.warn('not supporting systems other than slurm...', stacklevel=2)
 
