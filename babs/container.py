@@ -178,7 +178,7 @@ class Container:
             If True, align generated script permissions with shared-group mode.
         """
         if analysis_path is None:
-            raise ValueError("analysis_path is required")
+            raise ValueError('analysis_path is required')
 
         script_content = generate_submit_script(
             queue_system=system.type,
@@ -256,11 +256,7 @@ class Container:
         # Flags when submitting the job:
         if system.type == 'slurm':
             submit_head = 'sbatch'
-            env_flags = (
-                '--export=DSLOCKFILE='
-                + babs.analysis_path
-                + '/.SLURM_datalad_lock'
-            )
+            env_flags = '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
         else:
             warnings.warn('not supporting systems other than slurm...', stacklevel=2)
 

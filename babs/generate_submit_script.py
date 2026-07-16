@@ -68,7 +68,7 @@ def generate_submit_script(
         The contents of the bash script that runs the BIDS App singularity image.
     """
     if analysis_path is None:
-        raise ValueError("analysis_path is required")
+        raise ValueError('analysis_path is required')
     # Handle both InputDatasets objects and lists for consistency
     if hasattr(input_datasets, 'as_records'):
         # It's an InputDatasets object, convert to records

@@ -134,8 +134,8 @@ class BABS:
                     cfg = yaml.safe_load(f) or {}
         if not isinstance(cfg, dict):
             raise ValueError(
-                f"container_config_yaml must be a YAML mapping (key: value pairs), "
-                f"got {type(cfg).__name__}"
+                f'container_config_yaml must be a YAML mapping (key: value pairs), '
+                f'got {type(cfg).__name__}'
             )
 
         self.analysis_path = _resolve_subpath(
