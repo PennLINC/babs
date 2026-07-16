@@ -105,6 +105,7 @@ def test_generate_submit_script(input_datasets, config_file, processing_level, t
         processing_level=processing_level,
         container_name=container_name,
         zip_foldernames=config['zip_foldernames'],
+        analysis_path='/tmp/babs_project/analysis',
     )
 
     out_fn = tmp_path / f'participant_job_{config_path.name}_{processing_level}.sh'
@@ -164,6 +165,7 @@ def test_generate_submit_script_pipeline(tmp_path):
         run_script_relpath='code/pipeline_zip.sh',
         container_images=image_paths,
         datalad_run_message='nordic-fmriprep pipeline',
+        analysis_path='/tmp/babs_project/analysis',
     )
 
     # Write script to file and run shellcheck (same as single-app tests)
