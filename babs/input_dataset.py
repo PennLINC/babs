@@ -11,22 +11,6 @@ import datalad.api as dlapi
 import pandas as pd
 
 
-def var_safe_name(name):
-    """Map a name to a valid POSIX shell identifier by replacing every non-word
-    character (`-`, `.`, `+`, ...) with `_` and uppercasing.
-
-    Used to derive shell variable names from dataset names, which may contain
-    characters the shell rejects in an identifier: e.g. an input named
-    `SimBIDS-0.0.3` would otherwise yield the variable `SIMBIDS-0.0.3_ZIP`, which
-    bash cannot assign (`-`/`.` are not allowed) -> `SIMBIDS_0_0_3_ZIP`.
-
-    Such names are the norm, not an edge case: BIDS derivative naming encourages a
-    `<Tool>-<Version>` form (e.g. `fMRIPrep-24.1.1`), so version dots and hyphens
-    are expected in a derivative used as an input dataset.
-    """
-    return re.sub(r'\W', '_', name).upper()
-
-
 class InputDataset:
     """Represent an input dataset."""
 
@@ -289,8 +273,6 @@ class InputDataset:
 
         return {
             'name': self.name,
-            # shell-safe form of `name` for job shell-variable names (templates append _ZIP).
-            'shell_safe_name': var_safe_name(self.name),
             'origin_url': self.origin_url,
             'path_in_babs': self.path_in_babs,
             'is_zipped': self.is_zipped,

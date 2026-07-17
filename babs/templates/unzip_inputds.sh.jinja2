@@ -2,7 +2,7 @@ wd=${PWD}
 {% for input_ds in input_datasets %}
 {% if input_ds['is_zipped'] %}
 cd {{ input_ds['path_in_babs'] }}
-ZIPNAME=$(basename "${% raw %}{{% endraw %}{{input_ds['shell_safe_name']}}_ZIP{% raw %}}{% endraw %}")
+ZIPNAME=$(basename "${% raw %}{{% endraw %}{{input_ds['name'] | shell_safe}}_ZIP{% raw %}}{% endraw %}")
 7z x "${ZIPNAME}"
 cd "$wd"
 {% endif %}

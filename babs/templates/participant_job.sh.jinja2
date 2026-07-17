@@ -167,7 +167,7 @@ datalad run \
 {% for common_path in input_dataset['common_paths'] %}	-i "{{ input_dataset['path_in_babs'] }}/{{ common_path }}" \
 {% endfor %}
 {% else %}
-	-i "${%raw%}{{%endraw%}{{ input_dataset['shell_safe_name'] }}_ZIP{%raw%}}{%endraw%}" \
+	-i "${%raw%}{{%endraw%}{{ input_dataset['name'] | shell_safe }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
 	${DATALAD_INPUTS[@]+"${DATALAD_INPUTS[@]}"} \
@@ -184,7 +184,7 @@ datalad run \
 {% endfor %}
 {% endif %}
 	-m "{{ (datalad_run_message if datalad_run_message is defined and datalad_run_message else container_name) }} {% raw %}${subid}{% endraw %}{% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}" \
-    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['shell_safe_name'] }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
+    "bash ./{{ run_script_relpath if run_script_relpath else 'code/' + container_name + '_zip.sh' }} {% raw %}${subid}{% endraw %} {% if processing_level == 'session' %} {% raw %}${sesid}{% endraw %}{% endif %}{% for input_dataset in input_datasets %}{% if input_dataset['is_zipped'] %} ${%raw%}{{%endraw%}{{ input_dataset['name'] | shell_safe }}_ZIP{%raw%}}{%endraw%}{%endif%}{%endfor%}"
 
 # Finish up:
 # push result file content to output RIA storage:
