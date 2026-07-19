@@ -5,9 +5,12 @@ find_single_zip_in_git_tree() {{ '{' }}
   local name="$2"
   local hits count
 
+  # Match each identifier as a FIXED string: derivative names can contain regex
+  # metacharacters (e.g. the '+' and '.' in 'fMRIPrep-25.2.5+anat'), which broke
+  # the previous single `grep -E`. Only the .zip suffix is a genuine anchor.
   hits="$(
     git -C "${zip_search_path}" ls-tree -r --name-only HEAD \
-      | grep -E "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}{% raw %}.*${sesid}{% endraw %}{% endif %}{% raw %}.*${name}.*\.zip${% endraw %}" \
+      | grep -F "{% raw %}${subid}{% endraw %}"{% if processing_level == 'session' %} | grep -F "{% raw %}${sesid}{% endraw %}"{% endif %} | grep -F "{% raw %}${name}{% endraw %}" | grep -E '{% raw %}\.zip${% endraw %}' \
       || true
   )"
 
