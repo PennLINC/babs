@@ -15,7 +15,10 @@ sesid="$2"
 filterfile="${PWD}/${sesid}_filter.json"
 {% raw %}{{% endraw %}
     echo "{"
-    echo "'fmap': {'datatype': 'fmap', 'session': '$sesid'},"
+    {# The fmap entry must NOT carry 'session'. fmriprep passes this entry to sdcflows'
+       find_estimators() together with the session it resolved itself, and sdcflows rejects
+       receiving the session twice. The session is already enforced by the sparse checkout. #}
+    echo "'fmap': {'datatype': 'fmap'},"
 {% set first_filter_step = steps_with_filter[0] %}
 {% if 'fmriprep' in first_filter_step['container_name'].lower() %}
     echo "'bold': {'datatype': 'func', 'session': '$sesid', 'suffix': 'bold'},"
