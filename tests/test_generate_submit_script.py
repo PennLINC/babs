@@ -192,6 +192,7 @@ def _render(input_datasets, processing_level):
         container_name='fmriprep',
         zip_foldernames={'fmriprep': '0'},
         container_images=['containers/fmriprep.sif'],
+        analysis_path='/tmp/babs_project/analysis',
     )
 
 
