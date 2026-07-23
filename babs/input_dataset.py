@@ -24,6 +24,7 @@ class InputDataset:
         is_zipped,
         unzipped_path_containing_subject_dirs=None,
         required_files=None,
+        common_paths=None,
         processing_level=None,
         babs_project_analysis_path=None,
     ):
@@ -43,6 +44,13 @@ class InputDataset:
             when unzipped, this string precedes the subject directories
         required_files: list of str or None
             list of required files in the input dataset
+        common_paths: list of str or None
+            *explicit* dataset-root-relative paths to include in the sparse-checkout for
+            every job, in addition to the per-subject (and per-session) path AND the
+            automatic BIDS-inheritance grab (see ``participant_job.sh.jinja2``: every job
+            also pulls all metadata blobs sitting at the dataset root, plus the subject
+            tier for session-level jobs). Use this only for a non-inherited file the grab
+            doesn't reach (e.g. a shared ``sourcedata/.../nidm.ttl``). Defaults to ``[]``.
         processing_level: {'subject', 'session'} or None
             whether processing is done on a subject-wise or session-wise basis
         babs_project_analysis_path: str or None
@@ -57,6 +65,7 @@ class InputDataset:
         else:
             self.is_zipped = bool(is_zipped)
         self.required_files = required_files
+        self.common_paths = [] if common_paths is None else common_paths
         if processing_level not in ['subject', 'session']:
             raise ValueError('invalid `processing_level`!')
         self.processing_level = processing_level
@@ -269,6 +278,7 @@ class InputDataset:
             'is_zipped': self.is_zipped,
             'unzipped_path_containing_subject_dirs': unzipped_path,
             'required_files': self.required_files,
+            'common_paths': self.common_paths,
             'processing_level': self.processing_level,
             'babs_project_analysis_path': self.babs_project_analysis_path,
         }
@@ -433,4 +443,5 @@ class OutputDataset(InputDataset):
             input_dataset.unzipped_path_containing_subject_dirs
         )
         self.required_files = input_dataset.required_files
+        self.common_paths = input_dataset.common_paths
         self.processing_level = input_dataset.processing_level

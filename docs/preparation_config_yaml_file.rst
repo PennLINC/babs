@@ -29,6 +29,7 @@ Sections in the configuration YAML file
 * **all_results_in_one_zip**: whether to zip all results in one zip file;
 * **zip_foldernames**: the results foldername(s) to be zipped;
 * **required_files**: to only keep subjects (sessions) that have this list of required files in input dataset(s);
+* **common_paths**: extra, *non-inherited* files to stage for every job (BIDS metadata inheritance is automatic — see :ref:`bids-inheritance`); e.g. a shared ``sourcedata/NIDM/nidm.ttl``;
 * **alert_log_messages**: alert messages in the log files that may be helpful for debugging errors in failed jobs;
 
 Among these sections, these sections are optional:
@@ -40,6 +41,7 @@ Among these sections, these sections are optional:
   * You must include this section if there are more one input dataset.
 
 * **required_files**
+* **common_paths**
 * **alert_log_messages**
 * **imported_files**
 
@@ -103,7 +105,7 @@ Example section **input_datasets**
             unzipped_path_containing_subject_dirs: "freesurfer"
             path_in_babs: inputs/data/freesurfer
 
-This example shows two input datasets: 
+This example shows two input datasets:
 one is a raw BIDS dataset, and the other is a zipped FreeSurfer results from another BABS project.
 Previously, the commandline to use something like this would have required::
 
@@ -772,5 +774,77 @@ Notes:
       It is also a sub-folder of the space specified in this section.
 
 .. _required_files:
+
+Section ``required_files``
+==========================
+
+.. note::
+
+    ``required_files`` is currently not fully implemented.
+    The field is accepted in the YAML file but filtering is not yet applied.
+
+.. _bids-inheritance:
+
+BIDS metadata inheritance (automatic)
+=====================================
+
+For every non-zipped input dataset, BABS automatically stages the BIDS
+*inherited* metadata each job needs, in addition to the per-subject (and
+per-session) path.  Under the `BIDS Inheritance Principle
+<https://bids-specification.readthedocs.io/en/stable/common-principles.html#the-inheritance-principle>`_,
+a metadata file that sits *above* a data file in the directory hierarchy applies
+to it.  A per-subject (or per-session) sparse-checkout would otherwise drop those
+upper-tier files — e.g. a top-level ``task-rest_bold.json`` carrying
+``RepetitionTime``/``PhaseEncodingDirection``, ``participants.tsv``, or
+``dataset_description.json`` — making BIDS Apps fail on otherwise-valid data.
+
+For each job, BABS includes every metadata file at the tiers *above* the job's
+checkout:
+
+* the **dataset root** — always;
+* the **subject tier** (``sub-XX/``) — additionally for ``session``-level jobs,
+  whose ``sub-XX/ses-YY`` checkout would otherwise miss files sitting directly
+  under ``sub-XX/`` (subject-level jobs already check out the whole ``sub-XX/``
+  subtree).
+
+This is automatic and needs no configuration: ``dataset_description.json`` and
+other inherited sidecars are staged out of the box.
+
+.. _common-paths:
+
+Section ``common_paths``
+=========================
+
+``common_paths`` is an optional escape hatch for **extra, non-inherited** files
+that the automatic inheritance grab does not reach — for example a specific file
+in a subdirectory, such as a shared ``sourcedata/NIDM/nidm.ttl``.  It lists paths
+relative to an input dataset's root; each is added to the job's sparse-checkout,
+retrieved with ``datalad get -n``, and recorded as a ``datalad run`` input.
+
+It defaults to ``[]`` — BIDS inheritance already covers the dataset-level
+sidecars, so valid BIDS needs nothing extra here.  It is nested under the
+relevant input dataset entry inside the ``input_datasets`` section.
+
+Example — also stage a specific shared file the inheritance grab won't reach:
+
+..  code-block:: yaml
+
+    input_datasets:
+        BIDS:
+            is_zipped: false
+            origin_url: "/path/to/BIDS"
+            path_in_babs: inputs/data/BIDS
+            common_paths:
+                - "sourcedata/NIDM/nidm.ttl"
+
+Notes:
+
+* Paths are relative to the input dataset root (e.g., ``"sourcedata/NIDM/nidm.ttl"``
+  not ``"inputs/data/BIDS/sourcedata/NIDM/nidm.ttl"``).
+* Each path is retrieved individually with ``datalad get -n`` so you can track
+  exactly which files are fetched in the job log.
+* This field has no effect on zipped input datasets.
+* BIDS metadata inheritance is automatic (see above) — you do **not** need to
+  list ``dataset_description.json`` or other inherited sidecars here.
 
 

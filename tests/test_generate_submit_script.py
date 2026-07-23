@@ -14,6 +14,7 @@ input_datasets_prep = [
         'path_in_babs': 'inputs/data/BIDS',
         'unzipped_path_containing_subject_dirs': 'inputs/data/BIDS',
         'is_zipped': False,
+        'common_paths': ['dataset_description.json'],
     },
 ]
 
@@ -29,6 +30,7 @@ input_datasets_fmriprep_ingressed_anat = [
         'path_in_babs': 'inputs/data/BIDS',
         'unzipped_path_containing_subject_dirs': 'inputs/data/BIDS',
         'is_zipped': False,
+        'common_paths': [],
     },
 ]
 
@@ -176,3 +178,62 @@ def test_generate_submit_script_pipeline(tmp_path):
     if not passed:
         print(script_content)
     assert passed, status
+
+
+def _render(input_datasets, processing_level):
+    """Render the participant job for a minimal single-app config (no YAML needed)."""
+    return generate_submit_script(
+        queue_system='slurm',
+        cluster_resources_config={'interpreting_shell': '/bin/bash'},
+        script_preamble='',
+        job_scratch_directory='/tmp/job',
+        input_datasets=input_datasets,
+        processing_level=processing_level,
+        container_name='fmriprep',
+        zip_foldernames={'fmriprep': '0'},
+        container_images=['containers/fmriprep.sif'],
+        analysis_path='/tmp/babs_project/analysis',
+    )
+
+
+def test_bids_inheritance_tiers_per_processing_level():
+    """Root tier is grabbed for every job; the subject tier only for session jobs.
+
+    These assert on the *generated script text* (like the rest of this module);
+    the runtime ``resolve_tier`` behavior is exercised by the e2e walkthrough.
+    """
+    path = input_datasets_prep[0]['path_in_babs']
+    subj = _render(input_datasets_prep, 'subject')
+    sess = _render(input_datasets_prep, 'session')
+
+    # root tier resolved for both levels
+    assert f'resolve_tier "{path}" ""' in subj
+    assert f'resolve_tier "{path}" ""' in sess
+
+    # subject tier resolved ONLY for session-level jobs (the gap session checkout misses)
+    assert f'resolve_tier "{path}" "${{subid}}"' in sess
+    assert f'resolve_tier "{path}" "${{subid}}"' not in subj
+
+    # resolved paths are wired into `datalad run` as inputs
+    for script in (subj, sess):
+        assert 'DATALAD_INPUTS=()' in script
+        assert '${DATALAD_INPUTS[@]+"${DATALAD_INPUTS[@]}"}' in script
+
+
+def test_bids_inheritance_skips_zipped_inputs():
+    """Zipped inputs get no inheritance grab; only the unzipped one is resolved."""
+    script = _render(input_datasets_fmriprep_ingressed_anat, 'subject')
+    # the unzipped BIDS dataset is resolved ...
+    assert 'resolve_tier "inputs/data/BIDS" ""' in script
+    # ... but the zipped freesurfer dataset (path_in_babs 'inputs/data') is not
+    assert 'resolve_tier "inputs/data" ""' not in script
+
+
+def test_common_paths_threaded_into_consumers():
+    """An explicit common_paths entry reaches get, sparse-checkout, and `datalad run -i`."""
+    dss = [dict(input_datasets_prep[0], common_paths=['phenotype/participants.tsv'])]
+    script = _render(dss, 'subject')
+    full = 'inputs/data/BIDS/phenotype/participants.tsv'
+    assert f'datalad get -n "{full}"' in script  # datalad get
+    assert "'phenotype/participants.tsv'" in script  # sparse=( ... ) set
+    assert f'-i "{full}"' in script  # datalad run input

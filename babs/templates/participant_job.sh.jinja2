@@ -81,24 +81,53 @@ git checkout -f
 
 # pull down only needed session path and explicit dataset-level metadata:
 echo "# Pull down the input session but don't retrieve data contents:"
+
+# resolve_tier lists the files of ONE directory tier of an input subdataset.
+# git ls-tree reads the committed tree (independent of sparse/checkout state) and is
+# non-recursive, so it is anchored to the named tier and never descends into other
+# subjects. In valid BIDS no data files sit at the dataset root or directly under
+# sub-XX/, so every blob at those tiers is BIDS-inherited metadata (task/modality
+# .json sidecars, participants/sessions .tsv, .bval/.bvec, ...). We resolve to literal
+# paths because `datalad get`/`git sparse-checkout` cannot take a glob.
+resolve_tier() {  # $1 = subdataset path, $2 = tier dir relative to its root ('' = root)
+  git -C "$1" ls-tree HEAD ${2:+"$2/"} 2>/dev/null | awk '$2 == "blob" { sub(/^[^\t]*\t/, ""); print }'
+}
+
+DATALAD_INPUTS=()
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
-datalad get -n "{{ input_dataset['path_in_babs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"
+datalad get -n "{{ input_dataset['path_in_babs'] }}/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
 
-datalad get -n "{{ input_dataset['path_in_babs'] }}/dataset_description.json"
-{% else %}
-datalad get -n "{{ input_dataset['path_in_babs'] }}"
+# BIDS inheritance: pull metadata from the tiers ABOVE this job's checkout -- the
+# dataset root always, plus the subject tier (sub-XX/) for session-level jobs, whose
+# sub-XX/ses-YY checkout would otherwise miss files sitting directly under sub-XX/.
+inherited=()
+while IFS= read -r _f; do inherited+=( "$_f" ); done < <(resolve_tier "{{ input_dataset['path_in_babs'] }}" "")
+{% if processing_level == 'session' %}
+while IFS= read -r _f; do inherited+=( "$_f" ); done < <(resolve_tier "{{ input_dataset['path_in_babs'] }}" "${subid}")
 {% endif %}
+for rel in ${inherited[@]+"${inherited[@]}"}; do
+  echo "# Getting inherited metadata: {{ input_dataset['path_in_babs'] }}/${rel}"
+  datalad get -n "{{ input_dataset['path_in_babs'] }}/${rel}"
+  DATALAD_INPUTS+=( -i "{{ input_dataset['path_in_babs'] }}/${rel}" )
+done
+{% for common_path in input_dataset['common_paths'] %}
+echo "# Getting common path: {{ input_dataset['path_in_babs'] }}/{{ common_path }}"
+datalad get -n "{{ input_dataset['path_in_babs'] }}/{{ common_path }}"
 {% endfor %}
 
-# Restrict each BIDS input subdataset to the current subject so BIDS apps that index the full dataset (e.g. pybids BIDSLayout) don't try to read other subjects' files, which may not be retrieved
-{% for input_dataset in input_datasets %}
-{% if not input_dataset['is_zipped'] %}
+# Restrict this subdataset to the subject/session subtree + inherited metadata + any
+# explicit common_paths, so BIDS apps that index the dataset (e.g. pybids BIDSLayout)
+# don't read other subjects' files, which may not be retrieved.
 if [ -d "{{ input_dataset['path_in_babs'] }}/.git" ]; then
+  sparse=( "${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}" {% for common_path in input_dataset['common_paths'] %}'{{ common_path }}' {% endfor %})
+  sparse+=( ${inherited[@]+"${inherited[@]}"} )
   ( cd "{{ input_dataset['path_in_babs'] }}" && \
-    ( git sparse-checkout init --no-cone 2>/dev/null && \
-      { echo "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}"; echo 'dataset_description.json'; } | git sparse-checkout set --stdin 2>/dev/null ) ) || true
+    git sparse-checkout init --no-cone 2>/dev/null && \
+    printf '%s\n' "${sparse[@]}" | git sparse-checkout set --stdin 2>/dev/null ) || true
 fi
+{% else %}
+datalad get -n "{{ input_dataset['path_in_babs'] }}"
 {% endif %}
 {% endfor %}
 
@@ -135,11 +164,13 @@ datalad run \
 {% for input_dataset in input_datasets %}
 {% if not input_dataset['is_zipped'] %}
 	-i "{{ input_dataset['unzipped_path_containing_subject_dirs'] }}/{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}/{% raw %}${sesid}{% endraw %}{% endif %}" \
-	-i "{{ input_dataset['path_in_babs'] }}/dataset_description.json" \
+{% for common_path in input_dataset['common_paths'] %}	-i "{{ input_dataset['path_in_babs'] }}/{{ common_path }}" \
+{% endfor %}
 {% else %}
 	-i "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}" \
 {% endif %}
 {% endfor %}
+	${DATALAD_INPUTS[@]+"${DATALAD_INPUTS[@]}"} \
 {% for image_path in container_image_paths %}
 	-i "{{ image_path }}" \
 {% endfor %}
