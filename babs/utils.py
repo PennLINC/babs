@@ -3,6 +3,7 @@
 import copy
 import getpass
 import os
+import re
 import subprocess
 import warnings
 from importlib.metadata import version
@@ -12,6 +13,22 @@ import yaml
 from filelock import FileLock, Timeout
 
 RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
+
+
+def var_safe_name(name):
+    """Map a name to a valid POSIX shell identifier by replacing every non-word
+    character (`-`, `.`, `+`, ...) with `_` and uppercasing.
+
+    Job scripts derive shell variable names from dataset names (e.g. `<name>_ZIP`),
+    which may contain characters the shell rejects in an identifier: an input named
+    `SimBIDS-0.0.3` would otherwise yield `SIMBIDS-0.0.3_ZIP`, which bash cannot
+    assign (`-`/`.` not allowed) -> `SIMBIDS_0_0_3_ZIP`. Such names are the norm:
+    BIDS derivative naming encourages a `<Tool>-<Version>` form (e.g. `fMRIPrep-24.1.1`),
+    so version dots and hyphens are expected in a derivative used as an input dataset.
+    Registered as the ``shell_safe`` Jinja filter for the job-script templates.
+    """
+    return re.sub(r'\W', '_', name).upper()
+
 
 status_dtypes = {
     'job_id': 'Int64',
