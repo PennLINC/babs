@@ -42,7 +42,7 @@ def run_squeue(queue, job_id: int) -> str:
         f'-j{job_id}',
     ]
 
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if result.returncode == 1 and 'Invalid job id specified' in result.stderr:
         return ''
@@ -130,6 +130,7 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
         commandlist,
         capture_output=True,
         text=True,
+        check=False,
     )
 
     # Check if command failed
@@ -160,7 +161,7 @@ def squeue_to_pandas(job_id=None) -> pd.DataFrame:
             skipinitialspace=True,
         )
     except Exception as e:
-        raise RuntimeError(f'Failed to parse squeue output: {str(e)}\nOutput was: {result.stdout}')
+        raise RuntimeError(f'Failed to parse squeue output: {e!s}\nOutput was: {result.stdout}')
 
     # separate job_id into job_id and task_id
     df['task_id'] = df['job_id'].str.split('_').str[1].astype(int)
@@ -205,6 +206,7 @@ def sbatch_get_job_id(sbatch_cmd_list, working_dir):
         cwd=working_dir,
         capture_output=True,
         text=True,
+        check=False,
     )
     if proc_cmd.returncode != 0:
         raise RuntimeError(f'Failed to submit array job: {proc_cmd.stderr}')
@@ -257,7 +259,7 @@ def submit_array(analysis_path, queue, maxarray):
     if queue == 'slurm':
         job_id = sbatch_get_job_id(cmd.split(), analysis_path)
     else:
-        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
+        raise ValueError('Invalid job scheduler system type `queue`: ' + queue)
 
     return job_id
 
@@ -302,7 +304,7 @@ def submit_one_test_job(analysis_path, queue):
     if queue == 'slurm':
         job_id = sbatch_get_job_id(cmd.split(), analysis_path)
     else:
-        raise Exception('Invalid job scheduler system type `queue`: ' + queue)
+        raise ValueError('Invalid job scheduler system type `queue`: ' + queue)
     print(f'Test job has been submitted (job ID: {job_id}).')
 
     return job_id

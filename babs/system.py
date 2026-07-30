@@ -63,7 +63,7 @@ class System:
 
         # sanity check:
         if self.type not in dict:
-            raise Exception(
+            raise ValueError(
                 "There is no key called '"
                 + self.type
                 + "' in"

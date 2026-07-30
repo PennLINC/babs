@@ -46,7 +46,7 @@ doc = [
     "sphinx_design",            # for adding in-line badges etc
     "sphinx_rtd_theme",         # needed by readthedocs
 ]
-dev = ["ruff ~= 0.4.3", "pre-commit"]
+dev = ["ruff == 0.16.0", "pre-commit"]
 tests = [
     "coverage",
     "pytest",
