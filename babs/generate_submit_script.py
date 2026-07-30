@@ -6,6 +6,8 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from babs.utils import var_safe_name
+
 # Multiple scheduler system handling
 DIRECTIVE_PREFIX = {
     'sge': '#$',
@@ -81,6 +83,7 @@ def generate_submit_script(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
     participant_job_template = env.get_template('participant_job.sh.jinja2')
 
     # Get the setup for the scheduler directives:
