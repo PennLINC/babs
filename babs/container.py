@@ -90,12 +90,13 @@ class Container:
         #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
 
-        # Sanity check: the path to `container_name` should exist in the cloned `container_ds`:
+        # Sanity check: the directory containing the image should exist in the
+        # cloned `container_ds`:
         # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
         assert op.exists(op.dirname(container_path_abs)), (
-            "There is no valid image named '"
-            + self.container_name
-            + "' in the provided container DataLad dataset!"
+            f"There is no directory for container '{self.container_name}'"
+            f' in the provided container DataLad dataset;'
+            f" expected: '{op.dirname(container_path_abs)}'."
         )
 
         # the 'image' symlink or folder should exist:
@@ -195,6 +196,7 @@ class Container:
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
+            container_images=[self.container_path_relToAnalysis],
             analysis_path=analysis_path,
         )
 

@@ -18,8 +18,7 @@ from conftest import get_config_simbids_path, update_yaml_for_run
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
 from babs.bootstrap import BABSBootstrap
-from babs.utils import container_image_path
-from babs.utils import read_yaml
+from babs.utils import container_image_path, read_yaml
 
 
 def test_missing_config_parts(babs_project_sessionlevel):

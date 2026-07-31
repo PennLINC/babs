@@ -11,6 +11,7 @@ from importlib.metadata import version
 
 import pandas as pd
 import yaml
+from datalad.api import Dataset
 from filelock import FileLock, Timeout
 
 RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
@@ -23,6 +24,40 @@ def container_image_path(container_name):
     URL, and the single place this path is derived.
     """
     return op.join('containers', '.datalad', 'environments', container_name, 'image')
+
+
+def resolve_container_image_paths(containers_ds_path, container_names):
+    """Map container names to analysis-relative image paths.
+
+    Reads each name's `datalad containers-add` registration
+    (`datalad.containers.<name>.image`, a path relative to the container
+    dataset's root) from the installed containers subdataset, so datasets that
+    register images outside babs's default layout (e.g. ReproNim/containers,
+    `images/<collection>/<app>--<version>.sif`) resolve correctly.
+    Names with no registration fall back to the default layout.
+
+    Parameters
+    ----------
+    containers_ds_path: str
+        Absolute path to the installed containers subdataset
+        (`<analysis>/containers`).
+    container_names: list of str
+        Container names to resolve.
+
+    Returns
+    -------
+    dict
+        Mapping of container name to analysis-relative image path.
+    """
+    config = Dataset(containers_ds_path).config
+    resolved = {}
+    for name in container_names:
+        registered = config.get(f'datalad.containers.{name}.image')
+        if registered:
+            resolved[name] = op.join('containers', registered)
+        else:
+            resolved[name] = container_image_path(name)
+    return resolved
 
 
 def var_safe_name(name):
