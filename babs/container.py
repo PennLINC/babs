@@ -8,13 +8,15 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
-from babs.utils import app_output_settings_from_config
+from babs.utils import app_output_settings_from_config, container_image_path
 
 
 class Container:
     """This class is for the BIDS App Container"""
 
-    def __init__(self, container_ds, container_name, config_yaml_file):
+    def __init__(
+        self, container_ds, container_name, config_yaml_file, container_path_relToAnalysis=None
+    ):
         """
         This is to initialize Container class.
 
@@ -29,6 +31,10 @@ class Container:
              e.g., fmriprep-0-0-0
         config_yaml_file: str
             The YAML file that contains the configurations of how to run the container
+        container_path_relToAnalysis: str, optional
+            Analysis-relative path to the container image.
+            When not provided, falls back to babs's default layout
+            (`containers/.datalad/environments/<name>/image`).
 
         Attributes
         ----------
@@ -67,8 +73,8 @@ class Container:
         with open(self.config_yaml_file) as f:
             self.config = yaml.safe_load(f)
 
-        self.container_path_relToAnalysis = op.join(
-            'containers', '.datalad', 'environments', self.container_name, 'image'
+        self.container_path_relToAnalysis = container_path_relToAnalysis or container_image_path(
+            self.container_name
         )
 
     def sanity_check(self, analysis_path):

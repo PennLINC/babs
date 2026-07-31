@@ -3,6 +3,7 @@
 import copy
 import getpass
 import os
+import os.path as op
 import re
 import subprocess
 import warnings
@@ -13,6 +14,15 @@ import yaml
 from filelock import FileLock, Timeout
 
 RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
+
+
+def container_image_path(container_name):
+    """Return babs's default analysis-relative image path for a container.
+
+    This is the layout `datalad containers-add` uses when adding an image by
+    URL, and the single place this path is derived.
+    """
+    return op.join('containers', '.datalad', 'environments', container_name, 'image')
 
 
 def var_safe_name(name):

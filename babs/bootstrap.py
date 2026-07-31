@@ -18,6 +18,7 @@ from babs.input_datasets import InputDatasets
 from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
 from babs.utils import (
+    container_image_path,
     get_datalad_version,
     validate_processing_level,
 )
@@ -489,9 +490,7 @@ class BABSBootstrap(BABS):
         print('\nGenerating pipeline scripts...')
 
         # Prepare container images for submit script
-        container_images = [
-            f'containers/.datalad/environments/{s["container_name"]}/image' for s in self.pipeline
-        ]
+        container_images = [container_image_path(s['container_name']) for s in self.pipeline]
 
         # Use top-level zip_foldernames for pipeline final output
         final_zip_foldernames = self.zip_foldernames
