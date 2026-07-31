@@ -99,13 +99,11 @@ class Container:
             f" expected: '{op.dirname(container_path_abs)}'."
         )
 
-        # the 'image' symlink or folder should exist:
+        # the image (symlink, file, or folder) should exist:
         assert op.exists(container_path_abs) or op.islink(container_path_abs), (
-            "the folder 'image' of container DataLad dataset does not exist,"
-            " and there is no symlink called 'image' either;"
-            " Path to 'image' in cloned container DataLad dataset should be: '"
-            + container_path_abs
-            + "'."
+            f"The container image for '{self.container_name}' does not exist"
+            f' in the cloned container DataLad dataset (not even as a symlink);'
+            f" expected: '{container_path_abs}'."
         )
 
     def generate_bash_run_bidsapp(

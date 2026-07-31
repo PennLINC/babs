@@ -240,13 +240,16 @@ class BABSBootstrap(BABS):
         # into `analysis/containers` folder
 
         # Resolve image paths from the datalad-containers registration
-        # (possible only now that the containers subdataset is on disk):
+        # (possible only now that the containers subdataset is on disk).
+        # In pipeline mode the CLI-provided container_name need not be a step
+        # name, but the initial sanity check below uses it, so resolve it too:
         if self.pipeline is not None:
             container_names = [step['container_name'] for step in self.pipeline]
         else:
             container_names = [container_name]
         self.container_image_map = resolve_container_image_paths(
-            op.join(self.analysis_path, 'containers'), container_names
+            op.join(self.analysis_path, 'containers'),
+            list(dict.fromkeys(container_names + [container_name])),
         )
 
         # Create initial container for sanity check
@@ -254,7 +257,7 @@ class BABSBootstrap(BABS):
             container_ds,
             container_name,
             container_config,
-            container_path_relToAnalysis=self.container_image_map.get(container_name),
+            container_path_relToAnalysis=self.container_image_map[container_name],
         )
 
         # sanity check of container ds:
@@ -264,8 +267,12 @@ class BABSBootstrap(BABS):
         print('Save BABS project configurations in a YAML file ...')
         print(f"Path to this yaml file will be: '{self.config_path}'")
         self.container = {'name': container_name}
-        # Preserve order while avoiding duplicates:
-        container_images = list(dict.fromkeys(self.container_image_map.values()))
+        # The recorded list holds the job images (step images in pipeline mode),
+        # deduplicated, order-preserving; not the map wholesale, which may also
+        # hold the CLI name resolved only for the sanity check above:
+        container_images = list(
+            dict.fromkeys(self.container_image_map[name] for name in container_names)
+        )
 
         env = Environment(
             loader=PackageLoader('babs', 'templates'),
@@ -306,7 +313,7 @@ class BABSBootstrap(BABS):
                     container_ds,
                     step_container_name,
                     container_config,
-                    container_path_relToAnalysis=self.container_image_map.get(step_container_name),
+                    container_path_relToAnalysis=self.container_image_map[step_container_name],
                 )
                 step_container.sanity_check(self.analysis_path)
                 containers.append(step_container)
@@ -322,7 +329,7 @@ class BABSBootstrap(BABS):
                 container_ds,
                 container_name,
                 container_config,
-                container_path_relToAnalysis=self.container_image_map.get(container_name),
+                container_path_relToAnalysis=self.container_image_map[container_name],
             )
 
         # Copy in any other files needed:
@@ -349,7 +356,7 @@ class BABSBootstrap(BABS):
                     container_ds,
                     step_container_name,
                     container_config,
-                    container_path_relToAnalysis=self.container_image_map.get(step_container_name),
+                    container_path_relToAnalysis=self.container_image_map[step_container_name],
                 )
 
                 # Main job template (use first container for main template)
@@ -474,7 +481,7 @@ class BABSBootstrap(BABS):
             container_ds,
             container_name,
             container_config,
-            container_path_relToAnalysis=self.container_image_map.get(container_name),
+            container_path_relToAnalysis=self.container_image_map[container_name],
         )
 
         # Generate `<containerName>_zip.sh`: ----------------------------------
@@ -601,7 +608,7 @@ class BABSBootstrap(BABS):
                 container_ds,
                 step_container_name,
                 container_config,
-                container_path_relToAnalysis=self.container_image_map.get(step_container_name),
+                container_path_relToAnalysis=self.container_image_map[step_container_name],
             )
             # Create separate test job directories for each container
             step_check_setup = op.join(path_check_setup, f'step_{i + 1}_{step_container_name}')
