@@ -27,7 +27,7 @@ from babs.utils import (
 # larger than 40kb; the explicit lines force listed files into git regardless.
 BIDS_GITATTRIBUTES = """\
 * annex.backend=MD5E
-* annex.largefiles=((mimeencoding=binary)or(largerthan=40kb))
+* annex.largefiles=(((mimeencoding=binary)and(largerthan=0))or(largerthan=40kb))
 **/.git* annex.largefiles=nothing
 .babs/** annex.largefiles=nothing
 dataset_description.json annex.largefiles=nothing
