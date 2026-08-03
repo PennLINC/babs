@@ -22,9 +22,10 @@ from babs.utils import (
     validate_processing_level,
 )
 
-# Analysis-dataset `.gitattributes`: annex a file if it is binary
+# Analysis-dataset `.gitattributes`: annex a file if it is non-empty and binary
 # (`mimeencoding=binary`, which needs git-annex's MagicMime build flag) or
 # larger than 40kb; the explicit lines force listed files into git regardless.
+# Empty files read as binary to libmagic, so the size guard keeps them in git.
 BIDS_GITATTRIBUTES = """\
 * annex.backend=MD5E
 * annex.largefiles=(((mimeencoding=binary)and(largerthan=0))or(largerthan=40kb))

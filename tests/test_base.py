@@ -27,6 +27,51 @@ def test_bootstrap_writes_bids_gitattributes(babs_project_sessionlevel):
     assert gitattributes.read_text() == BIDS_GITATTRIBUTES
 
 
+def test_bids_gitattributes_file_placement(tmp_path):
+    """Small text and empty files land in git; binary and large files in the annex."""
+    # (filename, content, expect_annexed). An empty file has no content for
+    # libmagic to judge, so it reads as binary and needs the size guard.
+    cases = [
+        ('empty.json', b'', False),
+        ('participants.tsv', b'participant_id\nsub-01\n', False),
+        ('sub-01_T1w.json', b'{"EchoTime": 0.005}\n', False),
+        ('dataset_description.json', b'x' * 50_000, False),
+        ('README', b'x' * 50_000, False),
+        ('sub-01_T1w.nii.gz', os.urandom(1024), True),
+        ('sub-01_desc-confounds_timeseries.tsv', b'a\tb\n' + b'1\t2\n' * 20_000, True),
+    ]
+
+    def git(*args):
+        return subprocess.run(
+            ('git', '-c', 'user.name=babs', '-c', 'user.email=babs@example.com', *args),
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+
+    git('init', '-q', '.')
+    git('annex', 'init', '-q', 'test')
+    (tmp_path / '.gitattributes').write_text(BIDS_GITATTRIBUTES)
+    git('add', '.gitattributes')
+    git('commit', '-qm', 'attrs')
+
+    for name, content, _ in cases:
+        (tmp_path / name).write_bytes(content)
+    git('annex', 'add', '-q', '.')
+    git('commit', '-qm', 'files')
+
+    # `--include=*` asks whether a file is annexed at all; bare `find` would
+    # only list the ones whose content is present.
+    annexed = set(git('annex', 'find', '--include=*').split())
+    tracked = set(git('ls-files').split())
+    # Not-annexed only means in git if the file is tracked at all.
+    assert tracked == {name for name, _, _ in cases} | {'.gitattributes'}
+    assert {name: name in annexed for name, _, _ in cases} == {
+        name: expect_annexed for name, _, expect_annexed in cases
+    }
+
+
 def test_missing_config_parts(babs_project_sessionlevel):
     """Test that missing config parts raise an error."""
 
