@@ -40,9 +40,10 @@ class BABSCheckSetup(BABS):
             print('Did not request `--job-test`; will not submit a test job.')
 
         # Print out the saved configuration info: ----------------
+        analysis_dir = op.basename(self.analysis_path)
         print(
             'Below is the configuration information saved during `babs init`'
-            " in file 'analysis/code/babs_proj_config.yaml':\n"
+            f" in file '{analysis_dir}/code/babs_proj_config.yaml':\n"
         )
         with open(op.join(self.analysis_path, 'code/babs_proj_config.yaml')) as f:
             file_contents = f.read()
@@ -52,13 +53,13 @@ class BABSCheckSetup(BABS):
         print('Checking the BABS project itself...')
         if not op.exists(self.analysis_path):
             raise FileNotFoundError(
-                "Folder 'analysis' does not exist in this BABS project!"
+                f"Folder '{analysis_dir}' does not exist in this BABS project!"
                 ' Current path to analysis folder: ' + self.analysis_path
             )
         print(CHECK_MARK + ' All good!')
 
-        # Check `analysis` datalad dataset: ----------------------
-        print("\nCheck status of 'analysis' DataLad dataset...")
+        # Check analysis datalad dataset: ----------------------
+        print(f"\nCheck status of '{analysis_dir}' DataLad dataset...")
         # Are there anything unsaved? ref: CuBIDS function
         analysis_statuses = {
             status['state']

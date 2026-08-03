@@ -1,5 +1,6 @@
 """This is the main module."""
 
+import json
 import os.path as op
 import sys
 import time
@@ -12,6 +13,7 @@ from babs.scheduler import (
     report_job_status,
     submit_array,
 )
+from babs.status import job_status_counts
 from babs.utils import (
     update_submitted_job_ids,
 )
@@ -189,13 +191,22 @@ class BABSInteraction(BABS):
         )
         updated_results_df.to_csv(self.job_status_path_abs, index=False)
 
-    def babs_status(self):
+    def babs_status(self, json_output=False):
         """
         Check job status and makes a nice report.
+
+        Parameters
+        ----------
+        json_output: bool
+            If True, emit only the machine-readable JSON summary to stdout
+            (the interface contract) instead of the human-readable table.
         """
         self.ensure_shared_group_runtime_ready()
         statuses = self._update_results_status()
-        report_job_status(statuses, self.analysis_path)
+        if json_output:
+            print(json.dumps(job_status_counts(statuses)))
+        else:
+            report_job_status(statuses, self.analysis_path)
 
     def babs_status_wait(self, interval=300):
         """Poll job status until all submitted jobs complete or fail.

@@ -9,6 +9,7 @@ from babs.status import (
     JobStatus,
     SchedulerState,
     create_initial_statuses,
+    job_status_counts,
     read_job_status_csv,
     update_from_branches,
     update_from_scheduler,
@@ -456,6 +457,121 @@ class TestCreateInitialStatuses:
         assert len(statuses) == 2
         assert ('sub-01', 'ses-A') in statuses
         assert ('sub-01', 'ses-B') in statuses
+
+
+# -- job_status_counts ---------------------------------------------------------
+
+
+class TestJobStatusCounts:
+    """The count dict is the interface contract; guard its shape + semantics."""
+
+    def _make(self, state=SchedulerState.NOT_SUBMITTED, has_results=False):
+        return JobStatus(
+            sub_id='sub-01',
+            ses_id=None,
+            scheduler_state=state,
+            has_results=has_results,
+            job_id=None,
+            task_id=None,
+            time_used='',
+            time_limit='',
+            nodes=0,
+            cpus=0,
+            partition='',
+            name='',
+        )
+
+    def test_empty(self):
+        assert job_status_counts({}) == {
+            'total': 0,
+            'submitted': 0,
+            'unsubmitted': 0,
+            'pending': 0,
+            'running': 0,
+            'completing': 0,
+            'configuring': 0,
+            'done': 0,
+            'failed': 0,
+        }
+
+    def test_keys_are_exactly_the_contract(self):
+        summary = job_status_counts({('sub-01',): self._make()})
+        assert list(summary.keys()) == [
+            'total',
+            'submitted',
+            'unsubmitted',
+            'pending',
+            'running',
+            'completing',
+            'configuring',
+            'done',
+            'failed',
+        ]
+
+    def test_all_done_matches_issue_example(self):
+        """A merged project, 5/5 done — the worked example in the issue."""
+        statuses = {
+            (f'sub-s00{i}',): self._make(SchedulerState.DONE, has_results=True)
+            for i in range(1, 6)
+        }
+        assert job_status_counts(statuses) == {
+            'total': 5,
+            'submitted': 5,
+            'unsubmitted': 0,
+            'pending': 0,
+            'running': 0,
+            'completing': 0,
+            'configuring': 0,
+            'done': 5,
+            'failed': 0,
+        }
+
+    def test_mixed_states(self):
+        """Each live scheduler state gets its own bucket (raw snapshot)."""
+        statuses = {
+            ('sub-01',): self._make(SchedulerState.DONE, has_results=True),  # done
+            ('sub-02',): self._make(SchedulerState.RUNNING),  # running
+            ('sub-03',): self._make(SchedulerState.PENDING),  # pending
+            ('sub-04',): self._make(SchedulerState.COMPLETING),  # completing
+            ('sub-05',): self._make(SchedulerState.CONFIGURING),  # configuring
+            ('sub-06',): self._make(SchedulerState.DONE, has_results=False),  # failed
+            ('sub-07',): self._make(),  # unsubmitted
+        }
+        assert job_status_counts(statuses) == {
+            'total': 7,
+            'submitted': 6,
+            'unsubmitted': 1,
+            'pending': 1,
+            'running': 1,
+            'completing': 1,
+            'configuring': 1,
+            'done': 1,
+            'failed': 1,
+        }
+
+    def test_invariants_hold(self):
+        """total == submitted + unsubmitted always; the live-state buckets
+        partition `submitted` cleanly absent the has_results/scheduler_state race
+        (none of these constructed jobs has results while still in a live state).
+        """
+        statuses = {
+            ('sub-01',): self._make(SchedulerState.DONE, has_results=True),
+            ('sub-02',): self._make(SchedulerState.RUNNING),
+            ('sub-03',): self._make(SchedulerState.PENDING),
+            ('sub-04',): self._make(SchedulerState.COMPLETING),
+            ('sub-05',): self._make(SchedulerState.DONE, has_results=False),
+            ('sub-06',): self._make(),
+        }
+        s = job_status_counts(statuses)
+        assert s['total'] == s['submitted'] + s['unsubmitted']
+        assert s['submitted'] == (
+            s['pending']
+            + s['running']
+            + s['completing']
+            + s['configuring']
+            + s['done']
+            + s['failed']
+        )
 
 
 # -- report_job_status ---------------------------------------------------------

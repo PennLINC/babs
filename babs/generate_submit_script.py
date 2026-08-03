@@ -6,6 +6,8 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from babs.utils import var_safe_name
+
 # Multiple scheduler system handling
 DIRECTIVE_PREFIX = {
     'sge': '#$',
@@ -29,7 +31,7 @@ def generate_submit_script(
     run_script_relpath=None,
     container_images=None,
     datalad_run_message=None,
-    project_root=None,
+    analysis_path=None,
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
@@ -58,16 +60,17 @@ def generate_submit_script(
         List of container image paths. None for single-app mode.
     datalad_run_message : str, optional
         Custom message for datalad run. None uses container name.
-    project_root : str, optional
-        Absolute path to the BABS project root (parent of `analysis/`).
-        Passed to the template; used in the error message when PROJECT_ROOT
-        is unset. If None, the placeholder ``{project_root}`` is shown.
+    analysis_path : str
+        Absolute path to the analysis directory. Used in the generated script
+        to locate shared container images.
 
     Returns
     -------
     bidsapp_run_script: str
         The contents of the bash script that runs the BIDS App singularity image.
     """
+    if analysis_path is None:
+        raise ValueError('analysis_path is required')
     # Handle both InputDatasets objects and lists for consistency
     if hasattr(input_datasets, 'as_records'):
         # It's an InputDatasets object, convert to records
@@ -80,6 +83,7 @@ def generate_submit_script(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
     participant_job_template = env.get_template('participant_job.sh.jinja2')
 
     # Get the setup for the scheduler directives:
@@ -128,7 +132,7 @@ def generate_submit_script(
         run_script_relpath=run_script_relpath,
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
-        project_root=project_root,
+        analysis_path=analysis_path,
     )
 
 

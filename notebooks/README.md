@@ -26,6 +26,7 @@ In addition, please check if the function of the YAML files (especially the `bid
 | [link](eg_fmriprep-24-1-1_regular.yaml) | fMRIPrep | 24.1.1 | regular use of fMRIPrep | one raw BIDS dataset |  |
 | [link](eg_fmriprep-24-1-1_anatonly.yaml) | fMRIPrep | 24.1.1 | fMRIPrep `--anat-only` | one raw BIDS dataset |  |
 | [link](eg_fmriprep-24-1-1_ingressed-fs.yaml) | fMRIPrep | 24.1.1 | fMRIPrep with FreeSurfer results ingressed | one raw BIDS dataset + one zipped BIDS derivatives dataset of FreeSurfer results | For 2nd input dataset, you may use results from fMRIPrep `--anat-only` |
+| [link](eg_freesurferpost-0-1-2_bids-study-layout.yaml) | freesurfer-post | 0.1.2 | creating tabular outputs from FreeSurfer results using BIDS study layout | one zipped BIDS derivatives dataset of fMRIPrep anatomical outputs | Uses `analysis_path: "."` and `.babs/` RIA stores for BIDS study layout |
 | [link](eg_xcpd-0-10-6_linc.yaml) | XCP-D | 0.10.6 | XCP-D with LINC mode | one zipped BIDS derivatives dataset of fMRIPrep results | Includes multiple atlases for connectivity analysis |
 | [link](eg_mriqc-24-0-2.yaml) | MRIQC | 24.0.2 | regular use of MRIQC | one raw BIDS dataset | For quality control metrics |
 | [link](eg_aslprep-0-7-5.yaml) | ASLPrep | 0.7.5 | regular use of ASLPrep | one raw BIDS dataset | For processing arterial spin labeling (ASL) data |

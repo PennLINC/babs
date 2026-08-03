@@ -5,7 +5,7 @@ import warnings
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from babs.utils import RUNNING_PYTEST, replace_placeholder_from_config
+from babs.utils import RUNNING_PYTEST, replace_placeholder_from_config, var_safe_name
 
 
 def generate_bidsapp_runscript(
@@ -84,6 +84,7 @@ def generate_bidsapp_runscript(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
 
     template = env.get_template('bidsapp_run.sh.jinja2')
     return template.render(
@@ -462,6 +463,7 @@ def generate_pipeline_runscript(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
 
     template = env.get_template('bidsapp_pipeline_run.sh.jinja2')
     return template.render(
@@ -502,6 +504,7 @@ def get_input_unzipping_cmds(input_datasets):
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
     template = env.get_template('unzip_inputds.sh.jinja2')
     cmd = template.render(input_datasets=input_datasets)
 

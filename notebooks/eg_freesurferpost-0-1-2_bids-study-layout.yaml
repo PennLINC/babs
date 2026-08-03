@@ -1,0 +1,76 @@
+# This is an example config yaml file for:
+#   BIDS App:         freesurfer-post
+#   BIDS App version: 0.1.2
+#   Task:             Creating tabular outputs from FreeSurfer results
+#   Which layout:     BIDS study layout
+#   Which system:     Slurm
+
+# WARNING!!!
+#   This is only an example, which may not necessarily fit your purpose,
+#   or be an optimized solution for your case,
+#   or be compatible to the BIDS App version you're using.
+#   Therefore, please change and tailor it for your case before use it!!!
+
+# In BIDS study layout, initialize the BABS project inside the study's derivatives/ folder, for example:
+#   babs init ... /path/to/BIDS_STUDY/derivatives/freesurferpost-0-1-2-babs
+#
+# With `analysis_path: "."`, the derivative project directory itself is the BABS analysis dataset.
+# Internal BABS RIA stores and the init config live under `.babs/`.
+analysis_path: "."
+input_ria_path: ".babs/input_ria"
+output_ria_path: ".babs/output_ria"
+
+# Define the input datasets
+input_datasets:
+    fmriprep_anat:
+        required_files:
+            - "*fmriprep_anat*.zip"
+        is_zipped: true
+        # [FIX ME] path to zipped fMRIPrep anatomical outputs, usually from a BABS fMRIPrep --anat-only project.
+        # If that upstream project used the original BABS layout, use:
+        #   ria+file:///path/to/BIDS_STUDY/derivatives/fmriprep_anat-24-1-1-babs/output_ria#~data
+        origin_url: "ria+file:///path/to/BIDS_STUDY/derivatives/fmriprep_anat-24-1-1-babs/.babs/output_ria#~data"
+        unzipped_path_containing_subject_dirs: sourcedata/fmriprep_anat/fmriprep_anat
+        path_in_babs: sourcedata/fmriprep_anat
+
+# Arguments in `singularity run`:
+bids_app_args:
+    $SUBJECT_SELECTION_FLAG: "--subject-id"
+    $SESSION_SELECTION_FLAG: "--session-id"
+    -w: "$BABS_TMPDIR"
+    --fs-license-file: "/path/to/FreeSurfer/license.txt" # [FIX ME] path to FreeSurfer license file
+    --subjects-dir: '"${PWD}"/sourcedata/fmriprep_anat/fmriprep_anat/sourcedata/freesurfer'
+
+# Arguments that are passed directly to singularity/apptainer:
+singularity_args:
+    - --cleanenv
+    - --containall
+    - --writable-tmpfs
+
+# Output foldername(s) to be zipped, and the BIDS App version to be included in the zip filename(s):
+all_results_in_one_zip: true
+zip_foldernames:
+    freesurfer-post: "0-1-2" # folder 'freesurfer-post' will be zipped into 'sub-xx_(ses-yy_)freesurfer-post-0-1-2.zip'
+
+# How much cluster resources it needs:
+cluster_resources:
+    interpreting_shell: "/bin/bash"
+    hard_runtime_limit: "01:00:00"
+    temporary_disk_space: 5G
+    customized_text: |
+        #SBATCH -p all
+        #SBATCH --nodes=1
+        #SBATCH --ntasks=1
+        #SBATCH --cpus-per-task=1
+        #SBATCH --mem=5G
+        #SBATCH --propagate=NONE
+
+# Necessary commands to be run first:
+#   [FIX ME] change or add commands for setting up the virtual environment, for loading necessary modules, etc
+script_preamble: |
+    source "${CONDA_PREFIX}"/bin/activate babs # you may need to change this to work with your environment manager.
+    source xxxx    # [FIX ME or DELETE ME] source any necessary program
+    module load xxxx # [FIX ME or DELETE ME] source any necessary program
+
+# Where to run the jobs:
+job_compute_space: "path/to/temporary_compute_space" # [FIX ME] replace "/path/to/temporary_compute_space" with yours
