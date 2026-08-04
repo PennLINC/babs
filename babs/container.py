@@ -233,9 +233,11 @@ class Container:
         os.chmod(fn_call_test_job, 0o770 if shared_group_mode else 0o700)
 
         # Copy the template file into the check_setup folder
-        with resources.files('babs').joinpath('template_test_job.py').open('rb') as src:
-            with open(fn_test_job, 'wb') as dst:
-                dst.write(src.read())
+        with (
+            resources.files('babs').joinpath('template_test_job.py').open('rb') as src,
+            open(fn_test_job, 'wb') as dst,
+        ):
+            dst.write(src.read())
         os.chmod(fn_test_job, 0o770 if shared_group_mode else 0o700)
 
     def generate_job_submit_template(self, yaml_path, babs, system, test=False):

@@ -138,7 +138,9 @@ def run_shellcheck(script_path):
 
     try:
         # Run shellcheck on the temporary file
-        result = subprocess.run(['shellcheck', script_path], capture_output=True, text=True)
+        result = subprocess.run(
+            ['shellcheck', script_path], capture_output=True, text=True, check=False
+        )
         return result.returncode == 0, result.stdout
     except subprocess.CalledProcessError as e:
         return False, e.output
@@ -300,7 +302,9 @@ def test_find_single_zip_handles_regex_metachars_in_name(name, processing_level,
     )
     # the template defines the finder AND calls it, echoing the located zip path
     script = f'set -e\nsubid=sub-01\nsesid=ses-1\n{finder}\n'
-    result = subprocess.run(['bash', '-c', script], cwd=tmp_path, capture_output=True, text=True)
+    result = subprocess.run(
+        ['bash', '-c', script], cwd=tmp_path, capture_output=True, text=True, check=False
+    )
 
     assert result.returncode == 0, result.stderr
     assert zipname in result.stdout, f'zip not located:\nOUT:{result.stdout}\nERR:{result.stderr}'

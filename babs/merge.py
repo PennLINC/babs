@@ -46,6 +46,7 @@ def robust_rm_dir(path, max_retries=3, retry_delay=1):
                     cwd=path,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
+                    check=False,
                 )
             dlapi.remove(path=path, dataset=path, reckless='availability')
             # datalad remove might not remove everything, check if path still exists
@@ -121,7 +122,7 @@ class BABSMerge(BABS):
         merge_ds_path = op.join(self.project_root, 'merge_ds')
 
         if op.exists(merge_ds_path):
-            raise Exception(
+            raise RuntimeError(
                 "Folder 'merge_ds' already exists. `babs merge` won't proceed."
                 " If you're sure you want to rerun `babs merge`,"
                 ' please remove this folder before you rerun `babs merge`.'
@@ -165,8 +166,8 @@ class BABSMerge(BABS):
             ['git', 'remote', 'show', 'origin'],
             cwd=merge_ds_path,
             stdout=subprocess.PIPE,
+            check=True,
         )
-        proc_git_remote_show_origin.check_returncode()
         msg = proc_git_remote_show_origin.stdout.decode('utf-8')
         # e.g., '... HEAD branch: master\n....': search between 'HEAD branch: ' and '\n':
         temp = re.search('HEAD branch: ' + '(.+?)' + '\n', msg)
@@ -174,7 +175,7 @@ class BABSMerge(BABS):
             default_branch_name = temp.group(1)  # what's between those two keywords
             # another way: `default_branch_name = msg.split("HEAD branch: ")[1].split("\n")[0]`
         else:
-            raise Exception('There is no HEAD branch in output RIA!')
+            raise RuntimeError('There is no HEAD branch in output RIA!')
         print("Git default branch's name of output RIA is: '" + default_branch_name + "'")
 
         # get current git commit SHASUM before merging as a reference:
@@ -195,7 +196,7 @@ class BABSMerge(BABS):
 
         # check if there is any valid job (with results):
         if len(list_branches_with_results) == 0:  # empty:
-            raise Exception(
+            raise RuntimeError(
                 'There is no job branch in output RIA that has results yet,'
                 ' i.e., there is no successfully finished job yet.'
                 ' Please run `babs submit` first.'
@@ -242,7 +243,7 @@ class BABSMerge(BABS):
         # ^^ e.g., [['1', '7', '0'], ['6', '2'], ['5', '6']]
 
         # iterate across chunks:
-        for i_chunk in range(0, num_chunks):
+        for i_chunk in range(num_chunks):
             print(
                 'Merging chunk #'
                 + str(i_chunk + 1)
@@ -261,7 +262,9 @@ class BABSMerge(BABS):
             # Prepend 'origin/' to each branch name
             remote_branches = ['origin/' + branch for branch in joined_by_space.split(' ')]
             cmd = ['git', 'merge', '-m', commit_msg] + remote_branches
-            proc_git_merge = subprocess.run(cmd, cwd=merge_ds_path, capture_output=True, text=True)
+            proc_git_merge = subprocess.run(
+                cmd, cwd=merge_ds_path, capture_output=True, text=True, check=False
+            )
             if proc_git_merge.returncode != 0:
                 print(f'Git merge failed with error:\n{proc_git_merge.stderr}')
                 proc_git_merge.check_returncode()
@@ -269,7 +272,7 @@ class BABSMerge(BABS):
 
         # Push merging actions back to output RIA:
         if trial_run:
-            print('')  # new empty line
+            print()  # new empty line
             warnings.warn(
                 '`--trial-run` was requested, not to push merging actions to output RIA.',
                 stacklevel=2,
@@ -279,8 +282,9 @@ class BABSMerge(BABS):
 
         print('\nPushing merging actions to output RIA...')
         # `git push`:
-        proc_git_push = subprocess.run(['git', 'push'], cwd=merge_ds_path, stdout=subprocess.PIPE)
-        proc_git_push.check_returncode()
+        proc_git_push = subprocess.run(
+            ['git', 'push'], cwd=merge_ds_path, stdout=subprocess.PIPE, check=True
+        )
         print(proc_git_push.stdout.decode('utf-8'))
 
         # Get file availability information: which is very important!
@@ -293,8 +297,8 @@ class BABSMerge(BABS):
             ['git', 'annex', 'fsck', '--fast', '-f', 'output-storage'],
             cwd=merge_ds_path,
             stdout=subprocess.PIPE,
+            check=True,
         )
-        proc_git_annex_fsck.check_returncode()
         # if printing the returned msg,
         #   will be a long list of "fsck xxx.zip (fixing location log) ok"
         #   or "fsck xxx.zip ok"
@@ -315,8 +319,8 @@ class BABSMerge(BABS):
             ['git', 'annex', 'find', '--not', '--in', 'output-storage'],
             cwd=merge_ds_path,
             stdout=subprocess.PIPE,
+            check=True,
         )
-        proc_git_annex_find_missing.check_returncode()
         msg = proc_git_annex_find_missing.stdout.decode('utf-8')
         # `msg` should be empty:
         if msg != '':  # if not empty:
@@ -324,7 +328,7 @@ class BABSMerge(BABS):
             with open(fn_list_content_missing, 'w') as f:
                 f.write(msg)
                 f.write('\n')
-            raise Exception(
+            raise RuntimeError(
                 'Unable to find file content for some file(s).'
                 " The information has been saved to this text file: '"
                 + fn_list_content_missing
@@ -338,8 +342,8 @@ class BABSMerge(BABS):
             ['git', 'annex', 'dead', 'here'],
             cwd=merge_ds_path,
             stdout=subprocess.PIPE,
+            check=True,
         )
-        proc_git_annex_dead_here.check_returncode()
         print(proc_git_annex_dead_here.stdout.decode('utf-8'))
 
         # Final `datalad push` to output RIA:
@@ -351,8 +355,8 @@ class BABSMerge(BABS):
             ['datalad', 'push', '--data', 'nothing'],
             cwd=merge_ds_path,
             stdout=subprocess.PIPE,
+            check=True,
         )
-        proc_datalad_push.check_returncode()
         print(proc_datalad_push.stdout.decode('utf-8'))
 
         # Done:
@@ -375,6 +379,6 @@ class BABSMerge(BABS):
                 ['git', 'branch', '--delete'] + chunk,
                 cwd=self.output_ria_data_dir,
                 stdout=subprocess.PIPE,
+                check=True,
             )
-            proc_git_branch_delete.check_returncode()
             print(proc_git_branch_delete.stdout.decode('utf-8'))

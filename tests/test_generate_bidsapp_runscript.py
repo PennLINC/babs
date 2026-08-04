@@ -117,7 +117,7 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
     config_path = NOTEBOOKS_DIR / config_file
     container_name = config_file.split('_')[1]
     config = read_yaml(config_path)
-    dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(config)
+    _dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(config)
     script_content = generate_bidsapp_runscript(
         input_datasets,
         processing_level,
@@ -156,7 +156,9 @@ def run_shellcheck(script_path):
 
     try:
         # Run shellcheck on the temporary file
-        result = subprocess.run(['shellcheck', script_path], capture_output=True, text=True)
+        result = subprocess.run(
+            ['shellcheck', script_path], capture_output=True, text=True, check=False
+        )
         return result.returncode == 0, result.stdout
     except subprocess.CalledProcessError as e:
         return False, e.output

@@ -82,16 +82,20 @@ def test_babs_init_raw_bids(
 
     # Test error when project root already exists
     project_root.mkdir(parents=True, exist_ok=True)
-    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
-        with pytest.raises(FileExistsError, match=r'already exists'):
-            _enter_init()
+    with (
+        mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts),
+        pytest.raises(FileExistsError, match=r'already exists'),
+    ):
+        _enter_init()
 
     # Test error when parent directory doesn't exist
     non_existent_parent = project_base / 'non_existent' / 'my_babs_project'
     babs_init_opts.project_root = non_existent_parent
-    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts):
-        with pytest.raises(ValueError, match=r'parent folder.*does not exist'):
-            _enter_init()
+    with (
+        mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_init_opts),
+        pytest.raises(ValueError, match=r'parent folder.*does not exist'),
+    ):
+        _enter_init()
 
     # Test error when parent directory doesn't exist
     babs_init_opts.project_root = project_root
@@ -231,19 +235,21 @@ def test_babs_init_raw_bids(
             return get_results_branches_from_clone(str(merge_ds))
         return _orig_get_results_branches_method(self)
 
-    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts):
-        with mock.patch.object(
+    with (
+        mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=babs_merge_opts),
+        mock.patch.object(
             babs_base.BABS, '_get_results_branches', _get_results_branches_use_merge_ds_when_exists
-        ):
-            try:
-                _enter_merge()
-            except ValueError as e:
-                if 'no successfully finished job' in str(e).lower():
-                    diag = gather_slurm_job_diagnostics(
-                        project_root, log_glob='sim.*', max_logs=None, tail_lines=None
-                    )
-                    raise ValueError(f'{e}\nJob accounting (sacct):\n{diag}') from e
-                raise
+        ),
+    ):
+        try:
+            _enter_merge()
+        except ValueError as e:
+            if 'no successfully finished job' in str(e).lower():
+                diag = gather_slurm_job_diagnostics(
+                    project_root, log_glob='sim.*', max_logs=None, tail_lines=None
+                )
+                raise ValueError(f'{e}\nJob accounting (sacct):\n{diag}') from e
+            raise
 
 
 def test_init_forwards_shared_group(tmp_path):
@@ -261,9 +267,11 @@ def test_init_forwards_shared_group(tmp_path):
         shared_group='my-lab-group',
         no_ignore=[],
     )
-    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
-        with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
-            _enter_init()
+    with (
+        mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options),
+        mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls,
+    ):
+        _enter_init()
 
     mock_bootstrap_cls.assert_called_once_with(
         options.project_root,
@@ -296,9 +304,11 @@ def test_init_forwards_no_ignore(tmp_path):
         shared_group=None,
         no_ignore=['logs'],
     )
-    with mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options):
-        with mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls:
-            _enter_init()
+    with (
+        mock.patch.object(argparse.ArgumentParser, 'parse_args', return_value=options),
+        mock.patch('babs.BABSBootstrap') as mock_bootstrap_cls,
+    ):
+        _enter_init()
 
     mock_bootstrap_cls.assert_called_once_with(
         options.project_root,
@@ -468,6 +478,7 @@ def test_datalad_save_with_filtering(babs_project_sessionlevel_babsobject):
         cwd=babs_project_sessionlevel_babsobject.analysis_path,
         capture_output=True,
         text=True,
+        check=True,
     )
 
     assert test_file1.name in result.stdout

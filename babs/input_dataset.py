@@ -104,7 +104,7 @@ class InputDataset:
         origin_ds = dlapi.Dataset(self.origin_url)
         origin_sha = origin_ds.repo.get_hexsha()
 
-        if not babs_sha == origin_sha:
+        if babs_sha != origin_sha:
             print(f'Input dataset {self.name} is not up to date.')
             print(f'BABS SHA: {babs_sha}')
             print(f'Origin SHA: {origin_sha}')
@@ -287,7 +287,7 @@ class InputDataset:
 def validate_zipped_input_contents(
     dataset_abs_path, root_dir_name, processing_level, included_subjects_df=None
 ):
-    """ """
+    """Validate the contents of a zipped input dataset."""
     zip_pattern = (
         f'sub-*_ses-*_{root_dir_name}*.zip'
         if processing_level == 'session'
