@@ -26,6 +26,7 @@ from babs.status import (
 from babs.system import validate_queue
 from babs.utils import (
     combine_inclusion_dataframes,
+    container_image_path,
     get_latest_submitted_jobs_columns,
     get_results_branches,
     identify_running_jobs,
@@ -274,11 +275,6 @@ class BABS:
 
         print('Pipeline configuration validation complete!')
 
-    @staticmethod
-    def container_image_path(container_name: str) -> str:
-        """Return the analysis-relative image path for a DataLad container."""
-        return op.join('containers', '.datalad', 'environments', container_name, 'image')
-
     def get_container_image_paths(self, config_yaml: dict) -> list[str]:
         """Get analysis-relative container image paths used by participant jobs."""
         container_images = config_yaml.get('container_images')
@@ -289,7 +285,7 @@ class BABS:
                 container_names = [step['container_name'] for step in self.pipeline]
             else:
                 container_names = [self.container['name']]
-            container_images = [self.container_image_path(name) for name in container_names]
+            container_images = [container_image_path(name) for name in container_names]
 
         # Preserve order while avoiding duplicate datalad get calls.
         return list(dict.fromkeys(container_images))

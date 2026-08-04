@@ -116,27 +116,24 @@ class BABSCheckSetup(BABS):
         print('\nChecking container datalad dataset...')
         folder_container = op.join(self.analysis_path, 'containers')
 
-        # Check if this is a pipeline configuration
+        # assert it's a datalad ds in `containers` folder:
+        if not op.exists(op.join(folder_container, '.datalad/config')):
+            raise FileNotFoundError(
+                'There is no containers DataLad dataset in folder: ' + folder_container
+            )
+
+        # the recorded image path(s) should exist; each may be an annexed
+        # symlink whose content is not retrieved yet, hence also `islink`:
+        for image_path in self.container_images:
+            image_path_abs = op.join(self.analysis_path, image_path)
+            print(f'  Checking container image: {image_path}')
+            if not (op.exists(image_path_abs) or op.islink(image_path_abs)):
+                raise FileNotFoundError(f'Container image not found at: {image_path}')
+
         if self.pipeline is not None:
-            print(f'Checking {len(self.pipeline)} containers in pipeline...')
-            for i, step in enumerate(self.pipeline):
-                step_container_name = step['container_name']
-                print(f'  Checking container {i + 1}/{len(self.pipeline)}: {step_container_name}')
-                container_path = op.join(
-                    folder_container, '.datalad/environments', step_container_name, 'image'
-                )
-                if not op.exists(container_path):
-                    raise FileNotFoundError(
-                        f'Container {step_container_name} not found at: {container_path}'
-                    )
             container_name = self.pipeline[0]['container_name']  # Use first for compatibility
         else:
             container_name = babs_proj_config['container']['name']
-            # assert it's a datalad ds in `containers` folder:
-            if not op.exists(op.join(folder_container, '.datalad/config')):
-                raise FileNotFoundError(
-                    'There is no containers DataLad dataset in folder: ' + folder_container
-                )
         print(CHECK_MARK + ' All good!')
 
         # Check `analysis/code`: ---------------------------------

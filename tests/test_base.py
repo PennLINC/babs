@@ -18,7 +18,7 @@ from conftest import get_config_simbids_path, update_yaml_for_run
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
 from babs.bootstrap import BABSBootstrap
-from babs.utils import read_yaml
+from babs.utils import container_image_path, read_yaml
 
 
 def test_missing_config_parts(babs_project_sessionlevel):
@@ -142,7 +142,7 @@ def test_pipeline_config_details(babs_project_sessionlevel):
 
 def test_container_image_path():
     assert (
-        BABS.container_image_path('fmriprep-1-2-3')
+        container_image_path('fmriprep-1-2-3')
         == 'containers/.datalad/environments/fmriprep-1-2-3/image'
     )
 
