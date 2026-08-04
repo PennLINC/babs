@@ -49,7 +49,7 @@ def resolve_container_image_paths(containers_ds_path, container_names):
         Mapping of container name to analysis-relative image path.
     """
     # function-local so that importing babs.utils does not pull in datalad
-    from datalad.api import Dataset
+    from datalad.distribution.dataset import Dataset
 
     config = Dataset(containers_ds_path).config
     resolved = {}
