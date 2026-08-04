@@ -124,7 +124,7 @@ def test_array_job_submission(
     test_dir = tmp_path_factory.mktemp('test_array_job')
 
     # Submit array job with 3 tasks
-    working_directory, job_id = submit_array_job(test_dir, array_size=3)
+    _working_directory, job_id = submit_array_job(test_dir, array_size=3)
 
     # Wait a moment for job to be registered
     import time

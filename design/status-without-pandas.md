@@ -99,13 +99,14 @@ total_running, total_failed.
 
 ```python
 class SchedulerState(Enum):
-    NOT_SUBMITTED = "NOT_SUBMITTED"
-    PENDING = "PD"
-    RUNNING = "R"
-    COMPLETING = "CG"
-    CONFIGURING = "CF"
-    DONE = "DONE"           # left scheduler, exit code unknown
+    NOT_SUBMITTED = 'NOT_SUBMITTED'
+    PENDING = 'PD'
+    RUNNING = 'R'
+    COMPLETING = 'CG'
+    CONFIGURING = 'CF'
+    DONE = 'DONE'  # left scheduler, exit code unknown
     # future: COMPLETED, FAILED, CANCELLED, TIMEOUT (from sacct)
+
 
 @dataclass
 class JobStatus:
@@ -124,8 +125,7 @@ class JobStatus:
 
     @property
     def is_failed(self) -> bool:
-        return (self.scheduler_state == SchedulerState.DONE
-                and not self.has_results)
+        return self.scheduler_state == SchedulerState.DONE and not self.has_results
 
     @property
     def submitted(self) -> bool:

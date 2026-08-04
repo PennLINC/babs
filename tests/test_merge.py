@@ -16,7 +16,7 @@ from babs.utils import get_git_show_ref_shasum
 def test_merge_no_branches(babs_project_sessionlevel, monkeypatch):
     """Test babs_merge when no branches have results."""
     babs_proj = BABSMerge(babs_project_sessionlevel)
-    monkeypatch.setattr(babs_proj, '_get_results_branches', lambda: [])
+    monkeypatch.setattr(babs_proj, '_get_results_branches', list)
 
     with pytest.raises(ValueError, match='There is no successfully finished job yet'):
         babs_proj.babs_merge()
@@ -28,16 +28,27 @@ def test_merge_all_branches_no_results(babs_project_sessionlevel, tmp_path, monk
 
     merge_ds_path = tmp_path / 'merge_ds'
     merge_ds_path.mkdir()
-    subprocess.run(['git', 'init'], cwd=merge_ds_path, capture_output=True)
-    subprocess.run(['git', 'config', 'user.name', 'Test'], cwd=merge_ds_path, capture_output=True)
+    subprocess.run(['git', 'init'], cwd=merge_ds_path, capture_output=True, check=True)
+    subprocess.run(
+        ['git', 'config', 'user.name', 'Test'],
+        cwd=merge_ds_path,
+        capture_output=True,
+        check=True,
+    )
     subprocess.run(
         ['git', 'config', 'user.email', 'test@test.com'],
         cwd=merge_ds_path,
         capture_output=True,
+        check=True,
     )
     (merge_ds_path / 'test.txt').write_text('test')
-    subprocess.run(['git', 'add', 'test.txt'], cwd=merge_ds_path, capture_output=True)
-    subprocess.run(['git', 'commit', '-m', 'Initial'], cwd=merge_ds_path, capture_output=True)
+    subprocess.run(['git', 'add', 'test.txt'], cwd=merge_ds_path, capture_output=True, check=True)
+    subprocess.run(
+        ['git', 'commit', '-m', 'Initial'],
+        cwd=merge_ds_path,
+        capture_output=True,
+        check=True,
+    )
 
     default_branch = 'main'
     try:
@@ -45,6 +56,7 @@ def test_merge_all_branches_no_results(babs_project_sessionlevel, tmp_path, monk
             ['git', 'checkout', '-b', default_branch],
             cwd=merge_ds_path,
             capture_output=True,
+            check=True,
         )
     except Exception:
         default_branch = 'master'
@@ -73,7 +85,7 @@ def test_merge_all_branches_no_results(babs_project_sessionlevel, tmp_path, monk
             result.returncode = 0
             result.stdout = f'HEAD branch: {default_branch}\n'.encode()
             return result
-        return subprocess.run(cmd, **kwargs)
+        return subprocess.run(cmd, check=kwargs.pop('check', False), **kwargs)
 
     monkeypatch.setattr('babs.merge.subprocess.run', mock_remote_show)
 
@@ -128,7 +140,7 @@ def test_rm_dir_datalad_fail(tmp_path, monkeypatch):
 
     # Mock datalad.remove to raise an exception
     def mock_remove(path=None, dataset=None, **kwargs):
-        raise Exception('datalad remove failed')
+        raise RuntimeError('datalad remove failed')
 
     monkeypatch.setattr(dlapi, 'remove', mock_remove)
 
@@ -283,7 +295,6 @@ def test_merge_no_head(babs_project_sessionlevel, tmp_path, monkeypatch):
     def mock_clone(source, path):
         # Create the directory so subsequent git commands can run
         os.makedirs(path, exist_ok=True)
-        return None
 
     monkeypatch.setattr(dlapi, 'clone', mock_clone)
 
@@ -293,7 +304,7 @@ def test_merge_no_head(babs_project_sessionlevel, tmp_path, monkeypatch):
             result.returncode = 0
             result.stdout = b'No HEAD branch found\n'  # No HEAD branch
             return result
-        return subprocess.run(cmd, **kwargs)
+        return subprocess.run(cmd, check=kwargs.pop('check', False), **kwargs)
 
     monkeypatch.setattr('babs.merge.subprocess.run', mock_remote_show)
 

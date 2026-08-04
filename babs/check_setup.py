@@ -67,7 +67,7 @@ class BABSCheckSetup(BABS):
         }
 
         # statuses should be all "clean", without anything else e.g., "modified":
-        if not analysis_statuses == {'clean'}:
+        if analysis_statuses != {'clean'}:
             problem_statuses = [
                 status
                 for status in self.analysis_datalad_handle.status(eval_subdataset_state='commit')
@@ -177,9 +177,8 @@ class BABSCheckSetup(BABS):
                     + " in 'analysis/code' folder in this BABS project!"
                 )
             # check if bash files are executable:
-            if op.splitext(temp_fn)[1] == '.sh':  # extension is '.sh':
-                if not os.access(temp_fn, os.X_OK):
-                    raise PermissionError('This code file should be executable: ' + temp_fn)
+            if op.splitext(temp_fn)[1] == '.sh' and not os.access(temp_fn, os.X_OK):
+                raise PermissionError('This code file should be executable: ' + temp_fn)
         print(CHECK_MARK + ' All good!')
 
         # Check input and output RIA: ----------------------
@@ -209,7 +208,7 @@ class BABSCheckSetup(BABS):
         analysis_siblings = self.analysis_datalad_handle.siblings(action='query')
         has_sibling_input = False
         has_sibling_output = False
-        for i_sibling in range(0, len(analysis_siblings)):
+        for i_sibling in range(len(analysis_siblings)):
             the_sibling = analysis_siblings[i_sibling]
             if the_sibling['name'] == 'output':  # output ria:
                 has_sibling_output = True
@@ -299,7 +298,7 @@ class BABSCheckSetup(BABS):
                     new_job_status = request_all_job_status(self.queue, job_id)
 
                 if not job_status.shape[0] == 1:
-                    raise Exception(
+                    raise RuntimeError(
                         f'Expected 1 job for {step_container_name}, got {job_status.shape[0]}'
                     )
 
@@ -320,14 +319,14 @@ class BABSCheckSetup(BABS):
                 if op.exists(fn_check_env_yaml):
                     flag_writable, flag_all_installed = print_versions_from_yaml(fn_check_env_yaml)
                     if not flag_writable:
-                        raise Exception(
+                        raise RuntimeError(
                             f'The designated workspace is not writable for {step_container_name}!'
                             ' Please change it in the YAML file'
                             ' used in `babs init --container-config`,'
                             ' then rerun `babs init` with updated YAML file.'
                         )
                     if not flag_all_installed:
-                        raise Exception(
+                        raise RuntimeError(
                             f'Some required package(s) were not installed for '
                             f'{step_container_name} in the designated environment!'
                             ' Please install them in the designated environment,'
@@ -349,7 +348,7 @@ class BABSCheckSetup(BABS):
                 new_job_status = request_all_job_status(self.queue, job_id)
 
             if not job_status.shape[0] == 1:
-                raise Exception(f'Expected 1 job, got {job_status.shape[0]}')
+                raise RuntimeError(f'Expected 1 job, got {job_status.shape[0]}')
 
             test_info = job_status.iloc[0].to_dict()
 
@@ -366,7 +365,7 @@ class BABSCheckSetup(BABS):
             fn_check_env_yaml = op.join(self.analysis_path, 'code/check_setup', 'check_env.yaml')
             flag_writable, flag_all_installed = print_versions_from_yaml(fn_check_env_yaml)
             if not flag_writable:
-                raise Exception(
+                raise RuntimeError(
                     'The designated workspace is not writable!'
                     ' Please change it in the YAML file'
                     ' used in `babs init --container-config`,'
@@ -375,7 +374,7 @@ class BABSCheckSetup(BABS):
                 # NOTE: ^^ currently this is not aligned with YAML file sections;
                 # this will make more sense after adding section of workspace path in YAML file
             if not flag_all_installed:
-                raise Exception(
+                raise RuntimeError(
                     'Some required package(s) were not installed'
                     ' in the designated environment!'
                     ' Please install them in the designated environment,'

@@ -92,7 +92,7 @@ class BABSInteraction(BABS):
             )
             if non_cg_states.any():
                 if not skip_running_jobs:
-                    raise Exception(
+                    raise RuntimeError(
                         'There are still jobs running. '
                         'Please wait for them to finish or cancel them. '
                         'Current running jobs:\n'

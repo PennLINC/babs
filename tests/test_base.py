@@ -68,7 +68,7 @@ def test_validate_pipeline_config(babs_project_sessionlevel):
 
     # Test invalid configs
     babs_proj.pipeline = {'not': 'a list'}
-    with pytest.raises(ValueError, match='Pipeline configuration must be a list'):
+    with pytest.raises(TypeError, match='Pipeline configuration must be a list'):
         babs_proj._validate_pipeline_config()
 
     babs_proj.pipeline = []
@@ -76,7 +76,7 @@ def test_validate_pipeline_config(babs_project_sessionlevel):
         babs_proj._validate_pipeline_config()
 
     babs_proj.pipeline = ['not a dict']
-    with pytest.raises(ValueError, match='Pipeline step 0 must be a dictionary'):
+    with pytest.raises(TypeError, match='Pipeline step 0 must be a dictionary'):
         babs_proj._validate_pipeline_config()
 
     babs_proj.pipeline = [{'missing': 'container_name'}]
@@ -483,7 +483,7 @@ def test_shared_group_inits_analysis_and_rias(
         ['git', 'config', '--global', '--get-all', 'safe.directory'],
         stdout=subprocess.PIPE,
         text=True,
-        check=False,
+        check=True,
     ).stdout.splitlines()
     assert str(Path(babs_bootstrap.analysis_path).resolve()) in safe_dirs
     assert str(output_ria_dir.resolve()) in safe_dirs
