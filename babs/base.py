@@ -133,7 +133,7 @@ class BABS:
                 with open(root_config_path) as f:
                     cfg = yaml.safe_load(f) or {}
         if not isinstance(cfg, dict):
-            raise ValueError(
+            raise TypeError(
                 f'container_config_yaml must be a YAML mapping (key: value pairs), '
                 f'got {type(cfg).__name__}'
             )
@@ -223,11 +223,13 @@ class BABS:
 
         Raises
         ------
+        TypeError
+            If the pipeline or one of its steps has an invalid type.
         ValueError
-            If the pipeline configuration is invalid.
+            If the pipeline configuration is otherwise invalid.
         """
         if not isinstance(self.pipeline, list):
-            raise ValueError('Pipeline configuration must be a list of steps')
+            raise TypeError('Pipeline configuration must be a list of steps')
 
         if len(self.pipeline) == 0:
             raise ValueError('Pipeline configuration cannot be empty')
@@ -236,7 +238,7 @@ class BABS:
 
         for i, step in enumerate(self.pipeline):
             if not isinstance(step, dict):
-                raise ValueError(f'Pipeline step {i} must be a dictionary')
+                raise TypeError(f'Pipeline step {i} must be a dictionary')
 
             required_fields = ['container_name']
             for field in required_fields:
@@ -356,8 +358,8 @@ class BABS:
                 'output',
             ],
             stdout=subprocess.PIPE,
+            check=True,
         )
-        proc_output_ria_data_dir.check_returncode()
         self.output_ria_data_dir = urlparse(
             proc_output_ria_data_dir.stdout.decode('utf-8')
         ).path.strip()
@@ -376,9 +378,9 @@ class BABS:
                 ['datalad', '-f', "'{infos[dataset][id]}'", 'wtf', '-S', 'dataset'],
                 cwd=self.analysis_path,
                 stdout=subprocess.PIPE,
+                check=True,
             )
             # datalad -f '{infos[dataset][id]}' wtf -S dataset
-            proc_analysis_dataset_id.check_returncode()
             self.analysis_dataset_id = (
                 proc_analysis_dataset_id.stdout.decode('utf-8').strip().lstrip("'").rstrip("'")
             )
@@ -474,6 +476,7 @@ class BABS:
             ['git', 'config', '--global', '--get-all', 'safe.directory'],
             capture_output=True,
             text=True,
+            check=False,
         )
         existing = (
             {line.strip() for line in proc_existing.stdout.splitlines() if line.strip()}
@@ -488,6 +491,7 @@ class BABS:
                 ['git', 'config', '--global', '--add', 'safe.directory', repo_path],
                 capture_output=True,
                 text=True,
+                check=True,
             )
             existing.add(repo_path)
 
@@ -533,8 +537,7 @@ class BABS:
             # Create a temporary .gitignore file to exclude specified files
             gitignore_path = op.join(self.analysis_path, '.gitignore')
             with open(gitignore_path, 'w') as f:
-                for file in filter_files:
-                    f.write(f'{file}\n')
+                f.writelines(f'{file}\n' for file in filter_files)
 
             try:
                 statuses = self.analysis_datalad_handle.save(path=path, message=message)
@@ -552,7 +555,7 @@ class BABS:
         if not saved_status.issubset({'ok', 'notneeded'}):
             # exists element in `saved_status` that is not "ok" or "notneeded"
             # ^^ "notneeded": nothing to save
-            raise Exception('`datalad save` failed!')
+            raise RuntimeError('`datalad save` failed!')
 
     def _get_results_branches(self) -> list[str]:
         """Get the results branch names from the output RIA in a list."""

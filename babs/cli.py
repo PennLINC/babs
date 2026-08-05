@@ -229,14 +229,14 @@ def babs_init_main(
             shared_group=shared_group,
             no_ignore=no_ignore,
         )
-    except Exception as exc:
+    except Exception:
         print('\n`babs init` failed! Below is the error message:')
         if not keep_if_failed:
             print('\nCleaning up created BABS project...')
             babs_proj.clean_up()
         else:
             print('\n`--keep-if-failed` is requested, so not to clean up created BABS project.')
-        raise exc
+        raise
 
 
 def _parse_check_setup():

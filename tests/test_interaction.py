@@ -111,7 +111,7 @@ def test_babs_status_configures_shared_group_runtime(babs_project_subjectlevel, 
         lambda: called.append(True),
     )
     # Stub downstream work; this test verifies guard invocation only.
-    monkeypatch.setattr(babs_proj, '_update_results_status', lambda: {})
+    monkeypatch.setattr(babs_proj, '_update_results_status', dict)
     monkeypatch.setattr('babs.interaction.report_job_status', lambda *_args, **_kwargs: None)
 
     babs_proj.babs_status()
@@ -453,9 +453,7 @@ def _make_statuses(submitted, has_results):
     statuses = {}
     for i, (sub, res) in enumerate(zip(submitted, has_results, strict=True)):
         sub_id = f'sub-{i + 1:02d}'
-        if sub and not res:
-            state = SchedulerState.DONE
-        elif sub:
+        if sub:
             state = SchedulerState.DONE
         else:
             state = SchedulerState.NOT_SUBMITTED
