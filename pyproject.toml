@@ -4,7 +4,6 @@ requires = [
     "hatch-vcs",
     "nipreps-versions",
     "cython",
-    "numpy",
 ]
 build-backend = "hatchling.build"
 
