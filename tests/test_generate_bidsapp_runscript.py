@@ -1,3 +1,5 @@
+import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -137,6 +139,67 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
     if not passed:
         print(script_content)
     assert passed, status
+
+
+def generate_session_filter_file(config_file, input_datasets, tmp_path):
+    """Render a session-level runscript, run its filter-file block, and parse the result.
+
+    The filter file is written by the job script at runtime, so the only way to see what
+    a BIDS app actually receives is to execute the block that builds it.
+    """
+    config = read_yaml(NOTEBOOKS_DIR / config_file)
+    _, bids_app_output_dir = app_output_settings_from_config(config)
+    script_content = generate_bidsapp_runscript(
+        input_datasets,
+        'session',
+        container_name=config_file.split('_')[1],
+        relative_container_path='containers/.datalad/containers/app/image',
+        bids_app_output_dir=bids_app_output_dir,
+        dict_zip_foldernames=config['zip_foldernames'],
+        bids_app_args=config['bids_app_args'],
+        singularity_args=config['singularity_args'],
+        templateflow_home='/path/to/templateflow_home',
+    )
+
+    # the block runs from `filterfile=...` through the last `sed -i` that repairs the JSON
+    lines = script_content.splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith('filterfile='))
+    end = max(i for i, line in enumerate(lines) if line.startswith('sed -i'))
+    block = '\n'.join(lines[start : end + 1])
+
+    subprocess.run(
+        ['bash', '-c', block],
+        cwd=tmp_path,
+        env={'sesid': 'ses-1', 'PATH': os.environ['PATH']},
+        check=True,
+    )
+    return json.loads((tmp_path / 'ses-1_filter.json').read_text())
+
+
+@pytest.mark.parametrize(
+    'config_file',
+    [
+        'eg_fmriprep-24-1-1_regular.yaml',
+        'eg_qsiprep-1-0-0_regular.yaml',
+        'eg_aslprep-0-7-5.yaml',
+    ],
+)
+def test_session_filter_file_fmap_carries_no_session(config_file, tmp_path):
+    """The fmap entry must not pin a session.
+
+    fmriprep passes this entry straight to sdcflows' ``find_estimators()`` alongside the
+    session it resolved itself, and sdcflows raises "Filters include session, but session
+    is already defined." when it receives both. That aborts workflow construction, so no
+    session-level job can run. The session is already enforced by the sparse checkout.
+    """
+    filters = generate_session_filter_file(config_file, input_datasets_prep, tmp_path)
+
+    assert filters['fmap'] == {'datatype': 'fmap'}
+
+    # the remaining entries still restrict to this session ('ses-' is stripped by sed)
+    others = {key: value for key, value in filters.items() if key != 'fmap'}
+    assert others
+    assert all(value.get('session') == '1' for value in others.values())
 
 
 def run_shellcheck(script_path):
