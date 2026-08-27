@@ -6,6 +6,8 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from babs.utils import container_image_path, var_safe_name
+
 # Multiple scheduler system handling
 DIRECTIVE_PREFIX = {
     'sge': '#$',
@@ -81,6 +83,7 @@ def generate_submit_script(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
     participant_job_template = env.get_template('participant_job.sh.jinja2')
 
     # Get the setup for the scheduler directives:
@@ -109,7 +112,7 @@ def generate_submit_script(
     if container_images:
         container_image_paths = list(container_images)
     else:
-        container_image_paths = [f'containers/.datalad/environments/{container_name}/image']
+        container_image_paths = [container_image_path(container_name)]
 
     return participant_job_template.render(
         interpreting_shell=interpreting_shell,

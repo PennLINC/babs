@@ -5,7 +5,12 @@ import warnings
 
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
-from babs.utils import RUNNING_PYTEST, replace_placeholder_from_config
+from babs.utils import (
+    RUNNING_PYTEST,
+    container_image_path,
+    replace_placeholder_from_config,
+    var_safe_name,
+)
 
 
 def generate_bidsapp_runscript(
@@ -84,6 +89,7 @@ def generate_bidsapp_runscript(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
 
     template = env.get_template('bidsapp_run.sh.jinja2')
     return template.render(
@@ -326,6 +332,7 @@ def generate_pipeline_runscript(
     input_datasets,
     templateflow_home=None,
     final_zip_foldernames=None,
+    container_image_paths=None,
 ):
     """Generate a bash script that runs an ordered pipeline of BIDS Apps.
 
@@ -353,6 +360,10 @@ def generate_pipeline_runscript(
         Top-level zip_foldernames configuration for final output zipping.
         If None, falls back to last step's config for backward compatibility.
 
+    container_image_paths: dict, optional
+        Mapping of container name to analysis-relative image path.
+        Names not in the mapping fall back to babs's default layout.
+
     Returns
     -------
     str
@@ -366,6 +377,9 @@ def generate_pipeline_runscript(
     if hasattr(input_datasets, 'as_records'):
         # It's an InputDatasets object, convert to records
         input_datasets = input_datasets.as_records()
+
+    if container_image_paths is None:
+        container_image_paths = {}
 
     # Process each step similar to how generate_bidsapp_runscript processes single steps
     processed_steps = []
@@ -420,8 +434,8 @@ def generate_pipeline_runscript(
 
         processed_step = {
             'container_name': container_name,
-            'container_path_relToAnalysis': (
-                f'containers/.datalad/environments/{container_name}/image'
+            'container_path_relToAnalysis': container_image_paths.get(
+                container_name, container_image_path(container_name)
             ),
             'bids_app_input_dir': step_input_dir,
             'bids_app_output_dir': bids_app_output_dir,
@@ -462,6 +476,7 @@ def generate_pipeline_runscript(
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
 
     template = env.get_template('bidsapp_pipeline_run.sh.jinja2')
     return template.render(
@@ -502,6 +517,7 @@ def get_input_unzipping_cmds(input_datasets):
         autoescape=False,
         undefined=StrictUndefined,
     )
+    env.filters['shell_safe'] = var_safe_name
     template = env.get_template('unzip_inputds.sh.jinja2')
     cmd = template.render(input_datasets=input_datasets)
 

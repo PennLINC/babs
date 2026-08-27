@@ -35,6 +35,7 @@ def test_template_job_execution():
             capture_output=True,
             text=True,
             env={**os.environ, 'RUNNING_PYTEST': '1'},  # Mark as running in test
+            check=False,
         )
 
         # Check that execution was successful

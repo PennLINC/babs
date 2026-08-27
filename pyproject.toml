@@ -4,7 +4,6 @@ requires = [
     "hatch-vcs",
     "nipreps-versions",
     "cython",
-    "numpy < 2.0",
 ]
 build-backend = "hatchling.build"
 
@@ -21,7 +20,7 @@ dependencies = [
     "filelock >= 3.8.0",
     "nibabel >=2.2.1",
     "niworkflows",
-    "numpy < 2.0",
+    "numpy",
     "pandas",
     "pyyaml >= 6.0",
     "regex",
@@ -46,7 +45,7 @@ doc = [
     "sphinx_design",            # for adding in-line badges etc
     "sphinx_rtd_theme",         # needed by readthedocs
 ]
-dev = ["ruff ~= 0.4.3", "pre-commit"]
+dev = ["ruff == 0.16.0", "pre-commit"]
 tests = [
     "coverage",
     "pytest",
@@ -67,7 +66,6 @@ babs-check-setup = "babs.cli:_enter_check_setup"
 babs-submit = "babs.cli:_enter_submit"
 babs-status = "babs.cli:_enter_status"
 babs-merge = "babs.cli:_enter_merge"
-babs-unzip = "babs.cli:_enter_unzip"
 
 
 #

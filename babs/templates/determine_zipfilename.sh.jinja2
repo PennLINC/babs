@@ -5,9 +5,12 @@ find_single_zip_in_git_tree() {{ '{' }}
   local name="$2"
   local hits count
 
+  # Match each identifier as a FIXED string: derivative names can contain regex
+  # metacharacters (e.g. the '+' and '.' in 'fMRIPrep-25.2.5+anat'), which broke
+  # the previous single `grep -E`. Only the .zip suffix is a genuine anchor.
   hits="$(
     git -C "${zip_search_path}" ls-tree -r --name-only HEAD \
-      | grep -E "{% raw %}${subid}{% endraw %}{% if processing_level == 'session' %}{% raw %}.*${sesid}{% endraw %}{% endif %}{% raw %}.*${name}.*\.zip${% endraw %}" \
+      | grep -F "{% raw %}${subid}{% endraw %}"{% if processing_level == 'session' %} | grep -F "{% raw %}${sesid}{% endraw %}"{% endif %} | grep -F "{% raw %}${name}{% endraw %}" | grep -E '{% raw %}\.zip${% endraw %}' \
       || true
   )"
 
@@ -25,9 +28,9 @@ find_single_zip_in_git_tree() {{ '{' }}
 
 {% for input_dataset in input_datasets %}
 {% if input_dataset['is_zipped'] %}
-{{ input_dataset['name'].upper() }}_ZIP="$(find_single_zip_in_git_tree {{ input_dataset['path_in_babs'] }} {{ input_dataset['name'] }})"
+{{ input_dataset['name'] | shell_safe }}_ZIP="$(find_single_zip_in_git_tree {{ input_dataset['path_in_babs'] }} {{ input_dataset['name'] }})"
 echo 'found {{ input_dataset['name'] }} zipfile:'
-echo "${%raw%}{{%endraw%}{{ input_dataset['name'].upper() }}_ZIP{%raw%}}{%endraw%}"
+echo "${%raw%}{{%endraw%}{{ input_dataset['name'] | shell_safe }}_ZIP{%raw%}}{%endraw%}"
 {% endif %}
 {% endfor %}
 {% endif %}

@@ -8,13 +8,15 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
-from babs.utils import app_output_settings_from_config
+from babs.utils import app_output_settings_from_config, container_image_path
 
 
 class Container:
     """This class is for the BIDS App Container"""
 
-    def __init__(self, container_ds, container_name, config_yaml_file):
+    def __init__(
+        self, container_ds, container_name, config_yaml_file, container_path_relToAnalysis=None
+    ):
         """
         This is to initialize Container class.
 
@@ -29,6 +31,10 @@ class Container:
              e.g., fmriprep-0-0-0
         config_yaml_file: str
             The YAML file that contains the configurations of how to run the container
+        container_path_relToAnalysis: str, optional
+            Analysis-relative path to the container image.
+            When not provided, falls back to babs's default layout
+            (`containers/.datalad/environments/<name>/image`).
 
         Attributes
         ----------
@@ -67,8 +73,8 @@ class Container:
         with open(self.config_yaml_file) as f:
             self.config = yaml.safe_load(f)
 
-        self.container_path_relToAnalysis = op.join(
-            'containers', '.datalad', 'environments', self.container_name, 'image'
+        self.container_path_relToAnalysis = container_path_relToAnalysis or container_image_path(
+            self.container_name
         )
 
     def sanity_check(self, analysis_path):
@@ -84,21 +90,20 @@ class Container:
         #   '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name/image'
         container_path_abs = op.join(analysis_path, self.container_path_relToAnalysis)
 
-        # Sanity check: the path to `container_name` should exist in the cloned `container_ds`:
+        # Sanity check: the directory containing the image should exist in the
+        # cloned `container_ds`:
         # e.g., '/path/to/BABS_project/analysis/containers/.datalad/environments/container_name'
         assert op.exists(op.dirname(container_path_abs)), (
-            "There is no valid image named '"
-            + self.container_name
-            + "' in the provided container DataLad dataset!"
+            f"There is no directory for container '{self.container_name}'"
+            f' in the provided container DataLad dataset;'
+            f" expected: '{op.dirname(container_path_abs)}'."
         )
 
-        # the 'image' symlink or folder should exist:
+        # the image (symlink, file, or folder) should exist:
         assert op.exists(container_path_abs) or op.islink(container_path_abs), (
-            "the folder 'image' of container DataLad dataset does not exist,"
-            " and there is no symlink called 'image' either;"
-            " Path to 'image' in cloned container DataLad dataset should be: '"
-            + container_path_abs
-            + "'."
+            f"The container image for '{self.container_name}' does not exist"
+            f' in the cloned container DataLad dataset (not even as a symlink);'
+            f" expected: '{container_path_abs}'."
         )
 
     def generate_bash_run_bidsapp(
@@ -189,6 +194,7 @@ class Container:
             processing_level=processing_level,
             container_name=self.container_name,
             zip_foldernames=self.config['zip_foldernames'],
+            container_images=[self.container_path_relToAnalysis],
             analysis_path=analysis_path,
         )
 
@@ -227,9 +233,11 @@ class Container:
         os.chmod(fn_call_test_job, 0o770 if shared_group_mode else 0o700)
 
         # Copy the template file into the check_setup folder
-        with resources.files('babs').joinpath('template_test_job.py').open('rb') as src:
-            with open(fn_test_job, 'wb') as dst:
-                dst.write(src.read())
+        with (
+            resources.files('babs').joinpath('template_test_job.py').open('rb') as src,
+            open(fn_test_job, 'wb') as dst,
+        ):
+            dst.write(src.read())
         os.chmod(fn_test_job, 0o770 if shared_group_mode else 0o700)
 
     def generate_job_submit_template(self, yaml_path, babs, system, test=False):

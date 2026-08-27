@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import datalad.api as dlapi
 import pandas as pd
 import pytest
 import yaml
@@ -11,6 +12,7 @@ import yaml
 from babs.utils import (
     app_output_settings_from_config,
     combine_inclusion_dataframes,
+    container_image_path,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_repo_hash,
@@ -21,9 +23,41 @@ from babs.utils import (
     parse_select_arg,
     read_yaml,
     replace_placeholder_from_config,
+    resolve_container_image_paths,
     update_submitted_job_ids,
     validate_processing_level,
 )
+
+
+def test_resolve_container_image_paths_falls_back_when_unregistered(tmp_path):
+    """A name with no containers-add registration resolves to babs's default layout."""
+    containers_ds = tmp_path / 'containers'
+    dlapi.create(path=str(containers_ds))
+
+    resolved = resolve_container_image_paths(str(containers_ds), ['toybidsapp-0-0-7'])
+
+    assert resolved == {'toybidsapp-0-0-7': container_image_path('toybidsapp-0-0-7')}
+
+
+def test_resolve_container_image_paths_reads_registration(tmp_path):
+    """A registered name resolves to `containers/` + the registered relative path."""
+    containers_ds = tmp_path / 'containers'
+    ds = dlapi.create(path=str(containers_ds))
+    # same config key and value shape `datalad containers-add` writes:
+    ds.config.set(
+        'datalad.containers.bids-fmriprep.image',
+        'images/bids/bids-fmriprep--20.2.7.sif',
+        scope='branch',
+    )
+
+    resolved = resolve_container_image_paths(
+        str(containers_ds), ['bids-fmriprep', 'unregistered-app']
+    )
+
+    assert resolved == {
+        'bids-fmriprep': 'containers/images/bids/bids-fmriprep--20.2.7.sif',
+        'unregistered-app': container_image_path('unregistered-app'),
+    }
 
 
 def test_get_username():
@@ -102,18 +136,31 @@ def create_git_repo(tmp_path):
     repo_path.mkdir()
 
     # Initialize the git repo
-    subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True)
+    subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True, check=True)
 
     # Configure git user name and email (required for commits)
-    subprocess.run(['git', 'config', 'user.name', 'Test User'], cwd=repo_path, capture_output=True)
     subprocess.run(
-        ['git', 'config', 'user.email', 'test@example.com'], cwd=repo_path, capture_output=True
+        ['git', 'config', 'user.name', 'Test User'],
+        cwd=repo_path,
+        capture_output=True,
+        check=True,
+    )
+    subprocess.run(
+        ['git', 'config', 'user.email', 'test@example.com'],
+        cwd=repo_path,
+        capture_output=True,
+        check=True,
     )
 
     # Create a test file and commit it
     (repo_path / 'test_file.txt').write_text('Test content')
-    subprocess.run(['git', 'add', 'test_file.txt'], cwd=repo_path, capture_output=True)
-    subprocess.run(['git', 'commit', '-m', 'Initial commit'], cwd=repo_path, capture_output=True)
+    subprocess.run(['git', 'add', 'test_file.txt'], cwd=repo_path, capture_output=True, check=True)
+    subprocess.run(
+        ['git', 'commit', '-m', 'Initial commit'],
+        cwd=repo_path,
+        capture_output=True,
+        check=True,
+    )
 
     return repo_path
 
@@ -128,7 +175,11 @@ def test_get_repo_hash(tmp_path):
 
     # Get the hash directly with git
     expected_hash = subprocess.run(
-        ['git', 'rev-parse', 'HEAD'], cwd=repo_path, capture_output=True, text=True
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
 
     # They should match
@@ -149,7 +200,11 @@ def test_git_show_ref_shasum(tmp_path):
 
     # Get the current branch name
     branch_name = subprocess.run(
-        ['git', 'branch', '--show-current'], cwd=repo_path, capture_output=True, text=True
+        ['git', 'branch', '--show-current'],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
 
     # Get the ref with our function
@@ -185,6 +240,7 @@ def test_get_results_branches_from_clone(tmp_path):
         cwd=str(tmp_path),
         capture_output=True,
         text=True,
+        check=True,
     )
 
 
@@ -407,20 +463,36 @@ def test_repo_hashes_mismatch(tmp_path):
 
     for repo_path in [repo1_path, repo2_path]:
         repo_path.mkdir()
-        subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True)
-        subprocess.run(['git', 'config', 'user.name', 'Test'], cwd=repo_path, capture_output=True)
+        subprocess.run(['git', 'init'], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(
+            ['git', 'config', 'user.name', 'Test'],
+            cwd=repo_path,
+            capture_output=True,
+            check=True,
+        )
         subprocess.run(
             ['git', 'config', 'user.email', 'test@test.com'],
             cwd=repo_path,
             capture_output=True,
+            check=True,
         )
         (repo_path / 'file.txt').write_text('content')
-        subprocess.run(['git', 'add', 'file.txt'], cwd=repo_path, capture_output=True)
-        subprocess.run(['git', 'commit', '-m', 'Initial'], cwd=repo_path, capture_output=True)
+        subprocess.run(['git', 'add', 'file.txt'], cwd=repo_path, capture_output=True, check=True)
+        subprocess.run(
+            ['git', 'commit', '-m', 'Initial'],
+            cwd=repo_path,
+            capture_output=True,
+            check=True,
+        )
 
     (repo2_path / 'file2.txt').write_text('content2')
-    subprocess.run(['git', 'add', 'file2.txt'], cwd=repo2_path, capture_output=True)
-    subprocess.run(['git', 'commit', '-m', 'Second'], cwd=repo2_path, capture_output=True)
+    subprocess.run(['git', 'add', 'file2.txt'], cwd=repo2_path, capture_output=True, check=True)
+    subprocess.run(
+        ['git', 'commit', '-m', 'Second'],
+        cwd=repo2_path,
+        capture_output=True,
+        check=True,
+    )
 
     with pytest.raises(ValueError, match='does not match'):
         compare_repo_commit_hashes(

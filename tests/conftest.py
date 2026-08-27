@@ -27,6 +27,7 @@ def _setup_before_all_tests():
         ['sacctmgr', '-i', 'modify', 'user', 'root', 'set', 'MaxJobs=200'],
         capture_output=True,
         text=True,
+        check=False,
     )
     if result.returncode != 0:
         raise RuntimeError(
@@ -54,7 +55,7 @@ def simbids_apptainer_image():
     Get the path of the simbids-raw-mri apptainer image.
     """
     if not op.exists(f'/singularity_images/simbids_{SIMBIDS_VERSION}.sif'):
-        raise Exception(f'simbids_{SIMBIDS_VERSION}.sif not found!')
+        raise FileNotFoundError(f'simbids_{SIMBIDS_VERSION}.sif not found!')
     return f'/singularity_images/simbids_{SIMBIDS_VERSION}.sif'
 
 
@@ -91,7 +92,7 @@ def get_simbids_raw_bids_data(simbids_apptainer_image_path, bids_dir, session_ty
         'ds004146_configs.yaml' if session_type == 'multi-session' else 'ds005237_configs.yaml'
     )
 
-    proc = subprocess.run(
+    subprocess.run(
         [
             'apptainer',
             'exec',
@@ -103,8 +104,8 @@ def get_simbids_raw_bids_data(simbids_apptainer_image_path, bids_dir, session_ty
             simbids_yaml,
         ],
         stdout=subprocess.PIPE,
+        check=True,
     )
-    proc.check_returncode()
     # Initialize datalad in the bids_dir, forcing it to accept original files
     ds_path = str(bids_dir.absolute() / 'simbids')
     assert op.exists(ds_path)
@@ -160,8 +161,7 @@ def run_simbids_app_simulation(
     ]
     if extra_args:
         args.extend(extra_args)
-    proc = subprocess.run(args, stdout=subprocess.PIPE)
-    proc.check_returncode()
+    subprocess.run(args, stdout=subprocess.PIPE, check=True)
     return app_output_dir
 
 
@@ -362,6 +362,7 @@ def gather_slurm_job_diagnostics(
             capture_output=True,
             text=True,
             timeout=10,
+            check=False,
         )
         lines.append(f'sacct stdout:\n{out.stdout or "(none)"}')
         if out.stderr:

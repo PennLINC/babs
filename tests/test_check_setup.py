@@ -149,7 +149,7 @@ def test_submit_test_job(babs_project_sessionlevel, monkeypatch):
 
     sys.stdout.write('DEBUG: All captured printed messages:\n')
     for i, msg in enumerate(printed_messages):
-        sys.stdout.write(f'  {i}: {repr(msg)}\n')
+        sys.stdout.write(f'  {i}: {msg!r}\n')
     sys.stdout.flush()
 
     # Check expected messages and behavior

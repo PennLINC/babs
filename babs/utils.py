@@ -3,6 +3,8 @@
 import copy
 import getpass
 import os
+import os.path as op
+import re
 import subprocess
 import warnings
 from importlib.metadata import version
@@ -12,6 +14,68 @@ import yaml
 from filelock import FileLock, Timeout
 
 RUNNING_PYTEST = os.environ.get('RUNNING_PYTEST', '0') == '1'
+
+
+def container_image_path(container_name):
+    """Return babs's default analysis-relative image path for a container.
+
+    This is the layout `datalad containers-add` uses when adding an image by
+    URL, and the single place this path is derived.
+    """
+    return op.join('containers', '.datalad', 'environments', container_name, 'image')
+
+
+def resolve_container_image_paths(containers_ds_path, container_names):
+    """Map container names to analysis-relative image paths.
+
+    Reads each name's `datalad containers-add` registration
+    (`datalad.containers.<name>.image`, a path relative to the container
+    dataset's root) from the installed containers subdataset, so datasets that
+    register images outside babs's default layout (e.g. ReproNim/containers,
+    `images/<collection>/<app>--<version>.sif`) resolve correctly.
+    Names with no registration fall back to the default layout.
+
+    Parameters
+    ----------
+    containers_ds_path: str
+        Absolute path to the installed containers subdataset
+        (`<analysis>/containers`).
+    container_names: list of str
+        Container names to resolve.
+
+    Returns
+    -------
+    dict
+        Mapping of container name to analysis-relative image path.
+    """
+    # function-local so that importing babs.utils does not pull in datalad
+    from datalad.distribution.dataset import Dataset
+
+    config = Dataset(containers_ds_path).config
+    resolved = {}
+    for name in container_names:
+        registered = config.get(f'datalad.containers.{name}.image')
+        if registered:
+            resolved[name] = op.join('containers', registered)
+        else:
+            resolved[name] = container_image_path(name)
+    return resolved
+
+
+def var_safe_name(name):
+    """Map a name to a valid POSIX shell identifier by replacing every non-word
+    character (`-`, `.`, `+`, ...) with `_` and uppercasing.
+
+    Job scripts derive shell variable names from dataset names (e.g. `<name>_ZIP`),
+    which may contain characters the shell rejects in an identifier: an input named
+    `SimBIDS-0.0.3` would otherwise yield `SIMBIDS-0.0.3_ZIP`, which bash cannot
+    assign (`-`/`.` not allowed) -> `SIMBIDS_0_0_3_ZIP`. Such names are the norm:
+    BIDS derivative naming encourages a `<Tool>-<Version>` form (e.g. `fMRIPrep-24.1.1`),
+    so version dots and hyphens are expected in a derivative used as an input dataset.
+    Registered as the ``shell_safe`` Jinja filter for the job-script templates.
+    """
+    return re.sub(r'\W', '_', name).upper()
+
 
 status_dtypes = {
     'job_id': 'Int64',
@@ -101,10 +165,9 @@ def read_yaml(fn, use_filelock=False):
         lock = FileLock(lock_path)
 
         try:
-            with lock.acquire(timeout=5):  # lock the file, i.e., lock job status df
-                with open(fn) as f:
-                    config = yaml.safe_load(f)
-                    # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
+            with lock.acquire(timeout=5), open(fn) as f:
+                config = yaml.safe_load(f)
+                # ^^ dict is a dict; elements can be accessed by `dict["key"]["sub-key"]`
         except Timeout:  # after waiting for time defined in `timeout`:
             # if another instance also uses locks, and is currently running,
             #   there will be a timeout error
@@ -191,7 +254,7 @@ def app_output_settings_from_config(config):
 
     # Sanity check: this section should exist:
     if 'zip_foldernames' not in config:
-        raise Exception(
+        raise ValueError(
             'The `container_config` does not contain'
             ' the section `zip_foldernames`. Please add this section!'
         )
@@ -214,21 +277,23 @@ def app_output_settings_from_config(config):
         )
 
     # Only raise an exception if both are defined and they don't match
-    if None not in (deprecated_create_output_dir_for_single_zip, create_output_dir_for_single_zip):
-        if not deprecated_create_output_dir_for_single_zip == create_output_dir_for_single_zip:
-            raise ValueError(
-                'The `all_results_in_one_zip` and the deprecated placeholder'
-                "'" + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED + "' do not match."
-            )
+    if (
+        None not in (deprecated_create_output_dir_for_single_zip, create_output_dir_for_single_zip)
+        and deprecated_create_output_dir_for_single_zip != create_output_dir_for_single_zip
+    ):
+        raise ValueError(
+            'The `all_results_in_one_zip` and the deprecated placeholder'
+            "'" + PLACEHOLDER_MK_SUB_OUTPUT_FOLDER_DEPRECATED + "' do not match."
+        )
 
     # Make sure it's not empty after we popped the deprecated key
     if not config['zip_foldernames']:
-        raise Exception('No output folder name provided in `zip_foldernames` section.')
+        raise ValueError('No output folder name provided in `zip_foldernames` section.')
 
     # Get the dict of foldernames + version number:
     if create_output_dir_for_single_zip:
-        if not len(config['zip_foldernames']) == 1:
-            raise Exception(
+        if len(config['zip_foldernames']) != 1:
+            raise ValueError(
                 'You ask BABS to create more than one output folder,'
                 ' but BABS can only create one output folder.'
                 " Please only keep one of them in 'zip_foldernames' section."
@@ -273,10 +338,9 @@ def print_versions_from_yaml(fn_yaml):
     config = read_yaml(fn_yaml)
     print('Below is the information of designated environment and temporary workspace:\n')
     # print the yaml file:
-    f = open(fn_yaml)
-    file_contents = f.read()
+    with open(fn_yaml) as f:
+        file_contents = f.read()
     print(file_contents)
-    f.close()
 
     # Check if everything is as satisfied:
     if config['workspace_writable']:  # bool; if writable:
@@ -321,9 +385,8 @@ def get_git_show_ref_shasum(branch_name, the_path):
     """
 
     proc_git_show_ref = subprocess.run(
-        ['git', 'show-ref', branch_name], cwd=the_path, stdout=subprocess.PIPE
+        ['git', 'show-ref', branch_name], cwd=the_path, stdout=subprocess.PIPE, check=True
     )
-    proc_git_show_ref.check_returncode()
     msg = proc_git_show_ref.stdout.decode('utf-8')
     # `msg.split()`:    # split by space and '\n'
     #   e.g. for default branch (main or master):
@@ -353,6 +416,7 @@ def get_results_branches(ria_directory):
         cwd=ria_directory,
         capture_output=True,
         text=True,
+        check=True,
     )
 
     # Filter to just branches starting with 'job-'
@@ -389,8 +453,8 @@ def get_results_branches_from_clone(clone_path):
         cwd=clone_path,
         capture_output=True,
         text=True,
+        check=True,
     )
-    out.check_returncode()
     branches = []
     for line in (out.stdout or '').strip().splitlines():
         line = line.strip()
@@ -424,6 +488,7 @@ def get_results_branches_from_ria(ria_data_dir, timeout=30):
         capture_output=True,
         text=True,
         timeout=timeout,
+        check=False,
     )
     if out.returncode != 0:
         return []
@@ -511,7 +576,11 @@ def get_repo_hash(repo_path):
         the hash of the current commit
     """
     proc_hash = subprocess.run(
-        ['git', 'rev-parse', 'HEAD'], cwd=repo_path, capture_output=True, text=True
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     if proc_hash.returncode != 0:
         raise ValueError(
@@ -641,34 +710,34 @@ def validate_sub_ses_processing_inclusion(processing_inclusion_file, processing_
         try:
             initial_inclu_df = pd.read_csv(processing_inclusion_file)
         except Exception as e:
-            raise Exception(f'Error reading `{processing_inclusion_file}`:\n{e}')
+            raise ValueError(f'Error reading `{processing_inclusion_file}`:\n{e}')
 
     # Sanity check: there are expected column(s):
     if 'sub_id' not in initial_inclu_df.columns:
-        raise Exception(
+        raise ValueError(
             f'Error reading `{processing_inclusion_file}`: '
             f"There is no 'sub_id' column in the CSV file!"
         )
 
     if processing_level == 'session' and 'ses_id' not in initial_inclu_df.columns:
-        raise Exception(
+        raise ValueError(
             "There is no 'ses_id' column in `processing_inclusion_file`! "
             'It is expected as user requested to process data on a session-wise basis.'
         )
 
     # Sanity check: no repeated sub (or sessions):
-    if processing_level == 'subject':
+    if processing_level == 'subject' and initial_inclu_df['sub_id'].duplicated().any():
         # there should only be one occurrence per sub:
-        if initial_inclu_df['sub_id'].duplicated().any():
-            raise Exception("There are repeated 'sub_id' in `processing_inclusion_file`!")
-
-    elif processing_level == 'session':
+        raise ValueError("There are repeated 'sub_id' in `processing_inclusion_file`!")
+    elif (
+        processing_level == 'session'
+        and initial_inclu_df.duplicated(subset=['sub_id', 'ses_id']).any()
+    ):
         # there should not be repeated combinations of `sub_id` and `ses_id`:
-        if initial_inclu_df.duplicated(subset=['sub_id', 'ses_id']).any():
-            raise Exception(
-                "There are repeated combinations of 'sub_id' and 'ses_id' in "
-                f'`{processing_inclusion_file}`!'
-            )
+        raise ValueError(
+            "There are repeated combinations of 'sub_id' and 'ses_id' in "
+            f'`{processing_inclusion_file}`!'
+        )
     # Sort the initial included sub/ses list:
     sorting_indices = ['sub_id'] if processing_level == 'subject' else ['sub_id', 'ses_id']
     initial_inclu_df = initial_inclu_df.sort_values(by=sorting_indices).reset_index(drop=True)
