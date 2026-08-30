@@ -13,7 +13,6 @@ from babs.scheduler import (
 )
 from babs.utils import (
     compare_repo_commit_hashes,
-    get_immediate_subdirectories,
     print_versions_from_yaml,
     read_yaml,
 )
@@ -83,12 +82,16 @@ class BABSCheckSetup(BABS):
 
         # Check input dataset(s): ---------------------------
         print('\nChecking input dataset(s)...')
-        # check if there is at least one folder in the `inputs/data` dir:
-        temp_list = get_immediate_subdirectories(op.join(self.analysis_path, 'inputs/data'))
-        if not temp_list:
+        # check that at least one input dataset is configured.
+        # Do not probe a hardcoded directory here: each input dataset is cloned
+        # to its configured `path_in_babs` (e.g. `sourcedata/BIDS` for the
+        # BIDS-study layout), and the per-dataset loop below validates those
+        # actual paths.
+        if not self.input_datasets:
             raise ValueError(
-                "There is no sub-directory (i.e., no input dataset) in 'inputs/data'!"
-                " Full path to folder 'inputs/data': " + op.join(self.analysis_path, 'inputs/data')
+                'There is no input dataset in this BABS project!'
+                ' Please check `input_datasets` in the YAML file'
+                ' used to initialize this project.'
             )
 
         # check each input ds:
