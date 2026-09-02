@@ -15,11 +15,14 @@ import yaml
 from babs.input_datasets import InputDatasets, OutputDatasets
 from babs.scheduler import (
     request_all_job_status,
+    run_sacct,
     run_squeue,
 )
 from babs.status import (
+    SchedulerState,
     read_job_status_csv,
     update_from_branches,
+    update_from_sacct,
     update_from_scheduler,
     write_job_status_csv,
 )
@@ -597,6 +600,24 @@ class BABS:
             raw_squeue_parts.append(run_squeue(self.queue, jid))
         raw_squeue = ''.join(raw_squeue_parts)
         statuses = update_from_scheduler(statuses, raw_squeue)
+
+        # Update from job accounting (sacct): MaxRSS, MaxVMSize, ElapsedRaw, ExitCode.
+        # Keep querying until a job is DONE and has a recorded exit code, so
+        # metrics become final once the job (and its array siblings) complete.
+        sacct_job_ids = sorted(
+            {
+                job.job_id
+                for job in statuses.values()
+                if job.submitted
+                and job.job_id is not None
+                and not (job.scheduler_state == SchedulerState.DONE and job.exit_code)
+            }
+        )
+        raw_sacct_parts = []
+        for jid in sacct_job_ids:
+            raw_sacct_parts.append(run_sacct(self.queue, jid))
+        raw_sacct = ''.join(raw_sacct_parts)
+        statuses = update_from_sacct(statuses, raw_sacct)
 
         # Write updated statuses
         write_job_status_csv(self.job_status_path_abs, statuses)

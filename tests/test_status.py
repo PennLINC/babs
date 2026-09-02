@@ -12,6 +12,7 @@ from babs.status import (
     job_status_counts,
     read_job_status_csv,
     update_from_branches,
+    update_from_sacct,
     update_from_scheduler,
     write_job_status_csv,
 )
@@ -135,6 +136,37 @@ class TestCSVRoundTrip:
             assert loaded[key].job_id == original[key].job_id
             assert loaded[key].is_failed == original[key].is_failed
             assert loaded[key].submitted == original[key].submitted
+
+    def test_round_trip_sacct_fields(self, tmp_path):
+        original = {
+            ('sub-01',): JobStatus(
+                sub_id='sub-01',
+                ses_id=None,
+                scheduler_state=SchedulerState.DONE,
+                has_results=True,
+                job_id=123,
+                task_id=1,
+                time_used='1:30:00',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=4,
+                partition='normal',
+                name='my_job',
+                max_rss='512932K',
+                max_vmsize='987654K',
+                time_elapsed_raw=5400,
+                exit_code='0:0',
+            ),
+        }
+        path = str(tmp_path / 'job_status.csv')
+        write_job_status_csv(path, original)
+        loaded = read_job_status_csv(path)
+
+        job = loaded[('sub-01',)]
+        assert job.max_rss == '512932K'
+        assert job.max_vmsize == '987654K'
+        assert job.time_elapsed_raw == 5400
+        assert job.exit_code == '0:0'
 
     def test_round_trip_session_level(self, tmp_path):
         original = {
@@ -431,6 +463,93 @@ class TestUpdateFromScheduler:
         raw = '100|R|0:10|5-00:00:00|1|1|normal|my_job\n'
         with pytest.raises(ValueError, match='Expected array job format'):
             update_from_scheduler(statuses, raw)
+
+
+# -- update_from_sacct ---------------------------------------------------------
+
+
+class TestUpdateFromSacct:
+    def _submitted_statuses(self):
+        return {
+            ('sub-01',): JobStatus(
+                sub_id='sub-01',
+                ses_id=None,
+                scheduler_state=SchedulerState.DONE,
+                has_results=True,
+                job_id=100,
+                task_id=1,
+                time_used='',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=1,
+                partition='normal',
+                name='my_job',
+            ),
+            ('sub-02',): JobStatus(
+                sub_id='sub-02',
+                ses_id=None,
+                scheduler_state=SchedulerState.RUNNING,
+                has_results=False,
+                job_id=100,
+                task_id=2,
+                time_used='0:05',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=1,
+                partition='normal',
+                name='my_job',
+            ),
+        }
+
+    def test_updates_metrics_from_batch_and_parent_steps(self):
+        statuses = self._submitted_statuses()
+        raw = (
+            '100_1|||120|0:0\n'
+            '100_1.batch|512932K|987654K||\n'
+            '100_1.extern|100K|200K||\n'
+        )
+        updated = update_from_sacct(statuses, raw)
+
+        job = updated[('sub-01',)]
+        assert job.max_rss == '512932K'
+        assert job.max_vmsize == '987654K'
+        assert job.time_elapsed_raw == 120
+        assert job.exit_code == '0:0'
+
+    def test_no_matching_job_id_leaves_unchanged(self):
+        statuses = self._submitted_statuses()
+        raw = '999_1|512932K|987654K|120|0:0\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-01',)].max_rss == ''
+        assert updated[('sub-01',)].time_elapsed_raw is None
+
+    def test_partial_metrics_only_updates_matching_job(self):
+        statuses = self._submitted_statuses()
+        raw = '100_2|10240K|20480K|30|1:0\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].max_rss == '10240K'
+        assert updated[('sub-02',)].time_elapsed_raw == 30
+        assert updated[('sub-02',)].exit_code == '1:0'
+        # sub-01 unaffected since it wasn't in the sacct output
+        assert updated[('sub-01',)].max_rss == ''
+
+    def test_empty_sacct_output_leaves_unchanged(self):
+        statuses = self._submitted_statuses()
+        updated = update_from_sacct(statuses, '')
+
+        assert updated[('sub-01',)].max_rss == ''
+        assert updated[('sub-01',)].exit_code == ''
+
+    def test_mem_comparison_across_units(self):
+        statuses = self._submitted_statuses()
+        # 1G should be recognized as larger than 512932K
+        raw = '100_1|512932K|1G|120|0:0\n100_1.batch|1G|512932K||\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-01',)].max_rss == '1G'
+        assert updated[('sub-01',)].max_vmsize == '1G'
 
 
 # -- create_initial_statuses ---------------------------------------------------
