@@ -53,6 +53,46 @@ def run_squeue(queue, job_id: int) -> str:
     return result.stdout
 
 
+def run_sacct(queue, job_id: int) -> str:
+    """Run sacct and return raw pipe-delimited accounting output.
+
+    Parameters
+    ----------
+    queue : str
+        Job scheduling system type (only 'slurm' supported).
+    job_id : int
+        The job array ID to query.
+
+    Returns
+    -------
+    str
+        Raw sacct stdout (pipe-delimited lines: JobID|MaxRSS|MaxVMSize|
+        ElapsedRaw|ExitCode), or empty string if no accounting records are
+        found (or sacct is unavailable).
+    """
+    if queue != 'slurm':
+        raise NotImplementedError(f'Queue {queue!r} is not supported.')
+    if not check_slurm_available():
+        raise RuntimeError('Slurm commands are not available on this system.')
+
+    cmd = [
+        'sacct',
+        '-j',
+        str(job_id),
+        '--noheader',
+        '--parsable2',
+        '--format=JobID,MaxRSS,MaxVMSize,ElapsedRaw,ExitCode',
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+
+    if result.returncode != 0:
+        raise RuntimeError(
+            f'sacct failed with return code {result.returncode}\nstderr: {result.stderr}'
+        )
+    return result.stdout
+
+
 def check_slurm_available() -> bool:
     """Check if Slurm commands are available on the system.
 
