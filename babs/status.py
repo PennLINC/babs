@@ -133,6 +133,10 @@ _CSV_COLUMNS_SUBJECT = [
     'job_id',
     'task_id',
     'has_results',
+    'max_rss',
+    'max_vmsize',
+    'time_elapsed_raw',
+    'exit_code',
 ]
 
 _CSV_COLUMNS_SESSION = [
@@ -150,6 +154,10 @@ _CSV_COLUMNS_SESSION = [
     'job_id',
     'task_id',
     'has_results',
+    'max_rss',
+    'max_vmsize',
+    'time_elapsed_raw',
+    'exit_code',
 ]
 
 _STATE_TO_CSV = {
@@ -204,6 +212,10 @@ def _job_status_from_row(row: dict) -> JobStatus:
         cpus=int(float(row.get('cpus', '0').strip() or '0')),
         partition=row.get('partition', '').strip(),
         name=row.get('name', '').strip(),
+        max_rss=row.get('max_rss', '').strip(),
+        max_vmsize=row.get('max_vmsize', '').strip(),
+        time_elapsed_raw=_parse_optional_int(row.get('time_elapsed_raw', '')),
+        exit_code=row.get('exit_code', '').strip(),
     )
 
 
@@ -234,6 +246,10 @@ def _job_status_to_row(job: JobStatus, session_level: bool) -> dict:
         'job_id': str(job.job_id) if job.job_id is not None else '',
         'task_id': str(job.task_id) if job.task_id is not None else '',
         'has_results': str(job.has_results),
+        'max_rss': job.max_rss,
+        'max_vmsize': job.max_vmsize,
+        'time_elapsed_raw': str(job.time_elapsed_raw) if job.time_elapsed_raw is not None else '',
+        'exit_code': job.exit_code,
     }
     if session_level:
         row['ses_id'] = job.ses_id or ''
@@ -367,6 +383,116 @@ def update_from_scheduler(
         elif job.submitted:
             # Was submitted, not in scheduler anymore -> DONE
             updated[key] = replace(job, scheduler_state=SchedulerState.DONE)
+        else:
+            updated[key] = job
+    return updated
+
+
+_MEM_UNIT_MULTIPLIERS = {'K': 1024, 'M': 1024**2, 'G': 1024**3, 'T': 1024**4}
+
+
+def _mem_to_bytes(value: str) -> float:
+    """Convert a Slurm memory string (e.g. ``'512932K'``) to a byte count."""
+    value = value.strip()
+    if not value:
+        return 0.0
+    suffix = value[-1].upper()
+    if suffix in _MEM_UNIT_MULTIPLIERS:
+        try:
+            return float(value[:-1]) * _MEM_UNIT_MULTIPLIERS[suffix]
+        except ValueError:
+            return 0.0
+    try:
+        return float(value)
+    except ValueError:
+        return 0.0
+
+
+def _max_mem(current: str, candidate: str) -> str:
+    """Return whichever of two Slurm memory strings represents more bytes."""
+    if not candidate:
+        return current
+    if not current:
+        return candidate
+    return candidate if _mem_to_bytes(candidate) > _mem_to_bytes(current) else current
+
+
+def update_from_sacct(
+    statuses: dict[tuple, JobStatus],
+    raw_sacct: str,
+) -> dict[tuple, JobStatus]:
+    """Update statuses with accounting information from raw sacct output.
+
+    Parses sacct output (pipe-delimited:
+    ``JobID|MaxRSS|MaxVMSize|ElapsedRaw|ExitCode``), joins with existing
+    statuses via (job_id, task_id), and updates the ``max_rss``,
+    ``max_vmsize``, ``time_elapsed_raw``, and ``exit_code`` fields.
+
+    sacct reports one row per job step for an array task (e.g.
+    ``<job_id>_<task_id>``, ``<job_id>_<task_id>.batch``, and
+    ``<job_id>_<task_id>.extern``). ``MaxRSS``/``MaxVMSize`` are typically
+    only populated on the ``.batch`` step, so the maximum reported value
+    across all steps is used. ``ElapsedRaw``/``ExitCode`` are taken from the
+    parent step (no suffix), which reflects the whole job.
+    """
+    # Parse sacct output into a lookup of (job_id, task_id) -> accounting fields
+    sacct_by_id: dict[tuple[int, int], dict] = {}
+    for line in raw_sacct.strip().splitlines():
+        if not line.strip():
+            continue
+        parts = line.strip().split('|')
+        if len(parts) != 5:
+            continue
+        raw_job_id, max_rss, max_vmsize, elapsed_raw, exit_code = parts
+        is_step = '.' in raw_job_id
+        base_job_id = raw_job_id.split('.')[0]
+        id_parts = base_job_id.split('_')
+        if len(id_parts) != 2:
+            continue
+        try:
+            job_id = int(id_parts[0])
+            task_id = int(id_parts[1])
+        except ValueError:
+            continue
+
+        record = sacct_by_id.setdefault(
+            (job_id, task_id),
+            {'max_rss': '', 'max_vmsize': '', 'elapsed_raw': None, 'exit_code': ''},
+        )
+        record['max_rss'] = _max_mem(record['max_rss'], max_rss.strip())
+        record['max_vmsize'] = _max_mem(record['max_vmsize'], max_vmsize.strip())
+        if not is_step:
+            # Only the parent step reflects the whole job's elapsed time/exit code.
+            elapsed_raw = elapsed_raw.strip()
+            if elapsed_raw:
+                record['elapsed_raw'] = int(elapsed_raw)
+            exit_code = exit_code.strip()
+            if exit_code:
+                record['exit_code'] = exit_code
+
+    # Build reverse lookup: key -> (job_id, task_id) for matching
+    key_to_ids: dict[tuple, tuple[int, int]] = {}
+    for key, job in statuses.items():
+        if job.job_id is not None and job.task_id is not None:
+            key_to_ids[key] = (job.job_id, job.task_id)
+
+    updated = {}
+    for key, job in statuses.items():
+        ids = key_to_ids.get(key)
+        record = sacct_by_id.get(ids) if ids else None
+
+        if record is not None:
+            updated[key] = replace(
+                job,
+                max_rss=record['max_rss'] or job.max_rss,
+                max_vmsize=record['max_vmsize'] or job.max_vmsize,
+                time_elapsed_raw=(
+                    record['elapsed_raw']
+                    if record['elapsed_raw'] is not None
+                    else job.time_elapsed_raw
+                ),
+                exit_code=record['exit_code'] or job.exit_code,
+            )
         else:
             updated[key] = job
     return updated
