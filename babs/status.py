@@ -50,6 +50,10 @@ class JobStatus:
     cpus: int
     partition: str
     name: str
+    max_rss: str = ''
+    max_vmsize: str = ''
+    time_elapsed_raw: int | None = None
+    exit_code: str = ''
 
     @property
     def is_failed(self) -> bool:
