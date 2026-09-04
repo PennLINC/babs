@@ -427,12 +427,35 @@ sub-0001,ses-02,6959620,1
 sub-0002,ses-01,6959620,2
 """
 
+job_status_with_accounting = """\
+sub_id,ses_id,submitted,is_failed,state,time_used,time_limit,nodes,cpus,partition,name,job_id,task_id,has_results,max_rss,max_vmsize,time_elapsed_raw,exit_code
+sub-0001,ses-01,True,False,DONE,nan,nan,0,0,nan,nan,6959442,1,True,512932K,987654K,120,0:0
+sub-0001,ses-02,False,False,nan,nan,nan,nan,nan,nan,nan,nan,nan,False,,,,
+sub-0002,ses-01,True,True,DONE,nan,nan,0,0,nan,nan,6959442,2,False,10240K,20480K,30,1:0"""
+
 
 def test_update_submitted_job_ids():
     job_status_df = pd.read_csv(io.StringIO(job_status))
     job_submit_df = pd.read_csv(io.StringIO(job_submit))
     updated_df = update_submitted_job_ids(job_status_df, job_submit_df)
     assert updated_df['submitted'].all()
+
+
+def test_update_submitted_job_ids_clears_previous_accounting():
+    """A resubmitted job starts with no sacct metrics; the old attempt's must not linger."""
+    job_status_df = pd.read_csv(io.StringIO(job_status_with_accounting))
+    job_submit_df = pd.read_csv(io.StringIO(job_submit))
+    updated_df = update_submitted_job_ids(job_status_df, job_submit_df)
+    updated_df = updated_df.set_index(['sub_id', 'ses_id'])
+
+    resubmitted = updated_df.loc[('sub-0002', 'ses-01')]
+    assert resubmitted['job_id'] == 6959620
+    for column in ('max_rss', 'max_vmsize', 'time_elapsed_raw', 'exit_code'):
+        assert pd.isna(resubmitted[column]), column
+    # the untouched row keeps its metrics
+    untouched = updated_df.loc[('sub-0001', 'ses-01')]
+    assert untouched['max_rss'] == '512932K'
+    assert untouched['exit_code'] == '0:0'
 
 
 def test_read_yaml_timeout(tmp_path, monkeypatch):
