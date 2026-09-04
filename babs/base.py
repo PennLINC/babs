@@ -600,7 +600,7 @@ class BABS:
         raw_squeue = ''.join(raw_squeue_parts)
         statuses = update_from_scheduler(statuses, raw_squeue)
 
-        # Update from job accounting (sacct): MaxRSS, MaxVMSize, ElapsedRaw, ExitCode.
+        # Update from job accounting (sacct): MaxRSS, ElapsedRaw, ExitCode.
         # exit_code is only recorded once sacct reports a terminal state, so a
         # populated exit_code means that job's metrics are final and it need
         # not be queried again.

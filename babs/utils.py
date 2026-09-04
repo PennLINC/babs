@@ -560,7 +560,7 @@ def update_submitted_job_ids(results_df, submitted_df):
     merged.loc[updated_mask, 'submitted'] = True
     # A fresh submission has no accounting yet; clear the previous attempt's
     # metrics so a stale exit_code cannot pass for this job's final one.
-    for column in ('max_rss', 'max_vmsize', 'time_elapsed_raw', 'exit_code'):
+    for column in ('max_rss', 'time_elapsed_raw', 'exit_code'):
         if column in merged:
             merged.loc[updated_mask, column] = None
     return merged
