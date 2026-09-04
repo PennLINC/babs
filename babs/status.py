@@ -390,6 +390,22 @@ def update_from_scheduler(
 
 _MEM_UNIT_MULTIPLIERS = {'K': 1024, 'M': 1024**2, 'G': 1024**3, 'T': 1024**4}
 
+# sacct ``State`` values after which a job's accounting no longer changes.
+_SACCT_TERMINAL_STATES = frozenset(
+    {
+        'BOOT_FAIL',
+        'CANCELLED',
+        'COMPLETED',
+        'DEADLINE',
+        'FAILED',
+        'NODE_FAIL',
+        'OUT_OF_MEMORY',
+        'PREEMPTED',
+        'REVOKED',
+        'TIMEOUT',
+    }
+)
+
 
 def _mem_to_bytes(value: str) -> float:
     """Convert a Slurm memory string (e.g. ``'512932K'``) to a byte count."""
@@ -424,7 +440,7 @@ def update_from_sacct(
     """Update statuses with accounting information from raw sacct output.
 
     Parses sacct output (pipe-delimited:
-    ``JobID|MaxRSS|MaxVMSize|ElapsedRaw|ExitCode``), joins with existing
+    ``JobID|MaxRSS|MaxVMSize|ElapsedRaw|ExitCode|State``), joins with existing
     statuses via (job_id, task_id), and updates the ``max_rss``,
     ``max_vmsize``, ``time_elapsed_raw``, and ``exit_code`` fields.
 
@@ -434,6 +450,13 @@ def update_from_sacct(
     only populated on the ``.batch`` step, so the maximum reported value
     across all steps is used. ``ElapsedRaw``/``ExitCode`` are taken from the
     parent step (no suffix), which reflects the whole job.
+
+    ``max_rss``/``max_vmsize``/``time_elapsed_raw`` are running snapshots and
+    update on every call, but sacct reports ``ExitCode`` as ``0:0`` while a
+    job is still running, so ``exit_code`` is recorded only once ``State`` is
+    terminal (COMPLETED, FAILED, TIMEOUT, ...). A populated ``exit_code``
+    therefore means the accounting for that job is final, which is what the
+    caller uses to stop re-querying it.
     """
     # Parse sacct output into a lookup of (job_id, task_id) -> accounting fields
     sacct_by_id: dict[tuple[int, int], dict] = {}
@@ -441,9 +464,9 @@ def update_from_sacct(
         if not line.strip():
             continue
         parts = line.strip().split('|')
-        if len(parts) != 5:
+        if len(parts) != 6:
             continue
-        raw_job_id, max_rss, max_vmsize, elapsed_raw, exit_code = parts
+        raw_job_id, max_rss, max_vmsize, elapsed_raw, exit_code, state = parts
         is_step = '.' in raw_job_id
         base_job_id = raw_job_id.split('.')[0]
         id_parts = base_job_id.split('_')
@@ -466,8 +489,10 @@ def update_from_sacct(
             elapsed_raw = elapsed_raw.strip()
             if elapsed_raw:
                 record['elapsed_raw'] = int(elapsed_raw)
+            # "CANCELLED by <uid>" is a two-word state; the first word classifies it.
+            state_word = state.strip().split(' ')[0]
             exit_code = exit_code.strip()
-            if exit_code:
+            if exit_code and state_word in _SACCT_TERMINAL_STATES:
                 record['exit_code'] = exit_code
 
     # Build reverse lookup: key -> (job_id, task_id) for matching

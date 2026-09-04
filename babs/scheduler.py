@@ -67,8 +67,8 @@ def run_sacct(queue, job_id: int) -> str:
     -------
     str
         Raw sacct stdout (pipe-delimited lines: JobID|MaxRSS|MaxVMSize|
-        ElapsedRaw|ExitCode), or empty string if no accounting records are
-        found (or sacct is unavailable).
+        ElapsedRaw|ExitCode|State), or empty string if no accounting records
+        are found.
     """
     if queue != 'slurm':
         raise NotImplementedError(f'Queue {queue!r} is not supported.')
@@ -81,7 +81,7 @@ def run_sacct(queue, job_id: int) -> str:
         str(job_id),
         '--noheader',
         '--parsable2',
-        '--format=JobID,MaxRSS,MaxVMSize,ElapsedRaw,ExitCode',
+        '--format=JobID,MaxRSS,MaxVMSize,ElapsedRaw,ExitCode,State',
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
