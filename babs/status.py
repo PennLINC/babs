@@ -451,12 +451,16 @@ def update_from_sacct(
     across all steps is used. ``ElapsedRaw``/``ExitCode`` are taken from the
     parent step (no suffix), which reflects the whole job.
 
-    ``max_rss``/``max_vmsize``/``time_elapsed_raw`` are running snapshots and
-    update on every call, but sacct reports ``ExitCode`` as ``0:0`` while a
-    job is still running, so ``exit_code`` is recorded only once ``State`` is
-    terminal (COMPLETED, FAILED, TIMEOUT, ...). A populated ``exit_code``
-    therefore means the accounting for that job is final, which is what the
-    caller uses to stop re-querying it.
+    The fields are refreshed on every call, but they fill in at different
+    times. ``time_elapsed_raw`` advances while the job runs. ``max_rss`` and
+    ``max_vmsize`` stay empty until the ``.batch`` step ends: the accounting
+    plugin ships a step's memory statistics to slurmdbd at step completion, so
+    sacct has nothing for a running step (``sstat`` is the live view). And
+    sacct reports ``ExitCode`` as ``0:0`` while a job is still running, so
+    ``exit_code`` is recorded only once ``State`` is terminal (COMPLETED,
+    FAILED, TIMEOUT, ...). A populated ``exit_code`` therefore means the
+    accounting for that job is final, which is what the caller uses to stop
+    re-querying it.
     """
     # Parse sacct output into a lookup of (job_id, task_id) -> accounting fields
     sacct_by_id: dict[tuple[int, int], dict] = {}
