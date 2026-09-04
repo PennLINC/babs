@@ -67,8 +67,8 @@ def run_sacct(queue, job_id: int) -> str:
     Returns
     -------
     str
-        Raw sacct stdout (pipe-delimited lines: JobID|MaxRSS|MaxVMSize|
-        ElapsedRaw|ExitCode|State), or empty string if no accounting records
+        Raw sacct stdout (pipe-delimited lines: JobID|MaxRSS|ElapsedRaw|
+        ExitCode|State), or empty string if no accounting records
         are found or sacct fails (e.g. no accounting database on this cluster).
     """
     if queue != 'slurm':
@@ -82,7 +82,7 @@ def run_sacct(queue, job_id: int) -> str:
         str(job_id),
         '--noheader',
         '--parsable2',
-        '--format=JobID,MaxRSS,MaxVMSize,ElapsedRaw,ExitCode,State',
+        '--format=JobID,MaxRSS,ElapsedRaw,ExitCode,State',
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
