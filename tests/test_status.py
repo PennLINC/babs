@@ -153,7 +153,6 @@ class TestCSVRoundTrip:
                 partition='normal',
                 name='my_job',
                 max_rss='512932K',
-                max_vmsize='987654K',
                 time_elapsed_raw=5400,
                 exit_code='0:0',
             ),
@@ -164,7 +163,6 @@ class TestCSVRoundTrip:
 
         job = loaded[('sub-01',)]
         assert job.max_rss == '512932K'
-        assert job.max_vmsize == '987654K'
         assert job.time_elapsed_raw == 5400
         assert job.exit_code == '0:0'
 
@@ -504,21 +502,20 @@ class TestUpdateFromSacct:
     def test_updates_metrics_from_batch_and_parent_steps(self):
         statuses = self._submitted_statuses()
         raw = (
-            '100_1|||120|0:0\n'
-            '100_1.batch|512932K|987654K||\n'
-            '100_1.extern|100K|200K||\n'
+            '100_1||120|0:0|COMPLETED\n'
+            '100_1.batch|512932K||0:0|COMPLETED\n'
+            '100_1.extern|100K||0:0|COMPLETED\n'
         )
         updated = update_from_sacct(statuses, raw)
 
         job = updated[('sub-01',)]
         assert job.max_rss == '512932K'
-        assert job.max_vmsize == '987654K'
         assert job.time_elapsed_raw == 120
         assert job.exit_code == '0:0'
 
     def test_no_matching_job_id_leaves_unchanged(self):
         statuses = self._submitted_statuses()
-        raw = '999_1|512932K|987654K|120|0:0\n'
+        raw = '999_1|512932K|120|0:0|COMPLETED\n'
         updated = update_from_sacct(statuses, raw)
 
         assert updated[('sub-01',)].max_rss == ''
@@ -526,7 +523,7 @@ class TestUpdateFromSacct:
 
     def test_partial_metrics_only_updates_matching_job(self):
         statuses = self._submitted_statuses()
-        raw = '100_2|10240K|20480K|30|1:0\n'
+        raw = '100_2|10240K|30|1:0|FAILED\n'
         updated = update_from_sacct(statuses, raw)
 
         assert updated[('sub-02',)].max_rss == '10240K'
@@ -545,11 +542,39 @@ class TestUpdateFromSacct:
     def test_mem_comparison_across_units(self):
         statuses = self._submitted_statuses()
         # 1G should be recognized as larger than 512932K
-        raw = '100_1|512932K|1G|120|0:0\n100_1.batch|1G|512932K||\n'
+        raw = '100_1|512932K|120|0:0|COMPLETED\n100_1.batch|1G||0:0|COMPLETED\n'
         updated = update_from_sacct(statuses, raw)
 
         assert updated[('sub-01',)].max_rss == '1G'
-        assert updated[('sub-01',)].max_vmsize == '1G'
+
+    def test_running_job_updates_snapshots_but_not_exit_code(self):
+        # sacct reports ExitCode 0:0 while a job is still running, so recording it
+        # would make the metrics look final before they are.
+        statuses = self._submitted_statuses()
+        raw = '100_2||19|0:0|RUNNING\n100_2.batch|4096K|19|0:0|RUNNING\n'
+        updated = update_from_sacct(statuses, raw)
+
+        job = updated[('sub-02',)]
+        assert job.max_rss == '4096K'
+        assert job.time_elapsed_raw == 19
+        assert job.exit_code == ''
+
+    def test_pending_array_task_row_is_ignored(self):
+        # A not-yet-started array task shows up as `<job>_[<task>]`.
+        statuses = self._submitted_statuses()
+        raw = '100_[2]||0|0:0|PENDING\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].exit_code == ''
+        assert updated[('sub-02',)].time_elapsed_raw is None
+
+    def test_cancelled_by_user_is_terminal(self):
+        statuses = self._submitted_statuses()
+        raw = '100_2||40|0:0|CANCELLED by 1000\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].exit_code == '0:0'
+        assert updated[('sub-02',)].time_elapsed_raw == 40
 
 
 # -- create_initial_statuses ---------------------------------------------------

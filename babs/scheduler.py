@@ -1,6 +1,7 @@
 import os.path as op
 import re
 import subprocess
+import warnings
 from io import StringIO
 
 import pandas as pd
@@ -66,9 +67,9 @@ def run_sacct(queue, job_id: int) -> str:
     Returns
     -------
     str
-        Raw sacct stdout (pipe-delimited lines: JobID|MaxRSS|MaxVMSize|
-        ElapsedRaw|ExitCode), or empty string if no accounting records are
-        found (or sacct is unavailable).
+        Raw sacct stdout (pipe-delimited lines: JobID|MaxRSS|ElapsedRaw|
+        ExitCode|State), or empty string if no accounting records
+        are found or sacct fails (e.g. no accounting database on this cluster).
     """
     if queue != 'slurm':
         raise NotImplementedError(f'Queue {queue!r} is not supported.')
@@ -81,15 +82,20 @@ def run_sacct(queue, job_id: int) -> str:
         str(job_id),
         '--noheader',
         '--parsable2',
-        '--format=JobID,MaxRSS,MaxVMSize,ElapsedRaw,ExitCode',
+        '--format=JobID,MaxRSS,ElapsedRaw,ExitCode,State',
     ]
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
 
     if result.returncode != 0:
-        raise RuntimeError(
-            f'sacct failed with return code {result.returncode}\nstderr: {result.stderr}'
+        # Accounting is additive: scheduler state still comes from squeue, so a
+        # cluster without a working sacct keeps a working `babs status`.
+        warnings.warn(
+            f'sacct failed with return code {result.returncode}; '
+            f'accounting metrics not updated.\nstderr: {result.stderr}',
+            stacklevel=2,
         )
+        return ''
     return result.stdout
 
 

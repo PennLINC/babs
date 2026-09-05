@@ -51,7 +51,6 @@ class JobStatus:
     partition: str
     name: str
     max_rss: str = ''
-    max_vmsize: str = ''
     time_elapsed_raw: int | None = None
     exit_code: str = ''
 
@@ -134,7 +133,6 @@ _CSV_COLUMNS_SUBJECT = [
     'task_id',
     'has_results',
     'max_rss',
-    'max_vmsize',
     'time_elapsed_raw',
     'exit_code',
 ]
@@ -155,7 +153,6 @@ _CSV_COLUMNS_SESSION = [
     'task_id',
     'has_results',
     'max_rss',
-    'max_vmsize',
     'time_elapsed_raw',
     'exit_code',
 ]
@@ -213,7 +210,6 @@ def _job_status_from_row(row: dict) -> JobStatus:
         partition=row.get('partition', '').strip(),
         name=row.get('name', '').strip(),
         max_rss=row.get('max_rss', '').strip(),
-        max_vmsize=row.get('max_vmsize', '').strip(),
         time_elapsed_raw=_parse_optional_int(row.get('time_elapsed_raw', '')),
         exit_code=row.get('exit_code', '').strip(),
     )
@@ -247,7 +243,6 @@ def _job_status_to_row(job: JobStatus, session_level: bool) -> dict:
         'task_id': str(job.task_id) if job.task_id is not None else '',
         'has_results': str(job.has_results),
         'max_rss': job.max_rss,
-        'max_vmsize': job.max_vmsize,
         'time_elapsed_raw': str(job.time_elapsed_raw) if job.time_elapsed_raw is not None else '',
         'exit_code': job.exit_code,
     }
@@ -390,6 +385,22 @@ def update_from_scheduler(
 
 _MEM_UNIT_MULTIPLIERS = {'K': 1024, 'M': 1024**2, 'G': 1024**3, 'T': 1024**4}
 
+# sacct ``State`` values after which a job's accounting no longer changes.
+_SACCT_TERMINAL_STATES = frozenset(
+    {
+        'BOOT_FAIL',
+        'CANCELLED',
+        'COMPLETED',
+        'DEADLINE',
+        'FAILED',
+        'NODE_FAIL',
+        'OUT_OF_MEMORY',
+        'PREEMPTED',
+        'REVOKED',
+        'TIMEOUT',
+    }
+)
+
 
 def _mem_to_bytes(value: str) -> float:
     """Convert a Slurm memory string (e.g. ``'512932K'``) to a byte count."""
@@ -424,16 +435,27 @@ def update_from_sacct(
     """Update statuses with accounting information from raw sacct output.
 
     Parses sacct output (pipe-delimited:
-    ``JobID|MaxRSS|MaxVMSize|ElapsedRaw|ExitCode``), joins with existing
+    ``JobID|MaxRSS|ElapsedRaw|ExitCode|State``), joins with existing
     statuses via (job_id, task_id), and updates the ``max_rss``,
-    ``max_vmsize``, ``time_elapsed_raw``, and ``exit_code`` fields.
+    ``time_elapsed_raw``, and ``exit_code`` fields.
 
     sacct reports one row per job step for an array task (e.g.
     ``<job_id>_<task_id>``, ``<job_id>_<task_id>.batch``, and
-    ``<job_id>_<task_id>.extern``). ``MaxRSS``/``MaxVMSize`` are typically
+    ``<job_id>_<task_id>.extern``). ``MaxRSS`` is typically
     only populated on the ``.batch`` step, so the maximum reported value
     across all steps is used. ``ElapsedRaw``/``ExitCode`` are taken from the
     parent step (no suffix), which reflects the whole job.
+
+    The fields are refreshed on every call, but they fill in at different
+    times. ``time_elapsed_raw`` advances while the job runs. ``max_rss`` stays
+    empty until the ``.batch`` step ends: the accounting
+    plugin ships a step's memory statistics to slurmdbd at step completion, so
+    sacct has nothing for a running step (``sstat`` is the live view). And
+    sacct reports ``ExitCode`` as ``0:0`` while a job is still running, so
+    ``exit_code`` is recorded only once ``State`` is terminal (COMPLETED,
+    FAILED, TIMEOUT, ...). A populated ``exit_code`` therefore means the
+    accounting for that job is final, which is what the caller uses to stop
+    re-querying it.
     """
     # Parse sacct output into a lookup of (job_id, task_id) -> accounting fields
     sacct_by_id: dict[tuple[int, int], dict] = {}
@@ -443,7 +465,7 @@ def update_from_sacct(
         parts = line.strip().split('|')
         if len(parts) != 5:
             continue
-        raw_job_id, max_rss, max_vmsize, elapsed_raw, exit_code = parts
+        raw_job_id, max_rss, elapsed_raw, exit_code, state = parts
         is_step = '.' in raw_job_id
         base_job_id = raw_job_id.split('.')[0]
         id_parts = base_job_id.split('_')
@@ -457,17 +479,18 @@ def update_from_sacct(
 
         record = sacct_by_id.setdefault(
             (job_id, task_id),
-            {'max_rss': '', 'max_vmsize': '', 'elapsed_raw': None, 'exit_code': ''},
+            {'max_rss': '', 'elapsed_raw': None, 'exit_code': ''},
         )
         record['max_rss'] = _max_mem(record['max_rss'], max_rss.strip())
-        record['max_vmsize'] = _max_mem(record['max_vmsize'], max_vmsize.strip())
         if not is_step:
             # Only the parent step reflects the whole job's elapsed time/exit code.
             elapsed_raw = elapsed_raw.strip()
             if elapsed_raw:
                 record['elapsed_raw'] = int(elapsed_raw)
+            # "CANCELLED by <uid>" is a two-word state; the first word classifies it.
+            state_word = state.strip().split(' ')[0]
             exit_code = exit_code.strip()
-            if exit_code:
+            if exit_code and state_word in _SACCT_TERMINAL_STATES:
                 record['exit_code'] = exit_code
 
     # Build reverse lookup: key -> (job_id, task_id) for matching
@@ -485,7 +508,6 @@ def update_from_sacct(
             updated[key] = replace(
                 job,
                 max_rss=record['max_rss'] or job.max_rss,
-                max_vmsize=record['max_vmsize'] or job.max_vmsize,
                 time_elapsed_raw=(
                     record['elapsed_raw']
                     if record['elapsed_raw'] is not None
