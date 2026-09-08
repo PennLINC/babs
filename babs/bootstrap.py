@@ -23,6 +23,16 @@ from babs.utils import (
     validate_processing_level,
 )
 
+# Analysis-dataset `.gitattributes`: annex a file if it is non-empty and binary
+# (`mimeencoding=binary`, which needs git-annex's MagicMime build flag) or
+# larger than 1MiB, so BIDS metadata (JSON, TSV, README) stays in git.
+# Empty files read as binary to libmagic, so the size guard keeps them in git.
+BIDS_GITATTRIBUTES = """\
+* annex.backend=MD5E
+* annex.largefiles=(((mimeencoding=binary)and(largerthan=0))or(largerthan=1MiB))
+**/.git* annex.largefiles=nothing
+"""
+
 
 class BABSBootstrap(BABS):
     """A BABS subclass that implements the bootstrap process."""
@@ -132,6 +142,15 @@ class BABSBootstrap(BABS):
         if self.shared_group is not None:
             create_kwargs['initopts'] = ['--shared=group']
         self._analysis_datalad_handle = dlapi.create(self.analysis_path, **create_kwargs)
+
+        # Overwrite the create-time `.gitattributes` before any content is
+        # saved, so the annex policy applies to every file (see
+        # BIDS_GITATTRIBUTES):
+        gitattributes_path = op.join(self.analysis_path, '.gitattributes')
+        with open(gitattributes_path, 'w') as f:
+            f.write(BIDS_GITATTRIBUTES)
+        self.datalad_save(path='.gitattributes', message='Use a BIDS-friendly .gitattributes')
+
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
 
         # Persist original config so other BABS commands can find it:
