@@ -174,6 +174,23 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 Finally, you can find the log files (``stdout``, ``stderr``) in the path provided
 in the last line of the printed message (line #27).
 
+.. _duct-records:
+
+Besides those log files, which the cluster writes, each job records the BIDS App's own run with
+`duct <https://github.com/con/duct>`_: its resource usage sampled over time, an estimate of its
+peak memory (sampled, so a short spike can be missed), and its ``stdout`` and ``stderr``,
+observed from outside the container.
+These records are written inside the App's output folder, so they are zipped together with the results::
+
+    <zip_foldername>/logs/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_info.json
+    <zip_foldername>/logs/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_usage.jsonl
+    <zip_foldername>/logs/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_stdout
+    <zip_foldername>/logs/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_stderr
+
+``info.json`` also carries the job's ``SLURM_*`` environment, so a record can be matched back to
+its job. Unzip a result to read them; the ``con-duct`` command-line tool summarizes them.
+The location can be changed with ``DUCT_OUTPUT_PREFIX`` in :ref:`script_preamble <script-preamble>`.
+
 
 *********************************
 Explanation on ``job_status.csv``
