@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import datalad.api as dlapi
 import pandas as pd
 import pytest
 import yaml
@@ -11,6 +12,7 @@ import yaml
 from babs.utils import (
     app_output_settings_from_config,
     combine_inclusion_dataframes,
+    container_image_path,
     get_git_show_ref_shasum,
     get_immediate_subdirectories,
     get_repo_hash,
@@ -21,9 +23,41 @@ from babs.utils import (
     parse_select_arg,
     read_yaml,
     replace_placeholder_from_config,
+    resolve_container_image_paths,
     update_submitted_job_ids,
     validate_processing_level,
 )
+
+
+def test_resolve_container_image_paths_falls_back_when_unregistered(tmp_path):
+    """A name with no containers-add registration resolves to babs's default layout."""
+    containers_ds = tmp_path / 'containers'
+    dlapi.create(path=str(containers_ds))
+
+    resolved = resolve_container_image_paths(str(containers_ds), ['toybidsapp-0-0-7'])
+
+    assert resolved == {'toybidsapp-0-0-7': container_image_path('toybidsapp-0-0-7')}
+
+
+def test_resolve_container_image_paths_reads_registration(tmp_path):
+    """A registered name resolves to `containers/` + the registered relative path."""
+    containers_ds = tmp_path / 'containers'
+    ds = dlapi.create(path=str(containers_ds))
+    # same config key and value shape `datalad containers-add` writes:
+    ds.config.set(
+        'datalad.containers.bids-fmriprep.image',
+        'images/bids/bids-fmriprep--20.2.7.sif',
+        scope='branch',
+    )
+
+    resolved = resolve_container_image_paths(
+        str(containers_ds), ['bids-fmriprep', 'unregistered-app']
+    )
+
+    assert resolved == {
+        'bids-fmriprep': 'containers/images/bids/bids-fmriprep--20.2.7.sif',
+        'unregistered-app': container_image_path('unregistered-app'),
+    }
 
 
 def test_get_username():
