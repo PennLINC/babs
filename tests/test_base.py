@@ -35,10 +35,9 @@ def test_bids_gitattributes_file_placement(tmp_path):
         ('empty.json', b'', False),
         ('participants.tsv', b'participant_id\nsub-01\n', False),
         ('sub-01_T1w.json', b'{"EchoTime": 0.005}\n', False),
-        ('dataset_description.json', b'x' * 50_000, False),
         ('README', b'x' * 50_000, False),
         ('sub-01_T1w.nii.gz', os.urandom(1024), True),
-        ('sub-01_desc-confounds_timeseries.tsv', b'a\tb\n' + b'1\t2\n' * 20_000, True),
+        ('sub-01_desc-confounds_timeseries.tsv', b'a\tb\n' + b'1\t2\n' * 300_000, True),
     ]
 
     def git(*args):

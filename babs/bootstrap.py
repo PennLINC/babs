@@ -24,18 +24,12 @@ from babs.utils import (
 
 # Analysis-dataset `.gitattributes`: annex a file if it is non-empty and binary
 # (`mimeencoding=binary`, which needs git-annex's MagicMime build flag) or
-# larger than 40kb; the explicit lines force listed files into git regardless.
+# larger than 1MiB, so BIDS metadata (JSON, TSV, README) stays in git.
 # Empty files read as binary to libmagic, so the size guard keeps them in git.
 BIDS_GITATTRIBUTES = """\
 * annex.backend=MD5E
-* annex.largefiles=(((mimeencoding=binary)and(largerthan=0))or(largerthan=40kb))
+* annex.largefiles=(((mimeencoding=binary)and(largerthan=0))or(largerthan=1MiB))
 **/.git* annex.largefiles=nothing
-.babs/** annex.largefiles=nothing
-dataset_description.json annex.largefiles=nothing
-.bidsignore annex.largefiles=nothing
-README* annex.largefiles=nothing
-CHANGES annex.largefiles=nothing
-LICENSE annex.largefiles=nothing
 """
 
 
