@@ -28,25 +28,36 @@ Option 1. Use ReproNim/containers
 `ReproNim/containers <https://github.com/ReproNim/containers>`_ is a DataLad dataset
 of ready-to-use Singularity images of BIDS Apps (fMRIPrep, QSIPrep, MRIQC, ...),
 one registration per app, versioned, and maintained by the ReproNim team.
-Cloning it gives you a container DataLad dataset with nothing to build:
+It is a container DataLad dataset with nothing to build, and its URL can be given
+to ``babs init`` directly:
+
+.. code-block:: console
+
+    babs init \
+        --container_ds https://github.com/ReproNim/containers.git \
+        --container_name bids-fmriprep \
+        ...
+
+``babs init`` clones it into the BABS project, and the jobs fetch the image
+when they first need it.
+The registered names are listed in the dataset's
+`README <https://github.com/ReproNim/containers#readme>`_, or by ``datalad containers-list``
+in a clone (see below); it is the ``bids-<app>`` part of the image path,
+for example ``bids-fmriprep -> images/bids/bids-fmriprep--25.2.5.sif``.
+
+If you will create more than one BABS project, or your compute nodes have no
+internet access, clone it once and pass the clone's path instead:
 
 .. code-block:: console
 
     datalad clone https://github.com/ReproNim/containers.git containers
     cd containers
     datalad containers-list
-
-``datalad containers-list`` prints every registered name and the image it points to,
-for example ``bids-fmriprep -> images/bids/bids-fmriprep--25.2.5.sif``.
-The name before the arrow is what you pass to ``babs init --container_name``.
-
-The images themselves are annexed, so a fresh clone holds only pointers.
-Get the one you need before ``babs init``, so that jobs fetch it from your clone
-rather than from the internet:
-
-.. code-block:: console
-
     datalad get images/bids/bids-fmriprep--25.2.5.sif
+
+The images are annexed, so the clone holds only pointers until ``datalad get``.
+Getting the image you need there means every BABS project made from this clone
+copies it locally rather than downloading it again.
 
 .. dropdown:: Messages about ``annex-ignore`` when cloning?
 
@@ -56,9 +67,9 @@ rather than from the internet:
     comes from ReproNim's own storage, which ``datalad get`` finds on its own.
     These messages are harmless.
 
-That's it: the clone is your container DataLad dataset.
-Pass its path as ``--container_ds`` and the registered name as ``--container_name``
-when running ``babs init`` (see :doc:`babs-init` for an example).
+Either way, pass the dataset (URL or clone path) as ``--container_ds`` and the
+registered name as ``--container_name`` when running ``babs init``
+(see :doc:`babs-init` for a full example).
 
 .. note::
 
