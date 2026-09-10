@@ -338,7 +338,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
     $ cd ~/babs_demo
     $ babs init \
-        --container_ds "${HOME}/babs_demo/containers" \
+        --container_ds https://github.com/ReproNim/containers.git \
         --container_name bids-simbids \
         --container_config "${HOME}/babs_demo/config_simbids_0-0-3_raw_mri.yaml" \
         --processing_level session \
@@ -354,10 +354,11 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
 The input dataset is specified in the yaml file and no longer specified in the command line.
-For container, you will use the ReproNim/containers clone ``containers`` and the YAML file you just prepared.
-(``--container_ds`` also accepts the dataset's URL, ``https://github.com/ReproNim/containers.git``,
-in which case ``babs init`` clones it for you; we use the local clone here because we already have it,
-and because jobs then copy the image from it rather than downloading it.)
+For container, you will use ReproNim/containers, given by URL, and the YAML file you just prepared:
+``babs init`` clones the container dataset into the BABS project, and the image is fetched when first needed.
+You could also pass the clone from Step 0, ``"${HOME}/babs_demo/containers"``, as ``--container_ds``;
+``babs init`` would then clone from it, and the image you already got there is copied rather than downloaded again,
+which is worth it once you create more than one BABS project.
 It is important to make sure the string ``bids-simbids`` used in ``--container_name``
 is a name registered in that dataset, as listed by ``datalad containers-list``.
 If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session``.
@@ -394,7 +395,7 @@ The command below can be found in the printed messages from ``babs init``:
         -B "${PWD}" \
         --containall \
         --writable-tmpfs \
-        containers/images/bids/bids-simbids--0.0.3.sif \
+        "containers/images/bids/bids-simbids--0.0.3.sif" \
             "${PWD}/inputs/data/BIDS" \
             "${PWD}/outputs/fmriprep_anat" \
             participant \
