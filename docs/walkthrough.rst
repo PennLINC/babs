@@ -63,31 +63,50 @@ as the working directory in this example walkthrough:
 Step 0: Create some testing BIDS data
 =====================================
 
-We will build a container of SIMBIDS, 
-which we can use to create some testing BIDS data.
+We will use a container of SIMBIDS to create some testing BIDS data.
 SIMBIDS will also serve as our BIDS App for processing the testing BIDS data.
+
+Rather than building the image ourselves, we take it from
+`ReproNim/containers <https://github.com/ReproNim/containers>`_,
+a DataLad dataset of ready-to-use Singularity images of BIDS Apps.
+Clone it into ``~/babs_demo`` and get the SIMBIDS image:
 
 ..  code-block:: console
 
     $ cd ~/babs_demo
-    $ singularity build \
-        simbids-0.0.3.sif \
-        docker://pennlinc/simbids:0.0.3
+    $ datalad clone https://github.com/ReproNim/containers.git containers
+    $ cd containers
+    $ datalad get images/bids/bids-simbids--0.0.3.sif
+    $ cd ~/babs_demo
 
-.. dropdown:: Having trouble building this Singularity image?
+.. dropdown:: Printed messages you'll see
 
-    It might be because the Singularity software's version you're using is too old or new.
-    You can check your Singularity's version via ``singularity --version``.
-    We've tested that these versions work fine:
-    ``singularity-ce version 3.9.5`` and ``apptainer version 1.1.8-1.el7``.
+    .. code-block:: bash
 
+        # from `datalad clone`:
+        [INFO   ] Remote origin not usable by git-annex; setting annex-ignore
+        [INFO   ] https://github.com/ReproNim/containers.git/config download failed: Not Found
+        install(ok): /home/username/babs_demo/containers (dataset)
 
-Now you should see the file ``simbids-0.0.3.sif`` in the current directory.
+        # from `datalad get`:
+        get(ok): images/bids/bids-simbids--0.0.3.sif (file) [from datasets.datalad.org...]
+
+    The ``annex-ignore`` lines may repeat a few times and are harmless:
+    GitHub holds the git part of the dataset, and the image content comes from
+    ReproNim's own storage.
+
+.. dropdown:: I'd rather build the image myself
+
+    That works too, for any BIDS App or version ReproNim/containers does not carry.
+    See :ref:`build-your-own-container-dataset`, then use your own dataset and
+    image name wherever ``containers`` and ``bids-simbids`` appear below.
+
+Now you should see the image at ``containers/images/bids/bids-simbids--0.0.3.sif``.
 We can now use SIMBIDS to create some testing BIDS data.
 
 ..  code-block:: console
 
-    $ singularity exec -B "$PWD" simbids-0.0.3.sif \
+    $ singularity exec -B "$PWD" containers/images/bids/bids-simbids--0.0.3.sif \
         simbids-raw-mri \
             "$PWD" \
             ds004146_configs.yaml
@@ -158,8 +177,8 @@ For this walkthrough, we'll use SIMBIDS as the containerized BIDS App.
 SIMBIDS is a BIDS App that simulates the processing of BIDS data,
 producing files that have the same structure as the output of real BIDS Apps.
 
-We need to create a DataLad dataset of this container 
-(i.e., let DataLad track this Singularity image):
+BABS requires the container to be in a DataLad dataset
+(i.e., let DataLad track the Singularity image):
 
 .. dropdown:: I'm confused - Why is the container another DataLad `dataset`?
 
@@ -169,48 +188,20 @@ We need to create a DataLad dataset of this container
     but different from input BIDS dataset, a "DataLad dataset of the container"
     contains container image(s), and it won't `be processed`.
 
-.. code-block:: console
-
-    $ cd ~/babs_demo
-    $ datalad create -D "SIMBIDS container" simbids-container
-    $ cd simbids-container
-    $ datalad containers-add \
-        --url "${HOME}/babs_demo/simbids-0.0.3.sif" \
-        simbids-0-0-3
-
-.. dropdown:: Printed messages you'll see
-
-    .. code-block:: bash
-
-        # from `datalad create`:
-        create(ok): /home/username/babs_demo/simbids-container (dataset)
-
-        [INFO   ] Copying local file /home/username/babs_demo/simbids-0.0.3.sif to /home/username/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image
-        add(ok): .datalad/environments/simbids-0-0-3/image (file)
-        add(ok): .datalad/config (file)
-        save(ok): . (dataset)
-        action summary:
-        add (ok: 2)
-        save (ok: 1)
-        add(ok): .datalad/environments/simbids-0-0-3/image (file)
-        add(ok): .datalad/config (file)
-        save(ok): . (dataset)
-        containers_add(ok): /home/username/babs_demo/simbids-container/.datalad/environments/simbids-0-0-3/image (file)
-        action summary:
-        add (ok: 2)
-        containers_add (ok: 1)
-        save (ok: 1)
-
-Now, the DataLad dataset containing the SIMBIDS container ``simbids-container`` is ready to use.
-
-As the ``sif`` file has been copied into ``simbids-container``,
-you can remove the original ``sif`` file:
+The ``containers`` clone from Step 0 is exactly that: a DataLad dataset in which
+each image is registered under a name.
+You can list the registered names, and find the one for SIMBIDS:
 
 .. code-block:: console
 
+    $ cd ~/babs_demo/containers
+    $ datalad containers-list | grep simbids
+    bids-simbids -> images/bids/bids-simbids--0.0.3.sif
     $ cd ~/babs_demo
-    $ rm simbids-0.0.3.sif
 
+The name on the left, ``bids-simbids``, is what you will give to ``babs init``
+as the ``--container_name``; BABS finds the image file from the registration.
+So there is nothing more to prepare here.
 
 Step 1.3. Prepare a YAML file for the BIDS App
 ----------------------------------------------
@@ -329,7 +320,7 @@ By now, you have prepared these in the ``~/babs_demo`` folder:
 .. code-block:: console
 
     config_simbids_0-0-3_raw_mri.yaml
-    simbids-container/
+    containers/
 
 Now you can start to use BABS for data analysis.
 
@@ -347,8 +338,8 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
     $ cd ~/babs_demo
     $ babs init \
-        --container_ds "${HOME}/babs_demo/simbids-container" \
-        --container_name simbids-0-0-3 \
+        --container_ds "${HOME}/babs_demo/containers" \
+        --container_name bids-simbids \
         --container_config "${HOME}/babs_demo/config_simbids_0-0-3_raw_mri.yaml" \
         --processing_level session \
         --queue slurm \
@@ -363,10 +354,9 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
 The input dataset is specified in the yaml file and no longer specified in the command line.
-For container, you will use the DataLad-tracked ``simbids-container`` and the YAML file you just prepared.
-It is important to make sure the string ``simbids-0-0-3`` used in ``--container_name``
-is consistent with the image name you specified when preparing
-the DataLad dataset of the container (``datalad containers-add``).
+For container, you will use the ReproNim/containers clone ``containers`` and the YAML file you just prepared.
+It is important to make sure the string ``bids-simbids`` used in ``--container_name``
+is a name registered in that dataset, as listed by ``datalad containers-list``.
 If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session``.
 
 
@@ -401,7 +391,7 @@ The command below can be found in the printed messages from ``babs init``:
         -B "${PWD}" \
         --containall \
         --writable-tmpfs \
-        containers/.datalad/environments/simbids-0-0-3/image \
+        containers/images/bids/bids-simbids--0.0.3.sif \
             "${PWD}/inputs/data/BIDS" \
             "${PWD}/outputs/fmriprep_anat" \
             participant \
@@ -457,7 +447,7 @@ the generated directives would be:
         │   │   ├── job_status.csv
         │   │   ├── participant_job.sh
         │   │   ├── README.md
-        │   │   ├── simbids-0-0-3_zip.sh
+        │   │   ├── bids-simbids_zip.sh
         │   │   ├── submit_job_template.yaml
         │   │   └── processing_inclusion.csv
         │   ├── containers
