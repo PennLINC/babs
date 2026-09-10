@@ -131,10 +131,8 @@ This string can only have characters and dashes in it.
 Remember what you assign as the *image NAME* because you will copy it for argument
 ``--container_name`` when ``babs init``.
 
-``datalad containers-add`` copies the image to ``.datalad/environments/<image NAME>/image``
-inside the dataset and registers it there.
-BABS reads that registration the same way it reads ReproNim's, so both datasets
-are used identically from ``babs init`` onwards.
+From here on it is used exactly like a ReproNim/containers clone:
+the dataset is ``--container_ds`` and the *image NAME* is ``--container_name``.
 
 .. Note: above steps have been tested on CUBIC cluster. MC 4/16/2025.
 
