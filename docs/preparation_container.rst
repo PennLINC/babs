@@ -44,7 +44,7 @@ The registered names follow the pattern ``bids-<app>`` (``bids-fmriprep``, ``bid
 the full list is what ``datalad containers-list`` prints in a clone of the dataset (see below).
 
 If you will create more than one BABS project, if your compute nodes have no
-internet access, or if you need a version other than the newest,
+internet access, or if you need a version other than the registered one,
 clone it once and pass the clone's path instead:
 
 .. code-block:: console
@@ -58,14 +58,6 @@ The images are annexed, so the clone holds only pointers until ``datalad get``.
 Getting the image you need there means every BABS project made from this clone
 copies it locally rather than downloading it again.
 
-.. dropdown:: Messages about ``annex-ignore`` when cloning?
-
-    ``datalad clone`` may print
-    ``Remote origin not usable by git-annex; setting annex-ignore``
-    a few times. GitHub hosts the git part of the dataset only; the image content
-    comes from ReproNim's own storage, which ``datalad get`` finds on its own.
-    These messages are harmless.
-
 Either way, pass the dataset (URL or clone path) as ``--container_ds`` and the
 registered name as ``--container_name`` when running ``babs init``
 (see :doc:`babs-init` for a full example).
@@ -76,8 +68,10 @@ registered name as ``--container_name`` when running ``babs init``
     (``bids-fmriprep--24.1.1.sing``, ``bids-fmriprep--25.2.5.sif``, ...), but a name
     is registered once and points at one of them; ``datalad containers-list`` shows which.
     To have ``bids-fmriprep`` point at another version, run the dataset's
-    ``scripts/freeze_versions`` in your clone, for example
-    ``scripts/freeze_versions bids-fmriprep=24.1.1``, before ``babs init``.
+    ``scripts/freeze_versions`` in your clone before ``babs init``, for example
+    ``scripts/freeze_versions --save-dataset=. bids-fmriprep=24.1.1``.
+    ``--save-dataset=.`` commits the change; without it the new version is only
+    in the working tree, and the clone ``babs init`` makes would silently keep the old one.
     See `Freezing Container Image Versions <https://github.com/ReproNim/containers#freezing-container-image-versions>`_
     in the ReproNim/containers README.
 

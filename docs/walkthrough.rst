@@ -338,7 +338,7 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
     $ cd ~/babs_demo
     $ babs init \
-        --container_ds https://github.com/ReproNim/containers.git \
+        --container_ds "${HOME}/babs_demo/containers" \
         --container_name bids-simbids \
         --container_config "${HOME}/babs_demo/config_simbids_0-0-3_raw_mri.yaml" \
         --processing_level session \
@@ -354,11 +354,11 @@ and results and provenance are saved. An example command of ``babs init`` is as 
 
 Here you will create a BABS project called ``my_BABS_project`` in directory ``~/babs_demo``.
 The input dataset is specified in the yaml file and no longer specified in the command line.
-For container, you will use ReproNim/containers, given by URL, and the YAML file you just prepared:
-``babs init`` clones the container dataset into the BABS project, and the image is fetched when first needed.
-You could also pass the clone from Step 0, ``"${HOME}/babs_demo/containers"``, as ``--container_ds``;
-``babs init`` would then clone from it, and the image you already got there is copied rather than downloaded again,
-which is worth it once you create more than one BABS project.
+For container, you will use the ``containers`` clone from Step 0 and the YAML file you just prepared.
+``babs init`` clones the container dataset into the BABS project,
+and the SIMBIDS image you already got in Step 0 is copied from your clone rather than downloaded again.
+(``--container_ds`` also accepts the URL ``https://github.com/ReproNim/containers.git`` directly,
+in which case the image is fetched when a job first needs it; the clone is already here, so we use it.)
 It is important to make sure the string ``bids-simbids`` used in ``--container_name``
 is a name registered in that dataset, as listed by ``datalad containers-list``.
 If you wish to process data on a session-wise basis, you should specify this as ``--processing_level session``.
