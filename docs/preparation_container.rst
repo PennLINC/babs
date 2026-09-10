@@ -40,13 +40,12 @@ to ``babs init`` directly:
 
 ``babs init`` clones it into the BABS project, and the jobs fetch the image
 when they first need it.
-The registered names are listed in the dataset's
-`README <https://github.com/ReproNim/containers#readme>`_, or by ``datalad containers-list``
-in a clone (see below); it is the ``bids-<app>`` part of the image path,
-for example ``bids-fmriprep -> images/bids/bids-fmriprep--25.2.5.sif``.
+The registered names follow the pattern ``bids-<app>`` (``bids-fmriprep``, ``bids-qsiprep``, ``bids-mriqc``);
+the full list is what ``datalad containers-list`` prints in a clone of the dataset (see below).
 
-If you will create more than one BABS project, or your compute nodes have no
-internet access, clone it once and pass the clone's path instead:
+If you will create more than one BABS project, if your compute nodes have no
+internet access, or if you need a version other than the newest,
+clone it once and pass the clone's path instead:
 
 .. code-block:: console
 
@@ -73,10 +72,14 @@ registered name as ``--container_name`` when running ``babs init``
 
 .. note::
 
-    ReproNim/containers pins each app's version in the image path
-    (``bids-fmriprep--25.2.5.sif``), not in the registered name (``bids-fmriprep``).
-    Cloning a specific commit of the dataset pins the version;
-    ``datalad containers-list`` shows which one you have.
+    **Versions.** ReproNim/containers keeps many versions of each app under ``images/``
+    (``bids-fmriprep--24.1.1.sing``, ``bids-fmriprep--25.2.5.sif``, ...), but a name
+    is registered once and points at one of them; ``datalad containers-list`` shows which.
+    To have ``bids-fmriprep`` point at another version, run the dataset's
+    ``scripts/freeze_versions`` in your clone, for example
+    ``scripts/freeze_versions bids-fmriprep=24.1.1``, before ``babs init``.
+    See `Freezing Container Image Versions <https://github.com/ReproNim/containers#freezing-container-image-versions>`_
+    in the ReproNim/containers README.
 
 If the BIDS App you need is not in ReproNim/containers, or you need a version it does not carry,
 build your own dataset instead.
