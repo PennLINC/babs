@@ -532,15 +532,21 @@ you must only provide one foldername in ``zip_foldernames``.
 Other detailed instructions
 ---------------------------
 
-* The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
+* The version number should be the version of the image you registered.
+  If you built the container dataset yourself (:ref:`create-a-container-datalad-dataset`),
+  it is usually part of the *image NAME* too:
 
     * In example #1, you probably use ``fmriprep-20-2-3`` for *image NAME*;
     * In example #2, you probably use ``fmriprep-23-1-3`` for *image NAME*.
 
-* When calling ``babs init``, argument ``--container-name`` should use the same version too, i.e.,
+* When calling ``babs init``, argument ``--container-name`` is that *image NAME*, i.e.,
 
     * ``--container-name fmriprep-20-2-3`` in example #1;
     * ``--container-name fmriprep-23-1-3`` in example #2;
+
+  With :ref:`ReproNim/containers <use-repronim-containers>` the registered name carries no version
+  (``--container-name bids-fmriprep``); the version is in the image path that
+  ``datalad containers-list`` shows, and it is the one to write in ``zip_foldernames``.
 
 * Please use dashes ``-`` instead of dots ``.`` when indicating the version number,
   e.g., ``20-2-3`` instead of ``20.2.3``.

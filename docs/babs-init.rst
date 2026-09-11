@@ -91,8 +91,27 @@ to do are as follows:
 Example commands
 ****************
 
-Example ``babs init`` command for toy BIDS App + multi-session data on
-a SLURM cluster:
+``--container_ds`` is a container DataLad dataset and ``--container_name`` is the
+name of an image registered in it (see :doc:`preparation_container`).
+BABS finds the image file from the registration, so both kinds of dataset below
+are used the same way.
+
+Example ``babs init`` command using a clone of
+`ReproNim/containers <https://github.com/ReproNim/containers>`_
+(here fMRIPrep, registered as ``bids-fmriprep``) + multi-session data on a SLURM cluster:
+
+.. code-block:: bash
+
+    babs init \
+        --container_ds /path/to/containers \
+        --container_name bids-fmriprep \
+        --container_config /path/to/container_fmriprep.yaml \
+        --processing_level session \
+        --queue slurm \
+        /path/to/a/folder/holding/BABS/project/my_BABS_project
+
+Example ``babs init`` command using a container DataLad dataset you built yourself
+with ``datalad containers-add`` (here the toy BIDS App, registered as ``toybidsapp-0-0-7``):
 
 .. code-block:: bash
 
