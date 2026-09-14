@@ -140,6 +140,15 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
         print(script_content)
     assert passed, status
 
+    # The app runs under duct, recording into its own output directory so the
+    # records get zipped with the results; the prefix is keyed by sub[/ses] and job.
+    assert '\nduct singularity run \\\n' in script_content
+    ses_part = '/${sesid}' if processing_level == 'session' else ''
+    assert (
+        f'export DUCT_OUTPUT_PREFIX="{bids_app_output_dir}/logs/${{subid}}{ses_part}'
+        '/acq-{datetime}+${SLURM_ARRAY_JOB_ID:-nojob}_${SLURM_ARRAY_TASK_ID:-0}_"'
+    ) in script_content
+
 
 def generate_session_filter_file(config_file, input_datasets, tmp_path):
     """Render a session-level runscript, run its filter-file block, and parse the result.

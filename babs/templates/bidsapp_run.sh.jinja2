@@ -47,7 +47,14 @@ mkdir -p {{ templateflow_home_on_disk }}
 {% endif %}
 
 mkdir -p "{{ bids_app_output_dir }}"
-singularity run \
+# duct records the app's resource usage and stdout/stderr next to its output,
+# under logs/<sub>[/<ses>]/, so the records travel with the results.
+# The default is keyed by start time and SLURM job id (<array>_<task>); set
+# DUCT_OUTPUT_PREFIX in the script preamble to override it.
+if [ -z "${DUCT_OUTPUT_PREFIX:-}" ]; then
+    export DUCT_OUTPUT_PREFIX="{{ bids_app_output_dir }}/logs/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}/acq-{datetime}+${SLURM_ARRAY_JOB_ID:-nojob}_${SLURM_ARRAY_TASK_ID:-0}_"
+fi
+duct singularity run \
     -B "${PWD}" \
 {% if templateflow_home_on_disk %}
     -B "{{ templateflow_home_on_disk }}":"{{ templateflow_in_container }}" \
