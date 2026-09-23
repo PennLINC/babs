@@ -695,6 +695,8 @@ that provides options for cluster resources requests, this section **script_prea
 bash commands that are required by job running. An example would be to activate the conda environment;
 however, different clusters may require different commands to do so. Therefore, BABS asks the user to
 provide it.
+Activating the BABS environment also puts ``duct`` on the job's ``PATH``, which each job needs for
+:ref:`its duct records <duct-records>`; without it, the job skips them.
 
 Example section **script_preamble** for a specific cluster:
 

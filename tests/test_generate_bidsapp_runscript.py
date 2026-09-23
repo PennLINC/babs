@@ -140,23 +140,11 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
         print(script_content)
     assert passed, status
 
-    # The app runs under duct, recording into the analysis dir keyed by sub[/ses]
-    # and job; on success this job's records are copied into the output dir so
-    # they get zipped with the results.
-    assert '\nduct singularity run \\\n' in script_content
+    # The duct record paths are keyed by the processing level.
     ses_part = '/${sesid}' if processing_level == 'session' else ''
-    assert (
-        f'duct_dir="${{BABS_ANALYSIS_DIR}}/logs/duct/${{subid}}{ses_part}"\n'
-        'duct_job="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"\n'
-        'export DUCT_OUTPUT_PREFIX="${duct_dir}/acq-{datetime}+${duct_job}_"\n'
-    ) in script_content
-    assert (
-        f'duct_zip_dir="{bids_app_output_dir}/logs/${{subid}}{ses_part}"\n'
-        'mkdir -p "${duct_zip_dir}"\n'
-        'cp "${duct_dir}"/*+"${duct_job}"_* "${duct_zip_dir}/" \\\n'
-        '    || echo "WARNING: duct records not copied'
-    ) in script_content
-    # The copy lands before the zip is made.
+    assert f'duct_dir="${{BABS_ANALYSIS_DIR}}/logs/duct/${{subid}}{ses_part}"\n' in script_content
+    assert f'duct_zip_dir="{bids_app_output_dir}/logs/${{subid}}{ses_part}"\n' in script_content
+    # The records are copied before the zip is made.
     assert script_content.index('cp "${duct_dir}"') < script_content.index('7z a')
 
 

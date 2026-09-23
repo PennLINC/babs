@@ -47,13 +47,21 @@ mkdir -p {{ templateflow_home_on_disk }}
 {% endif %}
 
 mkdir -p "{{ bids_app_output_dir }}"
-# duct records the app's resource usage and stdout/stderr in the project's
-# analysis/logs/duct/, outside this job's clone, so they can be read while the
-# job runs and survive a failed one. Keyed by start time and SLURM job id.
-duct_dir="${BABS_ANALYSIS_DIR}/logs/duct/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
-duct_job="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
-export DUCT_OUTPUT_PREFIX="${duct_dir}/acq-{datetime}+${duct_job}_"
-duct singularity run \
+# duct (con-duct) records the app's resource usage and stdout/stderr in the
+# project's analysis/logs/duct/, outside this job's clone, so they can be read
+# while the job runs and survive a failed one. Keyed by start time and SLURM job
+# id. duct is used only if the script_preamble put it on PATH (activating the
+# babs env does); otherwise the app runs without it.
+runner=""
+if command -v duct >/dev/null 2>&1; then
+    runner="duct"
+    duct_dir="${BABS_ANALYSIS_DIR}/logs/duct/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
+    duct_job="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
+    export DUCT_OUTPUT_PREFIX="${duct_dir}/acq-{datetime}+${duct_job}_"
+else
+    echo "WARNING: duct not on PATH, running without resource records; activate the babs env in script_preamble to record them" >&2
+fi
+${runner} singularity run \
     -B "${PWD}" \
 {% if templateflow_home_on_disk %}
     -B "{{ templateflow_home_on_disk }}":"{{ templateflow_in_container }}" \
@@ -79,13 +87,15 @@ duct singularity run \
 {% endfor %}
         {{ subject_selection_flag }} "${subid}"
 
-# The app succeeded: copy this job's duct records next to its output so they
-# are zipped with the results. A failed copy is reported, not fatal, so it
-# cannot cost the job its results.
-duct_zip_dir="{{ bids_app_output_dir }}/logs/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
-mkdir -p "${duct_zip_dir}"
-cp "${duct_dir}"/*+"${duct_job}"_* "${duct_zip_dir}/" \
-    || echo "WARNING: duct records not copied into the results; they stay in ${duct_dir}" >&2
+if [ -n "${runner}" ]; then
+    # The app succeeded: copy this job's duct records next to its output so they
+    # are zipped with the results. A failed copy is reported, not fatal, so it
+    # cannot cost the job its results.
+    duct_zip_dir="{{ bids_app_output_dir }}/logs/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
+    mkdir -p "${duct_zip_dir}"
+    cp "${duct_dir}"/*+"${duct_job}"_* "${duct_zip_dir}/" \
+        || echo "WARNING: duct records not copied into the results; they stay in ${duct_dir}" >&2
+fi
 
 {{ cmd_zip }}
 rm -rf {{ OUTPUT_MAIN_FOLDERNAME }} .git/tmp/wkdir

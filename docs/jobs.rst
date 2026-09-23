@@ -180,6 +180,13 @@ Besides those log files, which the cluster writes, each job records the BIDS App
 `duct <https://github.com/con/duct>`_: its resource usage sampled over time, an estimate of its
 peak memory (sampled, so a short spike can be missed), and its ``stdout`` and ``stderr``,
 observed from outside the container.
+This needs ``duct`` on the job's ``PATH``, which activating the BABS environment in
+:ref:`script_preamble <script-preamble>` provides; without it, the job runs the BIDS App without
+duct and says so in its ``stderr`` log file.
+duct's settings, such as ``DUCT_SAMPLE_INTERVAL``, can be set by exporting its environment
+variables in ``script_preamble`` (``duct --help`` lists them).
+``DUCT_OUTPUT_PREFIX`` is the exception: the job sets it to the path below, overriding any value
+from the preamble.
 These records are written next to the cluster's log files, in the project's ``analysis/logs/duct`` folder::
 
     analysis/logs/duct/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_info.json
