@@ -264,13 +264,7 @@ class Container:
         # Flags when submitting the job:
         if system.type == 'slurm':
             submit_head = 'sbatch'
-            env_flags = (
-                '--export=DSLOCKFILE='
-                + babs.analysis_path
-                + '/.SLURM_datalad_lock'
-                + ',BABS_ANALYSIS_DIR='
-                + babs.analysis_path
-            )
+            env_flags = '--export=DSLOCKFILE=' + babs.analysis_path + '/.SLURM_datalad_lock'
         else:
             warnings.warn('not supporting systems other than slurm...', stacklevel=2)
 

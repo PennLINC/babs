@@ -50,12 +50,13 @@ mkdir -p "{{ bids_app_output_dir }}"
 # duct (con-duct) records the app's resource usage and stdout/stderr in the
 # project's analysis/logs/duct/, outside this job's clone, so they can be read
 # while the job runs and survive a failed one. Keyed by start time and SLURM job
-# id. duct is used only if the script_preamble put it on PATH (activating the
-# babs env does); otherwise the app runs without it.
+# id. babs submit runs sbatch from the analysis dir, so SLURM_SUBMIT_DIR is it.
+# duct is used only if the script_preamble put it on PATH (activating the babs
+# env does); otherwise the app runs without it.
 runner=""
 if command -v duct >/dev/null 2>&1; then
     runner="duct"
-    duct_dir="${BABS_ANALYSIS_DIR}/logs/duct/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
+    duct_dir="${SLURM_SUBMIT_DIR}/logs/duct/${subid}{% if processing_level == 'session' %}/${sesid}{% endif %}"
     duct_job="${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}"
     export DUCT_OUTPUT_PREFIX="${duct_dir}/acq-{datetime}+${duct_job}_"
 else

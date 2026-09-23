@@ -142,7 +142,7 @@ def test_generate_bidsapp_runscript(input_datasets, config_file, processing_leve
 
     # The duct record paths are keyed by the processing level.
     ses_part = '/${sesid}' if processing_level == 'session' else ''
-    assert f'duct_dir="${{BABS_ANALYSIS_DIR}}/logs/duct/${{subid}}{ses_part}"\n' in script_content
+    assert f'duct_dir="${{SLURM_SUBMIT_DIR}}/logs/duct/${{subid}}{ses_part}"\n' in script_content
     assert f'duct_zip_dir="{bids_app_output_dir}/logs/${{subid}}{ses_part}"\n' in script_content
     # The records are copied before the zip is made.
     assert script_content.index('cp "${duct_dir}"') < script_content.index('7z a')

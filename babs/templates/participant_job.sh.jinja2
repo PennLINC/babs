@@ -193,7 +193,7 @@ datalad push --to output-storage
 
 # push the output branch:
 echo '# Push the branch with provenance records:'
-# DSLOCKFILE (and BABS_ANALYSIS_DIR, read by the app script) set by sbatch --export= in container.py
+# DSLOCKFILE set by sbatch --export= in container.py
 # shellcheck disable=SC2154
 flock "${DSLOCKFILE}" git push outputstore "${BRANCH}"
 
