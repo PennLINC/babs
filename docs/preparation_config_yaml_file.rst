@@ -337,7 +337,7 @@ Advanced - Manual of writing section ``bids_app_args``
       ``reportseff`` (`library here <https://github.com/troycomi/reportseff>`_) or ``seff_array`` to check the resource
       usage. You can then edit the resources in the ``<bids_app>_zip.sh`` and ``participant_job.sh`` in
       the ``analysis/code`` folder.
-    * Each job also records the BIDS App's own usage with ``duct`` (see :ref:`the duct records <duct-records>`).
+    * Each job also records the BIDS App's own usage with `duct <https://github.com/con/duct>`_ (see :ref:`the duct records <duct-records>`).
       Its peak memory is an estimate of the App's own, sampled from outside the container so a
       short spike can be missed; the scheduler's figure covers the whole job, page cache included.
       Expect the two to differ.
@@ -725,10 +725,6 @@ Notes:
   how to add another line in the preamble.
 * As you can see, the comments after the commands also show up in the generated script preambles.
   This is normal and fine.
-* Each job runs the BIDS App under ``duct`` and writes its records inside the App's output folder,
-  where they are zipped with the results (see :ref:`the duct records <duct-records>`). To write them elsewhere,
-  ``export DUCT_OUTPUT_PREFIX=...`` here; a prefix outside the output folder is not zipped,
-  so point it at a location that outlives the job's working directory.
 
 .. _job-compute-space:
 
