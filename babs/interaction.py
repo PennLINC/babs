@@ -177,12 +177,14 @@ class BABSInteraction(BABS):
 
         df_needs_submit['job_id'] = job_id
         # Update the job submission dataframe with the new job id
-        print(f'Submitting the following jobs:\n{df_needs_submit}')
         submit_cols = (
             ['sub_id', 'ses_id', 'job_id', 'task_id']
             if self.processing_level == 'session'
             else ['sub_id', 'job_id', 'task_id']
         )
+        # Only the identifying columns: df_needs_submit still carries the previous
+        # attempt's accounting metrics, which update_submitted_job_ids clears below.
+        print(f'Submitting the following jobs:\n{df_needs_submit[submit_cols]}')
         df_needs_submit[submit_cols].to_csv(self.job_submit_path_abs, index=False)
 
         # Update the results df
