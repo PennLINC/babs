@@ -127,6 +127,20 @@ def get_datalad_version():
     return version('datalad')
 
 
+def git_annex_has_magicmime() -> bool:
+    """Whether the installed git-annex was built with the MagicMime flag.
+
+    The analysis-dataset ``.gitattributes`` uses ``mimeencoding=``, which
+    git-annex only supports with this build flag; without it, ``git annex add``
+    fails to parse ``annex.largefiles`` and aborts.
+    """
+    proc = subprocess.run(['git', 'annex', 'version'], capture_output=True, text=True, check=True)
+    for line in proc.stdout.splitlines():
+        if line.startswith('build flags:'):
+            return 'MagicMime' in line.split()
+    return False
+
+
 def get_immediate_subdirectories(a_dir):
     return [name for name in os.listdir(a_dir) if os.path.isdir(os.path.join(a_dir, name))]
 

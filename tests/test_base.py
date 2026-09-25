@@ -17,14 +17,59 @@ from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
-from babs.bootstrap import BIDS_GITATTRIBUTES, BABSBootstrap
-from babs.utils import container_image_path, read_yaml
+from babs.bootstrap import BABSBootstrap
+from babs.procedures import (
+    BIDS_GITATTRIBUTES,
+    CODE_GITATTRIBUTES,
+    PROCEDURES_DIR,
+    procedures_registered,
+)
+from babs.utils import container_image_path, git_annex_has_magicmime, read_yaml
 
 
 def test_bootstrap_writes_bids_gitattributes(babs_project_sessionlevel):
     """`babs init` installs the BIDS-friendly `.gitattributes` in `analysis/`."""
     gitattributes = Path(babs_project_sessionlevel) / 'analysis' / '.gitattributes'
     assert gitattributes.read_text() == BIDS_GITATTRIBUTES
+
+
+def test_bootstrap_writes_code_gitattributes(babs_project_sessionlevel):
+    """The `cfg_babs` procedure (not yoda) keeps all of `analysis/code/` in git."""
+    code = Path(babs_project_sessionlevel) / 'analysis' / 'code'
+    assert code.is_dir()
+    assert (code / '.gitattributes').read_text() == CODE_GITATTRIBUTES
+
+
+def test_git_annex_has_magicmime():
+    """BABS requires (and CI provides) a MagicMime-enabled git-annex."""
+    assert git_annex_has_magicmime() is True
+
+
+def test_bootstrap_requires_magicmime(tmp_path, monkeypatch):
+    """`babs init` stops early with a clear error when git-annex lacks MagicMime."""
+    monkeypatch.setattr('babs.bootstrap.git_annex_has_magicmime', lambda: False)
+    project_root = tmp_path / 'myproject'
+    proj = BABSBootstrap(str(project_root))
+    with pytest.raises(RuntimeError, match='MagicMime'):
+        proj.babs_bootstrap(
+            processing_level='session',
+            queue='slurm',
+            container_ds='x',
+            container_name='x',
+        )
+    # It fails before creating anything on disk:
+    assert not project_root.exists()
+
+
+def test_procedures_registered_restores_config():
+    """`procedures_registered` registers the procedures dir only within the block."""
+    from datalad import cfg as datalad_cfg
+
+    key = 'datalad.locations.extra-procedures'
+    before = datalad_cfg.get(key)
+    with procedures_registered():
+        assert datalad_cfg.get(key) == PROCEDURES_DIR
+    assert datalad_cfg.get(key) == before
 
 
 def test_bids_gitattributes_file_placement(tmp_path):

@@ -15,23 +15,15 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 from babs.base import BABS
 from babs.container import Container
 from babs.input_datasets import InputDatasets
+from babs.procedures import procedures_registered
 from babs.status import create_initial_statuses, write_job_status_csv
 from babs.system import System, validate_queue
 from babs.utils import (
     get_datalad_version,
+    git_annex_has_magicmime,
     resolve_container_image_paths,
     validate_processing_level,
 )
-
-# Analysis-dataset `.gitattributes`: annex a file if it is non-empty and binary
-# (`mimeencoding=binary`, which needs git-annex's MagicMime build flag) or
-# larger than 1MiB, so BIDS metadata (JSON, TSV, README) stays in git.
-# Empty files read as binary to libmagic, so the size guard keeps them in git.
-BIDS_GITATTRIBUTES = """\
-* annex.backend=MD5E
-* annex.largefiles=(((mimeencoding=binary)and(largerthan=0))or(largerthan=1MiB))
-**/.git* annex.largefiles=nothing
-"""
 
 
 class BABSBootstrap(BABS):
@@ -111,6 +103,19 @@ class BABSBootstrap(BABS):
                 f"The parent folder '{parent_dir}' is not writable! `babs init` won't proceed."
             )
 
+        # git-annex must be built with the MagicMime flag: the analysis
+        # `.gitattributes` (installed by the `cfg_babs` procedure below) uses
+        # `mimeencoding=`, which otherwise fails to parse at `git annex add` and
+        # would abort `babs init` partway through with an opaque error.
+        if not git_annex_has_magicmime():
+            raise RuntimeError(
+                'This git-annex was not built with the MagicMime flag, which BABS needs '
+                'for its `.gitattributes` policy (it uses `mimeencoding=` to keep BIDS '
+                'metadata in git). Install a MagicMime-enabled git-annex (conda-forge, '
+                'NeuroDebian, or the official standalone build) and retry. Verify with '
+                '`git annex version` (look for MagicMime under "build flags").'
+            )
+
         os.makedirs(self.project_root)
 
         # Store throttle value for job submission template
@@ -138,18 +143,17 @@ class BABSBootstrap(BABS):
         # Create analysis folder: -----------------------------
         print('DataLad version: ' + get_datalad_version())
         print(f'\nCreating `{self.analysis_path}` folder (also a datalad dataset)...')
-        create_kwargs = {'cfg_proc': 'yoda', 'annex': True}
+        # BABS owns the analysis scaffold via its own `cfg_babs` datalad procedure
+        # (BIDS-friendly root `.gitattributes`, a git-only `code/`, README/CHANGELOG)
+        # instead of taking datalad's `yoda` default and overwriting it.
+        create_kwargs = {'cfg_proc': 'babs', 'annex': True}
         if self.shared_group is not None:
             create_kwargs['initopts'] = ['--shared=group']
-        self._analysis_datalad_handle = dlapi.create(self.analysis_path, **create_kwargs)
-
-        # Overwrite the create-time `.gitattributes` before any content is
-        # saved, so the annex policy applies to every file (see
-        # BIDS_GITATTRIBUTES):
-        gitattributes_path = op.join(self.analysis_path, '.gitattributes')
-        with open(gitattributes_path, 'w') as f:
-            f.write(BIDS_GITATTRIBUTES)
-        self.datalad_save(path='.gitattributes', message='Use a BIDS-friendly .gitattributes')
+        # `procedures_registered` points datalad at BABS's procedures dir only for
+        # this call, so `cfg_proc='babs'` resolves without leaving a persistent
+        # global datalad config override behind:
+        with procedures_registered():
+            self._analysis_datalad_handle = dlapi.create(self.analysis_path, **create_kwargs)
 
         self.input_datasets.update_abs_paths(Path(self.analysis_path))
 
