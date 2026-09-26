@@ -337,6 +337,10 @@ Advanced - Manual of writing section ``bids_app_args``
       ``reportseff`` (`library here <https://github.com/troycomi/reportseff>`_) or ``seff_array`` to check the resource
       usage. You can then edit the resources in the ``<bids_app>_zip.sh`` and ``participant_job.sh`` in
       the ``analysis/code`` folder.
+    * Each job also records the BIDS App's own usage with `duct <https://github.com/con/duct>`_ (see :ref:`the duct records <duct-records>`).
+      Its peak memory is an estimate of the App's own, sampled from outside the container so a
+      short spike can be missed; the scheduler's figure covers the whole job, page cache included.
+      Expect the two to differ.
 
 .. developer's note: for SLURM: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
@@ -697,6 +701,8 @@ that provides options for cluster resources requests, this section **script_prea
 bash commands that are required by job running. An example would be to activate the conda environment;
 however, different clusters may require different commands to do so. Therefore, BABS asks the user to
 provide it.
+Activating the BABS environment also puts ``duct`` on the job's ``PATH``, which each job needs for
+:ref:`its duct records <duct-records>`; without it, the job skips them.
 
 Example section **script_preamble** for a specific cluster:
 
