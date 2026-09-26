@@ -67,19 +67,22 @@ def _parse_init():
     parser.add_argument(
         '--container_ds',
         '--container-ds',
-        help='Path to the container DataLad dataset',
+        help='The container DataLad dataset: a local path, or a URL that'
+        ' `datalad install` accepts (e.g. https://github.com/ReproNim/containers.git)',
         required=True,
     )
     parser.add_argument(
         '--container_name',
         '--container-name',
-        help='The name of the BIDS App container, i.e.,'
-        ' the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``.'
+        help='The name of the BIDS App container as registered in the container DataLad dataset,'
+        ' i.e., the ``<image NAME>`` used when running ``datalad containers-add <image NAME>``,'
+        ' or a name listed by ``datalad containers-list``'
+        ' (e.g. ``bids-fmriprep`` in ReproNim/containers).'
         " Importantly, this should include the BIDS App's name"
-        ' to make sure the bootstrap scripts are set up correctly;'
-        ' Also, the version number should be added, too.'
+        ' to make sure the bootstrap scripts are set up correctly.'
         ' ``babs init`` is not case sensitive to this ``--container_name``.'
-        ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7.',
+        ' Example: ``toybidsapp-0-0-7`` for toy BIDS App version 0.0.7,'
+        ' ``bids-fmriprep`` for fMRIPrep from ReproNim/containers.',
         # ^^ the BIDS App's name is used to determine: e.g., whether needs/details in $filterfile
         required=True,
     )
