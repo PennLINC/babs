@@ -1,6 +1,8 @@
 """Tests for interaction behaviors."""
 
 import json
+import shutil
+import subprocess
 from functools import partial
 from pathlib import Path
 
@@ -319,6 +321,46 @@ def test_ensure_container_images_errors_if_get_does_not_create_image(tmp_path, m
 
     with pytest.raises(FileNotFoundError, match='still not available after `datalad get`'):
         babs_proj.ensure_container_images_available()
+
+
+def test_ensure_container_images_prunes_stale_job_worktrees(tmp_path, monkeypatch):
+    """Worktrees left behind by finished jobs are pruned before the next submit."""
+    analysis_path = tmp_path / 'analysis'
+    containers_path = analysis_path / 'containers'
+    image_relpath = 'containers/.datalad/environments/test/image'
+    (analysis_path / image_relpath).parent.mkdir(parents=True)
+    (analysis_path / image_relpath).write_text('image')
+    (containers_path / '.datalad' / 'config').write_text('')
+
+    def git(*args):
+        subprocess.run(['git', *args], cwd=containers_path, check=True, capture_output=True)
+
+    git('init', '-q')
+    git('add', '.')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'init')
+    # A job adds a worktree, then its scratch dir is removed on exit:
+    job_worktree = tmp_path / 'scratch' / 'job-1' / 'ds' / 'containers'
+    git('worktree', 'add', '--detach', str(job_worktree), 'HEAD')
+    shutil.rmtree(tmp_path / 'scratch')
+
+    babs_proj = object.__new__(BABSInteraction)
+    babs_proj.analysis_path = str(analysis_path)
+    babs_proj.container_images = [image_relpath]
+    monkeypatch.setattr(
+        'babs.interaction.dlapi.get',
+        lambda path, dataset: pytest.fail('image already present; no get expected'),
+    )
+
+    babs_proj.ensure_container_images_available()
+
+    worktrees = subprocess.run(
+        ['git', 'worktree', 'list', '--porcelain'],
+        cwd=containers_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    assert worktrees.count('worktree ') == 1  # only the main working tree remains
 
 
 def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):

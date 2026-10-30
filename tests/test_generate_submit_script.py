@@ -200,6 +200,35 @@ def _render(input_datasets, processing_level):
     )
 
 
+def test_container_provided_via_worktree_of_shared_clone():
+    """Jobs share the once-fetched image through a worktree, not a per-job get/symlink.
+
+    Per-job `datalad get` of the same image from the RIA store fails at scale
+    (babs#416); a worktree of `analysis/containers` shares its annex objects.
+    """
+    script = _render(input_datasets_prep, 'subject')
+
+    assert (
+        'git -C "${CONTAINERS_SHARED}" worktree add --detach --force --no-checkout '
+        '"${PWD}/containers" HEAD' in script
+    )
+    assert 'CONTAINERS_SHARED="/tmp/babs_project/analysis/containers"' in script
+    assert 'ln -s' not in script
+    # Only the image(s) are checked out, and not via `git sparse-checkout`
+    # (which would write the shared clone's .git/config from every job):
+    checkout = 'git -C containers checkout-index -- "${CONTAINER_IMAGE_PATHS[@]#containers/}"'
+    assert checkout in script
+    assert 'git -C containers sparse-checkout' not in script
+    assert '( cd containers && git annex smudge --update )' in script
+
+    # Cleanup must detach the worktree before `datalad drop`/`git annex dead`,
+    # which would otherwise act on the shared clone's annex.
+    cleanup = script[script.index('cleanup() {') : script.index('trap cleanup EXIT')]
+    detach = cleanup.index('rm -rf containers')
+    assert detach < cleanup.index('datalad drop -r .')
+    assert detach < cleanup.index('git annex dead here')
+
+
 def test_bids_inheritance_tiers_per_processing_level():
     """Root tier is grabbed for every job; the subject tier only for session jobs.
 

@@ -24,6 +24,59 @@ from babs.utils import (
 )
 
 
+def prioritize_local_container_source(containers_path):
+    """Make git-annex always try the local container source before the network.
+
+    Some published container datasets (notably ``ReproNim/containers``)
+    auto-enable extra git-annex remotes via ``remote.log`` -- a ``datalad``
+    special remote and an http remote pointing at ``datasets.datalad.org``.
+    ``git annex init`` re-enables these in every clone, and the ``datalad``
+    special remote is registered at ``annex-cost`` 100, the same cost as a
+    local path ``origin``. On a tie git-annex may try the network remote first,
+    so if ``datasets.datalad.org`` is slow or down every retrieval stalls
+    through the connection timeout before falling back to the local copy
+    (PennLINC/babs#416).
+
+    Give ``origin`` cost 50 -- below every git-annex default (100 for a local
+    remote, 200 for a network one) -- so the local copy is always tried first.
+    Annex remotes already enabled are also raised to 300, in case one carries an
+    explicit cost of its own; remotes git-annex enables later (e.g. the http
+    remote, on the first ``get``) keep their default, which still loses to
+    ``origin``. Costs are written to the clone's local ``.git/config``; this is
+    where ``babs submit`` fetches the image (``ensure_container_images_available``),
+    which is the retrieval that was stalling.
+    """
+    # Each remote git-annex knows about carries a `remote.<name>.annex-uuid`.
+    # `--get-regexp` prints `<key> <value>` per line, so parse the key only.
+    result = subprocess.run(
+        ['git', 'config', '--get-regexp', r'^remote\..*\.annex-uuid$'],
+        cwd=containers_path,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    annex_remotes = []
+    for line in result.stdout.splitlines():
+        key = line.split(maxsplit=1)[0] if line.split() else ''
+        if key.startswith('remote.') and key.endswith('.annex-uuid'):
+            annex_remotes.append(key[len('remote.') : -len('.annex-uuid')])
+
+    for name in annex_remotes:
+        subprocess.run(
+            ['git', 'config', f'remote.{name}.annex-cost', '50' if name == 'origin' else '300'],
+            cwd=containers_path,
+            check=False,
+        )
+    if 'origin' not in annex_remotes:
+        # `origin` may not yet carry an annex-uuid, but it is the source babs
+        # cloned from; make it cheap regardless.
+        subprocess.run(
+            ['git', 'config', 'remote.origin.annex-cost', '50'],
+            cwd=containers_path,
+            check=False,
+        )
+
+
 class BABSBootstrap(BABS):
     """A BABS subclass that implements the bootstrap process."""
 
@@ -234,6 +287,19 @@ class BABSBootstrap(BABS):
             path=op.join(self.analysis_path, 'containers'),
         )
         # into `analysis/containers` folder
+
+        # Prefer the local container source over any auto-enabled network
+        # remotes so image retrieval never stalls on the network (babs#416).
+        prioritize_local_container_source(op.join(self.analysis_path, 'containers'))
+        if self.shared_group is not None:
+            # Jobs add `git worktree`s off this clone (participant_job.sh), so in a
+            # shared project other group members write to its `.git` too.
+            subprocess.run(
+                ['git', 'config', 'core.sharedRepository', 'group'],
+                cwd=op.join(self.analysis_path, 'containers'),
+                stdout=subprocess.PIPE,
+                check=True,
+            )
 
         # Resolve image paths from the datalad-containers registration
         # (possible only now that the containers subdataset is on disk).

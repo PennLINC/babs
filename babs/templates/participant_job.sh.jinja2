@@ -37,6 +37,11 @@ cleanup() {
   set +e
   if [ -d "{% raw %}${JOB_SCRATCH_DIR:?}/${BRANCH:?}{% endraw %}/ds" ]; then
     cd "{% raw %}${JOB_SCRATCH_DIR:?}/${BRANCH:?}{% endraw %}/ds" 2>/dev/null || true
+    # Detach the shared container worktree first: it shares the shared clone's
+    # git-annex objects, so `datalad drop`/`git annex dead` below must never see
+    # it. `rm -rf` removes only this job's symlinks and worktree pointer, not the
+    # shared objects (babs#416).
+    rm -rf containers 2>/dev/null || true
     datalad drop -r . --reckless availability --reckless modification >/dev/null 2>&1 || true
     git annex dead here >/dev/null 2>&1 || true
   fi
@@ -133,27 +138,46 @@ datalad get -n "{{ input_dataset['path_in_babs'] }}"
 
 {{ zip_locator_text }}
 
-# Link shared container image(s) so each job does not re-clone the same image.
+# Provide the shared container image(s) through a git worktree of the shared
+# `containers` dataset. A worktree shares the shared clone's git-annex object
+# store, so the image that `babs submit` fetched once is available to every job
+# with no per-job `datalad get` -- hundreds of jobs fetching the same image from
+# the RIA store at once caused git-annex retrieval failures -- and with no
+# hand-made absolute symlink. This is the native equivalent of a
+# reckless=ephemeral share (babs#416).
 CONTAINER_IMAGE_PATHS=(
 {% for image_path in container_image_paths %}
   "{{ image_path }}"
 {% endfor %}
 )
 
+CONTAINERS_SHARED="{{ analysis_path }}/containers"
+# The checkout above left `containers` as an empty folder. Remove it so
+# the worktree can take its place.
+rm -rf containers
+
+# Create the worktree, but don't put any files in it yet
+# (--no-checkout). Many jobs can do this at the same time safely. The job's
+# folder is deleted when it finishes; `babs submit` later clears the leftover
+# worktree records from the shared clone.
+git -C "${CONTAINERS_SHARED}" worktree add --detach --force --no-checkout "${PWD}/containers" HEAD
+
+# Put in only the image file(s) this job needs, not the whole container
+# dataset (ReproNim/containers alone has ~1,700 files). These two commands only
+# change this job's worktree, never the shared clone. (`git sparse-checkout`
+# would do the same, but it edits the shared clone's settings from every job.)
+git -C containers read-tree HEAD
+git -C containers checkout-index -- "${CONTAINER_IMAGE_PATHS[@]#containers/}"
+
+# Connect the worktree to the image data stored in the shared clone, so
+# the image file opens the copy `babs submit` already fetched. git-annex
+# normally does this by itself on checkout, but --no-checkout skipped it.
+( cd containers && git annex smudge --update )
+
+# Stop now if any image can't be read, instead of failing inside the app.
 for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
-  CONTAINER_SHARED="{{ analysis_path }}/${CONTAINER_JOB}"
-
-  if [ ! -e "${CONTAINER_SHARED}" ] && [ ! -L "${CONTAINER_SHARED}" ]; then
-    echo "ERROR: shared container image not found at ${CONTAINER_SHARED}" >&2
-    exit 1
-  fi
-
-  mkdir -p "$(dirname "${CONTAINER_JOB}")"
-  rm -f "${CONTAINER_JOB}"
-  ln -s "${CONTAINER_SHARED}" "${CONTAINER_JOB}" || exit 1
-
-  if [ ! -L "${CONTAINER_JOB}" ]; then
-    echo "ERROR: failed to create symlink ${CONTAINER_JOB}" >&2
+  if [ ! -r "${CONTAINER_JOB}" ]; then
+    echo "ERROR: shared container image not available via worktree: ${CONTAINER_JOB}" >&2
     exit 1
   fi
 done

@@ -2,6 +2,7 @@
 
 import json
 import os.path as op
+import subprocess
 import sys
 import time
 
@@ -29,6 +30,17 @@ class BABSInteraction(BABS):
             raise FileNotFoundError(
                 'There is no containers DataLad dataset in folder: ' + containers_path
             )
+
+        # Prune stale container worktree registrations left behind by finished
+        # jobs. Each job provisions the image through a `git worktree` off this
+        # shared clone and removes its working dir on exit, but the registration
+        # lingers; clean it here, single-threaded, where it cannot race the
+        # concurrent `git worktree add` that running jobs perform (babs#416).
+        subprocess.run(
+            ['git', '-C', containers_path, 'worktree', 'prune'],
+            capture_output=True,
+            check=False,
+        )
 
         print('\nEnsuring container image(s) are available locally...')
         for image_path in self.container_images:
