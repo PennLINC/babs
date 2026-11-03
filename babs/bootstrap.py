@@ -300,7 +300,7 @@ class BABSBootstrap(BABS):
             worktrees_dir = op.join(self.analysis_path, 'containers', '.git', 'worktrees')
             os.makedirs(worktrees_dir, exist_ok=True)
             mode = os.stat(worktrees_dir).st_mode | stat.S_IRWXG | stat.S_ISGID
-            os.chmod(worktrees_dir, mode)  # noqa: S103
+            os.chmod(worktrees_dir, mode)
 
         # Resolve image paths from the datalad-containers registration
         # (possible only now that the containers subdataset is on disk).
