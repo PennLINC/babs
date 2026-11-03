@@ -499,6 +499,10 @@ def test_shared_group_inits_analysis_and_rias(
     ).stdout.strip()
     assert containers_shared in {'1', 'group', 'true'}
     assert str(containers_path.resolve()) in safe_dirs
+    # ...and other members' jobs must be able to add their worktree records:
+    worktrees_mode = (containers_path / '.git' / 'worktrees').stat().st_mode
+    assert worktrees_mode & stat.S_IRWXG == stat.S_IRWXG
+    assert worktrees_mode & stat.S_ISGID
 
 
 def _annex_cost(repo, remote):

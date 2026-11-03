@@ -42,6 +42,12 @@ cleanup() {
     # it. `rm -rf` removes only this job's symlinks and worktree pointer, not the
     # shared objects (babs#416).
     rm -rf containers 2>/dev/null || true
+    # Then delete this job's worktree record in the shared clone.
+    # (`git worktree remove` refuses once git-annex has made `containers/.git`
+    # a symlink.)
+    case "{% raw %}${CONTAINERS_GITDIR:-}{% endraw %}" in
+      */worktrees/*) rm -rf "{% raw %}${CONTAINERS_GITDIR}{% endraw %}" 2>/dev/null || true ;;
+    esac
     datalad drop -r . --reckless availability --reckless modification >/dev/null 2>&1 || true
     git annex dead here >/dev/null 2>&1 || true
   fi
@@ -151,33 +157,52 @@ CONTAINER_IMAGE_PATHS=(
 {% endfor %}
 )
 
+CONTAINER_FILES=( "${CONTAINER_IMAGE_PATHS[@]#containers/}" )
 CONTAINERS_SHARED="{{ analysis_path }}/containers"
+# Use the containers commit this job's dataset records, so the image the job
+# runs is the one its provenance names, even if the shared clone has moved on.
+CONTAINERS_COMMIT="$(git rev-parse HEAD:containers)"
 # The checkout above left `containers` as an empty folder. Remove it so
 # the worktree can take its place.
 rm -rf containers
 
 # Create the worktree, but don't put any files in it yet
-# (--no-checkout). Many jobs can do this at the same time safely. The job's
-# folder is deleted when it finishes; `babs submit` later clears the leftover
-# worktree records from the shared clone.
-git -C "${CONTAINERS_SHARED}" worktree add --detach --force --no-checkout "${PWD}/containers" HEAD
+# (--no-checkout). Many jobs can do this at the same time safely.
+# `--lock` stops `git worktree prune` in `babs submit` from deleting this
+# job's record while the job runs: the submit host usually can't see the job's
+# scratch folder, so prune would think the worktree is gone. The lock reason
+# names the job, so `babs submit` can clear the record if the job is killed
+# before `cleanup` deletes it.
+git -C "${CONTAINERS_SHARED}" worktree add --detach --force --no-checkout \
+  --lock --reason "babs ${BRANCH}" "${PWD}/containers" "${CONTAINERS_COMMIT}"
+CONTAINERS_GITDIR="$(git -C containers rev-parse --absolute-git-dir)"
 
 # Put in only the image file(s) this job needs, not the whole container
-# dataset (ReproNim/containers alone has ~1,700 files). These two commands only
-# change this job's worktree, never the shared clone. (`git sparse-checkout`
-# would do the same, but it edits the shared clone's settings from every job.)
+# dataset (ReproNim/containers alone has ~1,700 files). Every other file is
+# marked skip-worktree, so git doesn't report it as deleted. These commands
+# only change this job's worktree, never the shared clone. (`git
+# sparse-checkout` would do the same, but it edits the shared clone's settings
+# from every job.)
 git -C containers read-tree HEAD
-git -C containers checkout-index -- "${CONTAINER_IMAGE_PATHS[@]#containers/}"
+git -C containers ls-files -z | git -C containers update-index -z --skip-worktree --stdin
+git -C containers update-index --no-skip-worktree -- "${CONTAINER_FILES[@]}"
+git -C containers checkout-index -- "${CONTAINER_FILES[@]}"
 
-# Connect the worktree to the image data stored in the shared clone, so
-# the image file opens the copy `babs submit` already fetched. git-annex
-# normally does this by itself on checkout, but --no-checkout skipped it.
-( cd containers && git annex smudge --update )
+# The image symlinks point into `containers/.git/annex`, which doesn't exist
+# until git-annex links this worktree to the shared clone's annex. Any
+# git-annex command does that the first time it runs here. `git annex find`
+# only reads, so many jobs can run it at once without writing to the shared
+# clone's annex.
+( cd containers && git annex find -- "${CONTAINER_FILES[@]}" >/dev/null )
 
 # Stop now if any image can't be read, instead of failing inside the app.
+# Only locked (symlinked) git-annex images are supported: an unlocked image
+# would be checked out as a pointer file, and getting its content into the
+# worktree would copy the whole image.
 for CONTAINER_JOB in "${CONTAINER_IMAGE_PATHS[@]}"; do
-  if [ ! -r "${CONTAINER_JOB}" ]; then
+  if [ ! -L "${CONTAINER_JOB}" ] || [ ! -r "${CONTAINER_JOB}" ]; then
     echo "ERROR: shared container image not available via worktree: ${CONTAINER_JOB}" >&2
+    echo "It must be a locked git-annex file whose content \`babs submit\` fetched." >&2
     exit 1
   fi
 done

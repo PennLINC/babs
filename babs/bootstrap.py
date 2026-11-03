@@ -4,6 +4,7 @@ import csv
 import os
 import os.path as op
 import shutil
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
@@ -47,31 +48,24 @@ def prioritize_local_container_source(containers_path):
     which is the retrieval that was stalling.
     """
     # Each remote git-annex knows about carries a `remote.<name>.annex-uuid`.
-    # `--get-regexp` prints `<key> <value>` per line, so parse the key only.
     result = subprocess.run(
-        ['git', 'config', '--get-regexp', r'^remote\..*\.annex-uuid$'],
+        ['git', 'config', '--name-only', '--get-regexp', r'^remote\..*\.annex-uuid$'],
         cwd=containers_path,
         stdout=subprocess.PIPE,
         text=True,
         check=False,
     )
-    annex_remotes = []
-    for line in result.stdout.splitlines():
-        key = line.split(maxsplit=1)[0] if line.split() else ''
-        if key.startswith('remote.') and key.endswith('.annex-uuid'):
-            annex_remotes.append(key[len('remote.') : -len('.annex-uuid')])
+    annex_remotes = {
+        key[len('remote.') : -len('.annex-uuid')] for key in result.stdout.splitlines()
+    }
 
-    for name in annex_remotes:
+    costs = dict.fromkeys(annex_remotes - {'origin'}, '300')
+    # `origin` may not yet carry an annex-uuid, but it is the source babs
+    # cloned from; make it cheap regardless.
+    costs['origin'] = '50'
+    for name, cost in costs.items():
         subprocess.run(
-            ['git', 'config', f'remote.{name}.annex-cost', '50' if name == 'origin' else '300'],
-            cwd=containers_path,
-            check=False,
-        )
-    if 'origin' not in annex_remotes:
-        # `origin` may not yet carry an annex-uuid, but it is the source babs
-        # cloned from; make it cheap regardless.
-        subprocess.run(
-            ['git', 'config', 'remote.origin.annex-cost', '50'],
+            ['git', 'config', f'remote.{name}.annex-cost', cost],
             cwd=containers_path,
             check=False,
         )
@@ -300,6 +294,13 @@ class BABSBootstrap(BABS):
                 stdout=subprocess.PIPE,
                 check=True,
             )
+            # git applies that setting only to what it creates from now on, and
+            # the clone's `.git` is not group-writable. Jobs write only to
+            # `.git/worktrees`, so create it group-writable now.
+            worktrees_dir = op.join(self.analysis_path, 'containers', '.git', 'worktrees')
+            os.makedirs(worktrees_dir, exist_ok=True)
+            mode = os.stat(worktrees_dir).st_mode | stat.S_IRWXG | stat.S_ISGID
+            os.chmod(worktrees_dir, mode)  # noqa: S103
 
         # Resolve image paths from the datalad-containers registration
         # (possible only now that the containers subdataset is on disk).

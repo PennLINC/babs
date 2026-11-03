@@ -323,44 +323,46 @@ def test_ensure_container_images_errors_if_get_does_not_create_image(tmp_path, m
         babs_proj.ensure_container_images_available()
 
 
-def test_ensure_container_images_prunes_stale_job_worktrees(tmp_path, monkeypatch):
-    """Worktrees left behind by finished jobs are pruned before the next submit."""
-    analysis_path = tmp_path / 'analysis'
-    containers_path = analysis_path / 'containers'
-    image_relpath = 'containers/.datalad/environments/test/image'
-    (analysis_path / image_relpath).parent.mkdir(parents=True)
-    (analysis_path / image_relpath).write_text('image')
-    (containers_path / '.datalad' / 'config').write_text('')
+def test_prune_container_worktrees_keeps_running_jobs(tmp_path):
+    """Only records of jobs no longer in the queue are pruned (babs#416).
+
+    Job worktrees usually sit on node-local scratch the submit host can't see,
+    so a running job's worktree looks deleted from here.
+    """
+    containers_path = tmp_path / 'analysis' / 'containers'
+    containers_path.mkdir(parents=True)
+    (containers_path / 'file').write_text('x')
 
     def git(*args):
-        subprocess.run(['git', *args], cwd=containers_path, check=True, capture_output=True)
+        return subprocess.run(
+            ['git', *args], cwd=containers_path, check=True, capture_output=True, text=True
+        ).stdout
 
     git('init', '-q')
     git('add', '.')
     git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'init')
-    # A job adds a worktree, then its scratch dir is removed on exit:
-    job_worktree = tmp_path / 'scratch' / 'job-1' / 'ds' / 'containers'
-    git('worktree', 'add', '--detach', str(job_worktree), 'HEAD')
+    # Jobs lock their worktree with reason `babs <branch>`. None of these
+    # folders is visible here: running on another node, killed, or finished
+    # before locking was added.
+    for branch, lock in [
+        ('job-7-1-sub-01', True),  # still running
+        ('job-7-2-sub-02', True),  # killed before its cleanup ran
+        ('job-6-1-sub-03', False),  # unlocked and gone
+    ]:
+        job_worktree = tmp_path / 'scratch' / branch / 'ds' / 'containers'
+        lock_args = ['--lock', '--reason', f'babs {branch}'] if lock else []
+        git('worktree', 'add', '--detach', *lock_args, str(job_worktree), 'HEAD')
     shutil.rmtree(tmp_path / 'scratch')
 
     babs_proj = object.__new__(BABSInteraction)
-    babs_proj.analysis_path = str(analysis_path)
-    babs_proj.container_images = [image_relpath]
-    monkeypatch.setattr(
-        'babs.interaction.dlapi.get',
-        lambda path, dataset: pytest.fail('image already present; no get expected'),
-    )
+    babs_proj.analysis_path = str(tmp_path / 'analysis')
+    running = pd.DataFrame({'job_id': [7], 'task_id': [1], 'state': ['R']})
 
-    babs_proj.ensure_container_images_available()
+    babs_proj.prune_container_worktrees(running)
 
-    worktrees = subprocess.run(
-        ['git', 'worktree', 'list', '--porcelain'],
-        cwd=containers_path,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
-    assert worktrees.count('worktree ') == 1  # only the main working tree remains
+    worktrees = git('worktree', 'list', '--porcelain')
+    assert worktrees.count('worktree ') == 2  # the main working tree + the running job
+    assert 'job-7-1-sub-01' in worktrees
 
 
 def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):
