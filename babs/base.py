@@ -449,6 +449,10 @@ class BABS:
         safe_dirs = set()
         if op.exists(self.analysis_path):
             safe_dirs.add(op.realpath(self.analysis_path))
+        # Jobs run `git worktree add` off the shared containers clone:
+        containers_path = op.join(self.analysis_path, 'containers')
+        if op.exists(containers_path):
+            safe_dirs.add(op.realpath(containers_path))
 
         for ria_root in (self.input_ria_path, self.output_ria_path):
             ria_root_path = Path(ria_root)
