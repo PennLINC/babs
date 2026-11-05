@@ -1,6 +1,8 @@
 """Tests for interaction behaviors."""
 
 import json
+import shutil
+import subprocess
 from functools import partial
 from pathlib import Path
 
@@ -319,6 +321,48 @@ def test_ensure_container_images_errors_if_get_does_not_create_image(tmp_path, m
 
     with pytest.raises(FileNotFoundError, match='still not available after `datalad get`'):
         babs_proj.ensure_container_images_available()
+
+
+def test_prune_container_worktrees_keeps_running_jobs(tmp_path):
+    """Only records of jobs no longer in the queue are pruned (babs#416).
+
+    Job worktrees usually sit on node-local scratch the submit host can't see,
+    so a running job's worktree looks deleted from here.
+    """
+    containers_path = tmp_path / 'analysis' / 'containers'
+    containers_path.mkdir(parents=True)
+    (containers_path / 'file').write_text('x')
+
+    def git(*args):
+        return subprocess.run(
+            ['git', *args], cwd=containers_path, check=True, capture_output=True, text=True
+        ).stdout
+
+    git('init', '-q')
+    git('add', '.')
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'init')
+    # Jobs lock their worktree with reason `babs <branch>`. None of these
+    # folders is visible here: running on another node, killed, or finished
+    # before locking was added.
+    for branch, lock in [
+        ('job-7-1-sub-01', True),  # still running
+        ('job-7-2-sub-02', True),  # killed before its cleanup ran
+        ('job-6-1-sub-03', False),  # unlocked and gone
+    ]:
+        job_worktree = tmp_path / 'scratch' / branch / 'ds' / 'containers'
+        lock_args = ['--lock', '--reason', f'babs {branch}'] if lock else []
+        git('worktree', 'add', '--detach', *lock_args, str(job_worktree), 'HEAD')
+    shutil.rmtree(tmp_path / 'scratch')
+
+    babs_proj = object.__new__(BABSInteraction)
+    babs_proj.analysis_path = str(tmp_path / 'analysis')
+    running = pd.DataFrame({'job_id': [7], 'task_id': [1], 'state': ['R']})
+
+    babs_proj.prune_container_worktrees(running)
+
+    worktrees = git('worktree', 'list', '--porcelain')
+    assert worktrees.count('worktree ') == 2  # the main working tree + the running job
+    assert 'job-7-1-sub-01' in worktrees
 
 
 def test_babs_submit_allows_cg_jobs(babs_project_subjectlevel, monkeypatch):

@@ -174,6 +174,69 @@ As you can see, in the summary ``Job status``, there are multiple sections:
 Finally, you can find the log files (``stdout``, ``stderr``) in the path provided
 in the last line of the printed message (line #27).
 
+.. _duct-records:
+
+Besides those log files, which the cluster writes, each job records the BIDS App's own run with
+`duct <https://github.com/con/duct>`_: its resource usage sampled over time, an estimate of its
+peak memory (sampled, so a short spike can be missed), and its ``stdout`` and ``stderr``,
+observed from outside the container.
+This needs ``duct`` on the job's ``PATH``, which activating the BABS environment in
+:ref:`script_preamble <script-preamble>` provides; without it, the job runs the BIDS App without
+duct and says so in its ``stderr`` log file.
+duct's settings, such as ``DUCT_SAMPLE_INTERVAL``, can be set by exporting its environment
+variables in ``script_preamble`` (``duct --help`` lists them).
+``DUCT_OUTPUT_PREFIX`` is the exception: the job sets it to the path below, overriding any value
+from the preamble.
+These records are written next to the cluster's log files, in the project's ``analysis/logs/duct`` folder::
+
+    analysis/logs/duct/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_info.json
+    analysis/logs/duct/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_usage.jsonl
+    analysis/logs/duct/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_stdout
+    analysis/logs/duct/sub-xx[/ses-xx]/acq-<datetime>+<array job id>_<task id>_stderr
+
+They are written while the job runs, so they can be read before it finishes, and a failed job
+keeps its records there too. This is the first place to look.
+The compute nodes must be able to write to the ``analysis`` folder, as they already must for the
+cluster's log files.
+
+When the BIDS App succeeds, the job's records are also copied into the App's output folder,
+``<zip_foldername>/logs/sub-xx[/ses-xx]/``, so they are zipped together with the results.
+If that copy fails, the job still succeeds, and a warning in the job's ``stderr`` log file says so.
+
+``info.json`` also carries the job's ``SLURM_*`` environment, so a record can be matched back to
+its job.
+
+The ``con-duct`` command-line tool, installed with BABS, summarizes the records.
+``con-duct ls`` needs ``con-duct[all]`` for its table and ``con-duct plot`` needs it for matplotlib,
+so install that into the environment you inspect from.
+From the ``analysis`` folder:
+
+.. code-block:: bash
+
+    # One row per job: command, exit code, wall time and peak memory
+    con-duct ls logs/duct/*/*_info.json
+
+    # Choose the columns (the paths go first: -F takes every word after it)
+    con-duct ls logs/duct/*/*_info.json -F wall_clock_time peak_rss exit_code
+
+    # Only the jobs whose BIDS App failed
+    con-duct ls logs/duct/*/*_info.json -e "exit_code != 0"
+
+    # One job's full summary, with human-readable units
+    con-duct pp -H logs/duct/sub-01/acq-<datetime>+<array job id>_<task id>_info.json
+
+    # One job's memory and CPU over time, saved as an image
+    con-duct plot -o sub-01.png logs/duct/sub-01/acq-<datetime>+<array job id>_<task id>_usage.jsonl
+
+For session-level processing, the records are one folder deeper, so use ``logs/duct/*/*/*_info.json``.
+``con-duct ls --help`` lists the other fields that ``-F`` and ``-e`` accept.
+
+``con-duct plot`` draws the App's CPU and memory over the run; here, one MRIQC job:
+
+.. image:: _static/duct_plot.png
+   :alt: con-duct plot of one MRIQC job: CPU percent and resident memory over about eight minutes,
+         with memory peaking near 21 GB.
+
 
 *********************************
 Explanation on ``job_status.csv``
