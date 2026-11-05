@@ -2,6 +2,8 @@
 
 import json
 import os.path as op
+import re
+import subprocess
 import sys
 import time
 
@@ -61,6 +63,41 @@ class BABSInteraction(BABS):
                 raise FileNotFoundError(
                     'Container image is still not available after `datalad get`: ' + image_path_abs
                 )
+
+    def prune_container_worktrees(self, currently_running_df) -> None:
+        """Clear container worktree records left behind by jobs that are no longer running.
+
+        Each job adds a locked `git worktree` of `analysis/containers`
+        (participant_job.sh) and deletes its record when it exits. A job killed
+        before its cleanup ran leaves a locked record behind; unlock those
+        whose job is not in the queue, then prune. Locked records of queued
+        jobs are left alone: their worktrees usually sit on node-local scratch,
+        which `git worktree prune` here would take for deleted (babs#416).
+        """
+        containers_path = op.join(self.analysis_path, 'containers')
+        queued = currently_running_df.reindex(columns=['job_id', 'task_id']).dropna()
+        active = set(zip(queued['job_id'].astype(int), queued['task_id'].astype(int), strict=True))
+        listing = subprocess.run(
+            ['git', '-C', containers_path, 'worktree', 'list', '--porcelain'],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout
+        for record in listing.split('\n\n'):
+            fields = dict(line.partition(' ')[::2] for line in record.splitlines())
+            # The job locks its record with reason `babs job-<job_id>-<task_id>-...`:
+            match = re.match(r'babs job-(\d+)-(\d+)-', fields.get('locked', ''))
+            if match and (int(match[1]), int(match[2])) not in active:
+                subprocess.run(
+                    ['git', '-C', containers_path, 'worktree', 'unlock', fields['worktree']],
+                    capture_output=True,
+                    check=False,
+                )
+        subprocess.run(
+            ['git', '-C', containers_path, 'worktree', 'prune'],
+            capture_output=True,
+            check=False,
+        )
 
     def babs_submit(self, count=None, submit_df=None, skip_failed=False, skip_running_jobs=False):
         """
@@ -157,6 +194,7 @@ class BABSInteraction(BABS):
             print(f'Submitting the first {count} jobs')
             df_needs_submit = df_needs_submit.head(min(count, df_needs_submit.shape[0]))
 
+        self.prune_container_worktrees(currently_running_df)
         self.ensure_container_images_available()
 
         # We know task_id ahead of time, so we can add it to the dataframe

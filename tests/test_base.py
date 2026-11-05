@@ -17,7 +17,7 @@ from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
-from babs.bootstrap import BABSBootstrap
+from babs.bootstrap import BABSBootstrap, prioritize_local_container_source
 from babs.utils import container_image_path, read_yaml
 
 
@@ -487,3 +487,64 @@ def test_shared_group_inits_analysis_and_rias(
     ).stdout.splitlines()
     assert str(Path(babs_bootstrap.analysis_path).resolve()) in safe_dirs
     assert str(output_ria_dir.resolve()) in safe_dirs
+
+    # Jobs add worktrees off the shared containers clone, so it must be shared too.
+    containers_path = Path(babs_bootstrap.analysis_path) / 'containers'
+    containers_shared = subprocess.run(
+        ['git', 'config', '--get', 'core.sharedrepository'],
+        cwd=containers_path,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert containers_shared in {'1', 'group', 'true'}
+    assert str(containers_path.resolve()) in safe_dirs
+    # ...and other members' jobs must be able to add their worktree records:
+    worktrees_mode = (containers_path / '.git' / 'worktrees').stat().st_mode
+    assert worktrees_mode & stat.S_IRWXG == stat.S_IRWXG
+    assert worktrees_mode & stat.S_ISGID
+
+
+def _annex_cost(repo, remote):
+    return subprocess.run(
+        ['git', 'config', '--get', f'remote.{remote}.annex-cost'],
+        cwd=repo,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
+def test_prioritize_local_container_source(tmp_path):
+    """Local `origin` must beat auto-enabled network remotes (babs#416)."""
+    repo = tmp_path / 'containers'
+    repo.mkdir()
+    subprocess.run(['git', 'init', '-q'], cwd=repo, check=True)
+    # e.g. ReproNim/containers re-enables a `datalad` special remote and an http
+    # remote in every clone, at the same cost as a local `origin`:
+    for remote, uuid in [
+        ('origin', 'c0ca3dbc-b524-4943-b41d-3a0000000000'),
+        ('datalad', 'cf13d535-b47c-5df6-8590-0793cb08a90a'),
+        ('datasets.datalad.org', 'd2e7a8b4-0000-4000-8000-000000000000'),
+    ]:
+        subprocess.run(
+            ['git', 'config', f'remote.{remote}.annex-uuid', uuid], cwd=repo, check=True
+        )
+
+    prioritize_local_container_source(str(repo))
+
+    assert _annex_cost(repo, 'origin') == '50'
+    assert _annex_cost(repo, 'datalad') == '300'
+    assert _annex_cost(repo, 'datasets.datalad.org') == '300'
+
+
+def test_prioritize_local_container_source_origin_without_annex_uuid(tmp_path):
+    """`origin` is made cheap even before git-annex has recorded its UUID."""
+    repo = tmp_path / 'containers'
+    repo.mkdir()
+    subprocess.run(['git', 'init', '-q'], cwd=repo, check=True)
+    subprocess.run(['git', 'remote', 'add', 'origin', str(tmp_path / 'src')], cwd=repo, check=True)
+
+    prioritize_local_container_source(str(repo))
+
+    assert _annex_cost(repo, 'origin') == '50'
