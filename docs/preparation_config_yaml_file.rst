@@ -337,6 +337,10 @@ Advanced - Manual of writing section ``bids_app_args``
       ``reportseff`` (`library here <https://github.com/troycomi/reportseff>`_) or ``seff_array`` to check the resource
       usage. You can then edit the resources in the ``<bids_app>_zip.sh`` and ``participant_job.sh`` in
       the ``analysis/code`` folder.
+    * Each job also records the BIDS App's own usage with `duct <https://github.com/con/duct>`_ (see :ref:`the duct records <duct-records>`).
+      Its peak memory is an estimate of the App's own, sampled from outside the container so a
+      short spike can be missed; the scheduler's figure covers the whole job, page cache included.
+      Expect the two to differ.
 
 .. developer's note: for SLURM: ref: https://login.scg.stanford.edu/faqs/cores/
 ..  other ref: https://docs.mpcdf.mpg.de/doc/computing/clusters/aux/migration-from-sge-to-slurm
@@ -532,15 +536,21 @@ you must only provide one foldername in ``zip_foldernames``.
 Other detailed instructions
 ---------------------------
 
-* The version number should be consistent as that in *image NAME* when :ref:`create-a-container-datalad-dataset`.
+* The version number should be the version of the image you registered.
+  If you built the container dataset yourself (:ref:`create-a-container-datalad-dataset`),
+  it is usually part of the *image NAME* too:
 
     * In example #1, you probably use ``fmriprep-20-2-3`` for *image NAME*;
     * In example #2, you probably use ``fmriprep-23-1-3`` for *image NAME*.
 
-* When calling ``babs init``, argument ``--container-name`` should use the same version too, i.e.,
+* When calling ``babs init``, argument ``--container-name`` is that *image NAME*, i.e.,
 
     * ``--container-name fmriprep-20-2-3`` in example #1;
     * ``--container-name fmriprep-23-1-3`` in example #2;
+
+  With :ref:`ReproNim/containers <use-repronim-containers>` the registered name carries no version
+  (``--container-name bids-fmriprep``); the version is in the image path that
+  ``datalad containers-list`` shows, and it is the one to write in ``zip_foldernames``.
 
 * Please use dashes ``-`` instead of dots ``.`` when indicating the version number,
   e.g., ``20-2-3`` instead of ``20.2.3``.
@@ -691,6 +701,8 @@ that provides options for cluster resources requests, this section **script_prea
 bash commands that are required by job running. An example would be to activate the conda environment;
 however, different clusters may require different commands to do so. Therefore, BABS asks the user to
 provide it.
+Activating the BABS environment also puts ``duct`` on the job's ``PATH``, which each job needs for
+:ref:`its duct records <duct-records>`; without it, the job skips them.
 
 Example section **script_preamble** for a specific cluster:
 

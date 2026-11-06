@@ -17,8 +17,103 @@ from conftest import get_config_simbids_path, update_yaml_for_run
 
 from babs import BABSCheckSetup
 from babs.base import BABS, CONFIG_SECTIONS
-from babs.bootstrap import BABSBootstrap
-from babs.utils import container_image_path, read_yaml
+from babs.bootstrap import BABSBootstrap, prioritize_local_container_source
+from babs.procedures import (
+    BIDS_GITATTRIBUTES,
+    CODE_GITATTRIBUTES,
+    PROCEDURES_DIR,
+    procedures_registered,
+)
+from babs.utils import container_image_path, git_annex_has_magicmime, read_yaml
+
+
+def test_bootstrap_writes_bids_gitattributes(babs_project_sessionlevel):
+    """`babs init` installs the BIDS-friendly `.gitattributes` in `analysis/`."""
+    gitattributes = Path(babs_project_sessionlevel) / 'analysis' / '.gitattributes'
+    assert gitattributes.read_text() == BIDS_GITATTRIBUTES
+
+
+def test_bootstrap_writes_code_gitattributes(babs_project_sessionlevel):
+    """The `cfg_babs` procedure (not yoda) keeps all of `analysis/code/` in git."""
+    code = Path(babs_project_sessionlevel) / 'analysis' / 'code'
+    assert code.is_dir()
+    assert (code / '.gitattributes').read_text() == CODE_GITATTRIBUTES
+
+
+def test_git_annex_has_magicmime():
+    """BABS requires (and CI provides) a MagicMime-enabled git-annex."""
+    assert git_annex_has_magicmime() is True
+
+
+def test_bootstrap_requires_magicmime(tmp_path, monkeypatch):
+    """`babs init` stops early with a clear error when git-annex lacks MagicMime."""
+    monkeypatch.setattr('babs.bootstrap.git_annex_has_magicmime', lambda: False)
+    project_root = tmp_path / 'myproject'
+    proj = BABSBootstrap(str(project_root))
+    with pytest.raises(RuntimeError, match='MagicMime'):
+        proj.babs_bootstrap(
+            processing_level='session',
+            queue='slurm',
+            container_ds='x',
+            container_name='x',
+        )
+    # It fails before creating anything on disk:
+    assert not project_root.exists()
+
+
+def test_procedures_registered_restores_config():
+    """`procedures_registered` registers the procedures dir only within the block."""
+    from datalad import cfg as datalad_cfg
+
+    key = 'datalad.locations.extra-procedures'
+    before = datalad_cfg.get(key)
+    with procedures_registered():
+        assert datalad_cfg.get(key) == PROCEDURES_DIR
+    assert datalad_cfg.get(key) == before
+
+
+def test_bids_gitattributes_file_placement(tmp_path):
+    """Small text and empty files land in git; binary and large files in the annex."""
+    # (filename, content, expect_annexed). An empty file has no content for
+    # libmagic to judge, so it reads as binary and needs the size guard.
+    cases = [
+        ('empty.json', b'', False),
+        ('participants.tsv', b'participant_id\nsub-01\n', False),
+        ('sub-01_T1w.json', b'{"EchoTime": 0.005}\n', False),
+        ('README', b'x' * 50_000, False),
+        ('sub-01_T1w.nii.gz', os.urandom(1024), True),
+        ('sub-01_desc-confounds_timeseries.tsv', b'a\tb\n' + b'1\t2\n' * 300_000, True),
+    ]
+
+    def git(*args):
+        return subprocess.run(
+            ('git', '-c', 'user.name=babs', '-c', 'user.email=babs@example.com', *args),
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+
+    git('init', '-q', '.')
+    git('annex', 'init', '-q', 'test')
+    (tmp_path / '.gitattributes').write_text(BIDS_GITATTRIBUTES)
+    git('add', '.gitattributes')
+    git('commit', '-qm', 'attrs')
+
+    for name, content, _ in cases:
+        (tmp_path / name).write_bytes(content)
+    git('annex', 'add', '-q', '.')
+    git('commit', '-qm', 'files')
+
+    # `--include=*` asks whether a file is annexed at all; bare `find` would
+    # only list the ones whose content is present.
+    annexed = set(git('annex', 'find', '--include=*').split())
+    tracked = set(git('ls-files').split())
+    # Not-annexed only means in git if the file is tracked at all.
+    assert tracked == {name for name, _, _ in cases} | {'.gitattributes'}
+    assert {name: name in annexed for name, _, _ in cases} == {
+        name: expect_annexed for name, _, expect_annexed in cases
+    }
 
 
 def test_missing_config_parts(babs_project_sessionlevel):
@@ -487,3 +582,64 @@ def test_shared_group_inits_analysis_and_rias(
     ).stdout.splitlines()
     assert str(Path(babs_bootstrap.analysis_path).resolve()) in safe_dirs
     assert str(output_ria_dir.resolve()) in safe_dirs
+
+    # Jobs add worktrees off the shared containers clone, so it must be shared too.
+    containers_path = Path(babs_bootstrap.analysis_path) / 'containers'
+    containers_shared = subprocess.run(
+        ['git', 'config', '--get', 'core.sharedrepository'],
+        cwd=containers_path,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert containers_shared in {'1', 'group', 'true'}
+    assert str(containers_path.resolve()) in safe_dirs
+    # ...and other members' jobs must be able to add their worktree records:
+    worktrees_mode = (containers_path / '.git' / 'worktrees').stat().st_mode
+    assert worktrees_mode & stat.S_IRWXG == stat.S_IRWXG
+    assert worktrees_mode & stat.S_ISGID
+
+
+def _annex_cost(repo, remote):
+    return subprocess.run(
+        ['git', 'config', '--get', f'remote.{remote}.annex-cost'],
+        cwd=repo,
+        stdout=subprocess.PIPE,
+        text=True,
+        check=True,
+    ).stdout.strip()
+
+
+def test_prioritize_local_container_source(tmp_path):
+    """Local `origin` must beat auto-enabled network remotes (babs#416)."""
+    repo = tmp_path / 'containers'
+    repo.mkdir()
+    subprocess.run(['git', 'init', '-q'], cwd=repo, check=True)
+    # e.g. ReproNim/containers re-enables a `datalad` special remote and an http
+    # remote in every clone, at the same cost as a local `origin`:
+    for remote, uuid in [
+        ('origin', 'c0ca3dbc-b524-4943-b41d-3a0000000000'),
+        ('datalad', 'cf13d535-b47c-5df6-8590-0793cb08a90a'),
+        ('datasets.datalad.org', 'd2e7a8b4-0000-4000-8000-000000000000'),
+    ]:
+        subprocess.run(
+            ['git', 'config', f'remote.{remote}.annex-uuid', uuid], cwd=repo, check=True
+        )
+
+    prioritize_local_container_source(str(repo))
+
+    assert _annex_cost(repo, 'origin') == '50'
+    assert _annex_cost(repo, 'datalad') == '300'
+    assert _annex_cost(repo, 'datasets.datalad.org') == '300'
+
+
+def test_prioritize_local_container_source_origin_without_annex_uuid(tmp_path):
+    """`origin` is made cheap even before git-annex has recorded its UUID."""
+    repo = tmp_path / 'containers'
+    repo.mkdir()
+    subprocess.run(['git', 'init', '-q'], cwd=repo, check=True)
+    subprocess.run(['git', 'remote', 'add', 'origin', str(tmp_path / 'src')], cwd=repo, check=True)
+
+    prioritize_local_container_source(str(repo))
+
+    assert _annex_cost(repo, 'origin') == '50'

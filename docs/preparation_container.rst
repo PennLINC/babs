@@ -12,14 +12,82 @@ Here, "DataLad dataset" is a DataLad concept: "a dataset" means "a collection of
 and this "DataLad dataset" is version tracked by DataLad. So "container DataLad dataset" means "a collection of
 container image(s) in a folder tracked by DataLad".
 
+Within that dataset, each image is *registered* under a name with
+`datalad-container <http://docs.datalad.org/projects/container/>`_.
+BABS reads the registration to find the image file, so the image can live anywhere
+in the dataset: ``babs init`` takes the dataset path (``--container_ds``) and the
+registered name (``--container_name``), and resolves the rest.
+
+There are two ways to get such a dataset.
+The first is the quickest, and covers most published BIDS Apps.
+
+.. _use-repronim-containers:
+
+Option 1. Use ReproNim/containers
+=================================
+`ReproNim/containers <https://github.com/ReproNim/containers>`_ is a DataLad dataset
+of ready-to-use Singularity images of BIDS Apps (fMRIPrep, QSIPrep, MRIQC, ...),
+one registration per app, versioned, and maintained by the ReproNim team.
+It is a container DataLad dataset with nothing to build, and its URL can be given
+to ``babs init`` directly:
+
+.. code-block:: console
+
+    babs init \
+        --container_ds https://github.com/ReproNim/containers.git \
+        --container_name bids-fmriprep \
+        ...
+
+``babs init`` clones it into the BABS project, and the jobs fetch the image
+when they first need it.
+The registered names follow the pattern ``bids-<app>`` (``bids-fmriprep``, ``bids-qsiprep``, ``bids-mriqc``);
+the full list is what ``datalad containers-list`` prints in a clone of the dataset (see below).
+
+If you will create more than one BABS project, if your compute nodes have no
+internet access, or if you need a version other than the registered one,
+clone it once and pass the clone's path instead:
+
+.. code-block:: console
+
+    datalad clone https://github.com/ReproNim/containers.git containers
+    cd containers
+    datalad containers-list
+    datalad get images/bids/bids-fmriprep--25.2.5.sif
+
+The images are annexed, so the clone holds only pointers until ``datalad get``.
+Getting the image you need there means every BABS project made from this clone
+copies it locally rather than downloading it again.
+
+Either way, pass the dataset (URL or clone path) as ``--container_ds`` and the
+registered name as ``--container_name`` when running ``babs init``
+(see :doc:`babs-init` for a full example).
+
+.. note::
+
+    **Versions.** ReproNim/containers keeps many versions of each app under ``images/``
+    (``bids-fmriprep--24.1.1.sing``, ``bids-fmriprep--25.2.5.sif``, ...), but a name
+    is registered once and points at one of them; ``datalad containers-list`` shows which.
+    To have ``bids-fmriprep`` point at another version, run the dataset's
+    ``scripts/freeze_versions`` in your clone before ``babs init``, for example
+    ``scripts/freeze_versions --save-dataset=. bids-fmriprep=24.1.1``.
+    ``--save-dataset=.`` commits the change; without it the new version is only
+    in the working tree, and the clone ``babs init`` makes would silently keep the old one.
+    See `Freezing Container Image Versions <https://github.com/ReproNim/containers#freezing-container-image-versions>`_
+    in the ReproNim/containers README.
+
+If the BIDS App you need is not in ReproNim/containers, or you need a version it does not carry,
+build your own dataset instead.
+
+.. _build-your-own-container-dataset:
+
+Option 2. Build your own container DataLad dataset
+==================================================
+
 Toy BIDS App
-============
+------------
 We prepared a toy BIDS App that can be used for quick testing. It counts non-hidden files
 in a subject's (or a session's) folder. The detailed descriptions can be found
 `here <https://github.com/PennLINC/babs_tests/blob/main/docker/README.md>`_.
-
-How to prepare a container DataLad dataset of BIDS App?
-=======================================================
 
 Step 1. Get BIDS App container image
 ------------------------------------
@@ -55,7 +123,10 @@ You may use DataLad command ``datalad containers-add`` to add the built Singular
 Note the last argument is the *image NAME* in the container DataLad dataset.
 This string can only have characters and dashes in it.
 Remember what you assign as the *image NAME* because you will copy it for argument
-``--container_ds`` when ``babs init``.
+``--container_name`` when ``babs init``.
+
+From here on it is used exactly like a ReproNim/containers clone:
+the dataset is ``--container_ds`` and the *image NAME* is ``--container_name``.
 
 .. Note: above steps have been tested on CUBIC cluster. MC 4/16/2025.
 
@@ -63,6 +134,7 @@ References
 ==========
 For more details, please refer to:
 
+* `ReproNim/containers <https://github.com/ReproNim/containers>`_ and its README, for the list of available BIDS Apps
 * ``datalad containers-add``'s command-line interface: `DataLad documentation <http://docs.datalad.org/projects/container/en/latest/generated/man/datalad-containers-add.html>`_
 * `DataLad Handbook: containers <https://handbook.datalad.org/en/latest/basics/101-133-containersrun.html>`_.
 
