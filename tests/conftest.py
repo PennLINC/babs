@@ -272,7 +272,9 @@ def get_config_simbids_path():
     return e2e_slurm_path / 'config_simbids.yaml'
 
 
-def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
+def update_yaml_for_run(
+    new_dir, babs_config_yaml, input_datasets_updates=None, path_in_babs_updates=None
+):
     """Copy a packaged yaml to a new_dir and make any included_files in new_dir.
 
     Parameters
@@ -282,7 +284,13 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     babs_config_yaml : str
         The name of the yaml file to copy.
     input_datasets_updates : dict
-        A dictionary of input datasets to update in the yaml file.
+        A dictionary of input datasets to update in the yaml file,
+        mapping dataset name to its new `origin_url`.
+    path_in_babs_updates : dict or None
+        A dictionary mapping input dataset name to a new `path_in_babs`,
+        i.e. where the dataset is cloned relative to the `analysis` folder.
+        Used to test non-default layouts (e.g. the BIDS-study layout's
+        `sourcedata/<name>`).
 
     Returns
     -------
@@ -315,6 +323,9 @@ def update_yaml_for_run(new_dir, babs_config_yaml, input_datasets_updates=None):
     if input_datasets_updates:
         for ds_name, ds_path in input_datasets_updates.items():
             babs_config['input_datasets'][ds_name]['origin_url'] = ds_path
+    if path_in_babs_updates:
+        for ds_name, path_in_babs in path_in_babs_updates.items():
+            babs_config['input_datasets'][ds_name]['path_in_babs'] = path_in_babs
 
     yaml_data = babs_config.copy()
     for imported_file in yaml_data.get('imported_files', []):
@@ -396,9 +407,16 @@ def get_babs_project(
     bids_data,
     processing_level,
     return_path=True,
+    path_in_babs=None,
 ):
     """
-    Create a BABS project set to process at the session-level
+    Create a BABS project set to process at the given processing level.
+
+    Parameters
+    ----------
+    path_in_babs : str or None
+        If given, clone the `BIDS` input dataset to this path (relative to the
+        `analysis` folder) instead of the default `inputs/data/BIDS`.
     """
 
     from babs.bootstrap import BABSBootstrap
@@ -426,6 +444,7 @@ def get_babs_project(
         project_base,
         config_simbids_path.name,
         {'BIDS': bids_data},
+        path_in_babs_updates={'BIDS': path_in_babs} if path_in_babs else None,
     )
 
     babs_bootstrap = BABSBootstrap(project_root=project_root)
@@ -455,6 +474,26 @@ def babs_project_subjectlevel(
         bids_data_singlesession,
         'subject',
         return_path=True,
+    )
+
+
+@pytest.fixture
+def babs_project_subjectlevel_study_layout(
+    tmp_path_factory, templateflow_home, simbids_container_ds, bids_data_singlesession
+):
+    """A subject-level project whose input dataset is cloned to `sourcedata/BIDS`.
+
+    This mirrors the BIDS-study layout, where there is no `inputs/data` folder
+    at all (see #325).
+    """
+    return get_babs_project(
+        tmp_path_factory,
+        templateflow_home,
+        simbids_container_ds,
+        bids_data_singlesession,
+        'subject',
+        return_path=True,
+        path_in_babs='sourcedata/BIDS',
     )
 
 
