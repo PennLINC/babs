@@ -90,8 +90,8 @@ class BABSCheckSetup(BABS):
         if not self.input_datasets:
             raise ValueError(
                 'There is no input dataset in this BABS project!'
-                ' Please check `input_datasets` in the YAML file'
-                ' used to initialize this project.'
+                ' Please check the `input_datasets` section in'
+                f" '{analysis_dir}/code/babs_proj_config.yaml'."
             )
 
         # check each input ds:
