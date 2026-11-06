@@ -71,7 +71,9 @@ to do are as follows:
     cd <project_root>/analysis    # replace `<project_root>` with the path to your BABS project
 
     # Remove input dataset(s) one by one:
-    datalad remove -d inputs/data/<input_ds_name>   # replace `<input_ds_name>` with each input dataset's name
+    datalad remove -d <path_in_babs>   # replace `<path_in_babs>` with each input dataset's `path_in_babs`
+    #   (as recorded in `code/babs_proj_config.yaml`; e.g., `inputs/data/BIDS` by default,
+    #   or `sourcedata/BIDS` for the BIDS-study layout)
     # repeat above step until all input datasets have been removed.
     # if above command leads to "drop impossible" due to modified content, add `--reckless modification` at the end
 
