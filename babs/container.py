@@ -8,6 +8,7 @@ from jinja2 import Environment, PackageLoader, StrictUndefined
 
 from babs.generate_bidsapp_runscript import generate_bidsapp_runscript
 from babs.generate_submit_script import generate_submit_script, generate_test_submit_script
+from babs.templateflow import TEMPLATEFLOW_PATH_IN_BABS, templateflow_from_config
 from babs.utils import app_output_settings_from_config, container_image_path
 
 
@@ -130,7 +131,9 @@ class Container:
             os.makedirs(bash_dir)
 
         input_datasets = input_ds.as_records()
-        templateflow_home = os.getenv('TEMPLATEFLOW_HOME')
+        templateflow = templateflow_from_config(self.config)
+        # With a `templateflow` section, the subdataset is bound instead of TEMPLATEFLOW_HOME.
+        templateflow_home = None if templateflow else os.getenv('TEMPLATEFLOW_HOME')
 
         # What should the outputs look like?
         dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(self.config)
@@ -145,6 +148,7 @@ class Container:
             bids_app_args=self.config.get('bids_app_args', None),
             singularity_args=self.config.get('singularity_args', []),
             templateflow_home=templateflow_home,
+            templateflow_in_project=TEMPLATEFLOW_PATH_IN_BABS if templateflow else None,
         )
 
         with open(bash_path, 'w') as f:
@@ -196,6 +200,7 @@ class Container:
             zip_foldernames=self.config['zip_foldernames'],
             container_images=[self.container_path_relToAnalysis],
             analysis_path=analysis_path,
+            templateflow=templateflow_from_config(self.config),
         )
 
         with open(bash_path, 'w') as f:

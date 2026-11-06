@@ -6,6 +6,7 @@ from importlib import resources
 import yaml
 from jinja2 import Environment, PackageLoader, StrictUndefined
 
+from babs.templateflow import TEMPLATEFLOW_PATH_IN_BABS
 from babs.utils import container_image_path, var_safe_name
 
 # Multiple scheduler system handling
@@ -32,6 +33,7 @@ def generate_submit_script(
     container_images=None,
     datalad_run_message=None,
     analysis_path=None,
+    templateflow=None,
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
@@ -63,6 +65,8 @@ def generate_submit_script(
     analysis_path : str
         Absolute path to the analysis directory. Used in the generated script
         to locate shared container images.
+    templateflow : TemplateflowConfig, optional
+        The validated `templateflow` section; None when the config has none.
 
     Returns
     -------
@@ -133,6 +137,8 @@ def generate_submit_script(
         container_image_paths=container_image_paths,
         datalad_run_message=datalad_run_message,
         analysis_path=analysis_path,
+        templateflow=templateflow,
+        templateflow_path=TEMPLATEFLOW_PATH_IN_BABS,
     )
 
 

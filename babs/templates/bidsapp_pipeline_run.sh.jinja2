@@ -61,6 +61,11 @@ singularity run \
     -B "{{ templateflow_home_on_disk }}":"{{ templateflow_in_container }}" \
     --env "TEMPLATEFLOW_HOME={{ templateflow_in_container }}" \
 {% endif %}
+{% if templateflow_in_project %}
+    -B "${PWD}/{{ templateflow_in_project }}":"{{ templateflow_in_container }}":ro \
+    --env "TEMPLATEFLOW_HOME={{ templateflow_in_container }}" \
+    --env "TEMPLATEFLOW_AUTOUPDATE=0" \
+{% endif %}
 {% if step['flag_fs_license'] %}
     -B "{{ step['path_fs_license'] }}":"{{ PATH_FS_LICENSE_IN_CONTAINER }}" \
 {% endif %}

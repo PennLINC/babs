@@ -81,6 +81,9 @@ fi
 git sparse-checkout set \
   code \
   containers \
+{% if templateflow %}
+  {{ templateflow_path }} \
+{% endif %}
 {% for input_dataset in input_datasets %}
   {{ input_dataset['path_in_babs'] }}{% if not loop.last %} \
 {% endif %}
@@ -141,6 +144,14 @@ fi
 datalad get -n "{{ input_dataset['path_in_babs'] }}"
 {% endif %}
 {% endfor %}
+{% if templateflow %}
+
+# Templateflow: install the template subdatasets the `required` patterns reach (git only);
+# `datalad run -i` below fetches the matching files and records them as inputs.
+{% for template in templateflow.templates %}
+datalad get -n "{{ templateflow_path }}/{{ template }}"
+{% endfor %}
+{% endif %}
 
 {{ zip_locator_text }}
 
@@ -220,6 +231,11 @@ datalad run \
 {% endif %}
 {% endfor %}
 	${DATALAD_INPUTS[@]+"${DATALAD_INPUTS[@]}"} \
+{% if templateflow %}
+{% for pattern in templateflow.required %}
+	-i "{{ templateflow_path }}/{{ pattern }}" \
+{% endfor %}
+{% endif %}
 {% for image_path in container_image_paths %}
 	-i "{{ image_path }}" \
 {% endfor %}
