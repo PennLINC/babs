@@ -9,6 +9,7 @@ import pytest
 
 from babs import BABSCheckSetup
 from babs.constants import CHECK_MARK
+from babs.input_datasets import InputDatasets
 
 
 def add_commit_to_ria(ria_path, temp_path):
@@ -233,18 +234,58 @@ def test_check_setup_no_writable_workspace(babs_project_sessionlevel, monkeypatc
 #         babs_proj.babs_check_setup(submit_a_test_job=True)
 
 
-# def test_check_setup_missing_input_datasets(babs_project_subjectlevel):
-#     """Test check_setup behavior with missing input datasets."""
-#     # Remove the input dataset
-#     input_ds_path = babs_project_subjectlevel / 'analysis' / 'inputs' / 'data' / 'BIDS'
-#     if input_ds_path.exists():
-#         shutil.rmtree(input_ds_path)
+def mock_read_yaml(path, use_filelock=False):
+    """Read a yaml file without creating lock files."""
+    import yaml
 
-#     babs_proj = BABSCheckSetup(babs_project_subjectlevel)
+    with open(path) as file:
+        return yaml.safe_load(file)
 
-#     # Check setup should raise a ValueError about missing input dataset
-#     with pytest.raises(ValueError, match="There is no sub-directory.*in 'inputs/data'"):
-#         babs_proj.babs_check_setup(submit_a_test_job=False)
+
+def test_check_setup_custom_path_in_babs(babs_project_subjectlevel_study_layout, monkeypatch):
+    """check-setup validates input datasets at their configured `path_in_babs`.
+
+    Regression test for #325: the input dataset is cloned to `sourcedata/BIDS`
+    (as in the BIDS-study layout) and there is no `inputs/data` folder at all,
+    so a hardcoded probe of `inputs/data` would fail with FileNotFoundError.
+    """
+    project_root = babs_project_subjectlevel_study_layout
+    analysis_path = project_root / 'analysis'
+    assert op.exists(analysis_path / 'sourcedata' / 'BIDS' / '.datalad' / 'config')
+    assert not op.exists(analysis_path / 'inputs')
+
+    monkeypatch.setattr('babs.check_setup.read_yaml', mock_read_yaml)
+    babs_proj = BABSCheckSetup(project_root)
+    babs_proj.wtf_key_info()
+    assert babs_proj.input_datasets['BIDS'].path_in_babs == 'sourcedata/BIDS'
+
+    # Should pass: the input dataset is found at its configured path.
+    babs_proj.babs_check_setup(submit_a_test_job=False)
+
+
+def test_check_setup_input_dataset_at_configured_path(babs_project_subjectlevel):
+    """check-setup reports a bad input dataset using its configured `path_in_babs`."""
+    babs_proj = BABSCheckSetup(babs_project_subjectlevel)
+    in_ds = babs_proj.input_datasets['BIDS']
+
+    # The configured path does not exist:
+    in_ds.path_in_babs = 'sourcedata/does_not_exist'
+    with pytest.raises(FileNotFoundError, match="input dataset #1 'BIDS' does not exist"):
+        babs_proj.babs_check_setup(submit_a_test_job=False)
+
+    # The configured path exists but is not a DataLad dataset:
+    in_ds.path_in_babs = 'code'
+    with pytest.raises(ValueError, match="'BIDS' is not a valid DataLad dataset"):
+        babs_proj.babs_check_setup(submit_a_test_job=False)
+
+
+def test_check_setup_no_input_datasets(babs_project_subjectlevel):
+    """check-setup raises if no input dataset is configured at all."""
+    babs_proj = BABSCheckSetup(babs_project_subjectlevel)
+    babs_proj.input_datasets = InputDatasets('subject', {})
+
+    with pytest.raises(ValueError, match='There is no input dataset in this BABS project'):
+        babs_proj.babs_check_setup(submit_a_test_job=False)
 
 
 def test_check_setup_missing_container(babs_project_sessionlevel):
