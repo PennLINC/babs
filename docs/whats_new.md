@@ -1,5 +1,60 @@
 # What's New
 
+## Version 0.6.0
+
+This release changes how jobs check out data and containers.
+Jobs now clone with `git sparse-checkout`, stage BIDS-inherited metadata automatically,
+and get the container image through a `git worktree`.
+`babs submit` now fetches container images from a local container dataset before trying the network.
+`babs init` supports a BIDS-study layout (set `analysis_path: "."` in the config yaml file),
+resolves container images from their datalad registration so ReproNim/containers works out of the box,
+and writes a BIDS-friendly `.gitattributes`.
+New options: `babs init --throttle`, `--shared-group` and `--no-ignore`; `babs status --wait` and `--json`.
+`babs-unzip` has been removed; use `unzip` instead.
+
+### What's Changed
+#### 🛠 Breaking Changes
+* Remove `babs-unzip` by @tien-tong in https://github.com/PennLINC/babs/pull/400
+#### 🎉 Exciting New Features
+* Add `--throttle` option to `babs init` for SLURM array job throttling by @tien-tong in https://github.com/PennLINC/babs/pull/321
+* Allow submission when all running jobs are in CG state by @tien-tong in https://github.com/PennLINC/babs/pull/332
+* Allow resubmission of failed, non-running jobs when other jobs are running by @tien-tong in https://github.com/PennLINC/babs/pull/335
+* Use `git sparse-checkout` in `participant_job` for more efficient dataset cloning by @tien-tong in https://github.com/PennLINC/babs/pull/337
+* Add --wait flag to babs status by @asmacdo in https://github.com/PennLINC/babs/pull/354
+* Add `babs init --shared-group <GROUP>` by @tien-tong in https://github.com/PennLINC/babs/pull/368
+* Adding an option to fit BIDS-study layout (updated) by @djarecka in https://github.com/PennLINC/babs/pull/369
+* Get container before `babs submit` if missing by @tien-tong in https://github.com/PennLINC/babs/pull/380
+* Stage BIDS-inherited metadata for every job; common_paths for explicit extras by @asmacdo in https://github.com/PennLINC/babs/pull/385
+* Add `babs init --no-ignore` to make logs/ gitignore opt-out by @asmacdo in https://github.com/PennLINC/babs/pull/386
+* Add `babs status --json` for machine-readable status by @asmacdo in https://github.com/PennLINC/babs/pull/389
+* Write a BIDS-friendly .gitattributes at babs init by @asmacdo in https://github.com/PennLINC/babs/pull/393
+* Resolve container image paths from datalad by @asmacdo in https://github.com/PennLINC/babs/pull/399
+* collect duct logs/resource stats for singularity runs by @asmacdo in https://github.com/PennLINC/babs/pull/413
+* Use `git worktree` to get containers by @tien-tong in https://github.com/PennLINC/babs/pull/418
+#### 🐛 Bug Fixes
+* Fix `babs merge` error when deleting merge_ds by @tien-tong in https://github.com/PennLINC/babs/pull/322
+* Use conda to install niworkflows and scipy instead of pip by @tsalo in https://github.com/PennLINC/babs/pull/340
+* Fix `babs init --list_sub_file` by @tien-tong in https://github.com/PennLINC/babs/pull/345
+* Fix writable check for NFS/ACL filesystems by @asmacdo in https://github.com/PennLINC/babs/pull/348
+* Fix `babs merge` by @tien-tong in https://github.com/PennLINC/babs/pull/351
+* Do specify which branch to push by @yarikoptic in https://github.com/PennLINC/babs/pull/352
+* Fix `containers` set up in `participant_job.sh.jinja2` by @tien-tong in https://github.com/PennLINC/babs/pull/363
+* allow full BIDS-acceptable chars as derivative names by @asmacdo in https://github.com/PennLINC/babs/pull/394
+* Drop `session` from the fmap BIDS filter so session-level *prep runs can start by @asmacdo in https://github.com/PennLINC/babs/pull/395
+* Drop the `numpy < 2.0` pin by @asmacdo in https://github.com/PennLINC/babs/pull/405
+* check-setup: validate input datasets at their configured path_in_babs by @yibeichan in https://github.com/PennLINC/babs/pull/407
+#### Other Changes
+* Remove mentions of babs submit --all by @tsalo in https://github.com/PennLINC/babs/pull/341
+* Fix test scripts to work on any machine by @asmacdo in https://github.com/PennLINC/babs/pull/346
+* babs-status: replace pandas with dataclasses by @asmacdo in https://github.com/PennLINC/babs/pull/359
+* Allow running individual tests with custom options by @asmacdo in https://github.com/PennLINC/babs/pull/360
+* Update codecov by @tien-tong in https://github.com/PennLINC/babs/pull/391
+* Pin ruff 0.16.0 by @tien-tong in https://github.com/PennLINC/babs/pull/398
+* docs: ReproNim/containers as the container dataset (follow-up to #399) by @asmacdo in https://github.com/PennLINC/babs/pull/414
+* Add instruction to get containers
+
+**Full Changelog**: https://github.com/PennLINC/babs/compare/0.5.4...0.6.0
+
 ## Version 0.5.4
 
 ### What's Changed
