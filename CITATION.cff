@@ -52,7 +52,7 @@ authors:
   - given-names: Taylor
     family-names: Salo
     email: salot@pennmedicine.upenn.edu
-    affiliation:Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
+    affiliation: Penn Lifespan Informatics and Neuroimaging Center, University of Pennsylvania, Philadelphia, PA, USA; Department of Psychiatry, Perelman School of Medicine, University of Pennsylvania, Philadelphia, PA, USA
     orcid: "https://orcid.org/0000-0001-9813-3167"
   - given-names: Michael
     family-names: Hanke
@@ -98,5 +98,5 @@ keywords:
   - BIDS-App
   - Neuroimaging
 license: MIT
-version: 0.0.10
-date-released: "2025-03-24"
+version: 0.6.0
+date-released: "2026-11-10"
