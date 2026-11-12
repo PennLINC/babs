@@ -259,3 +259,53 @@ def test_generate_pipeline_runscript(tmp_path):
     if not passed:
         print(script_content)
     assert passed, status
+
+
+TEMPLATEFLOW_RO_BIND = (
+    '    -B "${PWD}/sourcedata/templateflow":"/SGLR/TEMPLATEFLOW_HOME":ro \\\n'
+    '    --env "TEMPLATEFLOW_HOME=/SGLR/TEMPLATEFLOW_HOME" \\\n'
+    '    --env "TEMPLATEFLOW_AUTOUPDATE=0" \\\n'
+)
+
+
+def test_bidsapp_runscript_binds_templateflow_read_only(tmp_path):
+    """The templateflow subdataset is bound read-only, with the client's autoupdate off."""
+    config = read_yaml(NOTEBOOKS_DIR / 'eg_fmriprep-24-1-1_regular.yaml')
+    _dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(config)
+    script_content = generate_bidsapp_runscript(
+        input_datasets_prep,
+        'subject',
+        container_name='fmriprep',
+        relative_container_path='containers/.datalad/containers/fmriprep/image',
+        bids_app_output_dir=bids_app_output_dir,
+        dict_zip_foldernames=config['zip_foldernames'],
+        bids_app_args=config['bids_app_args'],
+        singularity_args=config['singularity_args'],
+        templateflow_in_project='sourcedata/templateflow',
+    )
+    assert TEMPLATEFLOW_RO_BIND in script_content
+    # nothing creates a templateflow directory on the host
+    assert 'mkdir -p sourcedata/templateflow' not in script_content
+
+    out_fn = tmp_path / 'run.sh'
+    out_fn.write_text(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    assert passed, status
+
+
+def test_pipeline_runscript_binds_templateflow_read_only(tmp_path):
+    config = read_yaml(NOTEBOOKS_DIR / 'eg_nordic-fmriprep_pipeline.yaml')
+    script_content = generate_pipeline_runscript(
+        pipeline_config=config['pipeline'],
+        processing_level='subject',
+        input_datasets=input_datasets_prep,
+        templateflow_in_project='sourcedata/templateflow',
+        final_zip_foldernames=config.get('zip_foldernames', {}),
+    )
+    # every step gets the bind
+    assert script_content.count(TEMPLATEFLOW_RO_BIND) == len(config['pipeline'])
+
+    out_fn = tmp_path / 'pipeline.sh'
+    out_fn.write_text(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    assert passed, status

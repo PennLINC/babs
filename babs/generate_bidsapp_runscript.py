@@ -23,6 +23,7 @@ def generate_bidsapp_runscript(
     bids_app_args=None,
     singularity_args=None,
     templateflow_home=None,
+    templateflow_in_project=None,
 ):
     """
     Generate a bash script that runs the BIDS App singularity image.
@@ -39,6 +40,8 @@ def generate_bidsapp_runscript(
         list of arguments to be passed to the singularity image
     templateflow_home: str
         path to the templateflow home directory on local disk
+    templateflow_in_project: str, optional
+        analysis-relative path of the templateflow subdataset, bound read-only
     output_directory: str
         path to the output directory
 
@@ -100,6 +103,7 @@ def generate_bidsapp_runscript(
         cmd_unzip_inputds=cmd_unzip_inputds,
         templateflow_home_on_disk=templateflow_home,
         templateflow_in_container='/SGLR/TEMPLATEFLOW_HOME',
+        templateflow_in_project=templateflow_in_project,
         flag_fs_license=flag_fs_license,
         path_fs_license=path_fs_license,
         PATH_FS_LICENSE_IN_CONTAINER=PATH_FS_LICENSE_IN_CONTAINER,
@@ -331,6 +335,7 @@ def generate_pipeline_runscript(
     processing_level,
     input_datasets,
     templateflow_home=None,
+    templateflow_in_project=None,
     final_zip_foldernames=None,
     container_image_paths=None,
 ):
@@ -355,6 +360,9 @@ def generate_pipeline_runscript(
 
     templateflow_home: str, optional
         TEMPLATEFLOW_HOME on disk, if any, to add a bind mount
+
+    templateflow_in_project: str, optional
+        analysis-relative path of the templateflow subdataset, bound read-only
 
     final_zip_foldernames: dict, optional
         Top-level zip_foldernames configuration for final output zipping.
@@ -485,6 +493,7 @@ def generate_pipeline_runscript(
         processed_steps=processed_steps,
         templateflow_home_on_disk=templateflow_home,
         templateflow_in_container='/SGLR/TEMPLATEFLOW_HOME',
+        templateflow_in_project=templateflow_in_project,
         cmd_unzip_inputds=cmd_unzip_inputds,
         cmd_zip=cmd_zip,
         PATH_FS_LICENSE_IN_CONTAINER=PATH_FS_LICENSE_IN_CONTAINER,
