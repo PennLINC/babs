@@ -8,6 +8,7 @@ from babs.scheduler import report_job_status
 from babs.status import (
     JobStatus,
     SchedulerState,
+    _format_elapsed,
     create_initial_statuses,
     job_status_counts,
     read_job_status_csv,
@@ -562,6 +563,16 @@ class TestUpdateFromSacct:
         assert job.max_rss == 4194304
         assert job.time_elapsed_raw == 19
         assert job.exit_code == ''
+        # squeue still reports a running job, so its time_used stands.
+        assert job.time_used == '0:05'
+
+    def test_terminal_job_time_used_from_elapsed(self):
+        # squeue's last time_used for this job was 0:05; it actually ran 43h06m.
+        statuses = self._submitted_statuses()
+        raw = '100_2||155160|0:0|COMPLETED\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].time_used == '1-19:06:00'
 
     def test_pending_array_task_row_is_ignored(self):
         # A not-yet-started array task shows up as `<job>_[<task>]`.
@@ -777,3 +788,17 @@ class TestReportJobStatus:
         report_job_status(statuses, '/fake/analysis')
         out = capsys.readouterr().out
         assert 'All jobs are completed' in out
+
+
+@pytest.mark.parametrize(
+    ('seconds', 'expected'),
+    [
+        (0, '0:00'),
+        (926, '15:26'),
+        (3723, '1:02:03'),
+        (86400, '1-00:00:00'),
+        (155160, '1-19:06:00'),
+    ],
+)
+def test_format_elapsed_matches_squeue(seconds, expected):
+    assert _format_elapsed(seconds) == expected
