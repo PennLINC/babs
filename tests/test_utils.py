@@ -429,9 +429,9 @@ sub-0002,ses-01,6959620,2
 
 job_status_with_accounting = """\
 sub_id,ses_id,submitted,is_failed,state,time_used,time_limit,nodes,cpus,partition,name,job_id,task_id,has_results,max_rss,time_elapsed_raw,exit_code
-sub-0001,ses-01,True,False,DONE,nan,nan,0,0,nan,nan,6959442,1,True,512932K,120,0:0
+sub-0001,ses-01,True,False,DONE,nan,nan,0,0,nan,nan,6959442,1,True,525242368,120,0:0
 sub-0001,ses-02,False,False,nan,nan,nan,nan,nan,nan,nan,nan,nan,False,,,
-sub-0002,ses-01,True,True,DONE,nan,nan,0,0,nan,nan,6959442,2,False,10240K,30,1:0"""
+sub-0002,ses-01,True,True,DONE,nan,nan,0,0,nan,nan,6959442,2,False,10485760,30,1:0"""
 
 
 def test_update_submitted_job_ids():
@@ -454,7 +454,7 @@ def test_update_submitted_job_ids_clears_previous_accounting():
         assert pd.isna(resubmitted[column]), column
     # the untouched row keeps its metrics
     untouched = updated_df.loc[('sub-0001', 'ses-01')]
-    assert untouched['max_rss'] == '512932K'
+    assert untouched['max_rss'] == 525242368
     assert untouched['exit_code'] == '0:0'
 
 

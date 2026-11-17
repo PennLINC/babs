@@ -152,7 +152,7 @@ class TestCSVRoundTrip:
                 cpus=4,
                 partition='normal',
                 name='my_job',
-                max_rss='512932K',
+                max_rss=525242368,
                 time_elapsed_raw=5400,
                 exit_code='0:0',
             ),
@@ -162,7 +162,7 @@ class TestCSVRoundTrip:
         loaded = read_job_status_csv(path)
 
         job = loaded[('sub-01',)]
-        assert job.max_rss == '512932K'
+        assert job.max_rss == 525242368
         assert job.time_elapsed_raw == 5400
         assert job.exit_code == '0:0'
 
@@ -503,59 +503,63 @@ class TestUpdateFromSacct:
         statuses = self._submitted_statuses()
         raw = (
             '100_1||120|0:0|COMPLETED\n'
-            '100_1.batch|512932K||0:0|COMPLETED\n'
-            '100_1.extern|100K||0:0|COMPLETED\n'
+            '100_1.batch|525242368||0:0|COMPLETED\n'
+            '100_1.extern|102400||0:0|COMPLETED\n'
         )
         updated = update_from_sacct(statuses, raw)
 
         job = updated[('sub-01',)]
-        assert job.max_rss == '512932K'
+        assert job.max_rss == 525242368
         assert job.time_elapsed_raw == 120
         assert job.exit_code == '0:0'
 
     def test_no_matching_job_id_leaves_unchanged(self):
         statuses = self._submitted_statuses()
-        raw = '999_1|512932K|120|0:0|COMPLETED\n'
+        raw = '999_1|525242368|120|0:0|COMPLETED\n'
         updated = update_from_sacct(statuses, raw)
 
-        assert updated[('sub-01',)].max_rss == ''
+        assert updated[('sub-01',)].max_rss is None
         assert updated[('sub-01',)].time_elapsed_raw is None
 
     def test_partial_metrics_only_updates_matching_job(self):
         statuses = self._submitted_statuses()
-        raw = '100_2|10240K|30|1:0|FAILED\n'
+        raw = '100_2|10485760|30|1:0|FAILED\n'
         updated = update_from_sacct(statuses, raw)
 
-        assert updated[('sub-02',)].max_rss == '10240K'
+        assert updated[('sub-02',)].max_rss == 10485760
         assert updated[('sub-02',)].time_elapsed_raw == 30
         assert updated[('sub-02',)].exit_code == '1:0'
         # sub-01 unaffected since it wasn't in the sacct output
-        assert updated[('sub-01',)].max_rss == ''
+        assert updated[('sub-01',)].max_rss is None
 
     def test_empty_sacct_output_leaves_unchanged(self):
         statuses = self._submitted_statuses()
         updated = update_from_sacct(statuses, '')
 
-        assert updated[('sub-01',)].max_rss == ''
+        assert updated[('sub-01',)].max_rss is None
         assert updated[('sub-01',)].exit_code == ''
 
-    def test_mem_comparison_across_units(self):
+    def test_max_rss_is_largest_across_steps(self):
         statuses = self._submitted_statuses()
-        # 1G should be recognized as larger than 512932K
-        raw = '100_1|512932K|120|0:0|COMPLETED\n100_1.batch|1G||0:0|COMPLETED\n'
+        # .extern comes first here, so the larger value must win, not the first seen.
+        raw = (
+            '100_1||120|0:0|COMPLETED\n'
+            '100_1.extern|102400||0:0|COMPLETED\n'
+            '100_1.batch|8579649536||0:0|COMPLETED\n'
+        )
         updated = update_from_sacct(statuses, raw)
 
-        assert updated[('sub-01',)].max_rss == '1G'
+        assert updated[('sub-01',)].max_rss == 8579649536
 
     def test_running_job_updates_snapshots_but_not_exit_code(self):
         # sacct reports ExitCode 0:0 while a job is still running, so recording it
         # would make the metrics look final before they are.
         statuses = self._submitted_statuses()
-        raw = '100_2||19|0:0|RUNNING\n100_2.batch|4096K|19|0:0|RUNNING\n'
+        raw = '100_2||19|0:0|RUNNING\n100_2.batch|4194304|19|0:0|RUNNING\n'
         updated = update_from_sacct(statuses, raw)
 
         job = updated[('sub-02',)]
-        assert job.max_rss == '4096K'
+        assert job.max_rss == 4194304
         assert job.time_elapsed_raw == 19
         assert job.exit_code == ''
 

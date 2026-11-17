@@ -50,7 +50,7 @@ class JobStatus:
     cpus: int
     partition: str
     name: str
-    max_rss: str = ''
+    max_rss: int | None = None
     time_elapsed_raw: int | None = None
     exit_code: str = ''
 
@@ -209,7 +209,7 @@ def _job_status_from_row(row: dict) -> JobStatus:
         cpus=int(float(row.get('cpus', '0').strip() or '0')),
         partition=row.get('partition', '').strip(),
         name=row.get('name', '').strip(),
-        max_rss=row.get('max_rss', '').strip(),
+        max_rss=_parse_optional_int(row.get('max_rss', '')),
         time_elapsed_raw=_parse_optional_int(row.get('time_elapsed_raw', '')),
         exit_code=row.get('exit_code', '').strip(),
     )
@@ -242,7 +242,7 @@ def _job_status_to_row(job: JobStatus, session_level: bool) -> dict:
         'job_id': str(job.job_id) if job.job_id is not None else '',
         'task_id': str(job.task_id) if job.task_id is not None else '',
         'has_results': str(job.has_results),
-        'max_rss': job.max_rss,
+        'max_rss': str(job.max_rss) if job.max_rss is not None else '',
         'time_elapsed_raw': str(job.time_elapsed_raw) if job.time_elapsed_raw is not None else '',
         'exit_code': job.exit_code,
     }
@@ -383,8 +383,6 @@ def update_from_scheduler(
     return updated
 
 
-_MEM_UNIT_MULTIPLIERS = {'K': 1024, 'M': 1024**2, 'G': 1024**3, 'T': 1024**4}
-
 # sacct ``State`` values after which a job's accounting no longer changes.
 _SACCT_TERMINAL_STATES = frozenset(
     {
@@ -400,32 +398,6 @@ _SACCT_TERMINAL_STATES = frozenset(
         'TIMEOUT',
     }
 )
-
-
-def _mem_to_bytes(value: str) -> float:
-    """Convert a Slurm memory string (e.g. ``'512932K'``) to a byte count."""
-    value = value.strip()
-    if not value:
-        return 0.0
-    suffix = value[-1].upper()
-    if suffix in _MEM_UNIT_MULTIPLIERS:
-        try:
-            return float(value[:-1]) * _MEM_UNIT_MULTIPLIERS[suffix]
-        except ValueError:
-            return 0.0
-    try:
-        return float(value)
-    except ValueError:
-        return 0.0
-
-
-def _max_mem(current: str, candidate: str) -> str:
-    """Return whichever of two Slurm memory strings represents more bytes."""
-    if not candidate:
-        return current
-    if not current:
-        return candidate
-    return candidate if _mem_to_bytes(candidate) > _mem_to_bytes(current) else current
 
 
 def update_from_sacct(
@@ -479,9 +451,12 @@ def update_from_sacct(
 
         record = sacct_by_id.setdefault(
             (job_id, task_id),
-            {'max_rss': '', 'elapsed_raw': None, 'exit_code': ''},
+            {'max_rss': None, 'elapsed_raw': None, 'exit_code': ''},
         )
-        record['max_rss'] = _max_mem(record['max_rss'], max_rss.strip())
+        # run_sacct passes --noconvert, so MaxRSS is a plain byte count.
+        max_rss = max_rss.strip()
+        if max_rss:
+            record['max_rss'] = max(record['max_rss'] or 0, int(max_rss))
         if not is_step:
             # Only the parent step reflects the whole job's elapsed time/exit code.
             elapsed_raw = elapsed_raw.strip()
@@ -507,7 +482,7 @@ def update_from_sacct(
         if record is not None:
             updated[key] = replace(
                 job,
-                max_rss=record['max_rss'] or job.max_rss,
+                max_rss=(record['max_rss'] if record['max_rss'] is not None else job.max_rss),
                 time_elapsed_raw=(
                     record['elapsed_raw']
                     if record['elapsed_raw'] is not None
