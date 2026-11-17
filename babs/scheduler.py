@@ -82,6 +82,9 @@ def run_sacct(queue, job_id: int) -> str:
         str(job_id),
         '--noheader',
         '--parsable2',
+        # Report MaxRSS in plain bytes (no unit suffix), so every value in the
+        # column has the same unit whatever unit sacct would have picked.
+        '--noconvert',
         '--format=JobID,MaxRSS,ElapsedRaw,ExitCode,State',
     ]
 
