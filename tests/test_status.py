@@ -8,10 +8,12 @@ from babs.scheduler import report_job_status
 from babs.status import (
     JobStatus,
     SchedulerState,
+    _format_elapsed,
     create_initial_statuses,
     job_status_counts,
     read_job_status_csv,
     update_from_branches,
+    update_from_sacct,
     update_from_scheduler,
     write_job_status_csv,
 )
@@ -135,6 +137,35 @@ class TestCSVRoundTrip:
             assert loaded[key].job_id == original[key].job_id
             assert loaded[key].is_failed == original[key].is_failed
             assert loaded[key].submitted == original[key].submitted
+
+    def test_round_trip_sacct_fields(self, tmp_path):
+        original = {
+            ('sub-01',): JobStatus(
+                sub_id='sub-01',
+                ses_id=None,
+                scheduler_state=SchedulerState.DONE,
+                has_results=True,
+                job_id=123,
+                task_id=1,
+                time_used='1:30:00',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=4,
+                partition='normal',
+                name='my_job',
+                max_rss=525242368,
+                time_elapsed_raw=5400,
+                exit_code='0:0',
+            ),
+        }
+        path = str(tmp_path / 'job_status.csv')
+        write_job_status_csv(path, original)
+        loaded = read_job_status_csv(path)
+
+        job = loaded[('sub-01',)]
+        assert job.max_rss == 525242368
+        assert job.time_elapsed_raw == 5400
+        assert job.exit_code == '0:0'
 
     def test_round_trip_session_level(self, tmp_path):
         original = {
@@ -433,6 +464,134 @@ class TestUpdateFromScheduler:
             update_from_scheduler(statuses, raw)
 
 
+# -- update_from_sacct ---------------------------------------------------------
+
+
+class TestUpdateFromSacct:
+    def _submitted_statuses(self):
+        return {
+            ('sub-01',): JobStatus(
+                sub_id='sub-01',
+                ses_id=None,
+                scheduler_state=SchedulerState.DONE,
+                has_results=True,
+                job_id=100,
+                task_id=1,
+                time_used='',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=1,
+                partition='normal',
+                name='my_job',
+            ),
+            ('sub-02',): JobStatus(
+                sub_id='sub-02',
+                ses_id=None,
+                scheduler_state=SchedulerState.RUNNING,
+                has_results=False,
+                job_id=100,
+                task_id=2,
+                time_used='0:05',
+                time_limit='5-00:00:00',
+                nodes=1,
+                cpus=1,
+                partition='normal',
+                name='my_job',
+            ),
+        }
+
+    def test_updates_metrics_from_batch_and_parent_steps(self):
+        statuses = self._submitted_statuses()
+        raw = (
+            '100_1||120|0:0|COMPLETED\n'
+            '100_1.batch|525242368||0:0|COMPLETED\n'
+            '100_1.extern|102400||0:0|COMPLETED\n'
+        )
+        updated = update_from_sacct(statuses, raw)
+
+        job = updated[('sub-01',)]
+        assert job.max_rss == 525242368
+        assert job.time_elapsed_raw == 120
+        assert job.exit_code == '0:0'
+
+    def test_no_matching_job_id_leaves_unchanged(self):
+        statuses = self._submitted_statuses()
+        raw = '999_1|525242368|120|0:0|COMPLETED\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-01',)].max_rss is None
+        assert updated[('sub-01',)].time_elapsed_raw is None
+
+    def test_partial_metrics_only_updates_matching_job(self):
+        statuses = self._submitted_statuses()
+        raw = '100_2|10485760|30|1:0|FAILED\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].max_rss == 10485760
+        assert updated[('sub-02',)].time_elapsed_raw == 30
+        assert updated[('sub-02',)].exit_code == '1:0'
+        # sub-01 unaffected since it wasn't in the sacct output
+        assert updated[('sub-01',)].max_rss is None
+
+    def test_empty_sacct_output_leaves_unchanged(self):
+        statuses = self._submitted_statuses()
+        updated = update_from_sacct(statuses, '')
+
+        assert updated[('sub-01',)].max_rss is None
+        assert updated[('sub-01',)].exit_code == ''
+
+    def test_max_rss_is_largest_across_steps(self):
+        statuses = self._submitted_statuses()
+        # .extern comes first here, so the larger value must win, not the first seen.
+        raw = (
+            '100_1||120|0:0|COMPLETED\n'
+            '100_1.extern|102400||0:0|COMPLETED\n'
+            '100_1.batch|8579649536||0:0|COMPLETED\n'
+        )
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-01',)].max_rss == 8579649536
+
+    def test_running_job_updates_snapshots_but_not_exit_code(self):
+        # sacct reports ExitCode 0:0 while a job is still running, so recording it
+        # would make the metrics look final before they are.
+        statuses = self._submitted_statuses()
+        raw = '100_2||19|0:0|RUNNING\n100_2.batch|4194304|19|0:0|RUNNING\n'
+        updated = update_from_sacct(statuses, raw)
+
+        job = updated[('sub-02',)]
+        assert job.max_rss == 4194304
+        assert job.time_elapsed_raw == 19
+        assert job.exit_code == ''
+        # squeue still reports a running job, so its time_used stands.
+        assert job.time_used == '0:05'
+
+    def test_terminal_job_time_used_from_elapsed(self):
+        # squeue's last time_used for this job was 0:05; it actually ran 43h06m.
+        statuses = self._submitted_statuses()
+        raw = '100_2||155160|0:0|COMPLETED\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].time_used == '1-19:06:00'
+
+    def test_pending_array_task_row_is_ignored(self):
+        # A not-yet-started array task shows up as `<job>_[<task>]`.
+        statuses = self._submitted_statuses()
+        raw = '100_[2]||0|0:0|PENDING\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].exit_code == ''
+        assert updated[('sub-02',)].time_elapsed_raw is None
+
+    def test_cancelled_by_user_is_terminal(self):
+        statuses = self._submitted_statuses()
+        raw = '100_2||40|0:0|CANCELLED by 1000\n'
+        updated = update_from_sacct(statuses, raw)
+
+        assert updated[('sub-02',)].exit_code == '0:0'
+        assert updated[('sub-02',)].time_elapsed_raw == 40
+
+
 # -- create_initial_statuses ---------------------------------------------------
 
 
@@ -629,3 +788,17 @@ class TestReportJobStatus:
         report_job_status(statuses, '/fake/analysis')
         out = capsys.readouterr().out
         assert 'All jobs are completed' in out
+
+
+@pytest.mark.parametrize(
+    ('seconds', 'expected'),
+    [
+        (0, '0:00'),
+        (926, '15:26'),
+        (3723, '1:02:03'),
+        (86400, '1-00:00:00'),
+        (155160, '1-19:06:00'),
+    ],
+)
+def test_format_elapsed_matches_squeue(seconds, expected):
+    assert _format_elapsed(seconds) == expected

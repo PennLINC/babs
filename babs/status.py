@@ -50,6 +50,9 @@ class JobStatus:
     cpus: int
     partition: str
     name: str
+    max_rss: int | None = None
+    time_elapsed_raw: int | None = None
+    exit_code: str = ''
 
     @property
     def is_failed(self) -> bool:
@@ -129,6 +132,9 @@ _CSV_COLUMNS_SUBJECT = [
     'job_id',
     'task_id',
     'has_results',
+    'max_rss',
+    'time_elapsed_raw',
+    'exit_code',
 ]
 
 _CSV_COLUMNS_SESSION = [
@@ -146,6 +152,9 @@ _CSV_COLUMNS_SESSION = [
     'job_id',
     'task_id',
     'has_results',
+    'max_rss',
+    'time_elapsed_raw',
+    'exit_code',
 ]
 
 _STATE_TO_CSV = {
@@ -200,6 +209,9 @@ def _job_status_from_row(row: dict) -> JobStatus:
         cpus=int(float(row.get('cpus', '0').strip() or '0')),
         partition=row.get('partition', '').strip(),
         name=row.get('name', '').strip(),
+        max_rss=_parse_optional_int(row.get('max_rss', '')),
+        time_elapsed_raw=_parse_optional_int(row.get('time_elapsed_raw', '')),
+        exit_code=row.get('exit_code', '').strip(),
     )
 
 
@@ -230,6 +242,9 @@ def _job_status_to_row(job: JobStatus, session_level: bool) -> dict:
         'job_id': str(job.job_id) if job.job_id is not None else '',
         'task_id': str(job.task_id) if job.task_id is not None else '',
         'has_results': str(job.has_results),
+        'max_rss': str(job.max_rss) if job.max_rss is not None else '',
+        'time_elapsed_raw': str(job.time_elapsed_raw) if job.time_elapsed_raw is not None else '',
+        'exit_code': job.exit_code,
     }
     if session_level:
         row['ses_id'] = job.ses_id or ''
@@ -363,6 +378,139 @@ def update_from_scheduler(
         elif job.submitted:
             # Was submitted, not in scheduler anymore -> DONE
             updated[key] = replace(job, scheduler_state=SchedulerState.DONE)
+        else:
+            updated[key] = job
+    return updated
+
+
+# sacct ``State`` values after which a job's accounting no longer changes.
+_SACCT_TERMINAL_STATES = frozenset(
+    {
+        'BOOT_FAIL',
+        'CANCELLED',
+        'COMPLETED',
+        'DEADLINE',
+        'FAILED',
+        'NODE_FAIL',
+        'OUT_OF_MEMORY',
+        'PREEMPTED',
+        'REVOKED',
+        'TIMEOUT',
+    }
+)
+
+
+def _format_elapsed(seconds: int) -> str:
+    """Format seconds the way squeue's ``%M`` does: ``M:SS``, ``H:MM:SS``, ``D-HH:MM:SS``."""
+    minutes, secs = divmod(seconds, 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    if days:
+        return f'{days}-{hours:02d}:{minutes:02d}:{secs:02d}'
+    if hours:
+        return f'{hours}:{minutes:02d}:{secs:02d}'
+    return f'{minutes}:{secs:02d}'
+
+
+def update_from_sacct(
+    statuses: dict[tuple, JobStatus],
+    raw_sacct: str,
+) -> dict[tuple, JobStatus]:
+    """Update statuses with accounting information from raw sacct output.
+
+    Parses sacct output (pipe-delimited:
+    ``JobID|MaxRSS|ElapsedRaw|ExitCode|State``), joins with existing
+    statuses via (job_id, task_id), and updates the ``max_rss``,
+    ``time_elapsed_raw``, and ``exit_code`` fields.
+
+    sacct reports one row per job step for an array task (e.g.
+    ``<job_id>_<task_id>``, ``<job_id>_<task_id>.batch``, and
+    ``<job_id>_<task_id>.extern``). ``MaxRSS`` is typically
+    only populated on the ``.batch`` step, so the maximum reported value
+    across all steps is used. ``ElapsedRaw``/``ExitCode`` are taken from the
+    parent step (no suffix), which reflects the whole job.
+
+    The fields are refreshed on every call, but they fill in at different
+    times. ``time_elapsed_raw`` advances while the job runs. ``max_rss`` stays
+    empty until the ``.batch`` step ends: the accounting
+    plugin ships a step's memory statistics to slurmdbd at step completion, so
+    sacct has nothing for a running step (``sstat`` is the live view). And
+    sacct reports ``ExitCode`` as ``0:0`` while a job is still running, so
+    ``exit_code`` is recorded only once ``State`` is terminal (COMPLETED,
+    FAILED, TIMEOUT, ...). A populated ``exit_code`` therefore means the
+    accounting for that job is final, which is what the caller uses to stop
+    re-querying it.
+
+    ``time_used`` comes from squeue, which stops listing a job once it ends,
+    so its last value is whatever the final refresh before the end caught.
+    Once ``State`` is terminal it is overwritten from ``ElapsedRaw``, in
+    squeue's format, so the column reads the job's real run time.
+    """
+    # Parse sacct output into a lookup of (job_id, task_id) -> accounting fields
+    sacct_by_id: dict[tuple[int, int], dict] = {}
+    for line in raw_sacct.strip().splitlines():
+        if not line.strip():
+            continue
+        parts = line.strip().split('|')
+        if len(parts) != 5:
+            continue
+        raw_job_id, max_rss, elapsed_raw, exit_code, state = parts
+        is_step = '.' in raw_job_id
+        base_job_id = raw_job_id.split('.')[0]
+        id_parts = base_job_id.split('_')
+        if len(id_parts) != 2:
+            continue
+        try:
+            job_id = int(id_parts[0])
+            task_id = int(id_parts[1])
+        except ValueError:
+            continue
+
+        record = sacct_by_id.setdefault(
+            (job_id, task_id),
+            {'max_rss': None, 'elapsed_raw': None, 'exit_code': '', 'time_used': ''},
+        )
+        # run_sacct passes --noconvert, so MaxRSS is a plain byte count.
+        max_rss = max_rss.strip()
+        if max_rss:
+            record['max_rss'] = max(record['max_rss'] or 0, int(max_rss))
+        if not is_step:
+            # Only the parent step reflects the whole job's elapsed time/exit code.
+            elapsed_raw = elapsed_raw.strip()
+            if elapsed_raw:
+                record['elapsed_raw'] = int(elapsed_raw)
+            # "CANCELLED by <uid>" is a two-word state; the first word classifies it.
+            state_word = state.strip().split(' ')[0]
+            exit_code = exit_code.strip()
+            if state_word in _SACCT_TERMINAL_STATES:
+                if exit_code:
+                    record['exit_code'] = exit_code
+                if record['elapsed_raw'] is not None:
+                    record['time_used'] = _format_elapsed(record['elapsed_raw'])
+
+    # Build reverse lookup: key -> (job_id, task_id) for matching
+    key_to_ids: dict[tuple, tuple[int, int]] = {}
+    for key, job in statuses.items():
+        if job.job_id is not None and job.task_id is not None:
+            key_to_ids[key] = (job.job_id, job.task_id)
+
+    updated = {}
+    for key, job in statuses.items():
+        ids = key_to_ids.get(key)
+        record = sacct_by_id.get(ids) if ids else None
+
+        if record is not None:
+            updated[key] = replace(
+                job,
+                max_rss=(record['max_rss'] if record['max_rss'] is not None else job.max_rss),
+                time_elapsed_raw=(
+                    record['elapsed_raw']
+                    if record['elapsed_raw'] is not None
+                    else job.time_elapsed_raw
+                ),
+                exit_code=record['exit_code'] or job.exit_code,
+                time_used=record['time_used'] or job.time_used,
+            )
         else:
             updated[key] = job
     return updated
