@@ -73,7 +73,7 @@ def generate_bidsapp_runscript(
             flag_fs_license,
             path_fs_license,
             bids_app_input_dir,
-        ) = bids_app_args_from_config(bids_app_args, input_datasets)
+        ) = bids_app_args_from_config(bids_app_args, input_datasets, processing_level)
 
     # Get unzip commands for any zipped input datasets
     cmd_unzip_inputds = get_input_unzipping_cmds(input_datasets)
@@ -169,7 +169,7 @@ def get_output_zipping_cmds(dict_zip_foldernames, processing_level):
     return cmd
 
 
-def bids_app_args_from_config(bids_app_args, input_datasets):
+def bids_app_args_from_config(bids_app_args, input_datasets, processing_level):
     """
     This is to generate command (in strings) of singularity run
     from config read from container config yaml file.
@@ -180,6 +180,9 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
         attribute `config` in class Container;
     input_datasets: list of dicts
         each dict contains information of an input dataset
+    processing_level : {'subject', 'session'}
+        `$SESSION_SELECTION_FLAG` is only passed at session level;
+        a subject-level job has no `$sesid`.
 
     Returns:
     ---------
@@ -225,7 +228,9 @@ def bids_app_args_from_config(bids_app_args, input_datasets):
         elif key == '$SUBJECT_SELECTION_FLAG':
             subject_selection_flag = value
         elif key == '$SESSION_SELECTION_FLAG':
-            cmds.append(f'{value} $sesid')
+            # Only include session flag when processing at session level
+            if processing_level == 'session':
+                cmds.append(f'{value} "$sesid"')
 
         else:  # check on values:
             if value in ('', None, 'Null', 'NULL'):  # a flag, without value

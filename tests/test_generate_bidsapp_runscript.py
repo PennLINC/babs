@@ -209,6 +209,40 @@ def test_session_filter_file_fmap_carries_no_session(config_file, tmp_path):
     assert all(value.get('session') == '1' for value in others.values())
 
 
+@pytest.mark.parametrize('processing_level', ['subject', 'session'])
+def test_session_selection_flag_only_at_session_level(processing_level, tmp_path):
+    """`$SESSION_SELECTION_FLAG` is passed only at session level.
+
+    A subject-level runscript defines no `sesid`, so passing the flag there leaves
+    `--session-label $sesid` under `set -u` and every job dies on an unbound variable.
+    This lets one config carrying the flag run a dataset at either level.
+    """
+    config = read_yaml(NOTEBOOKS_DIR / 'eg_toybidsapp-0-0-7_rawBIDS-walkthrough.yaml')
+    _dict_zip_foldernames, bids_app_output_dir = app_output_settings_from_config(config)
+    bids_app_args = {**config['bids_app_args'], '$SESSION_SELECTION_FLAG': '--session-label'}
+    script_content = generate_bidsapp_runscript(
+        input_datasets_prep,
+        processing_level,
+        container_name='toybidsapp',
+        relative_container_path='containers/.datalad/containers/toybidsapp/image',
+        bids_app_output_dir=bids_app_output_dir,
+        dict_zip_foldernames=config['zip_foldernames'],
+        bids_app_args=bids_app_args,
+        singularity_args=config['singularity_args'],
+        templateflow_home='/path/to/templateflow_home',
+    )
+
+    if processing_level == 'session':
+        assert '--session-label "$sesid"' in script_content
+    else:
+        assert '--session-label' not in script_content
+
+    out_fn = tmp_path / f'session_flag_{processing_level}.sh'
+    out_fn.write_text(script_content)
+    passed, status = run_shellcheck(str(out_fn))
+    assert passed, status
+
+
 def run_shellcheck(script_path):
     """Run shellcheck on a shell script string and return the result.
 
